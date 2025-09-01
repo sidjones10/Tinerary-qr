@@ -1,26 +1,71 @@
-// Since the existing code was omitted for brevity and the updates indicate undeclared variables,
-// I will assume the variables are used within a function or block of code.
-// I will declare them at the top of the file to resolve the issues.
-// Without the original code, this is the best I can do to address the problem description.
+"use server"
 
-let brevity: any
-let it: any
-let is: any
-let correct: any
-let and: any
+import { createClient } from "@/lib/supabase/server"
+import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
 
-// The rest of the original app/actions/auth.ts code would go here.
-// Assuming the original code uses the above variables somewhere.
-// For example:
+export async function signIn(email: string, password: string) {
+  const supabase = createClient()
 
-function someAuthFunction() {
-  if (is && correct) {
-    console.log("Authentication successful")
-  } else {
-    console.log("Authentication failed")
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  })
+
+  if (error) {
+    return { error: error.message }
   }
 
-  brevity = "short"
-  it = "something"
-  and = true
+  revalidatePath("/", "layout")
+  redirect("/dashboard")
+}
+
+export async function signUp(email: string, password: string, username?: string) {
+  const supabase = createClient()
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        username: username || email.split("@")[0],
+      },
+    },
+  })
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  if (data.user) {
+    // Create user profile in the database
+    const { error: profileError } = await supabase.from("users").insert([
+      {
+        id: data.user.id,
+        email,
+        name: username || email.split("@")[0],
+        created_at: new Date().toISOString(),
+      },
+    ])
+
+    if (profileError) {
+      console.error("Profile creation error:", profileError)
+    }
+  }
+
+  revalidatePath("/", "layout")
+  return { success: true, needsVerification: !data.user?.email_confirmed_at }
+}
+
+export async function signOut() {
+  const supabase = createClient()
+
+  const { error } = await supabase.auth.signOut()
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath("/", "layout")
+  redirect("/auth")
 }

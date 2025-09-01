@@ -1,0 +1,157 @@
+<svg width="1200" height="800" viewBox="0 0 1200 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g opacity="0.5">
+    <!-- World map dots pattern -->
+    <circle cx="200" cy="150" r="3" fill="currentColor"/>
+    <circle cx="220" cy="170" r="3" fill="currentColor"/>
+    <circle cx="240" cy="140" r="3" fill="currentColor"/>
+    <circle cx="260" cy="160" r="3" fill="currentColor"/>
+    <circle cx="280" cy="180" r="3" fill="currentColor"/>
+    <circle cx="300" cy="150" r="3" fill="currentColor"/>
+    <circle cx="320" cy="170" r="3" fill="currentColor"/>
+    <circle cx="340" cy="190" r="3" fill="currentColor"/>
+    <circle cx="360" cy="160" r="3" fill="currentColor"/>
+    <circle cx="380" cy="140" r="3" fill="currentColor"/>
+    <circle cx="400" cy="180" r="3" fill="currentColor"/>
+    <circle cx="420" cy="200" r="3" fill="currentColor"/>
+    <circle cx="440" cy="170" r="3" fill="currentColor"/>
+    <circle cx="460" cy="150" r="3" fill="currentColor"/>
+    <circle cx="480" cy="190" r="3" fill="currentColor"/>
+    <circle cx="500" cy="160" r="3" fill="currentColor"/>
+    <circle cx="520" cy="140" r="3" fill="currentColor"/>
+    <circle cx="540" cy="180" r="3" fill="currentColor"/>
+    <circle cx="560" cy="200" r="3" fill="currentColor"/>
+    <circle cx="580" cy="170" r="3" fill="currentColor"/>
+    <circle cx="600" cy="150" r="3" fill="currentColor"/>
+    <circle cx="620" cy="190" r="3" fill="currentColor"/>
+    <circle cx="640" cy="160" r="3" fill="currentColor"/>
+    <circle cx="660" cy="140" r="3" fill="currentColor"/>
+    <circle cx="680" cy="180" r="3" fill="currentColor"/>
+    <circle cx="700" cy="200" r="3" fill="currentColor"/>
+    <circle cx="720" cy="170" r="3" fill="currentColor"/>
+    <circle cx="740" cy="150" r="3" fill="currentColor"/>
+    <circle cx="760" cy="190" r="3" fill="currentColor"/>
+    <circle cx="780" cy="160" r="3" fill="currentColor"/>
+    <circle cx="800" cy="140" r="3" fill="currentColor"/>
+    <circle cx="820" cy="180" r="3" fill="currentColor"/>
+    <circle cx="840" cy="200" r="3" fill="currentColor"/>
+    <circle cx="860" cy="170" r="3" fill="currentColor"/>
+    <circle cx="880" cy="150" r="3" fill="currentColor"/>
+    <circle cx="900" cy="190" r="3" fill="currentColor"/>
+    <circle  r="3" fill="currentColor"/>
+    <circle cx="900" cy="190" r="3" fill="currentColor"/>
+    <circle cx="920" cy="160" r="3" fill="currentColor"/>
+    <circle cx="940" cy="140" r="3" fill="currentColor"/>
+    <circle cx="960" cy="180" r="3" fill="currentColor"/>
+    <circle cx="980" cy="200" r="3" fill="currentColor"/>
+    <circle cx="1000" cy="170" r="3" fill="currentColor"/>
+    
+    <!-- Second row -->
+    <circle cx="180" cy="250" r="3" fill="currentColor"/>
+    <circle cx="200" cy="270" r="3" fill="currentColor"/>
+    <circle cx="220" cy="240" r="3" fill="currentColor"/>
+    <circle cx="240" cy="260" r="3" fill="currentColor"/>
+    <circle cx="260" cy="280" r="3" fill="currentColor"/>
+    <circle cx="280" cy="250" r="3" fill="currentColor"/>
+    <circle cx="300" cy="270" r="3" fill="currentColor"/>
+    <circle cx="320" cy="290" r="3" fill="currentColor"/>
+    <circle cx="340" cy="260" r="3" fill="currentColor"/>
+    <circle cx="360" cy="240" r="3" fill="currentColor"/>
+    <circle cx="380" cy="280" r="3" fill="currentColor"/>
+    <circle cx="400" cy="300" r="3" fill="currentColor"/>
+    <circle cx="420" cy="270" r="3" fill="currentColor"/>
+    <circle cx="440" cy="250" r="3" fill="currentColor"/>
+    <circle cx="460" cy="290" r="3" fill="currentColor"/>
+    <circle cx="480" cy="260" r="3" fill="currentColor"/>
+    <circle cx="500" cy="240" r="3" fill="currentColor"/>
+    <circle cx="520" cy="280" r="3" fill="currentColor"/>
+    <circle cx="540" cy="300" r="3" fill="currentColor"/>
+    <circle cx="560" cy="270" r="3" fill="currentColor"/>
+    <circle cx="580" cy="250" r="3" fill="currentColor"/>
+    <circle cx="600" cy="290" r="3" fill="currentColor"/>
+    <circle cx="620" cy="260" r="3" fill="currentColor"/>
+    <circle cx="640" cy="240" r="3" fill="currentColor"/>
+    <circle cx="660" cy="280" r="3" fill="currentColor"/>
+    <circle cx="680" cy="300" r="3" fill="currentColor"/>
+    <circle cx="700" cy="270" r="3" fill="currentColor"/>
+    <circle cx="720" cy="250" r="3" fill="currentColor"/>
+    <circle cx="740" cy="290" r="3" fill="currentColor"/>
+    <circle cx="760" cy="260" r="3" fill="currentColor"/>
+    <circle cx="780" cy="240" r="3" fill="currentColor"/>
+    <circle cx="800" cy="280" r="3" fill="currentColor"/>
+    <circle cx="820" cy="300" r="3" fill="currentColor"/>
+    <circle cx="840" cy="270" r="3" fill="currentColor"/>
+    <circle cx="860" cy="250" r="3" fill="currentColor"/>
+    <circle cx="880" cy="290" r="3" fill="currentColor"/>
+    <circle cx="900" cy="260" r="3" fill="currentColor"/>
+    <circle cx="920" cy="240" r="3" fill="currentColor"/>
+    <circle cx="940" cy="280" r="3" fill="currentColor"/>
+    <circle cx="960" cy="300" r="3" fill="currentColor"/>
+    <circle cx="980" cy="270" r="3" fill="currentColor"/>
+    <circle cx="1000" cy="250" r="3" fill="currentColor"/>
+    
+    <!-- Additional rows -->
+    <!-- Row 3 -->
+    <circle cx="200" cy="350" r="3" fill="currentColor"/>
+    <circle cx="250" cy="370" r="3" fill="currentColor"/>
+    <circle cx="300" cy="340" r="3" fill="currentColor"/>
+    <circle cx="350" cy="360" r="3" fill="currentColor"/>
+    <circle cx="400" cy="380" r="3" fill="currentColor"/>
+    <circle cx="450" cy="350" r="3" fill="currentColor"/>
+    <circle cx="500" cy="370" r="3" fill="currentColor"/>
+    <circle cx="550" cy="390" r="3" fill="currentColor"/>
+    <circle cx="600" cy="360" r="3" fill="currentColor"/>
+    <circle cx="650" cy="340" r="3" fill="currentColor"/>
+    <circle cx="700" cy="380" r="3" fill="currentColor"/>
+    <circle cx="750" cy="400" r="3" fill="currentColor"/>
+    <circle cx="800" cy="370" r="3" fill="currentColor"/>
+    <circle cx="850" cy="350" r="3" fill="currentColor"/>
+    <circle cx="900" cy="390" r="3" fill="currentColor"/>
+    <circle cx="950" cy="360" r="3" fill="currentColor"/>
+    
+    <!-- Row 4 -->
+    <circle cx="220" cy="450" r="3" fill="currentColor"/>
+    <circle cx="270" cy="470" r="3" fill="currentColor"/>
+    <circle cx="320" cy="440" r="3" fill="currentColor"/>
+    <circle cx="370" cy="460" r="3" fill="currentColor"/>
+    <circle cx="420" cy="480" r="3" fill="currentColor"/>
+    <circle cx="470" cy="450" r="3" fill="currentColor"/>
+    <circle cx="520" cy="470" r="3" fill="currentColor"/>
+    <circle cx="570" cy="490" r="3" fill="currentColor"/>
+    <circle cx="620" cy="460" r="3" fill="currentColor"/>
+    <circle cx="670" cy="440" r="3" fill="currentColor"/>
+    <circle cx="720" cy="480" r="3" fill="currentColor"/>
+    <circle cx="770" cy="500" r="3" fill="currentColor"/>
+    <circle cx="820" cy="470" r="3" fill="currentColor"/>
+    <circle cx="870" cy="450" r="3" fill="currentColor"/>
+    <circle cx="920" cy="490" r="3" fill="currentColor"/>
+    
+    <!-- Row 5 -->
+    <circle cx="240" cy="550" r="3" fill="currentColor"/>
+    <circle cx="290" cy="570" r="3" fill="currentColor"/>
+    <circle cx="340" cy="540" r="3" fill="currentColor"/>
+    <circle cx="390" cy="560" r="3" fill="currentColor"/>
+    <circle cx="440" cy="580" r="3" fill="currentColor"/>
+    <circle cx="490" cy="550" r="3" fill="currentColor"/>
+    <circle cx="540" cy="570" r="3" fill="currentColor"/>
+    <circle cx="590" cy="590" r="3" fill="currentColor"/>
+    <circle cx="640" cy="560" r="3" fill="currentColor"/>
+    <circle cx="690" cy="540" r="3" fill="currentColor"/>
+    <circle cx="740" cy="580" r="3" fill="currentColor"/>
+    <circle cx="790" cy="600" r="3" fill="currentColor"/>
+    <circle cx="840" cy="570" r="3" fill="currentColor"/>
+    <circle cx="890" cy="550" r="3" fill="currentColor"/>
+    <circle cx="940" cy="590" r="3" fill="currentColor"/>
+    
+    <!-- Connection lines -->
+    <path d="M200 150 L220 170" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+    <path d="M220 170 L240 140" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+    <path d="M240 140 L260 160" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+    <path d="M260 160 L280 180" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+    <path d="M280 180 L300 150" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+    <path d="M300 150 L320 170" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+    <path d="M320 170 L340 190" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+    <path d="M340 190 L360 160" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+    <path d="M360 160 L380 140" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+    <path d="M380 140 L400 180" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+  </g>
+</svg>

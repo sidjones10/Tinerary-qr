@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, Mail, Eye, EyeOff } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
-import { createClient } from "@/lib/supabase-client"
+import { createClient } from "@/lib/supabase/client"
 import { createUserProfile } from "@/app/actions/user-actions"
 
 export default function EmailAuthForm() {
@@ -137,7 +137,6 @@ export default function EmailAuthForm() {
           data: {
             username: formData.username || formData.email.split("@")[0],
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       })
 
@@ -146,38 +145,27 @@ export default function EmailAuthForm() {
       }
 
       if (data.user) {
-        // Note: Profile creation will only work after email confirmation
-        // This is expected behavior with email confirmation enabled
-        if (data.user.email_confirmed_at) {
-          try {
-            const profileResult = await createUserProfile({
-              name: formData.username || formData.email.split("@")[0],
-              email: formData.email,
-            })
+        try {
+          const profileResult = await createUserProfile({
+            name: formData.username || formData.email.split("@")[0],
+            email: formData.email,
+          })
 
-            if (!profileResult.success) {
-              console.error("Profile creation error:", profileResult.error)
-              // Don't fail signup if profile creation fails
-            }
-          } catch (profileErr) {
-            console.error("Exception creating profile:", profileErr)
+          if (!profileResult.success) {
+            console.error("Profile creation error:", profileResult.error)
           }
+        } catch (profileErr) {
+          console.error("Exception creating profile:", profileErr)
         }
 
         setAuthResult({
           success: true,
-          message: data.user.email_confirmed_at
-            ? "Account created successfully! Redirecting..."
-            : "Please check your email for verification link",
-          needsVerification: !data.user.email_confirmed_at,
+          message: "Account created successfully! Redirecting...",
         })
 
-        // If email is already confirmed (rare), redirect
-        if (data.user.email_confirmed_at) {
-          setTimeout(() => {
-            window.location.href = "/dashboard"
-          }, 1500)
-        }
+        setTimeout(() => {
+          window.location.href = "/dashboard"
+        }, 1500)
       }
     } catch (error: any) {
       console.error("Sign up error:", error)

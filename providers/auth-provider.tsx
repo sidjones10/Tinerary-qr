@@ -108,12 +108,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password,
         options: {
           data: { username },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       })
 
       if (!error && data.user) {
-        // After signup, create user profile in the correct table
         try {
           const { error: profileError } = await supabase.from("profiles").insert([
             {
@@ -125,14 +123,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (profileError) {
             console.error("Profile creation error:", profileError)
             // Don't fail the entire signup if profile creation fails
-            // The database trigger should handle this anyway
           }
         } catch (profileErr) {
           console.error("Profile creation exception:", profileErr)
           // Continue anyway since the auth account was created
         }
 
-        router.push("/auth?message=Please check your email to verify your account")
+        router.push("/app")
       }
       return { error }
     } catch (error) {

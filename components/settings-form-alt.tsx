@@ -46,11 +46,10 @@ export function SettingsFormAlt({ initialData, onSuccess }: SettingsFormProps) {
         throw updateError
       }
 
-      // Update user profile in database if needed
       const { error: profileError } = await supabase
-        .from("users")
+        .from("profiles")
         .update({
-          display_name: name,
+          name: name,
           updated_at: new Date().toISOString(),
         })
         .eq("id", user.id)
@@ -101,20 +100,20 @@ export function SettingsFormAlt({ initialData, onSuccess }: SettingsFormProps) {
             <Input id="email" value={initialData.email} disabled placeholder="Your email" />
             <p className="text-sm text-muted-foreground">Email cannot be changed</p>
           </div>
-        </CardContent>
-        <CardFooter>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              "Save Changes"
-            )}
-          </Button>
-        </CardFooter>
-      </form>
+        </form>
+      </CardContent>
+      <CardFooter>
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            "Save Changes"
+          )}
+        </Button>
+      </CardFooter>
     </Card>
   )
 }

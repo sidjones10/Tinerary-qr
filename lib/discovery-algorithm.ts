@@ -1,6 +1,4 @@
 import { createClient } from "@/lib/supabase/client"
-import { createServerClient } from "@/lib/supabase/server"
-import { cookies } from "next/headers"
 
 // Types
 export interface Itinerary {
@@ -321,8 +319,7 @@ export async function discoverItineraries(
   filters: DiscoveryFilters = {},
 ): Promise<ItineraryWithScores[]> {
   try {
-    const cookieStore = cookies()
-    const supabase = createServerClient(cookieStore)
+    const supabase = createClient()
 
     // Get user data if available
     let userPreferences = null

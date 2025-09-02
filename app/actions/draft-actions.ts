@@ -171,6 +171,10 @@ export async function getDraftById(draftId: string) {
   }
 }
 
+export async function getDraft(draftId: string) {
+  return getDraftById(draftId)
+}
+
 export async function publishDraft(draftId: string) {
   try {
     const { data: session } = await supabase.auth.getSession()
@@ -248,6 +252,41 @@ export async function publishDraft(draftId: string) {
     return {
       success: false,
       error: "Failed to publish draft",
+    }
+  }
+}
+
+export async function deleteDraft(draftId: string) {
+  try {
+    const { data: session } = await supabase.auth.getSession()
+
+    if (!session.session?.user) {
+      return {
+        success: false,
+        error: "User not authenticated",
+      }
+    }
+
+    const userId = session.session.user.id
+
+    const { error } = await supabase.from("drafts").delete().eq("id", draftId).eq("user_id", userId)
+
+    if (error) {
+      console.error("Error deleting draft:", error)
+      return {
+        success: false,
+        error: error.message,
+      }
+    }
+
+    return {
+      success: true,
+    }
+  } catch (err) {
+    console.error("Exception in deleteDraft:", err)
+    return {
+      success: false,
+      error: "Failed to delete draft",
     }
   }
 }

@@ -280,3 +280,104 @@ export async function rsvpToItinerary(formData: FormData) {
     return { success: false, error: (error as Error).message }
   }
 }
+
+export async function generateAffiliateLink(promotionId: string) {
+  const supabase = createClient()
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  if (!session) {
+    return { success: false, error: "Authentication required" }
+  }
+
+  try {
+    // Generate a unique affiliate code
+    const affiliateCode = `${session.user.id.slice(0, 8)}-${promotionId.slice(0, 8)}-${Date.now()}`
+
+    return {
+      success: true,
+      affiliateLink: `${process.env.NEXT_PUBLIC_SITE_URL}/promotion/${promotionId}?ref=${affiliateCode}`,
+      affiliateCode,
+    }
+  } catch (error) {
+    console.error("Error generating affiliate link:", error)
+    return { success: false, error: (error as Error).message }
+  }
+}
+
+export async function promoteUserItinerary(itineraryId: string, promotionData: any) {
+  const supabase = createClient()
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  if (!session) {
+    return { success: false, error: "Authentication required" }
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("promotions")
+      .insert([
+        {
+          ...promotionData,
+          itinerary_id: itineraryId,
+          user_id: session.user.id,
+          is_published: true,
+        },
+      ])
+      .select()
+      .single()
+
+    if (error) throw error
+
+    revalidatePath("/app/promotions")
+    return { success: true, data }
+  } catch (error) {
+    console.error("Error promoting itinerary:", error)
+    return { success: false, error: (error as Error).message }
+  }
+}
+
+export async function processBooking(bookingData: any) {
+  const supabase = createClient()
+
+  try {
+    const { data, error } = await supabase.from("bookings").insert([bookingData]).select().single()
+
+    if (error) throw error
+
+    return { success: true, data }
+  } catch (error) {
+    console.error("Error processing booking:", error)
+    return { success: false, error: (error as Error).message }
+  }
+}
+
+export async function trackAffiliateLinkClick(affiliateCode: string, promotionId: string) {
+  const supabase = createClient()
+
+  try {
+    const { data, error } = await supabase
+      .from("affiliate_clicks")
+      .insert([
+        {
+          affiliate_code: affiliateCode,
+          promotion_id: promotionId,
+          clicked_at: new Date().toISOString(),
+        },
+      ])
+      .select()
+      .single()
+
+    if (error) throw error
+
+    return { success: true, data }
+  } catch (error) {
+    console.error("Error tracking affiliate click:", error)
+    return { success: false, error: (error as Error).message }
+  }
+}

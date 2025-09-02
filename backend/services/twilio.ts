@@ -93,3 +93,5 @@ export async function sendVerificationSMS(phoneNumber: string, code: string): Pr
     return false
   }
 }
+
+export { twilioClient }

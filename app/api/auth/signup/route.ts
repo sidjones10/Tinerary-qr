@@ -67,24 +67,21 @@ export async function POST(request: Request) {
 
     // If user was created successfully
     if (data.user) {
-      // Try to create user profile in database
       try {
-        const { error: profileError } = await supabase.from("users").insert([
+        const { error: profileError } = await supabase.from("profiles").insert([
           {
             id: data.user.id,
-            email: email,
             name: username || email.split("@")[0],
-            created_at: new Date().toISOString(),
+            // Remove email and created_at - they're handled automatically
           },
         ])
 
         if (profileError) {
           console.error("Error creating user profile:", profileError)
-          // Don't fail the signup if profile creation fails
+          // Continue anyway since the auth account was created
         }
       } catch (profileErr) {
         console.error("Exception creating profile:", profileErr)
-        // Continue anyway since the auth account was created
       }
     }
 

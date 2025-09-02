@@ -3,6 +3,50 @@
 import { createClient } from "@/utils/supabase/server"
 import { revalidatePath } from "next/cache"
 
+export async function createUserProfile(userData: { name: string; email?: string }) {
+  try {
+    const supabase = createClient()
+
+    // Get the current user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      return {
+        success: false,
+        error: userError?.message || "User not authenticated",
+      }
+    }
+
+    // Create profile (RLS ensures user can only create their own)
+    const { error: profileError } = await supabase.from("profiles").insert({
+      id: user.id,
+      name: userData.name,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+
+    if (profileError) {
+      console.error("Error creating profile:", profileError)
+      return {
+        success: false,
+        error: profileError.message || "Failed to create profile",
+      }
+    }
+
+    revalidatePath("/profile")
+    return { success: true }
+  } catch (error) {
+    console.error("Unexpected error creating profile:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "An unexpected error occurred",
+    }
+  }
+}
+
 export async function updateUserProfile(formData: FormData) {
   try {
     const supabase = createClient()

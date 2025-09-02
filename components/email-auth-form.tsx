@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, Mail, Eye, EyeOff } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { createClient } from "@/lib/supabase-client"
+import { createUserProfile } from "@/app/actions/user-actions"
 
 export default function EmailAuthForm() {
   const [isLoading, setIsLoading] = useState(false)
@@ -145,19 +146,22 @@ export default function EmailAuthForm() {
       }
 
       if (data.user) {
-        // Create user profile in the database
-        const { error: profileError } = await supabase.from("users").insert([
-          {
-            id: data.user.id,
-            email: formData.email,
-            name: formData.username || formData.email.split("@")[0],
-            created_at: new Date().toISOString(),
-          },
-        ])
+        // Note: Profile creation will only work after email confirmation
+        // This is expected behavior with email confirmation enabled
+        if (data.user.email_confirmed_at) {
+          try {
+            const profileResult = await createUserProfile({
+              name: formData.username || formData.email.split("@")[0],
+              email: formData.email,
+            })
 
-        if (profileError) {
-          console.error("Profile creation error:", profileError)
-          // Don't fail signup if profile creation fails
+            if (!profileResult.success) {
+              console.error("Profile creation error:", profileResult.error)
+              // Don't fail signup if profile creation fails
+            }
+          } catch (profileErr) {
+            console.error("Exception creating profile:", profileErr)
+          }
         }
 
         setAuthResult({

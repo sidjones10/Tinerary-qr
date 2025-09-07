@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { users } from "@/lib/db/schema"
-import { hash } from "bcrypt"
+import { hash } from "bcryptjs"
 
 export async function POST(request: Request) {
   try {

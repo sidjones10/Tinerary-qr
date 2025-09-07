@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Calendar, MapPin, Clock, Plus, Lightbulb } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-import { supabase } from "@/lib/supabase-client"
+import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/providers/auth-provider"
 import { ProtectedRoute } from "@/components/protected-route"
 import { Switch } from "@/components/ui/switch"
@@ -55,6 +55,8 @@ function CreatePageContent() {
   const searchParams = useSearchParams()
   const { toast } = useToast()
   const { user } = useAuth()
+
+  const supabase = createClient()
 
   // Load draft if draftId is provided in URL
   useEffect(() => {
@@ -692,7 +694,7 @@ function CreatePageContent() {
                         ))}
                       </div>
 
-                      <Button variant="outline" size="sm" onClick={addPackingItem} className="mb-4">
+                      <Button variant="outline" size="sm" onClick={addPackingItem} className="mb-4 bg-transparent">
                         <Plus className="h-4 w-4 mr-2" />
                         Add Item
                       </Button>

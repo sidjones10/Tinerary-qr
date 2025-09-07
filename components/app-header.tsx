@@ -19,7 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { supabase } from "@/lib/supabase-client"
+import { createClient } from "@/lib/supabase/client"
 
 export function AppHeader() {
   const [showSearch, setShowSearch] = useState(false)
@@ -27,6 +27,8 @@ export function AppHeader() {
   const [user, setUser] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
+
+  const supabase = createClient()
 
   useEffect(() => {
     // Check if user is logged in

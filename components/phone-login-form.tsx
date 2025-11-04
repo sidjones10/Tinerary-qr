@@ -1,13 +1,12 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
-import { config } from "@/utils/config"
+import { useRouter } from "next/navigation"
 
 export function PhoneLoginForm() {
   const [phoneNumber, setPhoneNumber] = useState("")
@@ -15,11 +14,11 @@ export function PhoneLoginForm() {
   const [isCodeSent, setIsCodeSent] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
+  const router = useRouter()
 
   // Clean up any pending operations when component unmounts
   useEffect(() => {
     return () => {
-      // Cleanup function
       setIsLoading(false)
     }
   }, [])
@@ -39,7 +38,7 @@ export function PhoneLoginForm() {
     setIsLoading(true)
 
     try {
-      const response = await fetch(`${config.apiUrl}/api/auth/phone/send-code`, {
+      const response = await fetch("/api/auth/phone/send-code", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -47,9 +46,10 @@ export function PhoneLoginForm() {
         body: JSON.stringify({ phoneNumber }),
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || `API error: ${response.status}`)
+        throw new Error(data.error || `API error: ${response.status}`)
       }
 
       setIsCodeSent(true)
@@ -84,7 +84,7 @@ export function PhoneLoginForm() {
     setIsLoading(true)
 
     try {
-      const response = await fetch(`${config.apiUrl}/api/auth/phone/verify-code`, {
+      const response = await fetch("/api/auth/phone/verify-code", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -95,13 +95,22 @@ export function PhoneLoginForm() {
         }),
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || `API error: ${response.status}`)
+        throw new Error(data.error || `API error: ${response.status}`)
       }
 
-      // Use window.location.href for client-side navigation after successful verification
-      window.location.href = "/dashboard"
+      toast({
+        title: "Success!",
+        description: "You have been signed in successfully",
+      })
+
+      // Redirect to dashboard
+      setTimeout(() => {
+        router.push("/dashboard")
+        router.refresh()
+      }, 500)
     } catch (error) {
       console.error("Error verifying code:", error)
       toast({
@@ -112,6 +121,11 @@ export function PhoneLoginForm() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleBackToPhone = () => {
+    setIsCodeSent(false)
+    setVerificationCode("")
   }
 
   return (
@@ -132,7 +146,11 @@ export function PhoneLoginForm() {
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
               required
+              disabled={isLoading}
             />
+            <p className="text-xs text-muted-foreground">
+              Include your country code (e.g., +1 for US)
+            </p>
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Sending..." : "Send Verification Code"}
@@ -145,11 +163,16 @@ export function PhoneLoginForm() {
             <Input
               id="code"
               type="text"
-              placeholder="Enter code"
+              placeholder="Enter 6-digit code"
               value={verificationCode}
               onChange={(e) => setVerificationCode(e.target.value)}
+              maxLength={6}
               required
+              disabled={isLoading}
             />
+            <p className="text-xs text-muted-foreground">
+              Check your console for the verification code (development mode)
+            </p>
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Verifying..." : "Verify Code"}
@@ -158,7 +181,7 @@ export function PhoneLoginForm() {
             type="button"
             variant="outline"
             className="w-full"
-            onClick={() => setIsCodeSent(false)}
+            onClick={handleBackToPhone}
             disabled={isLoading}
           >
             Back

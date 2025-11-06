@@ -129,13 +129,13 @@ export async function getUserNotifications(
 
     if (error) {
       console.error("Error fetching notifications:", error)
-      return { success: false, error }
+      return { success: false, notifications: [], count: 0, error: error.message }
     }
 
-    return { success: true, notifications: data, count }
-  } catch (error) {
+    return { success: true, notifications: data || [], count: count || 0 }
+  } catch (error: any) {
     console.error("Error in notification service:", error)
-    return { success: false, error }
+    return { success: false, notifications: [], count: 0, error: error.message || "Failed to fetch notifications" }
   }
 }
 
@@ -149,12 +149,12 @@ export async function getUnreadNotificationCount(userId: string) {
 
     if (error) {
       console.error("Error counting unread notifications:", error)
-      return { success: false, error }
+      return { success: false, count: 0, error: error.message }
     }
 
-    return { success: true, count }
-  } catch (error) {
+    return { success: true, count: count || 0 }
+  } catch (error: any) {
     console.error("Error in notification service:", error)
-    return { success: false, error }
+    return { success: false, count: 0, error: error.message || "Failed to count notifications" }
   }
 }

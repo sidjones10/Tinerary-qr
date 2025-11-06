@@ -48,15 +48,20 @@ export function NotificationBell() {
         getUnreadNotificationCount(user.id)
       ])
 
-      if (notificationsResult.success && notificationsResult.notifications) {
+      // Always set notifications, even if empty
+      if (notificationsResult.notifications) {
         setNotifications(notificationsResult.notifications as Notification[])
+      } else {
+        setNotifications([])
       }
 
-      if (countResult.success && countResult.count !== undefined) {
-        setUnreadCount(countResult.count)
-      }
+      // Always set count, even if 0
+      setUnreadCount(countResult.count || 0)
     } catch (error) {
       console.error("Error fetching notifications:", error)
+      // Set empty state on error
+      setNotifications([])
+      setUnreadCount(0)
     } finally {
       setLoading(false)
     }

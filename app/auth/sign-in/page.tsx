@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { SignInForm } from "@/components/auth/sign-in-form"
 
 export default async function SignIn() {

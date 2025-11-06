@@ -3,8 +3,8 @@ import { createClient } from "@/utils/supabase/server"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AppHeader } from "@/components/app-header"
 
-export default async function DashboardPage() {
-  const supabase = createClient()
+export default async function AuthPage() {
+  const supabase = await createClient()
 
   // Check if user is authenticated
   const {

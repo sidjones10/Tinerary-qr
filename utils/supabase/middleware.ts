@@ -1,13 +1,9 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr"
+import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
-import logger from "@/backend/utils/logger"
 
-export function createClient(request: NextRequest) {
-  // Create an unmodified response
-  const response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
+export async function createClient(request: NextRequest) {
+  let supabaseResponse = NextResponse.next({
+    request,
   })
 
   const supabase = createServerClient(
@@ -15,30 +11,23 @@ export function createClient(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
+        getAll() {
+          return request.cookies.getAll()
         },
-        set(name: string, value: string, options: CookieOptions) {
-          // If the cookie is updated, update the response headers
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-        },
-        remove(name: string, options: CookieOptions) {
-          // If the cookie is removed, update the response headers
-          response.cookies.set({
-            name,
-            value: "",
-            ...options,
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value)
+            supabaseResponse.cookies.set(name, value, options)
           })
         },
       },
-    },
+    }
   )
 
-  logger.debug("Supabase middleware client created", "middleware")
+  // IMPORTANT: Refresh session if expired - this prevents auth issues
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  return { supabase, response }
+  return { supabase, response: supabaseResponse }
 }

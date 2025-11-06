@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Calendar, MapPin, Clock, Plus, Lightbulb, Upload, X, Trash2, Users } from "lucide-react"
+import { ArrowLeft, Calendar, MapPin, Clock, Plus, Lightbulb, Upload, X, Trash2, Users, Mail } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/providers/auth-provider"
@@ -13,6 +13,7 @@ import { createItinerary } from "@/lib/itinerary-service"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { EventPreviewModal } from "@/components/event-preview-modal"
 
@@ -353,26 +354,27 @@ function CreatePageContent() {
     setUploadingImage(true)
 
     try {
-      // Create a unique filename
-      const fileExt = file.name.split(".").pop()
-      const fileName = `${user?.id}/${Date.now()}.${fileExt}`
+      // Convert image to base64 for now (temporary solution until storage bucket is created)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const base64String = reader.result as string
+        setCoverImage(base64String)
 
-      // Upload to Supabase Storage
-      const { data, error } = await supabase.storage.from("itinerary-images").upload(fileName, file)
-
-      if (error) throw error
-
-      // Get public URL
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("itinerary-images").getPublicUrl(fileName)
-
-      setCoverImage(publicUrl)
-
-      toast({
-        title: "Image uploaded",
-        description: "Cover image has been uploaded successfully",
-      })
+        toast({
+          title: "Image uploaded",
+          description: "Cover image has been uploaded successfully",
+        })
+        setUploadingImage(false)
+      }
+      reader.onerror = () => {
+        toast({
+          title: "Upload failed",
+          description: "Failed to read image file",
+          variant: "destructive",
+        })
+        setUploadingImage(false)
+      }
+      reader.readAsDataURL(file)
     } catch (error: any) {
       console.error("Error uploading image:", error)
       toast({
@@ -380,7 +382,6 @@ function CreatePageContent() {
         description: error.message || "Failed to upload image",
         variant: "destructive",
       })
-    } finally {
       setUploadingImage(false)
     }
   }
@@ -757,54 +758,115 @@ function CreatePageContent() {
                       <h2 className="text-lg font-semibold mb-2">Packing List</h2>
                       <p className="text-sm text-muted-foreground mb-4">Keep track of everything you need to bring</p>
 
-                      <div className="space-y-2 mb-4">
+                      <div className="space-y-3 mb-4">
                         {packingItems.map((item, index) => (
-                          <div key={index} className="flex items-center">
+                          <div key={index} className="flex items-center gap-3 p-3 border rounded-lg bg-white">
                             <input
                               type="checkbox"
                               id={`item-${index}`}
-                              className="mr-2"
+                              className="h-4 w-4"
                               checked={item.checked}
                               onChange={(e) => updatePackingItem(index, "checked", e.target.checked)}
                             />
-                            <label htmlFor={`item-${index}`} className="text-sm">
-                              {item.name}
-                            </label>
+                            <Input
+                              placeholder="Item name (e.g., Passport, Sunscreen)"
+                              value={item.name}
+                              onChange={(e) => updatePackingItem(index, "name", e.target.value)}
+                              className="flex-1"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removePackingItem(index)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         ))}
                       </div>
 
-                      <Button variant="outline" size="sm" onClick={addPackingItem} className="mb-4 bg-transparent">
+                      <Button variant="outline" size="sm" onClick={addPackingItem} className="bg-white">
                         <Plus className="h-4 w-4 mr-2" />
                         Add Item
                       </Button>
                     </div>
 
                     <div>
-                      <h2 className="text-lg font-semibold mb-2">Expenses</h2>
+                      <div className="flex justify-between items-center mb-2">
+                        <h2 className="text-lg font-semibold">Expenses</h2>
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">Total</p>
+                          <p className="text-lg font-bold text-green-600">
+                            ${expenses.reduce((sum, e) => sum + (e.amount || 0), 0).toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
                       <p className="text-sm text-muted-foreground mb-4">Estimate and track expenses for your {type}</p>
 
                       <div className="space-y-3 mb-4">
                         {expenses.map((expense, index) => (
-                          <div key={index} className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <label className="text-sm">{expense.category}</label>
-                            </div>
+                          <div key={index} className="flex items-center gap-3 p-3 border rounded-lg bg-white">
                             <Input
-                              type="number"
-                              placeholder="0.00"
-                              className="w-24"
-                              value={expense.amount}
-                              onChange={(e) => updateExpense(index, "amount", Number.parseFloat(e.target.value) || 0)}
+                              placeholder="Category (e.g., Hotel, Food)"
+                              value={expense.category}
+                              onChange={(e) => updateExpense(index, "category", e.target.value)}
+                              className="flex-1"
                             />
+                            <div className="flex items-center gap-1">
+                              <span className="text-sm font-medium">$</span>
+                              <Input
+                                type="number"
+                                placeholder="0.00"
+                                min="0"
+                                step="0.01"
+                                className="w-28"
+                                value={expense.amount || ""}
+                                onChange={(e) => updateExpense(index, "amount", Number.parseFloat(e.target.value) || 0)}
+                              />
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeExpense(index)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         ))}
                       </div>
 
-                      <Button variant="outline" size="sm" onClick={addExpense}>
+                      <Button variant="outline" size="sm" onClick={addExpense} className="bg-white mb-6">
                         <Plus className="h-4 w-4 mr-2" />
                         Add Expense
                       </Button>
+
+                      {/* Expense Splitting Calculator */}
+                      <div className="border-t pt-6 mt-6">
+                        <h3 className="text-md font-semibold mb-3">Split Expenses</h3>
+                        <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg">
+                          <div className="flex-1">
+                            <Label htmlFor="split-count" className="text-sm mb-2 block">
+                              Number of people
+                            </Label>
+                            <Input
+                              id="split-count"
+                              type="number"
+                              min="1"
+                              value={splitCount}
+                              onChange={(e) => setSplitCount(Number.parseInt(e.target.value) || 1)}
+                              className="w-24 bg-white"
+                            />
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground mb-1">Per person</p>
+                            <p className="text-2xl font-bold text-blue-600">${calculateSplitAmount()}</p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </>
                 )}
@@ -815,31 +877,77 @@ function CreatePageContent() {
             {activeTab === "people" && (
               <div className="p-6">
                 <div className="mb-6">
-                  <h2 className="text-lg font-semibold mb-2">Invite People</h2>
-                  <p className="text-sm text-muted-foreground mb-4">Add friends to collaborate or invite guests</p>
-
-                  <div className="flex items-center space-x-2 mb-2">
-                    <Input placeholder="Enter email address" />
-                    <Button variant="outline">Invite</Button>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Users className="h-5 w-5 text-purple-600" />
+                    <h2 className="text-lg font-semibold">Invite People</h2>
                   </div>
-
-                  <p className="text-sm text-muted-foreground">
-                    Invited users will receive an email with a link to join.
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Invite collaborators or guests to your {type}. They'll receive a notification or email invitation.
                   </p>
-                </div>
 
-                <div>
-                  <h2 className="text-lg font-semibold mb-2">Expense Splitting</h2>
-                  <p className="text-sm text-muted-foreground mb-4">Set up payment options for shared expenses</p>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="email"
+                        placeholder="Enter email address"
+                        value={newInviteEmail}
+                        onChange={(e) => setNewInviteEmail(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault()
+                            addInviteEmail()
+                          }
+                        }}
+                        className="flex-1"
+                      />
+                      <Button type="button" onClick={addInviteEmail} className="bg-purple-600 hover:bg-purple-700">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add
+                      </Button>
+                    </div>
 
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium">Split expenses equally</label>
-                    <Switch />
+                    {inviteEmails.length > 0 && (
+                      <div className="mt-4">
+                        <h3 className="text-sm font-medium mb-2">Invited ({inviteEmails.length})</h3>
+                        <div className="space-y-2">
+                          {inviteEmails.map((email, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center justify-between p-3 bg-purple-50 border border-purple-200 rounded-lg"
+                            >
+                              <div className="flex items-center gap-2">
+                                <Mail className="h-4 w-4 text-purple-600" />
+                                <span className="text-sm">{email}</span>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeInviteEmail(email)}
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                      <div className="flex gap-2">
+                        <Lightbulb className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-blue-900 mb-1">How invitations work</p>
+                          <ul className="text-xs text-blue-800 space-y-1 list-disc list-inside">
+                            <li>Users with accounts receive an in-app notification</li>
+                            <li>New users receive an email invitation to sign up</li>
+                            <li>Invitations are sent when you publish your {type}</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-
-                  <p className="text-sm text-muted-foreground">
-                    When enabled, all expenses will be divided equally among participants.
-                  </p>
                 </div>
               </div>
             )}

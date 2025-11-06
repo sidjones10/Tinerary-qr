@@ -125,10 +125,6 @@ export function ProfileSettings() {
   return (
     <Card>
       <CardHeader>
-        <Link href="/app" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Home
-        </Link>
         <CardTitle>Profile Settings</CardTitle>
         <CardDescription>Manage your personal information and public profile</CardDescription>
       </CardHeader>

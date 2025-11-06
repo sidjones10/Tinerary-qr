@@ -1,130 +1,82 @@
-import { redirect } from "next/navigation"
-import { createClient } from "@/utils/supabase/server"
+"use client"
+
+import type React from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { AppHeader } from "@/components/app-header"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import EmailAuthForm from "@/components/email-auth-form"
+import { PhoneLoginForm } from "@/components/phone-login-form"
+import { Mail, Phone } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useSearchParams } from "next/navigation"
+import { useAuth } from "@/providers/auth-provider"
 
-export default async function AuthPage() {
-  const supabase = await createClient()
+export default function AuthPage() {
+  const [activeTab, setActiveTab] = useState("email")
+  const searchParams = useSearchParams()
+  const { user, isLoading } = useAuth()
+  const router = useRouter()
 
-  // Check if user is authenticated
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  const message = searchParams?.get("message")
+  const redirectTo = searchParams?.get("redirectTo")
 
-  // If not authenticated, redirect to auth page
-  if (!session) {
-    redirect("/auth?redirectTo=/dashboard")
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (!isLoading && user) {
+      router.push(redirectTo || "/dashboard")
+    }
+  }, [user, isLoading, redirectTo, router])
+
+  // Don't render auth form if user is already logged in
+  if (user) {
+    return null
   }
 
-  // Get user data
-  const { data: userData } = await supabase
-    .from("users")
-    .select("*")
-    .eq("id", session.user.id)
-    .single()
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AppHeader />
-      
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-          <p className="text-gray-600">Welcome back! Here's your travel planning hub.</p>
-        </div>
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-orange-50 to-pink-50 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold text-center">Tinerary</CardTitle>
+          <CardDescription className="text-center">
+            Sign in to start planning your perfect journey
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {message && (
+            <Alert className="mb-4 bg-amber-50 border-amber-200">
+              <AlertDescription>{message}</AlertDescription>
+            </Alert>
+          )}
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle>My Itineraries</CardTitle>
-              <CardDescription>View and manage your travel plans</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">0</p>
-              <p className="text-sm text-gray-500">Active itineraries</p>
-            </CardContent>
-          </Card>
+          {redirectTo && (
+            <Alert className="mb-4">
+              <AlertDescription>Please log in to access this page</AlertDescription>
+            </Alert>
+          )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Saved Places</CardTitle>
-              <CardDescription>Places you want to visit</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">0</p>
-              <p className="text-sm text-gray-500">Saved destinations</p>
-            </CardContent>
-          </Card>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="email" className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Email
+              </TabsTrigger>
+              <TabsTrigger value="phone" className="flex items-center gap-2">
+                <Phone className="h-4 w-4" />
+                Phone
+              </TabsTrigger>
+            </TabsList>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Shared with Me</CardTitle>
-              <CardDescription>Itineraries shared by friends</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">0</p>
-              <p className="text-sm text-gray-500">Shared itineraries</p>
-            </CardContent>
-          </Card>
-        </div>
+            <TabsContent value="email">
+              <EmailAuthForm />
+            </TabsContent>
 
-        <div className="mt-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Get started with planning your next trip</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <a
-                href="/create"
-                className="block p-4 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-lg hover:opacity-90 transition-opacity"
-              >
-                <h3 className="font-semibold mb-1">Create New Itinerary</h3>
-                <p className="text-sm opacity-90">Start planning your next adventure</p>
-              </a>
-              <a
-                href="/explore"
-                className="block p-4 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                <h3 className="font-semibold mb-1">Explore Destinations</h3>
-                <p className="text-sm text-gray-600">Discover new places to visit</p>
-              </a>
-            </CardContent>
-          </Card>
-        </div>
-
-        {userData && (
-          <div className="mt-8">
-            <Card>
-              <CardHeader>
-                <CardTitle>Account Info</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <dl className="space-y-2">
-                  {userData.phone && (
-                    <div>
-                      <dt className="text-sm text-gray-500">Phone</dt>
-                      <dd className="font-medium">{userData.phone}</dd>
-                    </div>
-                  )}
-                  {userData.email && (
-                    <div>
-                      <dt className="text-sm text-gray-500">Email</dt>
-                      <dd className="font-medium">{userData.email}</dd>
-                    </div>
-                  )}
-                  <div>
-                    <dt className="text-sm text-gray-500">Member Since</dt>
-                    <dd className="font-medium">
-                      {new Date(userData.created_at).toLocaleDateString()}
-                    </dd>
-                  </div>
-                </dl>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-      </main>
+            <TabsContent value="phone">
+              <PhoneLoginForm />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
     </div>
   )
 }

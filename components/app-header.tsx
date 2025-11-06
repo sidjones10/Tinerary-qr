@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { MobileNav } from "@/components/mobile-nav"
+import { NotificationBell } from "@/components/notification-bell"
 import { cn } from "@/lib/utils"
 import {
   DropdownMenu,
@@ -146,12 +147,7 @@ export function AppHeader() {
                 <Search className="h-5 w-5" />
                 <span className="sr-only">Search</span>
               </Button>
-              <Button variant="ghost" size="icon" className="mr-2" asChild>
-                <Link href="/notifications">
-                  <Bell className="h-5 w-5" />
-                  <span className="sr-only">Notifications</span>
-                </Link>
-              </Button>
+              <NotificationBell />
               <Button variant="ghost" size="icon" className="mr-2" asChild>
                 <Link href="/create">
                   <PlusCircle className="h-5 w-5" />

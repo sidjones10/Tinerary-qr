@@ -1,13 +1,24 @@
+"use client"
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { FeedPage } from "@/components/feed-page"
 import { AppHeader } from "@/components/app-header"
+import { useAuth } from "@/providers/auth-provider"
+import { Loader2 } from "lucide-react"
 
 export default function HomePage() {
-  // Check if user is authenticated
-  const isAuthenticated = true // This would normally be determined by checking auth state
+  const { user, isLoading } = useAuth()
 
-  if (isAuthenticated) {
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (user) {
     return (
       <div className="min-h-screen">
         <AppHeader />

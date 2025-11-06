@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useAuth } from "@/providers/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { NotificationBell } from "@/components/notification-bell"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,7 +33,7 @@ export function Navbar() {
         </Link>
 
         <nav className="hidden md:flex items-center space-x-6">
-          <Link href="/app" className="text-sm font-medium transition-colors hover:text-primary">
+          <Link href="/dashboard" className="text-sm font-medium transition-colors hover:text-primary">
             Home
           </Link>
           <Link href="/discover" className="text-sm font-medium transition-colors hover:text-primary">
@@ -51,6 +52,8 @@ export function Navbar() {
                   Create
                 </Link>
               </Button>
+
+              <NotificationBell />
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useAuth } from "@/providers/auth-provider"
 import { Loader2, AlertCircle } from "lucide-react"
 import { ProtectedRoute } from "@/components/protected-route"
+import { Navbar } from "@/components/navbar"
 import { supabase } from "@/lib/supabase-client"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -87,6 +88,7 @@ export default function ProfilePage() {
   return (
     <ProtectedRoute>
       <div className="flex min-h-screen flex-col">
+        <Navbar />
         <main className="flex-1 bg-background">
           <div className="container px-4 py-6 md:py-10">
             <div className="max-w-4xl mx-auto">

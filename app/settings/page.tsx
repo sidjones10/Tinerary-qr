@@ -11,34 +11,32 @@ import { PrivacySettings } from "@/components/privacy-settings"
 import { PaymentSettings } from "@/components/payment-settings"
 import { LanguageSettings } from "@/components/language-settings"
 import { HelpSupportSettings } from "@/components/help-support-settings"
-import { ArrowLeft } from "lucide-react"
-import Link from "next/link"
+import { Navbar } from "@/components/navbar"
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState("profile")
 
   return (
     <ProtectedRoute>
-      <div className="container px-4 py-6 md:py-10">
-        <div className="mb-6">
-          <Link href="/home" className="flex items-center text-sm text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="mr-1 h-4 w-4" />
-            Back to Home
-          </Link>
-        </div>
+      <div className="min-h-screen">
+        <Navbar />
+        <div className="container px-4 py-6 md:py-10">
 
-        <div className="grid md:grid-cols-[250px_1fr] gap-8">
-          <SettingsNav activeSection={activeSection} setActiveSection={setActiveSection} />
+          <h1 className="text-3xl font-bold mb-6">Settings</h1>
 
-          <div>
-            {activeSection === "profile" && <ProfileSettings />}
-            {activeSection === "account" && <AccountSettings />}
-            {activeSection === "notifications" && <NotificationSettings />}
-            {activeSection === "appearance" && <AppearanceSettings />}
-            {activeSection === "privacy" && <PrivacySettings />}
-            {activeSection === "payment" && <PaymentSettings />}
-            {activeSection === "language" && <LanguageSettings />}
-            {activeSection === "help" && <HelpSupportSettings />}
+          <div className="grid md:grid-cols-[250px_1fr] gap-8">
+            <SettingsNav activeSection={activeSection} setActiveSection={setActiveSection} />
+
+            <div>
+              {activeSection === "profile" && <ProfileSettings />}
+              {activeSection === "account" && <AccountSettings />}
+              {activeSection === "notifications" && <NotificationSettings />}
+              {activeSection === "appearance" && <AppearanceSettings />}
+              {activeSection === "privacy" && <PrivacySettings />}
+              {activeSection === "payment" && <PaymentSettings />}
+              {activeSection === "language" && <LanguageSettings />}
+              {activeSection === "help" && <HelpSupportSettings />}
+            </div>
           </div>
         </div>
       </div>

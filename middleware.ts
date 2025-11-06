@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server"
 import { createClient } from "@/utils/supabase/middleware"
 
 // Routes that require authentication
-const protectedRoutes = ["/profile", "/create", "/settings", "/my-events", "/saved"]
+const protectedRoutes = ["/dashboard", "/profile", "/create", "/settings", "/my-events", "/saved"]
 
 export async function middleware(req: NextRequest) {
   // Create supabase client for middleware
@@ -29,7 +29,7 @@ export async function middleware(req: NextRequest) {
 
   // If user is already logged in and trying to access login/signup
   if (path === "/auth" && session) {
-    return NextResponse.redirect(new URL("/app", req.url))
+    return NextResponse.redirect(new URL("/dashboard", req.url))
   }
 
   return response

@@ -1,4 +1,6 @@
-import { supabase } from "./supabase-client"
+import { createClient } from "@/lib/supabase/client"
+
+const supabase = createClient()
 
 export type NotificationType =
   | "booking_confirmation"

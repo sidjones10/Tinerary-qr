@@ -1,18 +1,31 @@
-import { redirect } from "next/navigation"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+"use client"
+
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/providers/auth-provider"
 import { SignInForm } from "@/components/auth/sign-in-form"
+import { Loader2 } from "lucide-react"
 
-export default async function SignIn() {
-  const supabase = createClient()
+export default function SignIn() {
+  const { user, isLoading } = useAuth()
+  const router = useRouter()
 
-  // Check if user is already signed in
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  useEffect(() => {
+    if (!isLoading && user) {
+      router.push("/dashboard")
+    }
+  }, [user, isLoading, router])
 
-  // If there is a session, redirect to the dashboard
-  if (session) {
-    redirect("/dashboard")
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (user) {
+    return null
   }
 
   return (

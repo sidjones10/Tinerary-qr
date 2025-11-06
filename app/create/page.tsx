@@ -8,6 +8,8 @@ import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/providers/auth-provider"
 import { ProtectedRoute } from "@/components/protected-route"
+import { Navbar } from "@/components/navbar"
+import { createItinerary } from "@/lib/itinerary-service"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,6 +19,7 @@ import { EventPreviewModal } from "@/components/event-preview-modal"
 export default function CreatePage() {
   return (
     <ProtectedRoute>
+      <Navbar />
       <CreatePageContent />
     </ProtectedRoute>
   )
@@ -219,92 +222,22 @@ function CreatePageContent() {
       const formattedStartDate = startDate || new Date().toISOString().split("T")[0]
       const formattedEndDate = endDate || formattedStartDate
 
-      // Save the itinerary to the database
-      const { data: itinerary, error } = await supabase
-        .from("itineraries")
-        .insert({
-          title,
-          description,
-          location,
-          start_date: formattedStartDate,
-          end_date: formattedEndDate,
-          is_public: isPublic,
-          is_template: false,
-          user_id: user.id,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .select()
-        .single()
+      // Use the enhanced itinerary service
+      const result = await createItinerary(user.id, {
+        title,
+        description,
+        location,
+        startDate: formattedStartDate,
+        endDate: formattedEndDate,
+        type,
+        isPublic,
+        activities: activities.filter((a) => a.title),
+        packingItems: showPackingExpenses ? packingItems : [],
+        expenses: showPackingExpenses ? expenses.filter((e) => e.amount > 0) : [],
+      })
 
-      if (error) throw error
-
-      // Save activities if any are defined
-      if (activities.length > 0 && activities[0].title) {
-        const activitiesToInsert = activities
-          .filter((a) => a.title)
-          .map((activity) => ({
-            itinerary_id: itinerary.id,
-            title: activity.title,
-            description: activity.description || null,
-            location: activity.location || null,
-            start_time: activity.time || new Date().toISOString(),
-            user_id: user.id,
-            require_rsvp: activity.requireRsvp || false,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }))
-
-        if (activitiesToInsert.length > 0) {
-          const { error: activitiesError } = await supabase.from("activities").insert(activitiesToInsert)
-
-          if (activitiesError) {
-            console.error("Error saving activities:", activitiesError)
-          }
-        }
-      }
-
-      // Save packing items and expenses if enabled
-      if (showPackingExpenses) {
-        // Save packing items
-        if (packingItems.length > 0) {
-          const packingItemsToInsert = packingItems.map((item) => ({
-            itinerary_id: itinerary.id,
-            name: item.name,
-            is_packed: item.checked || false,
-            user_id: user.id,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }))
-
-          const { error: packingError } = await supabase.from("packing_items").insert(packingItemsToInsert)
-
-          if (packingError) {
-            console.error("Error saving packing items:", packingError)
-          }
-        }
-
-        // Save expenses
-        if (expenses.length > 0) {
-          const expensesToInsert = expenses
-            .filter((e) => e.amount > 0)
-            .map((expense) => ({
-              itinerary_id: itinerary.id,
-              category: expense.category,
-              amount: expense.amount,
-              user_id: user.id,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            }))
-
-          if (expensesToInsert.length > 0) {
-            const { error: expensesError } = await supabase.from("expenses").insert(expensesToInsert)
-
-            if (expensesError) {
-              console.error("Error saving expenses:", expensesError)
-            }
-          }
-        }
+      if (!result.success || !result.itinerary) {
+        throw new Error(result.error || "Failed to create itinerary")
       }
 
       // Delete the draft if it exists
@@ -318,12 +251,12 @@ function CreatePageContent() {
       })
 
       // Redirect to the event page
-      router.push(`/event/${itinerary.id}`)
+      router.push(`/event/${result.itinerary.id}`)
     } catch (error: any) {
       console.error("Error publishing:", error)
       toast({
         title: "Error",
-        description: "There was a problem publishing your " + type,
+        description: error.message || "There was a problem publishing your " + type,
         variant: "destructive",
       })
     } finally {
@@ -368,11 +301,6 @@ function CreatePageContent() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container px-4 py-6">
-        <Link href="/app" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Home
-        </Link>
-
         <div className="max-w-3xl mx-auto">
           <h1 className="text-3xl font-bold text-center mb-8">Create New</h1>
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/providers/auth-provider"
 import { SignInForm } from "@/components/auth/sign-in-form"
@@ -9,14 +9,20 @@ import { Loader2 } from "lucide-react"
 export default function SignIn() {
   const { user, isLoading } = useAuth()
   const router = useRouter()
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    if (!isLoading && user) {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (mounted && !isLoading && user) {
       router.push("/dashboard")
     }
-  }, [user, isLoading, router])
+  }, [user, isLoading, router, mounted])
 
-  if (isLoading) {
+  // Prevent hydration mismatch
+  if (!mounted || isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

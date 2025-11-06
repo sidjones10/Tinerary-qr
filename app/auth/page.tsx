@@ -7,13 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import EmailAuthForm from "@/components/email-auth-form"
 import { PhoneLoginForm } from "@/components/phone-login-form"
-import { Mail, Phone } from "lucide-react"
+import { Mail, Phone, Loader2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useSearchParams } from "next/navigation"
 import { useAuth } from "@/providers/auth-provider"
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState("email")
+  const [mounted, setMounted] = useState(false)
   const searchParams = useSearchParams()
   const { user, isLoading } = useAuth()
   const router = useRouter()
@@ -21,12 +22,25 @@ export default function AuthPage() {
   const message = searchParams?.get("message")
   const redirectTo = searchParams?.get("redirectTo")
 
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   // Redirect authenticated users to dashboard
   useEffect(() => {
-    if (!isLoading && user) {
+    if (mounted && !isLoading && user) {
       router.push(redirectTo || "/dashboard")
     }
-  }, [user, isLoading, redirectTo, router])
+  }, [user, isLoading, redirectTo, router, mounted])
+
+  // Prevent hydration mismatch - show loading during initial mount
+  if (!mounted || isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-orange-50 to-pink-50 p-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   // Don't render auth form if user is already logged in
   if (user) {

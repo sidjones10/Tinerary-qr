@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache"
 
 export async function createUserProfile(userData: { name: string; email?: string }) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Get the current user
     const {
@@ -49,7 +49,7 @@ export async function createUserProfile(userData: { name: string; email?: string
 
 export async function updateUserProfile(formData: FormData) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Get the current user
     const {

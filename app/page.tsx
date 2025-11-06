@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { FeedPage } from "@/components/feed-page"
@@ -9,8 +10,14 @@ import { Loader2 } from "lucide-react"
 
 export default function HomePage() {
   const { user, isLoading } = useAuth()
+  const [mounted, setMounted] = useState(false)
 
-  if (isLoading) {
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Prevent hydration mismatch by showing loading on initial render
+  if (!mounted || isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

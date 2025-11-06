@@ -7,7 +7,7 @@ const protectedRoutes = ["/profile", "/create", "/settings", "/my-events", "/sav
 
 export async function middleware(req: NextRequest) {
   // Create supabase client for middleware
-  const { supabase, response } = createClient(req)
+  const { supabase, response } = await createClient(req)
 
   // Check auth status
   const {

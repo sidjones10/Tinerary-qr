@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Calendar, MapPin, Clock, Plus, Lightbulb } from "lucide-react"
+import { ArrowLeft, Calendar, MapPin, Clock, Plus, Lightbulb, Upload, X, Trash2, Users } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/providers/auth-provider"
@@ -49,6 +49,11 @@ function CreatePageContent() {
     { category: "Transportation", amount: 0 },
     { category: "Food", amount: 0 },
   ])
+  const [coverImage, setCoverImage] = useState<string | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [inviteEmails, setInviteEmails] = useState<string[]>([])
+  const [newInviteEmail, setNewInviteEmail] = useState("")
+  const [splitCount, setSplitCount] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
@@ -234,10 +239,36 @@ function CreatePageContent() {
         activities: activities.filter((a) => a.title),
         packingItems: showPackingExpenses ? packingItems : [],
         expenses: showPackingExpenses ? expenses.filter((e) => e.amount > 0) : [],
+        imageUrl: coverImage,
       })
 
       if (!result.success || !result.itinerary) {
         throw new Error(result.error || "Failed to create itinerary")
+      }
+
+      const itineraryId = result.itinerary.id
+
+      // Send invitations if there are any
+      if (inviteEmails.length > 0) {
+        try {
+          const inviteResponse = await fetch("/api/invitations/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              itineraryId,
+              emails: inviteEmails,
+              itineraryTitle: title,
+              senderName: user.user_metadata?.name || user.email?.split("@")[0] || "Someone",
+            }),
+          })
+
+          if (!inviteResponse.ok) {
+            console.error("Failed to send invitations")
+          }
+        } catch (inviteError) {
+          console.error("Error sending invitations:", inviteError)
+          // Don't fail the whole operation if invitations fail
+        }
       }
 
       // Delete the draft if it exists
@@ -247,11 +278,11 @@ function CreatePageContent() {
 
       toast({
         title: "Success!",
-        description: `Your ${type} has been published.`,
+        description: `Your ${type} has been published${inviteEmails.length > 0 ? " and invitations sent" : ""}.`,
       })
 
       // Redirect to the event page
-      router.push(`/event/${result.itinerary.id}`)
+      router.push(`/event/${itineraryId}`)
     } catch (error: any) {
       console.error("Error publishing:", error)
       toast({
@@ -296,6 +327,98 @@ function CreatePageContent() {
     const updatedExpenses = [...expenses]
     updatedExpenses[index] = { ...updatedExpenses[index], [field]: value }
     setExpenses(updatedExpenses)
+  }
+
+  const removeExpense = (index: number) => {
+    setExpenses(expenses.filter((_, i) => i !== index))
+  }
+
+  const removePackingItem = (index: number) => {
+    setPackingItems(packingItems.filter((_, i) => i !== index))
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file",
+        description: "Please upload an image file",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setUploadingImage(true)
+
+    try {
+      // Create a unique filename
+      const fileExt = file.name.split(".").pop()
+      const fileName = `${user?.id}/${Date.now()}.${fileExt}`
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage.from("itinerary-images").upload(fileName, file)
+
+      if (error) throw error
+
+      // Get public URL
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("itinerary-images").getPublicUrl(fileName)
+
+      setCoverImage(publicUrl)
+
+      toast({
+        title: "Image uploaded",
+        description: "Cover image has been uploaded successfully",
+      })
+    } catch (error: any) {
+      console.error("Error uploading image:", error)
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload image",
+        variant: "destructive",
+      })
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
+  const addInviteEmail = () => {
+    if (!newInviteEmail) return
+
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(newInviteEmail)) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (inviteEmails.includes(newInviteEmail)) {
+      toast({
+        title: "Already added",
+        description: "This email is already in the invite list",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setInviteEmails([...inviteEmails, newInviteEmail])
+    setNewInviteEmail("")
+  }
+
+  const removeInviteEmail = (email: string) => {
+    setInviteEmails(inviteEmails.filter((e) => e !== email))
+  }
+
+  const calculateSplitAmount = () => {
+    const totalExpenses = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0)
+    return splitCount > 0 ? (totalExpenses / splitCount).toFixed(2) : "0.00"
   }
 
   return (
@@ -443,13 +566,42 @@ function CreatePageContent() {
 
                     <div>
                       <label className="block text-sm font-medium mb-1">Cover Image</label>
-                      <div className="border-2 border-dashed rounded-lg p-6 text-center">
-                        <div className="mx-auto w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-2">
-                          <Plus className="h-5 w-5 text-muted-foreground" />
+                      {coverImage ? (
+                        <div className="relative">
+                          <img src={coverImage} alt="Cover" className="w-full h-48 object-cover rounded-lg" />
+                          <button
+                            type="button"
+                            onClick={() => setCoverImage(null)}
+                            className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-1">Drag and drop an image, or click to browse</p>
-                        <p className="text-xs text-muted-foreground">Recommended size: 1200 x 800 pixels</p>
-                      </div>
+                      ) : (
+                        <div className="border-2 border-dashed rounded-lg p-6 text-center">
+                          <input
+                            type="file"
+                            id="cover-image"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleImageUpload}
+                            disabled={uploadingImage}
+                          />
+                          <label htmlFor="cover-image" className="cursor-pointer">
+                            <div className="mx-auto w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-2">
+                              {uploadingImage ? (
+                                <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
+                              ) : (
+                                <Upload className="h-5 w-5 text-muted-foreground" />
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-1">
+                              {uploadingImage ? "Uploading..." : "Click to upload an image"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">Recommended size: 1200 x 800 pixels</p>
+                          </label>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

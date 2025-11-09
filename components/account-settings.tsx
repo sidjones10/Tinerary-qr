@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
+import { DeleteAccountDialog } from "@/components/delete-account-dialog"
 
 export function AccountSettings() {
   const { user } = useAuth()
@@ -181,6 +182,24 @@ export function AccountSettings() {
             <Button variant="outline" size="sm">
               Connect
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-destructive">
+        <CardHeader>
+          <CardTitle className="text-destructive">Danger Zone</CardTitle>
+          <CardDescription>Irreversible actions that affect your account</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-medium mb-1">Delete Account</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Permanently delete your account and all associated data. This action cannot be undone.
+              </p>
+              <DeleteAccountDialog userId={user?.id || ""} userEmail={user?.email} />
+            </div>
           </div>
         </CardContent>
       </Card>

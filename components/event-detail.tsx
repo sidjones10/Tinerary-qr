@@ -2,28 +2,162 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { format } from "date-fns"
-import { ArrowLeft, Calendar, MapPin, Clock, Share2, Heart, Users, Edit } from "lucide-react"
+import { ArrowLeft, Calendar, MapPin, Clock, Share2, Heart, Users, Edit, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { useAuth } from "@/providers/auth-provider"
+import { useToast } from "@/components/ui/use-toast"
+import { createClient } from "@/lib/supabase/client"
 
 interface EventDetailProps {
   event: any
-  activities: any[]
 }
 
-export function EventDetail({ event, activities }: EventDetailProps) {
+export function EventDetail({ event }: EventDetailProps) {
+  // Extract activities from the event (they come from the database join)
+  const activities = event.activities || []
+  console.log("EventDetail - Raw activities:", activities)
   const { user } = useAuth()
+  const { toast } = useToast()
+  const router = useRouter()
   const [liked, setLiked] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState("")
+  const [isSendingInvite, setIsSendingInvite] = useState(false)
   const isOwner = user && user.id === event.user_id
+
+  // Check if it's a multi-day trip
+  const startDate = new Date(event.start_date)
+  const endDate = new Date(event.end_date)
+  const isMultiDay = startDate.toDateString() !== endDate.toDateString()
+  console.log("EventDetail - Is multi-day:", isMultiDay, "Start:", event.start_date, "End:", event.end_date)
+
+  // Group activities by day for multi-day trips
+  const groupedActivities = activities.reduce((acc: any, activity: any) => {
+    const day = activity.day || "Unassigned"
+    if (!acc[day]) {
+      acc[day] = []
+    }
+    acc[day].push(activity)
+    return acc
+  }, {})
+  console.log("EventDetail - Grouped activities:", groupedActivities)
 
   const formatDate = (dateString: string) => {
     try {
       return format(new Date(dateString), "MMMM d, yyyy")
     } catch (e) {
       return dateString
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm(`Are you sure you want to delete "${event.title}"? This action cannot be undone.`)) {
+      return
+    }
+
+    setIsDeleting(true)
+
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.from("itineraries").delete().eq("id", event.id)
+
+      if (error) throw error
+
+      toast({
+        title: "Event deleted",
+        description: "Your event has been successfully deleted.",
+      })
+
+      router.push("/dashboard")
+    } catch (error: any) {
+      console.error("Error deleting event:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete event",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/event/${event.id}`
+    const shareText = `Check out ${event.title}!`
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: event.title,
+          text: shareText,
+          url: shareUrl,
+        })
+      } catch (error) {
+        console.log("Share cancelled or failed:", error)
+      }
+    } else {
+      // Fallback: Copy to clipboard
+      try {
+        await navigator.clipboard.writeText(shareUrl)
+        toast({
+          title: "Link copied!",
+          description: "Event link has been copied to your clipboard.",
+        })
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to copy link",
+          variant: "destructive",
+        })
+      }
+    }
+  }
+
+  const handleInvite = async () => {
+    if (!inviteEmail || !user) return
+
+    setIsSendingInvite(true)
+
+    try {
+      const response = await fetch("/api/invitations/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          itineraryId: event.id,
+          emails: [inviteEmail],
+          itineraryTitle: event.title,
+          senderName: user.user_metadata?.name || user.email?.split("@")[0] || "Someone",
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to send invitation")
+      }
+
+      toast({
+        title: "Invitation sent!",
+        description: `An invitation has been sent to ${inviteEmail}`,
+      })
+
+      setInviteEmail("")
+      setShowInviteModal(false)
+    } catch (error: any) {
+      console.error("Error sending invitation:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send invitation",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSendingInvite(false)
     }
   }
 
@@ -40,15 +174,16 @@ export function EventDetail({ event, activities }: EventDetailProps) {
             <img
               src={event.cover_image_url || "/placeholder.svg"}
               alt={event.title}
-              className="w-full h-64 md:h-80 object-cover"
+              className="w-full h-64 md:h-96 object-cover"
             />
           ) : (
-            <div className="w-full h-64 md:h-80 bg-gradient-to-r from-orange-100 to-pink-100 flex items-center justify-center">
-              <span className="text-2xl font-bold text-gray-700">{event.title}</span>
+            <div className="w-full h-64 md:h-96 bg-gradient-to-br from-orange-400 via-pink-400 to-purple-500 flex items-center justify-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
+              <span className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg z-10 text-center px-4">{event.title}</span>
             </div>
           )}
 
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-6">
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-6 md:p-8">
             <div className="flex justify-between items-end">
               <div>
                 <h1 className="text-3xl font-bold text-white mb-2">{event.title}</h1>
@@ -76,23 +211,37 @@ export function EventDetail({ event, activities }: EventDetailProps) {
                   variant="outline"
                   size="sm"
                   className="bg-white/20 backdrop-blur-sm border-white/40 text-white hover:bg-white/30"
+                  onClick={handleShare}
                 >
                   <Share2 className="h-4 w-4 mr-2" />
                   Share
                 </Button>
 
                 {isOwner && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-white/20 backdrop-blur-sm border-white/40 text-white hover:bg-white/30"
-                    asChild
-                  >
-                    <Link href={`/create?draftId=${event.id}`}>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </Link>
-                  </Button>
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-white/20 backdrop-blur-sm border-white/40 text-white hover:bg-white/30"
+                      asChild
+                    >
+                      <Link href={`/create?draftId=${event.id}`}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </Link>
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-red-500/20 backdrop-blur-sm border-red-300/40 text-white hover:bg-red-500/30"
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      {isDeleting ? "Deleting..." : "Delete"}
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
@@ -108,13 +257,49 @@ export function EventDetail({ event, activities }: EventDetailProps) {
               </div>
             )}
 
-            <div className="flex items-center text-sm text-muted-foreground">
-              <Users className="h-4 w-4 mr-1" />
-              <span>Hosted by {event.host_name || "Anonymous"}</span>
+            <div className="flex items-center gap-2">
+              {event.host_avatar && (
+                <img
+                  src={event.host_avatar}
+                  alt={event.host_name}
+                  className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
+                />
+              )}
+              <div>
+                <div className="text-sm font-medium text-gray-900">
+                  Hosted by {event.host_name || "Anonymous"}
+                </div>
+                {event.host_username && (
+                  <div className="text-xs text-muted-foreground">{event.host_username}</div>
+                )}
+              </div>
             </div>
           </div>
 
-          {event.description && <p className="text-gray-700 mb-6">{event.description}</p>}
+          {event.description && (
+            <p className="text-gray-700 mb-6 leading-relaxed">{event.description}</p>
+          )}
+
+          {!event.is_public && (
+            <div className="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-center gap-2 text-sm text-amber-800">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span className="font-medium">Private Event</span>
+                <span className="text-amber-600">• Only visible to invited guests</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <Tabs defaultValue="schedule" className="mb-8">
@@ -126,36 +311,82 @@ export function EventDetail({ event, activities }: EventDetailProps) {
 
           <TabsContent value="schedule">
             {activities.length > 0 ? (
-              <div className="space-y-4">
-                {activities.map((activity) => (
-                  <Card key={activity.id} className="overflow-hidden">
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-medium">{activity.title}</h3>
-                          {activity.location && (
-                            <div className="flex items-center text-sm text-muted-foreground mt-1">
-                              <MapPin className="h-3 w-3 mr-1" />
-                              <span>{activity.location}</span>
-                            </div>
-                          )}
-                          {activity.start_time && (
-                            <div className="flex items-center text-sm text-muted-foreground mt-1">
-                              <Clock className="h-3 w-3 mr-1" />
-                              <span>
-                                {new Date(activity.start_time).toLocaleTimeString([], {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        {activity.description && <p className="text-sm mt-2">{activity.description}</p>}
+              <div className="space-y-6">
+                {isMultiDay ? (
+                  // Multi-day trip: group by day
+                  Object.entries(groupedActivities)
+                    .sort((a, b) => {
+                      // Sort by day number (Day 1, Day 2, etc.)
+                      const dayA = a[0].match(/\d+/)?.[0] || "0"
+                      const dayB = b[0].match(/\d+/)?.[0] || "0"
+                      return parseInt(dayA) - parseInt(dayB)
+                    })
+                    .map(([day, dayActivities]: [string, any]) => (
+                    <div key={day}>
+                      <h3 className="text-lg font-semibold mb-3 text-gray-800 border-b pb-2">{day}</h3>
+                      <div className="space-y-3">
+                        {dayActivities.map((activity: any) => (
+                          <Card key={activity.id} className="overflow-hidden">
+                            <CardContent className="p-4">
+                              <div>
+                                <h4 className="font-medium">{activity.title}</h4>
+                                {activity.location && (
+                                  <div className="flex items-center text-sm text-muted-foreground mt-1">
+                                    <MapPin className="h-3 w-3 mr-1" />
+                                    <span>{activity.location}</span>
+                                  </div>
+                                )}
+                                {activity.start_time && (
+                                  <div className="flex items-center text-sm text-muted-foreground mt-1">
+                                    <Clock className="h-3 w-3 mr-1" />
+                                    <span>
+                                      {new Date(activity.start_time).toLocaleTimeString([], {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      })}
+                                    </span>
+                                  </div>
+                                )}
+                                {activity.description && <p className="text-sm mt-2 text-gray-600">{activity.description}</p>}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                    </div>
+                  ))
+                ) : (
+                  // Single day event: show all activities
+                  <div className="space-y-3">
+                    {activities.map((activity: any) => (
+                      <Card key={activity.id} className="overflow-hidden">
+                        <CardContent className="p-4">
+                          <div>
+                            <h4 className="font-medium">{activity.title}</h4>
+                            {activity.location && (
+                              <div className="flex items-center text-sm text-muted-foreground mt-1">
+                                <MapPin className="h-3 w-3 mr-1" />
+                                <span>{activity.location}</span>
+                              </div>
+                            )}
+                            {activity.start_time && (
+                              <div className="flex items-center text-sm text-muted-foreground mt-1">
+                                <Clock className="h-3 w-3 mr-1" />
+                                <span>
+                                  {new Date(activity.start_time).toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </span>
+                              </div>
+                            )}
+                            {activity.description && <p className="text-sm mt-2 text-gray-600">{activity.description}</p>}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-8">
@@ -199,10 +430,52 @@ export function EventDetail({ event, activities }: EventDetailProps) {
           <TabsContent value="attendees">
             <div className="text-center py-8">
               <p className="text-muted-foreground">No attendees yet.</p>
-              <Button className="mt-4">Invite Friends</Button>
+              {isOwner && (
+                <Button className="mt-4" onClick={() => setShowInviteModal(true)}>
+                  <Users className="h-4 w-4 mr-2" />
+                  Invite Friends
+                </Button>
+              )}
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Invite Friends Modal */}
+        <Dialog open={showInviteModal} onOpenChange={setShowInviteModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Invite Friends</DialogTitle>
+              <DialogDescription>
+                Send an invitation to join &quot;{event.title}&quot; via email
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="friend@example.com"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && inviteEmail) {
+                      handleInvite()
+                    }
+                  }}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowInviteModal(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleInvite} disabled={!inviteEmail || isSendingInvite}>
+                  {isSendingInvite ? "Sending..." : "Send Invitation"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

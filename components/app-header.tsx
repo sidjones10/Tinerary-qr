@@ -98,6 +98,9 @@ export function AppHeader() {
             <Link href="/saved" className="transition-colors hover:text-foreground/80">
               Saved
             </Link>
+            <Link href="/liked" className="transition-colors hover:text-foreground/80">
+              Liked
+            </Link>
             <Link href="/notifications" className="transition-colors hover:text-foreground/80">
               Notifications
             </Link>

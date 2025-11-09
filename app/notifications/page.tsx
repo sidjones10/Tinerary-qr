@@ -187,7 +187,15 @@ export default function NotificationsPage() {
                   {filteredNotifications.map((notification) => (
                     <Card
                       key={notification.id}
-                      className={`overflow-hidden transition-all ${!notification.is_read ? "border-l-4 border-l-primary" : ""}`}
+                      className={`overflow-hidden transition-all cursor-pointer hover:shadow-md ${!notification.is_read ? "border-l-4 border-l-primary" : ""}`}
+                      onClick={() => {
+                        if (!notification.is_read) {
+                          handleMarkAsRead(notification.id)
+                        }
+                        if (notification.link_url) {
+                          window.location.href = notification.link_url
+                        }
+                      }}
                     >
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-4">
@@ -209,6 +217,12 @@ export default function NotificationsPage() {
                                 <Link
                                   href={notification.link_url}
                                   className="text-xs font-medium text-primary hover:underline"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (!notification.is_read) {
+                                      handleMarkAsRead(notification.id)
+                                    }
+                                  }}
                                 >
                                   View details
                                 </Link>
@@ -221,7 +235,10 @@ export default function NotificationsPage() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 rounded-full"
-                              onClick={() => handleMarkAsRead(notification.id)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleMarkAsRead(notification.id)
+                              }}
                             >
                               <Check className="h-4 w-4" />
                               <span className="sr-only">Mark as read</span>

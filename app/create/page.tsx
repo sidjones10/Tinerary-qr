@@ -16,6 +16,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { EventPreviewModal } from "@/components/event-preview-modal"
+import { LocationAutocomplete } from "@/components/location-autocomplete"
+import { ActivityBrowserDialog } from "@/components/activity-browser-dialog"
+import type { Activity as ImportedActivity } from "@/lib/activity-service"
 
 export default function CreatePage() {
   return (
@@ -37,7 +40,7 @@ function CreatePageContent() {
   const [time, setTime] = useState("")
   const [isPublic, setIsPublic] = useState(true)
   const [activities, setActivities] = useState([
-    { title: "", location: "", time: "", description: "", requireRsvp: false },
+    { title: "", location: "", time: "", description: "", requireRsvp: false, day: "" },
   ])
   const [showPackingExpenses, setShowPackingExpenses] = useState(false)
   const [packingItems, setPackingItems] = useState([
@@ -67,41 +70,64 @@ function CreatePageContent() {
 
   const supabase = createClient()
 
-  // Load draft if draftId is provided in URL
+  // Auto-save draft every 30 seconds
+  useEffect(() => {
+    if (!user?.id || !title) return
+
+    const autoSaveInterval = setInterval(() => {
+      handleSaveDraft(false) // Silent auto-save
+    }, 30000) // 30 seconds
+
+    return () => clearInterval(autoSaveInterval)
+  }, [user?.id, title, description, location, startDate, endDate, type, isPublic, activities, packingItems, expenses])
+
+  // Auto-save draft when user makes changes (debounced)
+  useEffect(() => {
+    if (!user?.id || !title) return
+
+    const timeoutId = setTimeout(() => {
+      handleSaveDraft(false) // Silent auto-save
+    }, 3000) // 3 seconds after user stops typing
+
+    return () => clearTimeout(timeoutId)
+  }, [title, description, location, startDate, endDate, type, isPublic])
+
+  // Load draft or itinerary for editing if ID is provided in URL
   useEffect(() => {
     const loadDraft = async () => {
       const draftIdFromUrl = searchParams?.get("draftId")
       if (draftIdFromUrl && user) {
         try {
-          const { data, error } = await supabase
+          // First try to load as a draft
+          const { data: draftData, error: draftError } = await supabase
             .from("drafts")
             .select("*")
             .eq("id", draftIdFromUrl)
             .eq("user_id", user.id)
-            .single()
+            .maybeSingle()
 
-          if (error) throw error
-          if (data) {
+          if (draftData) {
+            // It's a draft
             setDraftId(draftIdFromUrl)
-            setTitle(data.title || "")
-            setDescription(data.description || "")
-            setLocation(data.location || "")
-            setStartDate(data.start_date || "")
-            setEndDate(data.end_date || "")
-            setType(data.type || "event")
-            setIsPublic(data.is_public !== undefined ? data.is_public : true)
+            setTitle(draftData.title || "")
+            setDescription(draftData.description || "")
+            setLocation(draftData.location || "")
+            setStartDate(draftData.start_date || "")
+            setEndDate(draftData.end_date || "")
+            setType(draftData.type || "event")
+            setIsPublic(draftData.is_public !== undefined ? draftData.is_public : true)
 
-            if (data.activities && data.activities.length > 0) {
-              setActivities(data.activities)
+            if (draftData.activities && draftData.activities.length > 0) {
+              setActivities(draftData.activities)
             }
 
-            if (data.packing_items && data.packing_items.length > 0) {
-              setPackingItems(data.packing_items)
+            if (draftData.packing_items && draftData.packing_items.length > 0) {
+              setPackingItems(draftData.packing_items)
               setShowPackingExpenses(true)
             }
 
-            if (data.expenses && data.expenses.length > 0) {
-              setExpenses(data.expenses)
+            if (draftData.expenses && draftData.expenses.length > 0) {
+              setExpenses(draftData.expenses)
               setShowPackingExpenses(true)
             }
 
@@ -109,12 +135,59 @@ function CreatePageContent() {
               title: "Draft loaded",
               description: "Your draft has been loaded successfully.",
             })
+            return
           }
-        } catch (error) {
-          console.error("Error loading draft:", error)
+
+          // If not a draft, try loading as a published itinerary
+          const { data: itineraryData, error: itineraryError } = await supabase
+            .from("itineraries")
+            .select(`
+              *,
+              activities:activities(*)
+            `)
+            .eq("id", draftIdFromUrl)
+            .eq("user_id", user.id)
+            .single()
+
+          if (itineraryError) throw itineraryError
+
+          if (itineraryData) {
+            // It's a published itinerary - load for editing
+            setTitle(itineraryData.title || "")
+            setDescription(itineraryData.description || "")
+            setLocation(itineraryData.location || "")
+            setStartDate(itineraryData.start_date || "")
+            setEndDate(itineraryData.end_date || "")
+            setIsPublic(itineraryData.is_public !== undefined ? itineraryData.is_public : true)
+
+            // Determine type based on dates
+            const start = new Date(itineraryData.start_date)
+            const end = new Date(itineraryData.end_date)
+            setType(start.toDateString() === end.toDateString() ? "event" : "trip")
+
+            // Load activities if they exist
+            if (itineraryData.activities && itineraryData.activities.length > 0) {
+              const formattedActivities = itineraryData.activities.map((act: any) => ({
+                title: act.title || "",
+                location: act.location || "",
+                time: act.start_time ? new Date(act.start_time).toTimeString().slice(0, 5) : "",
+                description: act.description || "",
+                requireRsvp: act.require_rsvp || false,
+                day: act.day || "",
+              }))
+              setActivities(formattedActivities)
+            }
+
+            toast({
+              title: "Itinerary loaded",
+              description: "You can now edit your itinerary.",
+            })
+          }
+        } catch (error: any) {
+          console.error("Error loading draft/itinerary:", error)
           toast({
             title: "Error",
-            description: "There was a problem loading your draft.",
+            description: error.message || "There was a problem loading the data.",
             variant: "destructive",
           })
         }
@@ -126,28 +199,81 @@ function CreatePageContent() {
     }
   }, [searchParams, toast, user])
 
-  const handleSaveDraft = async () => {
+  const handleSaveDraft = async (showToast = true) => {
     if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "You must be logged in to save a draft",
-        variant: "destructive",
-      })
+      if (showToast) {
+        toast({
+          title: "Authentication required",
+          description: "You must be logged in to save a draft",
+          variant: "destructive",
+        })
+      }
       return
     }
 
     if (!title) {
-      toast({
-        title: "Missing information",
-        description: "Please provide at least a title for your draft",
-        variant: "destructive",
-      })
+      if (showToast) {
+        toast({
+          title: "Missing information",
+          description: "Please provide at least a title for your draft",
+          variant: "destructive",
+        })
+      }
       return
     }
 
     setIsSaving(true)
 
     try {
+      // Ensure user profile exists (for foreign key constraint)
+      const { data: existingProfile, error: checkError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", user.id)
+        .maybeSingle()
+
+      if (checkError) {
+        console.error("Error checking profile:", checkError)
+        if (showToast) {
+          toast({
+            title: "Database Error",
+            description: "Unable to verify user profile. Please make sure the database is properly set up.",
+            variant: "destructive",
+          })
+        }
+        setIsSaving(false)
+        return
+      }
+
+      if (!existingProfile) {
+        // Get user data from auth
+        const { data: { user: authUser } } = await supabase.auth.getUser()
+
+        // Create profile if it doesn't exist
+        const { error: profileError } = await supabase.from("profiles").insert({
+          id: user.id,
+          email: authUser?.email || null,
+          name: authUser?.user_metadata?.name || authUser?.user_metadata?.full_name || null,
+          username: authUser?.user_metadata?.username || authUser?.email?.split('@')[0] || null,
+          avatar_url: authUser?.user_metadata?.avatar_url || null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+
+        if (profileError) {
+          console.error("Profile creation error:", profileError)
+          if (showToast) {
+            toast({
+              title: "Profile Creation Failed",
+              description: `Unable to create user profile: ${profileError.message}. Please run the database migrations.`,
+              variant: "destructive",
+            })
+          }
+          setIsSaving(false)
+          return
+        }
+      }
+
       const draftData = {
         title,
         description,
@@ -185,18 +311,34 @@ function CreatePageContent() {
           window.history.replaceState({}, "", url.toString())
         }
 
-        toast({
-          title: "Draft Saved",
-          description: `Your ${type} has been saved as a draft.`,
-        })
+        if (showToast) {
+          toast({
+            title: "Draft Saved",
+            description: `Your ${type} has been saved as a draft.`,
+          })
+        }
       }
     } catch (error: any) {
       console.error("Error saving draft:", error)
-      toast({
-        title: "Error",
-        description: "There was a problem saving your draft",
-        variant: "destructive",
-      })
+
+      let errorMessage = "There was a problem saving your draft"
+
+      // Provide specific error messages for common issues
+      if (error.message?.includes("foreign key constraint")) {
+        errorMessage = "Database setup required: Please run the database migrations first. The profiles table needs to be created."
+      } else if (error.message?.includes("relation") && error.message?.includes("does not exist")) {
+        errorMessage = "Database setup required: The drafts table doesn't exist. Please run the database migrations."
+      } else if (error.message) {
+        errorMessage = `Error: ${error.message}`
+      }
+
+      if (showToast) {
+        toast({
+          title: "Cannot Save Draft",
+          description: errorMessage,
+          variant: "destructive",
+        })
+      }
     } finally {
       setIsSaving(false)
     }
@@ -286,9 +428,19 @@ function CreatePageContent() {
       router.push(`/event/${itineraryId}`)
     } catch (error: any) {
       console.error("Error publishing:", error)
+
+      let errorMessage = error.message || "There was a problem publishing your " + type
+
+      // Provide specific error messages for common issues
+      if (error.message?.includes("foreign key constraint")) {
+        errorMessage = "Database setup required: Please run the database migrations to create the necessary tables."
+      } else if (error.message?.includes("relation") && error.message?.includes("does not exist")) {
+        errorMessage = "Database setup required: Required tables don't exist. Please run the database migrations."
+      }
+
       toast({
-        title: "Error",
-        description: error.message || "There was a problem publishing your " + type,
+        title: "Cannot Publish",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -297,7 +449,41 @@ function CreatePageContent() {
   }
 
   const addActivity = () => {
-    setActivities([...activities, { title: "", location: "", time: "", description: "", requireRsvp: false }])
+    setActivities([...activities, { title: "", location: "", time: "", description: "", requireRsvp: false, day: "" }])
+  }
+
+  const handleImportedActivities = (importedActivities: ImportedActivity[]) => {
+    const formattedActivities = importedActivities.map((activity) => ({
+      title: activity.title,
+      location: activity.location || "",
+      time: activity.start_time ? new Date(activity.start_time).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }) : "",
+      description: activity.description || "",
+      requireRsvp: activity.require_rsvp || false,
+      day: activity.day || "",
+    }))
+
+    // Add to existing activities or replace empty ones
+    const hasEmptyActivity = activities.length === 1 && !activities[0].title
+    if (hasEmptyActivity) {
+      setActivities(formattedActivities)
+    } else {
+      setActivities([...activities, ...formattedActivities])
+    }
+  }
+
+  // Calculate the number of days in the trip
+  const getTripDays = () => {
+    if (!startDate || !endDate) return []
+
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+
+    const days = []
+    for (let i = 1; i <= daysDiff; i++) {
+      days.push(`Day ${i}`)
+    }
+    return days
   }
 
   const updateActivity = (index: number, field: string, value: any) => {
@@ -512,15 +698,14 @@ function CreatePageContent() {
 
                     <div>
                       <label className="block text-sm font-medium mb-1">Location</label>
-                      <div className="flex items-center border rounded-md">
-                        <MapPin className="ml-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          placeholder="Enter location"
-                          className="border-0"
-                          value={location}
-                          onChange={(e) => setLocation(e.target.value)}
-                        />
-                      </div>
+                      <LocationAutocomplete
+                        value={location}
+                        onChange={setLocation}
+                        placeholder="e.g., San Antonio, Texas or Paris, France"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Specific locations help others discover your {type}
+                      </p>
                     </div>
 
                     {type === "event" ? (
@@ -534,7 +719,7 @@ function CreatePageContent() {
                           <div className="flex items-center border rounded-md">
                             <Clock className="ml-3 h-4 w-4 text-muted-foreground" />
                             <Input
-                              placeholder="7:00 PM"
+                              type="time"
                               className="border-0"
                               value={time}
                               onChange={(e) => setTime(e.target.value)}
@@ -629,10 +814,16 @@ function CreatePageContent() {
                       {type === "trip" ? "Plan your stops day by day" : "Add activities to your event schedule"}
                     </p>
                   </div>
-                  <Button variant="outline" size="sm" onClick={addActivity} className="bg-white">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add {type === "trip" ? "Stop" : "Activity"}
-                  </Button>
+                  <div className="flex gap-2">
+                    <ActivityBrowserDialog
+                      targetStartDate={startDate}
+                      onActivitiesSelected={handleImportedActivities}
+                    />
+                    <Button variant="outline" size="sm" onClick={addActivity} className="bg-white">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add {type === "trip" ? "Stop" : "Activity"}
+                    </Button>
+                  </div>
                 </div>
 
                 {type === "trip" && (
@@ -649,16 +840,25 @@ function CreatePageContent() {
                     {type === "trip" && (
                       <div className="mb-3">
                         <label className="block text-sm font-medium mb-1">Day</label>
-                        <select className="w-full h-10 px-3 py-2 text-sm rounded-md border border-input bg-background">
+                        <select
+                          className="w-full h-10 px-3 py-2 text-sm rounded-md border border-input bg-background"
+                          value={activity.day}
+                          onChange={(e) => updateActivity(index, "day", e.target.value)}
+                        >
                           <option value="">Select day...</option>
-                          <option value="Day 1">Day 1</option>
-                          <option value="Day 2">Day 2</option>
-                          <option value="Day 3">Day 3</option>
-                          <option value="Day 4">Day 4</option>
-                          <option value="Day 5">Day 5</option>
+                          {getTripDays().map((day) => (
+                            <option key={day} value={day}>
+                              {day}
+                            </option>
+                          ))}
                           <option value="Any day">Any day</option>
                           <option value="Flexible">Flexible</option>
                         </select>
+                        {!startDate || !endDate ? (
+                          <p className="text-xs text-amber-600 mt-1">
+                            Set trip dates to see available days
+                          </p>
+                        ) : null}
                       </div>
                     )}
 
@@ -678,7 +878,7 @@ function CreatePageContent() {
                         <div className="flex items-center border rounded-md">
                           <Clock className="ml-3 h-4 w-4 text-muted-foreground" />
                           <Input
-                            placeholder="7:00 PM"
+                            type="time"
                             className="border-0"
                             value={activity.time}
                             onChange={(e) => updateActivity(index, "time", e.target.value)}
@@ -689,15 +889,11 @@ function CreatePageContent() {
 
                     <div className="mb-3">
                       <label className="block text-sm font-medium mb-1">Location</label>
-                      <div className="flex items-center border rounded-md">
-                        <MapPin className="ml-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          placeholder="Enter location"
-                          className="border-0"
-                          value={activity.location}
-                          onChange={(e) => updateActivity(index, "location", e.target.value)}
-                        />
-                      </div>
+                      <LocationAutocomplete
+                        value={activity.location || ""}
+                        onChange={(value) => updateActivity(index, "location", value)}
+                        placeholder="e.g., Golden Gate Park or 1600 Pennsylvania Ave, DC"
+                      />
                     </div>
 
                     <div className="mb-3">

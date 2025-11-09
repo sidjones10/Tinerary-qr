@@ -22,9 +22,14 @@ export function ProfileSettings() {
   const [formData, setFormData] = useState({
     fullName: user?.user_metadata?.name || "",
     username: user?.user_metadata?.username || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
     bio: user?.user_metadata?.bio || "",
     location: user?.user_metadata?.location || "",
+    website: user?.user_metadata?.website || "",
   })
+  const [originalUsername, setOriginalUsername] = useState("")
+  const [checkingUsername, setCheckingUsername] = useState(false)
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -33,7 +38,7 @@ export function ProfileSettings() {
         try {
           const { data, error } = await supabase
             .from("profiles")
-            .select("name, username, bio, location")
+            .select("name, username, bio, location, website, phone")
             .eq("id", user.id)
             .single()
 
@@ -48,9 +53,13 @@ export function ProfileSettings() {
             setFormData({
               fullName: data.name || "",
               username: data.username || "",
+              email: user.email || "",
+              phone: data.phone || user.phone || "",
               bio: data.bio || "",
               location: data.location || "",
+              website: data.website || "",
             })
+            setOriginalUsername(data.username || "")
           }
         } finally {
           setIsLoading(false)
@@ -69,6 +78,42 @@ export function ProfileSettings() {
     }))
   }
 
+  const checkUsernameAvailability = async (username: string) => {
+    if (!username || username === originalUsername) {
+      return true
+    }
+
+    setCheckingUsername(true)
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("username", username)
+        .single()
+
+      if (error && error.code === "PGRST116") {
+        // No rows returned, username is available
+        return true
+      }
+
+      if (data) {
+        toast({
+          title: "Username taken",
+          description: "This username is already in use. Please choose another.",
+          variant: "destructive",
+        })
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.error("Error checking username:", error)
+      return true // Allow proceed on error
+    } finally {
+      setCheckingUsername(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -78,10 +123,55 @@ export function ProfileSettings() {
         throw new Error("User not authenticated")
       }
 
+      // Check username availability if it changed
+      if (formData.username && formData.username !== originalUsername) {
+        const isAvailable = await checkUsernameAvailability(formData.username)
+        if (!isAvailable) {
+          setIsLoading(false)
+          return
+        }
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (formData.email && !emailRegex.test(formData.email)) {
+        throw new Error("Please enter a valid email address")
+      }
+
+      // Update email if changed
+      if (formData.email && formData.email !== user.email) {
+        const { error: emailError } = await supabase.auth.updateUser({
+          email: formData.email,
+        })
+
+        if (emailError) {
+          throw new Error(`Email update failed: ${emailError.message}`)
+        }
+
+        toast({
+          title: "Email update initiated",
+          description: "Please check your email to confirm the change.",
+        })
+      }
+
+      // Update phone if changed
+      if (formData.phone && formData.phone !== user.phone) {
+        const { error: phoneError } = await supabase.auth.updateUser({
+          phone: formData.phone,
+        })
+
+        if (phoneError) {
+          console.error("Phone update error:", phoneError)
+          // Don't fail the whole operation if phone update fails
+        }
+      }
+
       // Update user metadata in auth.users table
       const { error: authError } = await supabase.auth.updateUser({
         data: {
           name: formData.fullName,
+          username: formData.username,
+          website: formData.website,
         },
       })
 
@@ -94,8 +184,11 @@ export function ProfileSettings() {
         .from("profiles")
         .update({
           name: formData.fullName,
+          username: formData.username,
           bio: formData.bio,
           location: formData.location,
+          website: formData.website,
+          phone: formData.phone,
           updated_at: new Date().toISOString(),
         })
         .eq("id", user.id)
@@ -109,6 +202,7 @@ export function ProfileSettings() {
         description: "Your profile information has been updated successfully.",
       })
 
+      setOriginalUsername(formData.username)
       await refreshSession()
     } catch (error: any) {
       console.error("Error updating profile:", error)
@@ -151,9 +245,53 @@ export function ProfileSettings() {
                   value={formData.username}
                   onChange={handleChange}
                   placeholder="jesschan"
-                  disabled
+                  disabled={checkingUsername}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Your username is visible to others. Choose wisely!
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="space-y-2 flex-1">
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="jessica@example.com"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Email changes require verification
+                </p>
+              </div>
+
+              <div className="space-y-2 flex-1">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="+1 (555) 123-4567"
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="website">Website</Label>
+              <Input
+                id="website"
+                name="website"
+                type="url"
+                value={formData.website}
+                onChange={handleChange}
+                placeholder="https://yourwebsite.com"
+              />
             </div>
 
             <div className="space-y-2">

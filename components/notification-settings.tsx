@@ -3,11 +3,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useToast } from "@/components/ui/use-toast"
 import { Loader2 } from "lucide-react"
+import { useAuth } from "@/providers/auth-provider"
+import { createClient } from "@/lib/supabase/client"
 
 export function NotificationSettings() {
+  const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
 
@@ -26,6 +29,37 @@ export function NotificationSettings() {
     newsletter: false,
   })
 
+  useEffect(() => {
+    const loadPreferences = async () => {
+      if (!user) return
+
+      try {
+        const supabase = createClient()
+        const { data, error } = await supabase
+          .from("user_preferences")
+          .select("notification_preferences")
+          .eq("user_id", user.id)
+          .single()
+
+        if (error && error.code !== "PGRST116") {
+          console.error("Error loading preferences:", error)
+          return
+        }
+
+        if (data?.notification_preferences) {
+          setNotifications((prev) => ({
+            ...prev,
+            ...data.notification_preferences,
+          }))
+        }
+      } catch (error) {
+        console.error("Error loading preferences:", error)
+      }
+    }
+
+    loadPreferences()
+  }, [user])
+
   const handleToggle = (key: keyof typeof notifications) => {
     setNotifications((prev) => ({
       ...prev,
@@ -34,19 +68,54 @@ export function NotificationSettings() {
   }
 
   const handleSave = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to save preferences.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsLoading(true)
 
     try {
-      // Save notification preferences logic would go here
+      const supabase = createClient()
+
+      // Try to update existing preferences
+      const { error: updateError } = await supabase
+        .from("user_preferences")
+        .update({
+          notification_preferences: notifications,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", user.id)
+
+      // If no rows were updated, insert a new row
+      if (updateError && updateError.code === "PGRST116") {
+        const { error: insertError } = await supabase
+          .from("user_preferences")
+          .insert({
+            user_id: user.id,
+            notification_preferences: notifications,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+
+        if (insertError) throw insertError
+      } else if (updateError) {
+        throw updateError
+      }
 
       toast({
         title: "Preferences saved",
         description: "Your notification preferences have been updated.",
       })
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Error saving preferences:", error)
       toast({
         title: "Error",
-        description: "Failed to save notification preferences.",
+        description: error.message || "Failed to save notification preferences.",
         variant: "destructive",
       })
     } finally {

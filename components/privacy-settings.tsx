@@ -5,13 +5,16 @@ import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useToast } from "@/components/ui/use-toast"
 import { Loader2, Info } from "lucide-react"
+import { useAuth } from "@/providers/auth-provider"
+import { createClient } from "@/lib/supabase/client"
 
 export function PrivacySettings() {
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
+  const { user } = useAuth()
 
   const [profilePrivacy, setProfilePrivacy] = useState("public")
   const [privacySettings, setPrivacySettings] = useState({
@@ -23,6 +26,58 @@ export function PrivacySettings() {
     dataCollection: true,
   })
 
+  // Load privacy settings from database
+  useEffect(() => {
+    const loadPreferences = async () => {
+      if (!user) return
+
+      try {
+        const supabase = createClient()
+
+        // Load profile privacy from profiles table
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("is_private")
+          .eq("id", user.id)
+          .single()
+
+        if (profileError && profileError.code !== "PGRST116") {
+          console.error("Error loading profile privacy:", profileError)
+        } else if (profileData) {
+          // Map is_private boolean to profilePrivacy string
+          if (profileData.is_private === true) {
+            setProfilePrivacy("private")
+          } else if (profileData.is_private === false) {
+            setProfilePrivacy("public")
+          }
+        }
+
+        // Load other privacy settings from user_preferences
+        const { data: prefsData, error: prefsError } = await supabase
+          .from("user_preferences")
+          .select("privacy_preferences")
+          .eq("user_id", user.id)
+          .single()
+
+        if (prefsError && prefsError.code !== "PGRST116") {
+          console.error("Error loading privacy preferences:", prefsError)
+          return
+        }
+
+        if (prefsData?.privacy_preferences) {
+          setPrivacySettings((prev) => ({
+            ...prev,
+            ...prefsData.privacy_preferences,
+          }))
+        }
+      } catch (error) {
+        console.error("Error loading privacy settings:", error)
+      }
+    }
+
+    loadPreferences()
+  }, [user])
+
   const handleToggle = (key: keyof typeof privacySettings) => {
     setPrivacySettings((prev) => ({
       ...prev,
@@ -31,19 +86,74 @@ export function PrivacySettings() {
   }
 
   const handleSave = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to save settings.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsLoading(true)
 
     try {
-      // Save privacy settings logic would go here
+      const supabase = createClient()
+
+      // Update profile privacy in profiles table
+      const isPrivate = profilePrivacy === "private" || profilePrivacy === "followers"
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          is_private: isPrivate,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id)
+
+      if (profileError) {
+        throw new Error(`Failed to update profile privacy: ${profileError.message}`)
+      }
+
+      // Save other privacy settings to user_preferences
+      const { error: updateError } = await supabase
+        .from("user_preferences")
+        .update({
+          privacy_preferences: {
+            ...privacySettings,
+            profilePrivacy, // Store the exact privacy level
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", user.id)
+
+      // If no rows were updated, insert a new row
+      if (updateError && updateError.code === "PGRST116") {
+        const { error: insertError } = await supabase
+          .from("user_preferences")
+          .insert({
+            user_id: user.id,
+            privacy_preferences: {
+              ...privacySettings,
+              profilePrivacy,
+            },
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+
+        if (insertError) throw insertError
+      } else if (updateError) {
+        throw updateError
+      }
 
       toast({
         title: "Settings saved",
         description: "Your privacy settings have been updated.",
       })
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Error saving privacy settings:", error)
       toast({
         title: "Error",
-        description: "Failed to save privacy settings.",
+        description: error.message || "Failed to save privacy settings.",
         variant: "destructive",
       })
     } finally {

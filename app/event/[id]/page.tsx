@@ -64,10 +64,19 @@ const getEventById = async (id: string) => {
 
     const supabase = createClient()
 
-    // Fetch the itinerary
+    // Fetch the itinerary with owner profile information
     const { data: itineraryData, error: itineraryError } = await supabase
       .from("itineraries")
-      .select("*")
+      .select(`
+        *,
+        owner:profiles!itineraries_user_id_fkey(
+          id,
+          name,
+          username,
+          avatar_url,
+          email
+        )
+      `)
       .eq("id", id)
       .single()
 
@@ -94,7 +103,21 @@ const getEventById = async (id: string) => {
       console.error("Error fetching activities:", activitiesError)
     }
 
+    console.log("==== ACTIVITIES DEBUG ====")
+    console.log("Itinerary ID:", id)
+    console.log("Fetched activities count:", activitiesData?.length || 0)
     console.log("Fetched activities:", activitiesData || [])
+    if (activitiesData && activitiesData.length > 0) {
+      activitiesData.forEach((act, i) => {
+        console.log(`Activity ${i}:`, {
+          title: act.title,
+          day: act.day,
+          location: act.location,
+          start_time: act.start_time
+        })
+      })
+    }
+    console.log("==========================")
 
     // Determine if this is a trip or event based on date fields
     const isTrip = itineraryData.start_date !== itineraryData.end_date
@@ -149,24 +172,36 @@ const getEventById = async (id: string) => {
       }
     }
 
+    // Extract owner information
+    const owner = Array.isArray(itineraryData.owner) ? itineraryData.owner[0] : itineraryData.owner
+
     // Format the data to match the expected structure
     return {
       id: itineraryData.id,
+      user_id: itineraryData.user_id,
       title: itineraryData.title,
       type: isTrip ? "Trip" : "Event",
-      image: itineraryData.cover_image_url || "/placeholder.svg?height=400&width=800",
+      image: itineraryData.image_url || "/placeholder.svg?height=400&width=800",
+      cover_image_url: itineraryData.image_url,
+      start_date: itineraryData.start_date,
+      end_date: itineraryData.end_date,
       date: isTrip
         ? formatDateRange(itineraryData.start_date, itineraryData.end_date)
         : formatDate(itineraryData.start_date),
       location: itineraryData.location,
+      is_public: itineraryData.is_public,
+      host_name: owner?.name || owner?.username || owner?.email?.split('@')[0] || "Anonymous",
+      host_username: owner?.username ? `@${owner.username}` : null,
+      host_avatar: owner?.avatar_url,
       organizer: {
-        name: "Trip Creator", // We'll need to fetch user data in a real implementation
-        username: "@creator",
-        avatar: "/placeholder.svg?height=40&width=40",
+        name: owner?.name || owner?.username || owner?.email?.split('@')[0] || "Anonymous",
+        username: owner?.username ? `@${owner.username}` : "@anonymous",
+        avatar: owner?.avatar_url || "/placeholder.svg?height=40&width=40",
       },
       likes: 0, // Default value
       description: itineraryData.description,
       days: days,
+      activities: activitiesData || [], // Include raw activities data for the EventDetail component
       // Include other default properties needed by the UI
       expenses: {
         categories: [
@@ -310,7 +345,6 @@ export default function EventPage() {
   const { id } = useParams()
   const { user } = useAuth()
   const [event, setEvent] = useState<any>(null)
-  const [activities, setActivities] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [notFound, setNotFound] = useState(false)
@@ -324,47 +358,26 @@ export default function EventPage() {
         setNotFound(false)
         setIsPrivate(false)
 
-        const supabase = createClient()
+        // Use the getEventById function which has mock data fallback
+        const eventData = await getEventById(id as string)
 
-        // Fetch the event
-        const { data: eventData, error: eventError } = await supabase
-          .from("itineraries")
-          .select("*")
-          .eq("id", id)
-          .single()
+        // Check if we have the necessary data to determine privacy
+        // For mock data, assume it's public
+        const isMockData = !isNaN(Number(id)) && !isValidUUID(id as string)
 
-        if (eventError) {
-          if (eventError.code === "PGRST116") {
-            setNotFound(true)
-          } else {
-            setError(eventError.message)
-          }
-          return
-        }
-
-        // Check if event is private and user is not the owner
-        if (!eventData.is_public && (!user || user.id !== eventData.user_id)) {
+        if (!isMockData && eventData.is_public === false && (!user || user.id !== eventData.user_id)) {
           setIsPrivate(true)
           return
         }
 
         setEvent(eventData)
-
-        // Fetch activities for this event
-        const { data: activitiesData, error: activitiesError } = await supabase
-          .from("activities")
-          .select("*")
-          .eq("itinerary_id", id)
-          .order("start_time", { ascending: true })
-
-        if (activitiesError) {
-          console.error("Error fetching activities:", activitiesError)
-        } else {
-          setActivities(activitiesData || [])
-        }
       } catch (err: any) {
         console.error("Error fetching event:", err)
-        setError(err.message || "An error occurred while fetching the event")
+        if (err.message === "Itinerary not found") {
+          setNotFound(true)
+        } else {
+          setError(err.message || "An error occurred while fetching the event")
+        }
       } finally {
         setLoading(false)
       }
@@ -402,5 +415,5 @@ export default function EventPage() {
     )
   }
 
-  return <EventDetail event={event} activities={activities} />
+  return <EventDetail event={event} />
 }

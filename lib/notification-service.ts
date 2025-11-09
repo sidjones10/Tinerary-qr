@@ -54,18 +54,18 @@ export async function markNotificationAsRead(notificationId: string) {
   try {
     const { error } = await supabase
       .from("notifications")
-      .update({ is_read: true, read_at: new Date().toISOString() })
+      .update({ is_read: true })
       .eq("id", notificationId)
 
     if (error) {
-      console.error("Error marking notification as read:", error)
-      return { success: false, error }
+      console.error("Error marking notification as read:", error.message || error)
+      return { success: false, error: error.message || "Failed to mark notification as read" }
     }
 
     return { success: true }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in notification service:", error)
-    return { success: false, error }
+    return { success: false, error: error.message || "Failed to mark notification as read" }
   }
 }
 
@@ -73,19 +73,19 @@ export async function markAllNotificationsAsRead(userId: string) {
   try {
     const { error } = await supabase
       .from("notifications")
-      .update({ is_read: true, read_at: new Date().toISOString() })
+      .update({ is_read: true })
       .eq("user_id", userId)
       .eq("is_read", false)
 
     if (error) {
-      console.error("Error marking all notifications as read:", error)
-      return { success: false, error }
+      console.error("Error marking all notifications as read:", error.message || error)
+      return { success: false, error: error.message || "Failed to mark all notifications as read" }
     }
 
     return { success: true }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in notification service:", error)
-    return { success: false, error }
+    return { success: false, error: error.message || "Failed to mark all notifications as read" }
   }
 }
 

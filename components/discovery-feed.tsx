@@ -1,20 +1,268 @@
 "use client"
 
-import { useState, useRef } from "react"
-import { Bookmark, Calendar, Heart, MapPin, MessageCircle, Share2, Star } from "lucide-react"
-
+import { useState, useRef, useEffect } from "react"
+import { Bookmark, Calendar, Heart, MapPin, MessageCircle, Share2, Star, Sparkles } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
+import { getTrendingItineraries, recordInteraction } from "@/lib/feed-service"
+import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "@/providers/auth-provider"
+import { useToast } from "@/components/ui/use-toast"
+import Link from "next/link"
 
 export function DiscoveryFeed() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [discoveryItems, setDiscoveryItems] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
+  const [likedItems, setLikedItems] = useState<Set<string>>(new Set())
+  const [savedItems, setSavedItems] = useState<Set<string>>(new Set())
+  const { user } = useAuth()
+  const { toast } = useToast()
 
-  // Sample data - in a real app, this would come from a database
-  const discoveryItems = [
+  // Prevent hydration errors
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Fetch discovery feed and saved items
+  useEffect(() => {
+    const fetchDiscovery = async () => {
+      setLoading(true)
+      try {
+        const result = await getTrendingItineraries(user?.id || null, 30)
+        if (result.success && result.items) {
+          setDiscoveryItems(result.items)
+        }
+
+        // Fetch user's saved items to show correct state
+        if (user?.id) {
+          const supabase = createClient()
+          const { data: savedData } = await supabase
+            .from("saved_itineraries")
+            .select("itinerary_id")
+            .eq("user_id", user.id)
+
+          if (savedData) {
+            const savedIds = new Set(savedData.map((s) => s.itinerary_id))
+            setSavedItems(savedIds)
+            // For now, treat saved items as liked too
+            setLikedItems(savedIds)
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching discovery:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDiscovery()
+  }, [user?.id])
+
+  // Record view when scrolling to a new item
+  useEffect(() => {
+    if (user?.id && discoveryItems[currentIndex]) {
+      recordInteraction(user.id, discoveryItems[currentIndex].id, "view")
+    }
+  }, [currentIndex, user?.id, discoveryItems])
+
+  // Handle like action
+  const handleLike = async (itemId: string) => {
+    if (!user?.id) return
+
+    const newLiked = new Set(likedItems)
+    const wasLiked = likedItems.has(itemId)
+
+    if (wasLiked) {
+      newLiked.delete(itemId)
+      // TODO: Remove like from database when we have a likes table
+    } else {
+      newLiked.add(itemId)
+      // Record interaction and save to database
+      await recordInteraction(user.id, itemId, "like")
+
+      // Also save to saved_itineraries table for persistence
+      try {
+        const supabase = createClient()
+        await supabase.from("saved_itineraries").insert({
+          user_id: user.id,
+          itinerary_id: itemId,
+          created_at: new Date().toISOString(),
+        })
+      } catch (error) {
+        console.warn("Could not save like to database:", error)
+      }
+    }
+    setLikedItems(newLiked)
+  }
+
+  // Handle save action
+  const handleSave = async (itemId: string) => {
+    if (!user?.id) return
+
+    const newSaved = new Set(savedItems)
+    const wasSaved = savedItems.has(itemId)
+
+    if (wasSaved) {
+      newSaved.delete(itemId)
+      // Remove from database
+      try {
+        const supabase = createClient()
+        await supabase
+          .from("saved_itineraries")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("itinerary_id", itemId)
+      } catch (error) {
+        console.warn("Could not remove save from database:", error)
+      }
+    } else {
+      newSaved.add(itemId)
+      // Record interaction and save to database
+      await recordInteraction(user.id, itemId, "save")
+
+      // Save to saved_itineraries table
+      try {
+        const supabase = createClient()
+        await supabase.from("saved_itineraries").insert({
+          user_id: user.id,
+          itinerary_id: itemId,
+          created_at: new Date().toISOString(),
+        })
+      } catch (error) {
+        console.warn("Could not save to database:", error)
+      }
+    }
+    setSavedItems(newSaved)
+  }
+
+  // Handle share action
+  const handleShare = async (item: any) => {
+    const shareUrl = `${window.location.origin}/event/${item.id}`
+    const shareText = `Check out ${item.title}!`
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: item.title,
+          text: shareText,
+          url: shareUrl,
+        })
+        // Record share interaction
+        if (user?.id) {
+          await recordInteraction(user.id, item.id, "share")
+        }
+      } catch (error) {
+        console.log("Share cancelled or failed:", error)
+      }
+    } else {
+      // Fallback: Copy to clipboard
+      try {
+        await navigator.clipboard.writeText(shareUrl)
+        toast({
+          title: "Link copied!",
+          description: "Event link has been copied to your clipboard.",
+        })
+        // Record share interaction
+        if (user?.id) {
+          await recordInteraction(user.id, item.id, "share")
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to copy link",
+          variant: "destructive",
+        })
+      }
+    }
+  }
+
+  // Format sample data for display
+  const formatDiscoveryItem = (item: any) => {
+    const startDate = new Date(item.start_date)
+    const endDate = new Date(item.end_date)
+
+    // Determine if it's an Event or Trip
+    // Same day = Event, multi-day = Trip
+    const isTrip = startDate.toDateString() !== endDate.toDateString()
+
+    let dateStr = ""
+    if (!isTrip) {
+      // Event (single day)
+      dateStr = startDate.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+      })
+    } else {
+      // Trip (multi-day)
+      dateStr = `${startDate.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric"
+      })} - ${endDate.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+      })}`
+    }
+
+    // Metrics comes as an array from Supabase join, so we need to access the first element
+    const metrics = Array.isArray(item.metrics) && item.metrics.length > 0 ? item.metrics[0] : null
+
+    return {
+      id: item.id,
+      title: item.title,
+      type: isTrip ? "trip" : "event",
+      date: dateStr,
+      image: item.image_url || "/placeholder.svg?height=600&width=400",
+      location: item.location || "Somewhere amazing",
+      likes: metrics?.like_count || 0,
+      comments: metrics?.comment_count || 0,
+      saves: metrics?.save_count || 0,
+      views: metrics?.view_count || 0,
+      description: item.description || "",
+      user: {
+        name: item.owner?.name || "Travel Enthusiast",
+        username: `@${item.owner?.username || "traveler"}`,
+        avatar: item.owner?.avatar_url || "/placeholder.svg?height=40&width=40",
+      },
+      highlights: item.highlights || [],
+      promoted: false,
+    }
+  }
+
+  // Prevent hydration errors by not rendering until mounted
+  if (!mounted || loading) {
+    return (
+      <div className="h-full flex items-center justify-center bg-gradient-to-b from-orange-50 to-pink-50 rounded-xl">
+        <div className="text-center">
+          <Sparkles className="h-12 w-12 mx-auto mb-4 text-orange-500 animate-pulse" />
+          <p className="text-lg font-medium text-gray-700">Finding amazing trips for you...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (discoveryItems.length === 0) {
+    return (
+      <div className="h-full flex items-center justify-center bg-gradient-to-b from-orange-50 to-pink-50 rounded-xl">
+        <div className="text-center">
+          <MapPin className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">No trips to discover yet</h3>
+          <p className="text-gray-500">Check back soon for amazing adventures!</p>
+        </div>
+      </div>
+    )
+  }
+
+  const formattedItems = discoveryItems.map(formatDiscoveryItem)
+
+  // Sample data - keeping this as fallback
+  const fallbackItems = [
     {
       id: "1",
       title: "Weekend in NYC",
@@ -108,10 +356,12 @@ export function DiscoveryFeed() {
     }
   }
 
+  const itemsToDisplay = formattedItems.length > 0 ? formattedItems : fallbackItems
+
   return (
-    <div className="relative h-[calc(100vh-12rem)] max-h-[800px] overflow-hidden rounded-xl bg-white shadow-lg">
+    <div className="relative h-full overflow-hidden rounded-xl bg-gradient-to-b from-white to-orange-50 shadow-2xl">
       <ScrollArea ref={scrollRef} className="h-full snap-y snap-mandatory" onScrollCapture={handleScroll}>
-        {discoveryItems.map((item, index) => (
+        {itemsToDisplay.map((item, index) => (
           <div key={item.id} className="relative h-full w-full snap-start snap-always">
             <div className="relative h-full w-full">
               <img src={item.image || "/placeholder.svg"} alt={item.title} className="h-full w-full object-cover" />
@@ -155,16 +405,18 @@ export function DiscoveryFeed() {
 
                 <p className="text-sm mb-4">{item.description}</p>
 
-                <div className="grid grid-cols-2 gap-2 mb-4">
-                  {item.highlights.map((highlight, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center bg-white/10 backdrop-blur-sm rounded-full px-3 py-1 text-xs"
-                    >
-                      {highlight}
-                    </div>
-                  ))}
-                </div>
+                {item.highlights && item.highlights.length > 0 && (
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    {item.highlights.map((highlight, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center bg-white/10 backdrop-blur-sm rounded-full px-3 py-1 text-xs"
+                      >
+                        {highlight}
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -178,13 +430,15 @@ export function DiscoveryFeed() {
                     </div>
                   </div>
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-gradient-to-r from-white/20 to-white/10 backdrop-blur-sm border-white/20 text-white hover:from-white/30 hover:to-white/20"
-                  >
-                    {item.type === "business" ? "Learn More" : "View Full Itinerary"}
-                  </Button>
+                  <Link href={`/event/${item.id}`}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-gradient-to-r from-orange-500 to-pink-500 backdrop-blur-sm border-white/20 text-white hover:from-orange-600 hover:to-pink-600 font-semibold shadow-lg transition-all hover:scale-105"
+                    >
+                      {item.type === "business" ? "Learn More" : "View Trip"}
+                    </Button>
+                  </Link>
                 </div>
               </div>
 
@@ -194,49 +448,53 @@ export function DiscoveryFeed() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-10 w-10 rounded-full bg-black/30 backdrop-blur-sm border-white/20 text-white hover:bg-black/50"
+                    onClick={() => handleLike(item.id)}
+                    className={`h-12 w-12 rounded-full backdrop-blur-sm border-white/20 transition-all ${
+                      likedItems.has(item.id)
+                        ? "bg-gradient-to-br from-red-500 to-pink-500 text-white shadow-lg scale-110"
+                        : "bg-black/30 text-white hover:bg-black/50"
+                    }`}
                   >
-                    <Heart className="h-5 w-5" />
+                    <Heart className={`h-5 w-5 ${likedItems.has(item.id) ? "fill-current" : ""}`} />
                   </Button>
-                  <span className="text-xs text-white mt-1">{item.likes}</span>
+                  <span className="text-xs text-white mt-1 font-bold">{item.likes + (likedItems.has(item.id) ? 1 : 0)}</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <Link href={`/event/${item.id}`}>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-12 w-12 rounded-full bg-black/30 backdrop-blur-sm border-white/20 text-white hover:bg-black/50 transition-all hover:scale-110"
+                    >
+                      <MessageCircle className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                  <span className="text-xs text-white mt-1 font-bold">{item.comments}</span>
                 </div>
                 <div className="flex flex-col items-center">
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-10 w-10 rounded-full bg-black/30 backdrop-blur-sm border-white/20 text-white hover:bg-black/50"
+                    onClick={() => handleSave(item.id)}
+                    className={`h-12 w-12 rounded-full backdrop-blur-sm border-white/20 transition-all ${
+                      savedItems.has(item.id)
+                        ? "bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg scale-110"
+                        : "bg-black/30 text-white hover:bg-black/50"
+                    }`}
                   >
-                    <MessageCircle className="h-5 w-5" />
+                    <Bookmark className={`h-5 w-5 ${savedItems.has(item.id) ? "fill-current" : ""}`} />
                   </Button>
-                  <span className="text-xs text-white mt-1">{item.comments}</span>
+                  <span className="text-xs text-white mt-1 font-bold">{item.saves + (savedItems.has(item.id) ? 1 : 0)}</span>
                 </div>
                 <div className="flex flex-col items-center">
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-10 w-10 rounded-full bg-black/30 backdrop-blur-sm border-white/20 text-white hover:bg-black/50"
+                    onClick={() => handleShare(item)}
+                    className="h-12 w-12 rounded-full bg-black/30 backdrop-blur-sm border-white/20 text-white hover:bg-black/50 transition-all hover:scale-110"
                   >
-                    <Bookmark className="h-5 w-5" />
+                    <Share2 className="h-5 w-5" />
                   </Button>
-                  <span className="text-xs text-white mt-1">{item.saves}</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-10 w-10 rounded-full bg-black/30 backdrop-blur-sm border-white/20 text-white hover:bg-black/50"
-                      >
-                        <Share2 className="h-5 w-5" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>Copy Link</DropdownMenuItem>
-                      <DropdownMenuItem>Share to Instagram</DropdownMenuItem>
-                      <DropdownMenuItem>Share to Twitter</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
               </div>
             </div>
@@ -245,13 +503,25 @@ export function DiscoveryFeed() {
       </ScrollArea>
 
       {/* Scroll indicator */}
-      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-1">
-        {discoveryItems.map((_, index) => (
+      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-1 z-10">
+        {itemsToDisplay.map((_, index) => (
           <div
             key={index}
-            className={`h-1 w-1 rounded-full ${index === currentIndex ? "bg-white w-2" : "bg-white/50"} transition-all`}
+            className={`h-1 rounded-full transition-all ${
+              index === currentIndex
+                ? "bg-gradient-to-r from-orange-400 to-pink-400 w-3 shadow-lg"
+                : "bg-white/50 w-1.5 hover:bg-white/70"
+            }`}
           />
         ))}
+      </div>
+
+      {/* Fun floating "Discover" badge */}
+      <div className="absolute top-4 left-4 z-10">
+        <Badge className="bg-gradient-to-r from-orange-500 to-pink-500 border-0 text-white font-bold px-4 py-2 text-sm shadow-xl animate-pulse">
+          <Sparkles className="h-4 w-4 mr-1" />
+          Discover
+        </Badge>
       </div>
     </div>
   )

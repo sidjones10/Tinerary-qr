@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Calendar, Bell, Settings, PlusCircle, LogOut } from "lucide-react"
+import { Home, Calendar, Heart, Bell, Settings, PlusCircle, LogOut } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -17,6 +17,11 @@ const navItems = [
     title: "Saved",
     href: "/saved",
     icon: <Calendar className="h-5 w-5" />,
+  },
+  {
+    title: "Liked",
+    href: "/liked",
+    icon: <Heart className="h-5 w-5" />,
   },
   {
     title: "Notifications",

@@ -14,77 +14,29 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAuth } from "@/providers/auth-provider"
-import { getUserNotifications, markNotificationAsRead, markAllNotificationsAsRead, getUnreadNotificationCount } from "@/lib/notification-service"
+import { useNotifications, requestNotificationPermission } from "@/hooks/use-notifications"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 
-interface Notification {
-  id: string
-  type: string
-  title: string
-  message: string
-  link_url?: string
-  image_url?: string
-  is_read: boolean
-  created_at: string
-}
-
 export function NotificationBell() {
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
   const { user } = useAuth()
   const router = useRouter()
 
-  // Fetch notifications
-  const fetchNotifications = async () => {
-    if (!user?.id) return
+  // Use the enhanced notification hook with Realtime
+  const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications(user?.id)
 
-    setLoading(true)
-    try {
-      const [notificationsResult, countResult] = await Promise.all([
-        getUserNotifications(user.id, { limit: 10 }),
-        getUnreadNotificationCount(user.id)
-      ])
-
-      // Always set notifications, even if empty
-      if (notificationsResult.notifications) {
-        setNotifications(notificationsResult.notifications as Notification[])
-      } else {
-        setNotifications([])
-      }
-
-      // Always set count, even if 0
-      setUnreadCount(countResult.count || 0)
-    } catch (error) {
-      console.error("Error fetching notifications:", error)
-      // Set empty state on error
-      setNotifications([])
-      setUnreadCount(0)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Real-time updates via polling (every 30 seconds)
+  // Request notification permission on mount
   useEffect(() => {
     if (user?.id) {
-      fetchNotifications()
-
-      const interval = setInterval(fetchNotifications, 30000)
-      return () => clearInterval(interval)
+      requestNotificationPermission()
     }
   }, [user?.id])
 
   // Handle notification click
-  const handleNotificationClick = async (notification: Notification) => {
+  const handleNotificationClick = async (notification: any) => {
     if (!notification.is_read) {
-      await markNotificationAsRead(notification.id)
-      setUnreadCount(prev => Math.max(0, prev - 1))
-      setNotifications(prev =>
-        prev.map(n => n.id === notification.id ? { ...n, is_read: true } : n)
-      )
+      await markAsRead(notification.id)
     }
 
     if (notification.link_url) {
@@ -95,11 +47,7 @@ export function NotificationBell() {
 
   // Mark all as read
   const handleMarkAllAsRead = async () => {
-    if (!user?.id) return
-
-    await markAllNotificationsAsRead(user.id)
-    setUnreadCount(0)
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
+    await markAllAsRead()
   }
 
   // Get notification icon based on type

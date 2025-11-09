@@ -1,12 +1,54 @@
 import { createClient } from "@/lib/supabase/client"
 import { createNotification } from "@/lib/notification-service"
 
+/**
+ * Ensure user profile exists in the profiles table
+ * This is needed because of foreign key constraints
+ */
+async function ensureUserProfile(userId: string, supabase: any) {
+  try {
+    // Check if profile exists
+    const { data: existingProfile, error: checkError } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle()
+
+    // Only create if doesn't exist and no error
+    if (!existingProfile && !checkError) {
+      // Get user data from auth to populate profile
+      const { data: { user } } = await supabase.auth.getUser()
+
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .insert({
+          id: userId,
+          email: user?.email || null,
+          name: user?.user_metadata?.name || user?.user_metadata?.full_name || null,
+          username: user?.user_metadata?.username || user?.email?.split('@')[0] || null,
+          avatar_url: user?.user_metadata?.avatar_url || null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+
+      if (profileError) {
+        console.warn("Profile creation warning (may already exist):", profileError.message)
+        // Don't throw - the profile might have been created by a trigger or in parallel
+      }
+    }
+  } catch (error: any) {
+    console.warn("Profile check warning (non-critical):", error.message)
+    // Don't throw - this is a safety check
+  }
+}
+
 export interface Activity {
   title: string
   location?: string
   time?: string
   description?: string
   requireRsvp?: boolean
+  day?: string
 }
 
 export interface PackingItem {
@@ -54,6 +96,9 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
       return { success: false, error: "Title is required" }
     }
 
+    // Ensure user profile exists (for foreign key constraint)
+    await ensureUserProfile(userId, supabase)
+
     // 1. Create the main itinerary
     const { data: itinerary, error: itineraryError } = await supabase
       .from("itineraries")
@@ -82,28 +127,73 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
 
     // 2. Create activities
     if (data.activities && data.activities.length > 0) {
+      console.log("Creating activities:", data.activities)
       const activitiesToInsert = data.activities
         .filter((a) => a.title)
-        .map((activity, index) => ({
-          itinerary_id: itineraryId,
-          title: activity.title,
-          description: activity.description || null,
-          location: activity.location || null,
-          start_time: activity.time || new Date().toISOString(),
-          user_id: userId,
-          require_rsvp: activity.requireRsvp || false,
-          order_index: index,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }))
+        .map((activity, index) => {
+          console.log(`Activity ${index}:`, activity)
+          // Convert time string to proper timestamp
+          let startTime = new Date().toISOString()
+          if (activity.time) {
+            try {
+              // Try to parse the time and combine with start date
+              const baseDate = new Date(data.startDate)
+
+              // Check if it's in HTML5 time format (HH:MM in 24-hour)
+              if (/^\d{2}:\d{2}$/.test(activity.time)) {
+                const [hours, minutes] = activity.time.split(':').map(Number)
+                baseDate.setHours(hours, minutes, 0, 0)
+                startTime = baseDate.toISOString()
+              } else {
+                // Try to parse text format like "7:00 PM"
+                const timeMatch = activity.time.match(/(\d+):(\d+)\s*(AM|PM)?/i)
+                if (timeMatch) {
+                  let hours = parseInt(timeMatch[1])
+                  const minutes = parseInt(timeMatch[2])
+                  const meridiem = timeMatch[3]?.toUpperCase()
+
+                  // Convert to 24-hour format
+                  if (meridiem === 'PM' && hours !== 12) hours += 12
+                  if (meridiem === 'AM' && hours === 12) hours = 0
+
+                  baseDate.setHours(hours, minutes, 0, 0)
+                  startTime = baseDate.toISOString()
+                }
+              }
+            } catch (e) {
+              console.error("Error parsing activity time:", e)
+            }
+          }
+
+          return {
+            itinerary_id: itineraryId,
+            title: activity.title,
+            description: activity.description || null,
+            location: activity.location || null,
+            start_time: startTime,
+            day: activity.day || null,
+            user_id: userId,
+            require_rsvp: activity.requireRsvp || false,
+            order_index: index,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }
+        })
 
       if (activitiesToInsert.length > 0) {
-        const { error: activitiesError } = await supabase.from("activities").insert(activitiesToInsert)
+        console.log("Inserting activities to database:", activitiesToInsert)
+        const { data: insertedActivities, error: activitiesError } = await supabase.from("activities").insert(activitiesToInsert).select()
 
         if (activitiesError) {
           console.error("Activities creation error:", activitiesError)
+        } else {
+          console.log("Activities successfully created:", insertedActivities)
         }
+      } else {
+        console.log("No activities to insert (all filtered out)")
       }
+    } else {
+      console.log("No activities data provided")
     }
 
     // 3. Create packing items

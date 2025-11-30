@@ -136,21 +136,33 @@ export async function runConnectionDiagnostics(): Promise<DiagnosticReport> {
 
   // Test 5: Middleware Simulation
   try {
-    // This simulates what the middleware does
+    // This simulates what the actual middleware does in middleware.ts
+    // The middleware uses getUser() to validate the JWT token directly
     const {
-      data: { session },
+      data: { user },
       error,
-    } = await supabase.auth.getSession()
-    const redirectUrl = !session ? "/auth?redirectTo=/profile" : null
+    } = await supabase.auth.getUser()
+
+    // Simulate protected route check
+    const testPath = "/profile"
+    const protectedRoutes = ["/dashboard", "/profile", "/create", "/settings", "/my-events", "/saved"]
+    const isProtectedRoute = protectedRoutes.some((route) => testPath.startsWith(route))
+
+    // Middleware redirects to /auth if no user on protected route
+    const wouldRedirect = isProtectedRoute && !user
+    const redirectUrl = wouldRedirect ? `/auth?redirectTo=${testPath}` : null
 
     report.tests.middlewareSimulation = {
       success: !error,
       message: !error
-        ? `Middleware simulation completed: ${redirectUrl ? "Would redirect to " + redirectUrl : "No redirect needed"}`
+        ? `Middleware simulation completed: ${wouldRedirect ? `Would redirect to ${redirectUrl}` : "User authenticated, no redirect needed"}`
         : `Middleware simulation failed: ${error.message}`,
       details: {
-        wouldRedirect: !!redirectUrl,
-        redirectUrl: redirectUrl,
+        hasUser: !!user,
+        userId: user?.id || null,
+        isProtectedRoute,
+        wouldRedirect,
+        redirectUrl,
         error: error || null,
       },
       timestamp: new Date().toISOString(),

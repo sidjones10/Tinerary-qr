@@ -9,7 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
 import { runConnectionDiagnostics, type DiagnosticReport } from "@/lib/diagnostics"
 import Link from "next/link"
-import { supabase } from "@/lib/supabase-client"
+import { createClient } from "@/lib/supabase/client"
 
 export default function DiagnosticsPage() {
   const [report, setReport] = useState<DiagnosticReport | null>(null)
@@ -39,12 +39,14 @@ export default function DiagnosticsPage() {
     setRunningTest(`Testing ${route} route...`)
 
     try {
-      // First check auth status
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
+      const supabase = createClient()
 
-      if (!session) {
+      // Check auth status using getUser() to match middleware behavior
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
         setError(`You need to be logged in to access ${route}. Please log in first.`)
         setRunningTest(null)
         return

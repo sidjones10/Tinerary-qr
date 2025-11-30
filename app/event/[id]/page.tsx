@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
-import { createClient } from "@/lib/supabase-client"
+import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/providers/auth-provider"
 import { Loader2 } from "lucide-react"
 import { EventDetail } from "@/components/event-detail"
@@ -101,6 +101,26 @@ const getEventById = async (id: string) => {
 
     if (activitiesError) {
       console.error("Error fetching activities:", activitiesError)
+    }
+
+    // Fetch packing items for this itinerary
+    const { data: packingData, error: packingError } = await supabase
+      .from("packing_items")
+      .select("*")
+      .eq("itinerary_id", id)
+
+    if (packingError) {
+      console.error("Error fetching packing items:", packingError)
+    }
+
+    // Fetch expenses for this itinerary
+    const { data: expensesData, error: expensesError } = await supabase
+      .from("expenses")
+      .select("*")
+      .eq("itinerary_id", id)
+
+    if (expensesError) {
+      console.error("Error fetching expenses:", expensesError)
     }
 
     console.log("==== ACTIVITIES DEBUG ====")
@@ -202,18 +222,54 @@ const getEventById = async (id: string) => {
       description: itineraryData.description,
       days: days,
       activities: activitiesData || [], // Include raw activities data for the EventDetail component
-      // Include other default properties needed by the UI
-      expenses: {
-        categories: [
-          { name: "Accommodation", amount: 0, percentage: 0 },
-          { name: "Transportation", amount: 0, percentage: 0 },
-          { name: "Food & Dining", amount: 0, percentage: 0 },
-          { name: "Activities", amount: 0, percentage: 0 },
-        ],
-        items: [],
-        total: 0,
-      },
-      packingList: [],
+      // Format packing items
+      packingList: packingData ? packingData.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        category: item.category || "clothing",
+        quantity: item.quantity || 1,
+        packed: item.is_packed || false,
+        url: item.url,
+        tripId: id,
+      })) : [],
+      // Format expenses
+      expenses: (() => {
+        if (!expensesData || expensesData.length === 0) {
+          return {
+            categories: [],
+            items: [],
+            total: 0,
+          }
+        }
+
+        const total = expensesData.reduce((sum: number, exp: any) => sum + Number(exp.amount), 0)
+        const categoriesMap = new Map()
+
+        expensesData.forEach((expense: any) => {
+          const category = expense.category
+          const amount = Number(expense.amount)
+          if (categoriesMap.has(category)) {
+            categoriesMap.set(category, categoriesMap.get(category) + amount)
+          } else {
+            categoriesMap.set(category, amount)
+          }
+        })
+
+        return {
+          categories: Array.from(categoriesMap.entries()).map(([name, amount]: [string, number]) => ({
+            name,
+            amount,
+            percentage: total > 0 ? Math.round((amount / total) * 100) : 0
+          })),
+          items: expensesData.map((exp: any) => ({
+            id: exp.id,
+            category: exp.category,
+            amount: Number(exp.amount),
+            description: exp.description || "",
+          })),
+          total,
+        }
+      })(),
       people: [],
       discussion: [],
     }

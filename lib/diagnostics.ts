@@ -1,4 +1,4 @@
-import { supabase } from "./supabase-client"
+import { createClient } from "@/lib/supabase/client"
 
 export type DiagnosticResult = {
   success: boolean
@@ -25,6 +25,7 @@ export type DiagnosticReport = {
 }
 
 export async function runConnectionDiagnostics(): Promise<DiagnosticReport> {
+  const supabase = createClient()
   const report: DiagnosticReport = {
     environment: {
       supabaseUrl: supabase.supabaseUrl || "Not configured",

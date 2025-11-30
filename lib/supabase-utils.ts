@@ -1,4 +1,4 @@
-import { supabase } from "./supabase-client"
+import { createClient } from "@/lib/supabase/client"
 
 /**
  * Checks if the Supabase connection is working
@@ -6,6 +6,7 @@ import { supabase } from "./supabase-client"
  */
 export async function checkSupabaseConnection(): Promise<boolean> {
   try {
+    const supabase = createClient()
     // Try a simple query to check connectivity
     const { data, error } = await supabase.from("itineraries").select("count").limit(1).maybeSingle()
 
@@ -26,6 +27,7 @@ export async function checkSupabaseConnection(): Promise<boolean> {
  * @returns {boolean} True if configuration appears valid
  */
 export function validateSupabaseConfig(): boolean {
+  const supabase = createClient()
   if (!supabase) {
     console.error("Supabase client is not initialized")
     return false

@@ -6,21 +6,16 @@ import { createClient } from "@/utils/supabase/middleware"
 const protectedRoutes = ["/dashboard", "/profile", "/create", "/settings", "/my-events", "/saved"]
 
 export async function middleware(req: NextRequest) {
-  // Create supabase client for middleware
-  const { supabase, response } = await createClient(req)
+  // Create supabase client for middleware and get user
+  const { supabase, response, user } = await createClient(req)
 
-  // Check auth status
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  
   const path = req.nextUrl.pathname
 
   // Check if the path is a protected route
   const isProtectedRoute = protectedRoutes.some((route) => path.startsWith(route))
 
   // If it's a protected route and user is not authenticated
-  if (isProtectedRoute && !session) {
+  if (isProtectedRoute && !user) {
     // Store the URL they were trying to access
     const redirectUrl = new URL("/auth", req.url)
     redirectUrl.searchParams.set("redirectTo", path)
@@ -28,7 +23,7 @@ export async function middleware(req: NextRequest) {
   }
 
   // If user is already logged in and trying to access login/signup
-  if (path === "/auth" && session) {
+  if (path === "/auth" && user) {
     return NextResponse.redirect(new URL("/dashboard", req.url))
   }
 

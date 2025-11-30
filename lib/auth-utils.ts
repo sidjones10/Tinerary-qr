@@ -1,4 +1,4 @@
-import { supabase } from "./supabase-client"
+import { createClient } from "@/lib/supabase/client"
 
 /**
  * Checks if the user is authenticated
@@ -6,6 +6,7 @@ import { supabase } from "./supabase-client"
  */
 export async function isAuthenticated(): Promise<boolean> {
   try {
+    const supabase = createClient()
     const {
       data: { session },
       error,
@@ -29,6 +30,7 @@ export async function isAuthenticated(): Promise<boolean> {
  */
 export async function refreshSession(): Promise<boolean> {
   try {
+    const supabase = createClient()
     const {
       data: { session },
       error,
@@ -52,6 +54,7 @@ export async function refreshSession(): Promise<boolean> {
  */
 export async function getCurrentUser(): Promise<any> {
   try {
+    const supabase = createClient()
     const {
       data: { user },
       error,
@@ -75,6 +78,7 @@ export async function getCurrentUser(): Promise<any> {
  */
 export async function signOut(): Promise<boolean> {
   try {
+    const supabase = createClient()
     const { error } = await supabase.auth.signOut()
 
     if (error) {

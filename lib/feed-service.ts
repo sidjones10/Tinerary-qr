@@ -69,11 +69,21 @@ export async function getUserFeed(userId: string, filters: FeedFilters = {}) {
     const [ownResult, invitedResult] = await Promise.all([ownQuery, invitedQuery])
 
     if (ownResult.error) {
-      console.error("Error fetching own itineraries:", ownResult.error)
+      console.error("Error fetching own itineraries:", {
+        message: ownResult.error.message,
+        details: ownResult.error.details,
+        hint: ownResult.error.hint,
+        code: ownResult.error.code,
+      })
     }
 
     if (invitedResult.error) {
-      console.error("Error fetching invited itineraries:", invitedResult.error)
+      console.error("Error fetching invited itineraries:", {
+        message: invitedResult.error.message,
+        details: invitedResult.error.details,
+        hint: invitedResult.error.hint,
+        code: invitedResult.error.code,
+      })
     }
 
     // Combine and format results
@@ -158,29 +168,23 @@ export async function getUserFeed(userId: string, filters: FeedFilters = {}) {
 }
 
 /**
- * Get trending itineraries for discovery
+ * Get trending itineraries for discovery using the real discovery algorithm
  */
 export async function getTrendingItineraries(userId: string | null, limit = 10) {
   try {
-    const supabase = createClient()
+    // Use the discovery algorithm instead of simple query
+    const { discoverItineraries } = await import("@/lib/discovery-algorithm")
 
-    const { data, error } = await supabase
-      .from("itineraries")
-      .select(`
-        *,
-        owner:profiles!itineraries_user_id_fkey(name, avatar_url, username),
-        metrics:itinerary_metrics(view_count, save_count, trending_score)
-      `)
-      .eq("is_public", true)
-      .order("created_at", { ascending: false })
-      .limit(limit)
+    const items = await discoverItineraries(userId, { limit })
 
-    if (error) {
-      console.error("Error fetching trending:", error)
-      return { success: false, items: [], error: error.message }
-    }
+    // Format the data to match the expected structure
+    const formattedItems = items.map((item) => ({
+      ...item,
+      owner: item.profiles || item.creator,
+      metrics: item.itinerary_metrics,
+    }))
 
-    return { success: true, items: data || [] }
+    return { success: true, items: formattedItems }
   } catch (error: any) {
     console.error("Error in getTrendingItineraries:", error)
     return { success: false, items: [], error: error.message }
@@ -280,20 +284,10 @@ export async function recordInteraction(
       return { success: false, error: "Missing userId or itineraryId" }
     }
 
-    const supabase = createClient()
-
-    const { error } = await supabase.from("user_interactions").insert({
-      user_id: userId,
-      itinerary_id: itineraryId,
-      interaction_type: interactionType,
-      created_at: new Date().toISOString(),
-    })
-
-    if (error) {
-      // Don't throw error if table doesn't exist - just log it
-      console.warn("Could not record interaction (table may not exist):", error.message)
-      return { success: false, error: error.message }
-    }
+    // Use the discovery algorithm's tracking function which handles both
+    // user_interactions and user_behavior tables, plus metrics updates
+    const { trackUserInteraction } = await import("@/lib/discovery-algorithm")
+    await trackUserInteraction(userId, itineraryId, interactionType)
 
     return { success: true }
   } catch (error: any) {

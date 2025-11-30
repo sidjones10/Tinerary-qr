@@ -12,7 +12,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, Mail, Eye, EyeOff } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { createClient } from "@/lib/supabase/client"
-import { createUserProfile } from "@/app/actions/user-actions"
 
 export default function EmailAuthForm() {
   const [isLoading, setIsLoading] = useState(false)
@@ -146,19 +145,7 @@ export default function EmailAuthForm() {
       }
 
       if (data.user) {
-        try {
-          const profileResult = await createUserProfile({
-            name: formData.username || formData.email.split("@")[0],
-            email: formData.email,
-          })
-
-          if (!profileResult.success) {
-            console.error("Profile creation error:", profileResult.error)
-          }
-        } catch (profileErr) {
-          console.error("Exception creating profile:", profileErr)
-        }
-
+        // Profile is created automatically by database trigger
         setAuthResult({
           success: true,
           message: "Account created successfully! Redirecting...",

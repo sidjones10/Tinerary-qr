@@ -1,7 +1,5 @@
 import { createClient } from "@/lib/supabase/client"
 
-const supabase = createClient()
-
 export type NotificationType =
   | "booking_confirmation"
   | "ticket_issued"
@@ -9,6 +7,12 @@ export type NotificationType =
   | "promotion_approved"
   | "affiliate_conversion"
   | "system_message"
+  | "new_comment"
+  | "comment_reply"
+  | "like"
+  | "follower"
+  | "share"
+  | "invitation"
 
 interface NotificationData {
   userId: string
@@ -22,6 +26,7 @@ interface NotificationData {
 
 export async function createNotification(data: NotificationData) {
   try {
+    const supabase = createClient()
     const { data: notification, error } = await supabase
       .from("notifications")
       .insert({
@@ -52,6 +57,7 @@ export async function createNotification(data: NotificationData) {
 
 export async function markNotificationAsRead(notificationId: string) {
   try {
+    const supabase = createClient()
     const { error } = await supabase
       .from("notifications")
       .update({ is_read: true })
@@ -71,6 +77,7 @@ export async function markNotificationAsRead(notificationId: string) {
 
 export async function markAllNotificationsAsRead(userId: string) {
   try {
+    const supabase = createClient()
     const { error } = await supabase
       .from("notifications")
       .update({ is_read: true })
@@ -99,6 +106,7 @@ export async function getUserNotifications(
   } = {},
 ) {
   try {
+    const supabase = createClient()
     let query = supabase
       .from("notifications")
       .select("*")
@@ -141,6 +149,7 @@ export async function getUserNotifications(
 
 export async function getUnreadNotificationCount(userId: string) {
   try {
+    const supabase = createClient()
     const { count, error } = await supabase
       .from("notifications")
       .select("*", { count: "exact", head: true })

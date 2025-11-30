@@ -10,58 +10,46 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { supabase } from "@/lib/supabase-client"
-import { markAllNotificationsAsRead, markNotificationAsRead } from "@/lib/notification-service"
+import { createClient } from "@/lib/supabase/client"
+import { useNotifications, requestNotificationPermission } from "@/hooks/use-notifications"
 
 export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
-  const [notifications, setNotifications] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [userId, setUserId] = useState<string | undefined>(undefined)
 
+  // Get user ID
   useEffect(() => {
-    async function fetchNotifications() {
-      setLoading(true)
-
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
-
-        if (!session) {
-          setNotifications([])
-          setLoading(false)
-          return
-        }
-
-        let query = supabase
-          .from("notifications")
-          .select("*")
-          .eq("user_id", session.user.id)
-          .order("created_at", { ascending: false })
-
-        if (activeTab !== "all") {
-          query = query.eq("type", activeTab)
-        }
-
-        const { data, error } = await query
-
-        if (error) {
-          console.error("Error fetching notifications:", error)
-          setNotifications([])
-        } else {
-          setNotifications(data || [])
-        }
-      } catch (error) {
-        console.error("Error in notification fetch:", error)
-        setNotifications([])
-      } finally {
-        setLoading(false)
-      }
+    async function getUserId() {
+      const supabase = createClient()
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      setUserId(session?.user?.id)
     }
+    getUserId()
+  }, [])
 
-    fetchNotifications()
-  }, [activeTab])
+  // Request browser notification permission on mount
+  useEffect(() => {
+    requestNotificationPermission()
+  }, [])
+
+  // Use the notifications hook with realtime updates
+  const {
+    notifications: allNotifications,
+    unreadCount,
+    loading,
+    error,
+    markAsRead,
+    markAllAsRead: markAllAsReadHook,
+  } = useNotifications(userId)
+
+  // Filter notifications by active tab
+  const notifications =
+    activeTab === "all"
+      ? allNotifications
+      : allNotifications.filter((n) => n.type === activeTab)
 
   const getFilteredNotifications = () => {
     if (!searchQuery) return notifications
@@ -76,40 +64,11 @@ export default function NotificationsPage() {
   const filteredNotifications = getFilteredNotifications()
 
   const handleMarkAllAsRead = async () => {
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      if (!session) return
-
-      await markAllNotificationsAsRead(session.user.id)
-
-      // Update local state
-      setNotifications(
-        notifications.map((notification) => ({
-          ...notification,
-          is_read: true,
-        })),
-      )
-    } catch (error) {
-      console.error("Error marking all as read:", error)
-    }
+    await markAllAsReadHook()
   }
 
-  const handleMarkAsRead = async (notificationId) => {
-    try {
-      await markNotificationAsRead(notificationId)
-
-      // Update local state
-      setNotifications(
-        notifications.map((notification) =>
-          notification.id === notificationId ? { ...notification, is_read: true } : notification,
-        ),
-      )
-    } catch (error) {
-      console.error("Error marking notification as read:", error)
-    }
+  const handleMarkAsRead = async (notificationId: string) => {
+    await markAsRead(notificationId)
   }
 
   const formatDate = (dateString) => {
@@ -144,10 +103,17 @@ export default function NotificationsPage() {
               <h1 className="text-2xl font-bold">Notifications</h1>
             </div>
 
-            <Button variant="outline" size="sm" onClick={handleMarkAllAsRead}>
-              <Check className="mr-2 h-4 w-4" />
-              Mark all as read
-            </Button>
+            <div className="flex items-center gap-2">
+              {unreadCount > 0 && (
+                <Badge variant="default" className="bg-primary">
+                  {unreadCount} unread
+                </Badge>
+              )}
+              <Button variant="outline" size="sm" onClick={handleMarkAllAsRead} disabled={unreadCount === 0}>
+                <Check className="mr-2 h-4 w-4" />
+                Mark all as read
+              </Button>
+            </div>
           </div>
 
           <div className="relative mb-6">

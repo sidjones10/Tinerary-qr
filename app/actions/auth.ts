@@ -1,11 +1,11 @@
 "use server"
 
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from "@/lib/supabase"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
 export async function signIn(email: string, password: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
@@ -21,7 +21,7 @@ export async function signIn(email: string, password: string) {
 }
 
 export async function signUp(email: string, password: string, username?: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -58,7 +58,7 @@ export async function signUp(email: string, password: string, username?: string)
 }
 
 export async function signOut() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { error } = await supabase.auth.signOut()
 

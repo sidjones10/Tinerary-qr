@@ -17,7 +17,7 @@ import {
   PanelLeft,
 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-import { supabase } from "@/lib/supabase-client"
+import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/providers/auth-provider"
 
 import { Button } from "@/components/ui/button"
@@ -463,50 +463,6 @@ export default function CreatePageContent() {
     ])
   }
 
-  // Helper function to ensure user profile exists
-  const ensureUserProfileExists = async (userId: string) => {
-    try {
-      // First check if user profile already exists
-      const { data: existingUser, error: fetchError } = await supabase
-        .from("users")
-        .select("id")
-        .eq("id", userId)
-        .single()
-
-      if (fetchError && fetchError.code !== "PGRST116") {
-        // PGRST116 is the error code for "no rows returned" - that's expected if user doesn't exist
-        console.error("Error checking user profile:", fetchError)
-        throw fetchError
-      }
-
-      // If user exists, return
-      if (existingUser) return
-
-      // Get user details from auth
-      const { data: authUser } = await supabase.auth.getUser()
-
-      if (!authUser?.user) {
-        throw new Error("Could not get authenticated user details")
-      }
-
-      // Create user profile
-      const { error: insertError } = await supabase.from("users").insert({
-        id: userId,
-        email: authUser.user.email,
-        display_name: authUser.user.email?.split("@")[0] || "User",
-        created_at: new Date().toISOString(),
-      })
-
-      if (insertError) {
-        console.error("Error creating user profile:", insertError)
-        throw insertError
-      }
-    } catch (error) {
-      console.error("Error in ensureUserProfileExists:", error)
-      throw error
-    }
-  }
-
   const handlePublish = async () => {
     if (!user) {
       toast({
@@ -529,12 +485,14 @@ export default function CreatePageContent() {
     setIsSubmitting(true)
 
     try {
-      // Ensure user profile exists before creating itinerary
-      await ensureUserProfileExists(user.id)
+      // NOTE: User profile creation is now handled by database trigger (migration 021)
+      // No need to manually ensure profile exists
 
       // Format dates properly
       const formattedStartDate = startDate || new Date().toISOString().split("T")[0]
       const formattedEndDate = endDate || formattedStartDate
+
+      const supabase = createClient()
 
       // Save the itinerary to the database
       const { data: itinerary, error } = await supabase
@@ -559,30 +517,88 @@ export default function CreatePageContent() {
         throw error
       }
 
+      // Helper function to format activity date/time
+      const formatActivityDateTime = (day: number, time: string, baseDate: string): string => {
+        try {
+          // Parse the base date and add (day - 1) days
+          const date = new Date(baseDate)
+          date.setDate(date.getDate() + (day - 1))
+
+          // Parse the time string (e.g., "10:00 AM" or "14:30")
+          let hours = 0
+          let minutes = 0
+
+          if (time) {
+            const timeUpper = time.toUpperCase().trim()
+            const isPM = timeUpper.includes("PM")
+            const isAM = timeUpper.includes("AM")
+
+            // Remove AM/PM and extract time
+            const cleanTime = timeUpper.replace(/AM|PM/g, "").trim()
+            const parts = cleanTime.split(":")
+
+            if (parts.length >= 2) {
+              hours = parseInt(parts[0], 10)
+              minutes = parseInt(parts[1], 10)
+
+              // Convert to 24-hour format
+              if (isPM && hours !== 12) {
+                hours += 12
+              } else if (isAM && hours === 12) {
+                hours = 0
+              }
+            }
+          }
+
+          date.setHours(hours, minutes, 0, 0)
+          return date.toISOString()
+        } catch (error) {
+          console.error("Error formatting activity date/time:", error)
+          // Fallback to base date at noon
+          const fallbackDate = new Date(baseDate)
+          fallbackDate.setHours(12, 0, 0, 0)
+          return fallbackDate.toISOString()
+        }
+      }
+
       // Save activities if any are defined
       if (activities.length > 0 && activities[0].title) {
         const activitiesToInsert = activities
           .filter((a) => a.title) // Only insert activities with titles
-          .map((activity) => ({
-            itinerary_id: itinerary.id,
-            title: activity.title,
-            description: activity.description || null,
-            location: activity.location || null,
-            start_time: activity.time || new Date().toISOString(),
-            day: activity.day || 1,
-            cost: activity.cost || 0,
-            user_id: user.id,
-            require_rsvp: activity.requireRsvp || false,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }))
+          .map((activity) => {
+            const startTime = formatActivityDateTime(
+              activity.day || 1,
+              activity.time || "",
+              formattedStartDate,
+            )
+
+            // Calculate end_time (1 hour after start by default)
+            const endTime = new Date(new Date(startTime).getTime() + 60 * 60 * 1000).toISOString()
+
+            return {
+              itinerary_id: itinerary.id,
+              title: activity.title,
+              description: activity.description || null,
+              location: activity.location || null,
+              start_time: startTime,
+              end_time: endTime,
+              cost: activity.cost || null,
+              user_id: user.id,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }
+          })
 
         if (activitiesToInsert.length > 0) {
           const { error: activitiesError } = await supabase.from("activities").insert(activitiesToInsert)
 
           if (activitiesError) {
             console.error("Error saving activities:", activitiesError)
-            // Continue anyway, we've at least saved the itinerary
+            toast({
+              title: "Warning",
+              description: "Itinerary saved but some activities could not be added. Error: " + activitiesError.message,
+              variant: "destructive",
+            })
           }
         }
       }

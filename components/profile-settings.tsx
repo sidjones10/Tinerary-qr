@@ -2,22 +2,24 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/providers/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Pencil, ArrowLeft } from "lucide-react"
+import { Loader2, Pencil, ArrowLeft, Upload } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { supabase } from "@/lib/supabase-client"
+import { compressImage, updateImage, deleteImage } from "@/lib/storage-service"
 import Link from "next/link"
 
 export function ProfileSettings() {
   const { user, refreshSession } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [formData, setFormData] = useState({
     fullName: user?.user_metadata?.name || "",
@@ -30,6 +32,9 @@ export function ProfileSettings() {
   })
   const [originalUsername, setOriginalUsername] = useState("")
   const [checkingUsername, setCheckingUsername] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [avatarPath, setAvatarPath] = useState<string | null>(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -38,7 +43,7 @@ export function ProfileSettings() {
         try {
           const { data, error } = await supabase
             .from("profiles")
-            .select("name, username, bio, location, website, phone")
+            .select("name, username, bio, location, website, phone, avatar_url, avatar_path")
             .eq("id", user.id)
             .single()
 
@@ -60,6 +65,8 @@ export function ProfileSettings() {
               website: data.website || "",
             })
             setOriginalUsername(data.username || "")
+            setAvatarUrl(data.avatar_url || null)
+            setAvatarPath(data.avatar_path || null)
           }
         } finally {
           setIsLoading(false)
@@ -111,6 +118,119 @@ export function ProfileSettings() {
       return true // Allow proceed on error
     } finally {
       setCheckingUsername(false)
+    }
+  }
+
+  const handleChangePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !user) return
+
+    setUploadingAvatar(true)
+    try {
+      // Compress the image
+      const compressedFile = await compressImage(file, 400, 400, 0.85)
+
+      // Upload to storage (will delete old photo if exists)
+      const result = await updateImage(compressedFile, avatarPath, "user-avatars")
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to upload image")
+      }
+
+      // Update profile in database
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          avatar_url: result.url,
+          avatar_path: result.path,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id)
+
+      if (profileError) {
+        throw profileError
+      }
+
+      // Update auth metadata
+      await supabase.auth.updateUser({
+        data: {
+          avatar_url: result.url,
+        },
+      })
+
+      setAvatarUrl(result.url || null)
+      setAvatarPath(result.path || null)
+
+      toast({
+        title: "Photo updated",
+        description: "Your profile photo has been updated successfully.",
+      })
+
+      await refreshSession()
+    } catch (error: any) {
+      console.error("Error updating photo:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update profile photo.",
+        variant: "destructive",
+      })
+    } finally {
+      setUploadingAvatar(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+    }
+  }
+
+  const handleRemovePhoto = async () => {
+    if (!user) return
+
+    setUploadingAvatar(true)
+    try {
+      // Delete from storage if exists
+      if (avatarPath) {
+        await deleteImage(avatarPath, "user-avatars")
+      }
+
+      // Update profile in database
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          avatar_url: null,
+          avatar_path: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id)
+
+      if (profileError) {
+        throw profileError
+      }
+
+      // Update auth metadata
+      await supabase.auth.updateUser({
+        data: {
+          avatar_url: null,
+        },
+      })
+
+      setAvatarUrl(null)
+      setAvatarPath(null)
+
+      toast({
+        title: "Photo removed",
+        description: "Your profile photo has been removed.",
+      })
+
+      await refreshSession()
+    } catch (error: any) {
+      console.error("Error removing photo:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove profile photo.",
+        variant: "destructive",
+      })
+    } finally {
+      setUploadingAvatar(false)
     }
   }
 
@@ -321,9 +441,9 @@ export function ProfileSettings() {
               <Label>Profile Photo</Label>
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center overflow-hidden">
-                  {user?.user_metadata?.avatar_url ? (
+                  {avatarUrl ? (
                     <img
-                      src={user.user_metadata.avatar_url || "/placeholder.svg"}
+                      src={avatarUrl}
                       alt="Profile"
                       className="w-full h-full object-cover"
                     />
@@ -334,14 +454,49 @@ export function ProfileSettings() {
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <Button type="button" variant="outline" size="sm">
-                    Change
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleChangePhoto}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingAvatar}
+                  >
+                    {uploadingAvatar ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Change
+                      </>
+                    )}
                   </Button>
-                  <Button type="button" variant="outline" size="sm" className="text-red-500">
-                    Remove
-                  </Button>
+                  {avatarUrl && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="text-red-500 hover:text-red-600"
+                      onClick={handleRemovePhoto}
+                      disabled={uploadingAvatar}
+                    >
+                      Remove
+                    </Button>
+                  )}
                 </div>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Recommended: Square image, at least 400x400px. Max 2MB.
+              </p>
             </div>
           </div>
 

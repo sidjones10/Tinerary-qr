@@ -180,3 +180,137 @@ body {
   transform: translateY(-4px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
+
+/* Dark mode enhancements */
+.dark .pinterest-card {
+  background-color: hsl(var(--card));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.dark .pinterest-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.dark .card-soft {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.dark .card-soft:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* Dark mode body gradient */
+.dark body {
+  background: linear-gradient(to bottom, hsl(var(--background)), hsl(var(--card)) 40%, hsl(var(--background)) 80%);
+}
+
+/* Loading skeleton */
+.skeleton {
+  @apply animate-pulse bg-muted rounded;
+}
+
+.dark .skeleton {
+  @apply bg-muted/50;
+}
+
+/* Error states */
+.error-state {
+  @apply border-destructive bg-destructive/10 text-destructive;
+}
+
+.dark .error-state {
+  @apply border-destructive/50 bg-destructive/20;
+}
+
+/* Success states */
+.success-state {
+  @apply border-green-500 bg-green-50 text-green-700;
+}
+
+.dark .success-state {
+  @apply border-green-500/50 bg-green-500/20 text-green-400;
+}
+
+/* Warning states */
+.warning-state {
+  @apply border-yellow-500 bg-yellow-50 text-yellow-700;
+}
+
+.dark .warning-state {
+  @apply border-yellow-500/50 bg-yellow-500/20 text-yellow-400;
+}
+
+/* Info states */
+.info-state {
+  @apply border-blue-500 bg-blue-50 text-blue-700;
+}
+
+.dark .info-state {
+  @apply border-blue-500/50 bg-blue-500/20 text-blue-400;
+}
+
+/* Form input focus states */
+input:focus,
+textarea:focus,
+select:focus {
+  @apply ring-2 ring-ring ring-offset-2 ring-offset-background;
+}
+
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  @apply ring-offset-background;
+}
+
+/* Modal/Dialog backgrounds */
+.dialog-overlay {
+  @apply bg-black/50 backdrop-blur-sm;
+}
+
+.dark .dialog-overlay {
+  @apply bg-black/70;
+}
+
+/* Hover states for interactive elements */
+.hover-lift {
+  @apply transition-transform duration-200 hover:-translate-y-1;
+}
+
+/* Glass morphism effect */
+.glass {
+  @apply backdrop-blur-md bg-white/70 border border-white/20;
+}
+
+.dark .glass {
+  @apply bg-black/30 border-white/10;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-muted/50;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/30 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/50;
+}
+
+.dark ::-webkit-scrollbar-track {
+  @apply bg-muted/30;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/40;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/60;
+}

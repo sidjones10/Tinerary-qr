@@ -69,9 +69,10 @@ export default function EmailAuthForm() {
           message: "Successfully signed in! Redirecting...",
         })
 
-        // Redirect after successful login
+        // Redirect after successful login - check for redirectTo param
         setTimeout(() => {
-          window.location.href = "/dashboard"
+          const redirectTo = new URLSearchParams(window.location.search).get("redirectTo") || "/dashboard"
+          window.location.href = redirectTo
         }, 1500)
       }
     } catch (error: any) {
@@ -164,7 +165,8 @@ export default function EmailAuthForm() {
         })
 
         setTimeout(() => {
-          window.location.href = "/dashboard"
+          const redirectTo = new URLSearchParams(window.location.search).get("redirectTo") || "/dashboard"
+          window.location.href = redirectTo
         }, 1500)
       }
     } catch (error: any) {

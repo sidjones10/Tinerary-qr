@@ -186,7 +186,12 @@ export function FeedPage() {
         })
 
         if (result.success) {
-          setFeedItems(result.items)
+          // Deduplicate items by ID (safety measure)
+          const uniqueItems = result.items.filter(
+            (item, index, self) => index === self.findIndex((t) => t.id === item.id)
+          )
+
+          setFeedItems(uniqueItems)
           setFeedStats({
             upcoming: result.upcoming,
             past: result.past,

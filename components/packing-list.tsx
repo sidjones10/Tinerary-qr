@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { toast } from "@/components/ui/use-toast"
 import { createPackingItem, updatePackingItem, togglePackingItem, deletePackingItem } from "@/app/actions/packing-items"
+import { PackingTemplateSelector } from "@/components/packing-template-selector"
 
 interface PackingItem {
   id: string
@@ -273,6 +274,26 @@ export function PackingList({ simplified = false, items, tripId }: PackingListPr
   const totalCount = optimisticItems.length
   const progressPercentage = Math.round((packedCount / totalCount) * 100) || 0
 
+  const handleTemplateSelect = async (templateItems: { name: string; category: string; quantity: number }[]) => {
+    for (const item of templateItems) {
+      const formData = new FormData()
+      formData.append("name", item.name)
+      formData.append("quantity", item.quantity.toString())
+      formData.append("packed", "off")
+
+      try {
+        await createPackingItem(tripId, formData)
+      } catch (err) {
+        console.error("Failed to add template item:", err)
+      }
+    }
+
+    toast({
+      title: "Template added",
+      description: `${templateItems.length} items have been added to your packing list.`,
+    })
+  }
+
   return (
     <Card className="border-0 shadow-none bg-transparent">
       <CardHeader className="px-0 pt-0">
@@ -309,13 +330,14 @@ export function PackingList({ simplified = false, items, tripId }: PackingListPr
 
         {/* Only show Add Item button in full mode */}
         {!simplified && (
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="w-full bg-pink-500 hover:bg-pink-600">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Item
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="flex-1 bg-pink-500 hover:bg-pink-600">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Item
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Add Item to Packing List</DialogTitle>
@@ -394,6 +416,11 @@ export function PackingList({ simplified = false, items, tripId }: PackingListPr
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          <PackingTemplateSelector
+            onSelectTemplate={handleTemplateSelect}
+          />
+          </div>
         )}
 
         {/* Edit dialog only in full mode */}

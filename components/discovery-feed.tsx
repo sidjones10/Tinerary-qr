@@ -10,6 +10,7 @@ import { getTrendingItineraries, recordInteraction } from "@/lib/feed-service"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/providers/auth-provider"
 import { useToast } from "@/components/ui/use-toast"
+import { ShareDialog } from "@/components/share-dialog"
 import Link from "next/link"
 
 export function DiscoveryFeed() {
@@ -79,18 +80,30 @@ export function DiscoveryFeed() {
 
     if (wasLiked) {
       newLiked.delete(itemId)
-      // TODO: Remove like from database when we have a likes table
+      // Remove like from database
+      try {
+        const supabase = createClient()
+        await supabase
+          .from("saved_itineraries")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("itinerary_id", itemId)
+          .eq("type", "like")
+      } catch (error) {
+        console.warn("Could not remove like from database:", error)
+      }
     } else {
       newLiked.add(itemId)
       // Record interaction and save to database
       await recordInteraction(user.id, itemId, "like")
 
-      // Also save to saved_itineraries table for persistence
+      // Save to saved_itineraries table with type = 'like'
       try {
         const supabase = createClient()
         await supabase.from("saved_itineraries").insert({
           user_id: user.id,
           itinerary_id: itemId,
+          type: "like",
           created_at: new Date().toISOString(),
         })
       } catch (error) {
@@ -109,7 +122,7 @@ export function DiscoveryFeed() {
 
     if (wasSaved) {
       newSaved.delete(itemId)
-      // Remove from database
+      // Remove save from database
       try {
         const supabase = createClient()
         await supabase
@@ -117,6 +130,7 @@ export function DiscoveryFeed() {
           .delete()
           .eq("user_id", user.id)
           .eq("itinerary_id", itemId)
+          .eq("type", "save")
       } catch (error) {
         console.warn("Could not remove save from database:", error)
       }
@@ -125,12 +139,13 @@ export function DiscoveryFeed() {
       // Record interaction and save to database
       await recordInteraction(user.id, itemId, "save")
 
-      // Save to saved_itineraries table
+      // Save to saved_itineraries table with type = 'save'
       try {
         const supabase = createClient()
         await supabase.from("saved_itineraries").insert({
           user_id: user.id,
           itinerary_id: itemId,
+          type: "save",
           created_at: new Date().toISOString(),
         })
       } catch (error) {
@@ -140,46 +155,6 @@ export function DiscoveryFeed() {
     setSavedItems(newSaved)
   }
 
-  // Handle share action
-  const handleShare = async (item: any) => {
-    const shareUrl = `${window.location.origin}/event/${item.id}`
-    const shareText = `Check out ${item.title}!`
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: item.title,
-          text: shareText,
-          url: shareUrl,
-        })
-        // Record share interaction
-        if (user?.id) {
-          await recordInteraction(user.id, item.id, "share")
-        }
-      } catch (error) {
-        console.log("Share cancelled or failed:", error)
-      }
-    } else {
-      // Fallback: Copy to clipboard
-      try {
-        await navigator.clipboard.writeText(shareUrl)
-        toast({
-          title: "Link copied!",
-          description: "Event link has been copied to your clipboard.",
-        })
-        // Record share interaction
-        if (user?.id) {
-          await recordInteraction(user.id, item.id, "share")
-        }
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to copy link",
-          variant: "destructive",
-        })
-      }
-    }
-  }
 
   // Format sample data for display
   const formatDiscoveryItem = (item: any) => {
@@ -487,14 +462,21 @@ export function DiscoveryFeed() {
                   <span className="text-xs text-white mt-1 font-bold">{item.saves + (savedItems.has(item.id) ? 1 : 0)}</span>
                 </div>
                 <div className="flex flex-col items-center">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleShare(item)}
-                    className="h-12 w-12 rounded-full bg-black/30 backdrop-blur-sm border-white/20 text-white hover:bg-black/50 transition-all hover:scale-110"
-                  >
-                    <Share2 className="h-5 w-5" />
-                  </Button>
+                  <ShareDialog
+                    itineraryId={item.id}
+                    title={item.title}
+                    description={item.description}
+                    userId={user?.id}
+                    trigger={
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-12 w-12 rounded-full bg-black/30 backdrop-blur-sm border-white/20 text-white hover:bg-black/50 transition-all hover:scale-110"
+                      >
+                        <Share2 className="h-5 w-5" />
+                      </Button>
+                    }
+                  />
                 </div>
               </div>
             </div>

@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     }
 
     // Initialize Supabase client
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Create user with Supabase
     const { data, error } = await supabase.auth.signUp({
@@ -65,23 +65,22 @@ export async function POST(request: Request) {
       )
     }
 
-    // If user was created successfully
+    // Profile is created automatically by database trigger
+    // Wait a moment for the trigger to complete
     if (data.user) {
-      try {
-        const { error: profileError } = await supabase.from("profiles").insert([
-          {
-            id: data.user.id,
-            name: username || email.split("@")[0],
-            // Remove email and created_at - they're handled automatically
-          },
-        ])
+      // Give the trigger time to create the profile
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
-        if (profileError) {
-          console.error("Error creating user profile:", profileError)
-          // Continue anyway since the auth account was created
-        }
-      } catch (profileErr) {
-        console.error("Exception creating profile:", profileErr)
+      // Verify the profile was created
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", data.user.id)
+        .single()
+
+      if (profileError || !profile) {
+        console.error("Profile creation may have failed:", profileError)
+        // The trigger should handle this, but log for monitoring
       }
     }
 

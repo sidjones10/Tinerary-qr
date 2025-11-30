@@ -84,7 +84,7 @@
     "nodemailer": "latest",
     "pg": "latest",
     "postgres": "latest",
-    "qrcode": "latest",
+    "qrcode": "^1.5.4",
     "react": "^19",
     "react-day-picker": "latest",
     "react-dom": "^19",

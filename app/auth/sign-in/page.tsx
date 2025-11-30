@@ -1,49 +1,27 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/providers/auth-provider"
-import { SignInForm } from "@/components/auth/sign-in-form"
+import { useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Loader2 } from "lucide-react"
 
-export default function SignIn() {
-  const { user, isLoading } = useAuth()
+/**
+ * Legacy sign-in page - redirects to /auth
+ * Kept for backward compatibility with existing links
+ */
+export default function SignInRedirect() {
   const router = useRouter()
-  const [mounted, setMounted] = useState(false)
+  const searchParams = useSearchParams()
 
   useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  useEffect(() => {
-    if (mounted && !isLoading && user) {
-      router.push("/dashboard")
-    }
-  }, [user, isLoading, router, mounted])
-
-  // Prevent hydration mismatch
-  if (!mounted || isLoading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
-  }
-
-  if (user) {
-    return null
-  }
+    // Preserve redirectTo parameter if present
+    const redirectTo = searchParams?.get("redirectTo")
+    const authUrl = redirectTo ? `/auth?redirectTo=${encodeURIComponent(redirectTo)}` : "/auth"
+    router.replace(authUrl)
+  }, [router, searchParams])
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-bold tracking-tight">Sign in to your account</h2>
-      </div>
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white px-4 py-8 shadow sm:rounded-lg sm:px-10">
-          <SignInForm />
-        </div>
-      </div>
+    <div className="flex h-screen w-full items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
     </div>
   )
 }

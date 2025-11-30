@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
@@ -14,9 +14,14 @@ import { Label } from "@/components/ui/label"
 import { useAuth } from "@/providers/auth-provider"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
+import { ShareDialog } from "@/components/share-dialog"
+import { EnhancedExpenseTracker } from "@/components/enhanced-expense-tracker"
+import { CommentsSection } from "@/components/comments-section"
+import { PackingList } from "@/components/packing-list"
 
 interface EventDetailProps {
   event: any
+  packingItems?: any[]
 }
 
 export function EventDetail({ event }: EventDetailProps) {
@@ -31,7 +36,25 @@ export function EventDetail({ event }: EventDetailProps) {
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [inviteEmail, setInviteEmail] = useState("")
   const [isSendingInvite, setIsSendingInvite] = useState(false)
+  const [packingItems, setPackingItems] = useState<any[]>([])
   const isOwner = user && user.id === event.user_id
+
+  // Fetch packing items
+  useEffect(() => {
+    const fetchPackingItems = async () => {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('packing_items')
+        .select('*')
+        .eq('itinerary_id', event.id)
+        .order('created_at', { ascending: true })
+
+      if (data) {
+        setPackingItems(data)
+      }
+    }
+    fetchPackingItems()
+  }, [event.id])
 
   // Check if it's a multi-day trip
   const startDate = new Date(event.start_date)
@@ -89,37 +112,6 @@ export function EventDetail({ event }: EventDetailProps) {
     }
   }
 
-  const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/event/${event.id}`
-    const shareText = `Check out ${event.title}!`
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: event.title,
-          text: shareText,
-          url: shareUrl,
-        })
-      } catch (error) {
-        console.log("Share cancelled or failed:", error)
-      }
-    } else {
-      // Fallback: Copy to clipboard
-      try {
-        await navigator.clipboard.writeText(shareUrl)
-        toast({
-          title: "Link copied!",
-          description: "Event link has been copied to your clipboard.",
-        })
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to copy link",
-          variant: "destructive",
-        })
-      }
-    }
-  }
 
   const handleInvite = async () => {
     if (!inviteEmail || !user) return
@@ -207,15 +199,22 @@ export function EventDetail({ event }: EventDetailProps) {
                   {liked ? "Saved" : "Save"}
                 </Button>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-white/20 backdrop-blur-sm border-white/40 text-white hover:bg-white/30"
-                  onClick={handleShare}
-                >
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Share
-                </Button>
+                <ShareDialog
+                  itineraryId={event.id}
+                  title={event.title}
+                  description={event.description}
+                  userId={user?.id}
+                  trigger={
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-white/20 backdrop-blur-sm border-white/40 text-white hover:bg-white/30"
+                    >
+                      <Share2 className="h-4 w-4 mr-2" />
+                      Share
+                    </Button>
+                  }
+                />
 
                 {isOwner && (
                   <>
@@ -306,6 +305,9 @@ export function EventDetail({ event }: EventDetailProps) {
           <TabsList className="mb-4">
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
             <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="packing">Packing List</TabsTrigger>
+            <TabsTrigger value="expenses">Expenses</TabsTrigger>
+            <TabsTrigger value="discussion">Discussion</TabsTrigger>
             <TabsTrigger value="attendees">Attendees</TabsTrigger>
           </TabsList>
 
@@ -425,6 +427,35 @@ export function EventDetail({ event }: EventDetailProps) {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="packing">
+            <PackingList
+              simplified={false}
+              items={packingItems}
+              tripId={event.id}
+            />
+          </TabsContent>
+
+          <TabsContent value="expenses">
+            <EnhancedExpenseTracker
+              itineraryId={event.id}
+              participants={[
+                {
+                  id: event.user_id,
+                  name: event.host_name || "Host",
+                  avatar_url: event.host_avatar,
+                },
+              ]}
+              currentUserId={user?.id}
+            />
+          </TabsContent>
+
+          <TabsContent value="discussion">
+            <CommentsSection
+              itineraryId={event.id}
+              currentUserId={user?.id}
+            />
           </TabsContent>
 
           <TabsContent value="attendees">

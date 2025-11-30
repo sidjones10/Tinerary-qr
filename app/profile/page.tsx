@@ -34,7 +34,6 @@ export default function ProfilePage() {
 
       // Fetch user's itineraries
       try {
-        console.log("Fetching user itineraries...")
         const { data: userItineraries, error: itinerariesError } = await supabase
           .from("itineraries")
           .select("*")
@@ -45,7 +44,6 @@ export default function ProfilePage() {
           console.error("Error fetching itineraries:", itinerariesError)
           setError(`Failed to load itineraries: ${itinerariesError.message}`)
         } else {
-          console.log(`Successfully fetched ${userItineraries?.length || 0} itineraries`)
           setItineraries(userItineraries || [])
         }
       } catch (itinerariesErr: any) {

@@ -90,6 +90,34 @@ export default function LikedPage() {
     return start.toDateString() === end.toDateString() ? "Event" : "Trip"
   }
 
+  const handleUnlike = async (e: React.MouseEvent, itemId: string, itineraryId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    try {
+      const supabase = createClient()
+
+      // Delete the like from saved_itineraries
+      const { error } = await supabase
+        .from("saved_itineraries")
+        .delete()
+        .eq("id", itemId)
+
+      if (error) {
+        console.error("Error unliking itinerary:", error)
+        return
+      }
+
+      // Update local state - remove the unliked item
+      setLikedItineraries((prev) => prev.filter((item) => item.id !== itemId))
+
+      // Optionally decrement the like count in metrics
+      await supabase.rpc("decrement_like_count", { itinerary_id: itineraryId })
+    } catch (error) {
+      console.error("Error in unlike operation:", error)
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <AppHeader />
@@ -176,10 +204,8 @@ export default function LikedPage() {
                         </Badge>
                         <button
                           className="absolute top-3 right-3 p-2 rounded-full bg-white/90 backdrop-blur-sm hover:bg-white transition-colors"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            // TODO: Implement unlike functionality
-                          }}
+                          onClick={(e) => handleUnlike(e, item.id, itinerary.id)}
+                          aria-label="Unlike itinerary"
                         >
                           <Heart className="h-4 w-4 text-red-500 fill-red-500" />
                         </button>

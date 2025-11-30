@@ -49,8 +49,6 @@ const isValidUUID = (id: string) => {
 // Replace the getEventById function with this:
 const getEventById = async (id: string) => {
   try {
-    console.log("Fetching event with ID:", id)
-
     // Check if we have a valid ID
     if (!id) {
       throw new Error("No ID provided")
@@ -58,7 +56,6 @@ const getEventById = async (id: string) => {
 
     // For testing or demo purposes, return mock data for numeric IDs
     if (!isNaN(Number(id)) && !isValidUUID(id)) {
-      console.log("Using mock data for numeric ID:", id)
       return getMockEventData(id)
     }
 
@@ -90,8 +87,6 @@ const getEventById = async (id: string) => {
       throw new Error("Itinerary not found")
     }
 
-    console.log("Fetched itinerary data:", itineraryData)
-
     // Fetch activities for this itinerary
     const { data: activitiesData, error: activitiesError } = await supabase
       .from("activities")
@@ -122,22 +117,6 @@ const getEventById = async (id: string) => {
     if (expensesError) {
       console.error("Error fetching expenses:", expensesError)
     }
-
-    console.log("==== ACTIVITIES DEBUG ====")
-    console.log("Itinerary ID:", id)
-    console.log("Fetched activities count:", activitiesData?.length || 0)
-    console.log("Fetched activities:", activitiesData || [])
-    if (activitiesData && activitiesData.length > 0) {
-      activitiesData.forEach((act, i) => {
-        console.log(`Activity ${i}:`, {
-          title: act.title,
-          day: act.day,
-          location: act.location,
-          start_time: act.start_time
-        })
-      })
-    }
-    console.log("==========================")
 
     // Determine if this is a trip or event based on date fields
     const isTrip = itineraryData.start_date !== itineraryData.end_date

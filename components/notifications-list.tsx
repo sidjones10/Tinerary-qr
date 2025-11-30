@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { getUserNotifications, markNotificationAsRead, type NotificationType } from "@/lib/notification-service"
+import { useAuth } from "@/providers/auth-provider"
 
 interface NotificationsListProps {
   type?: NotificationType | NotificationType[]
@@ -19,6 +20,7 @@ interface NotificationsListProps {
 
 export function NotificationsList({ type, limit = 20 }: NotificationsListProps) {
   const router = useRouter()
+  const { user } = useAuth()
   const [notifications, setNotifications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -28,10 +30,14 @@ export function NotificationsList({ type, limit = 20 }: NotificationsListProps) 
       try {
         setLoading(true)
 
-        // In a real app, you'd get the actual user ID from auth
-        const userId = "current-user-id"
+        // Check if user is logged in
+        if (!user?.id) {
+          setError("You must be logged in to view notifications")
+          setLoading(false)
+          return
+        }
 
-        const result = await getUserNotifications(userId, {
+        const result = await getUserNotifications(user.id, {
           limit,
           type,
         })
@@ -50,7 +56,7 @@ export function NotificationsList({ type, limit = 20 }: NotificationsListProps) 
     }
 
     fetchNotifications()
-  }, [type, limit])
+  }, [type, limit, user?.id])
 
   const handleNotificationClick = async (notification: any) => {
     // Mark as read

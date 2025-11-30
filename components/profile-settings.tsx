@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, Pencil, ArrowLeft, Upload } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-import { supabase } from "@/lib/supabase-client"
+import { createClient } from "@/lib/supabase/client"
 import { compressImage, updateImage, deleteImage } from "@/lib/storage-service"
 import Link from "next/link"
 
@@ -41,6 +41,7 @@ export function ProfileSettings() {
       if (user) {
         setIsLoading(true)
         try {
+          const supabase = createClient()
           const { data, error } = await supabase
             .from("profiles")
             .select("name, username, bio, location, website, phone, avatar_url, avatar_path")
@@ -92,6 +93,7 @@ export function ProfileSettings() {
 
     setCheckingUsername(true)
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from("profiles")
         .select("id")
@@ -127,6 +129,8 @@ export function ProfileSettings() {
 
     setUploadingAvatar(true)
     try {
+      const supabase = createClient()
+
       // Compress the image
       const compressedFile = await compressImage(file, 400, 400, 0.85)
 
@@ -187,6 +191,8 @@ export function ProfileSettings() {
 
     setUploadingAvatar(true)
     try {
+      const supabase = createClient()
+
       // Delete from storage if exists
       if (avatarPath) {
         await deleteImage(avatarPath, "user-avatars")
@@ -242,6 +248,8 @@ export function ProfileSettings() {
       if (!user) {
         throw new Error("User not authenticated")
       }
+
+      const supabase = createClient()
 
       // Check username availability if it changed
       if (formData.username && formData.username !== originalUsername) {

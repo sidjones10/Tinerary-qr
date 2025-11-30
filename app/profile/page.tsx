@@ -5,10 +5,10 @@ import { useAuth } from "@/providers/auth-provider"
 import { Loader2, AlertCircle } from "lucide-react"
 import { ProtectedRoute } from "@/components/protected-route"
 import { Navbar } from "@/components/navbar"
-import { supabase } from "@/lib/supabase-client"
+import { createClient } from "@/lib/supabase/client"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { SettingsFormAlt } from "@/components/settings-form-alt"
+import { ProfileSettings } from "@/components/profile-settings"
 import { getUserDrafts, type EventDraft } from "@/app/actions/draft-actions"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -30,6 +30,8 @@ export default function ProfilePage() {
     setError(null)
 
     try {
+      const supabase = createClient()
+
       // Fetch user's itineraries
       try {
         console.log("Fetching user itineraries...")
@@ -76,14 +78,6 @@ export default function ProfilePage() {
       loadProfile()
     }
   }, [user])
-
-  // Prepare user data for settings form
-  const userData = user
-    ? {
-        name: user.user_metadata?.name || "",
-        email: user.email || "",
-      }
-    : { name: "", email: "" }
 
   return (
     <ProtectedRoute>
@@ -210,7 +204,7 @@ export default function ProfilePage() {
                 </TabsContent>
 
                 <TabsContent value="settings">
-                  <SettingsFormAlt initialData={userData} onSuccess={loadProfile} />
+                  <ProfileSettings />
                 </TabsContent>
               </Tabs>
             </div>

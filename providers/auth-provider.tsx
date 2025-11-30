@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { User, Session } from "@supabase/supabase-js"
-import { signUpWithProfile, signInWithEmail, ensureProfileExists } from "@/lib/auth-service"
+import { signInWithEmail, ensureProfileExists } from "@/lib/auth-service"
 
 interface AuthContextType {
   user: User | null
@@ -72,15 +72,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, username?: string, fullName?: string) => {
     try {
-      const result = await signUpWithProfile({
+      const { error, data } = await supabase.auth.signUp({
         email,
         password,
-        username,
-        fullName,
+        options: {
+          data: {
+            username: username || email.split("@")[0],
+            full_name: fullName
+          },  // This gets passed to the trigger via raw_user_meta_data
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       })
 
-      if (!result.success) {
-        return { error: new Error(result.error || "Sign up failed") }
+      if (error) {
+        return { error }
+      }
+
+      if (data.user) {
+        // No manual insert needed - database trigger handles it!
+        // The trigger creates entries in both users and profiles tables
       }
 
       return { error: null }

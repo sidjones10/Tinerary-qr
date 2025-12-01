@@ -5,21 +5,32 @@
 -- by dropping all existing triggers and creating one unified, robust trigger
 
 -- ============================================================================
--- STEP 1: DROP ALL EXISTING CONFLICTING TRIGGERS
+-- STEP 1: ENSURE PROFILES TABLE HAS EMAIL COLUMN
+-- ============================================================================
+
+-- Add email column if it doesn't exist (should be there from migration 001 but may be missing)
+ALTER TABLE profiles
+ADD COLUMN IF NOT EXISTS email TEXT UNIQUE;
+
+-- Create index for email lookups
+CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles(email);
+
+-- ============================================================================
+-- STEP 2: DROP ALL EXISTING CONFLICTING TRIGGERS
 -- ============================================================================
 
 DROP TRIGGER IF EXISTS create_profile_trigger ON auth.users;
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 
 -- ============================================================================
--- STEP 2: DROP ALL EXISTING FUNCTIONS
+-- STEP 3: DROP ALL EXISTING FUNCTIONS
 -- ============================================================================
 
 DROP FUNCTION IF EXISTS public.create_profile_for_user();
 DROP FUNCTION IF EXISTS public.handle_new_user();
 
 -- ============================================================================
--- STEP 3: CREATE CONSOLIDATED USER CREATION FUNCTION
+-- STEP 4: CREATE CONSOLIDATED USER CREATION FUNCTION
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -106,7 +117,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================================================
--- STEP 4: CREATE SINGLE UNIFIED TRIGGER
+-- STEP 5: CREATE SINGLE UNIFIED TRIGGER
 -- ============================================================================
 
 CREATE TRIGGER on_auth_user_created
@@ -115,7 +126,7 @@ CREATE TRIGGER on_auth_user_created
   EXECUTE FUNCTION public.handle_new_user();
 
 -- ============================================================================
--- STEP 5: BACKFILL MISSING PROFILES
+-- STEP 6: BACKFILL MISSING PROFILES
 -- ============================================================================
 
 -- Find auth users without profiles and create them

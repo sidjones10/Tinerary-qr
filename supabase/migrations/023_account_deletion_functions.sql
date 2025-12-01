@@ -2,6 +2,22 @@
 -- Handles permanent deletion of soft-deleted accounts after grace period
 
 -- ============================================================================
+-- 0. ENSURE REQUIRED COLUMNS EXIST (from migration 013)
+-- ============================================================================
+
+-- Add columns if they don't exist
+ALTER TABLE profiles
+ADD COLUMN IF NOT EXISTS account_deleted_at TIMESTAMP WITH TIME ZONE,
+ADD COLUMN IF NOT EXISTS deletion_scheduled_for TIMESTAMP WITH TIME ZONE;
+
+-- Create indexes if they don't exist
+CREATE INDEX IF NOT EXISTS idx_profiles_deleted ON profiles(account_deleted_at) WHERE account_deleted_at IS NOT NULL;
+
+-- Add comments
+COMMENT ON COLUMN profiles.account_deleted_at IS 'Timestamp when account was soft-deleted';
+COMMENT ON COLUMN profiles.deletion_scheduled_for IS 'Timestamp when account will be permanently deleted (30 days after soft delete)';
+
+-- ============================================================================
 -- 1. FUNCTION: Permanently delete expired accounts
 -- ============================================================================
 

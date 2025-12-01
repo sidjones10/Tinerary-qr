@@ -191,21 +191,21 @@ export async function sendPromotionApprovalEmail(
       <div style="text-align: center; margin-bottom: 20px;">
         <h1 style="color: #4f46e5;">Promotion Approved</h1>
       </div>
-      
+
       <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
         <p>Dear ${businessName},</p>
         <p>We're pleased to inform you that your promotion "${promotionTitle}" has been approved and is now live on Tinerary!</p>
         <p>You can now start receiving bookings and promoting your offering to our users.</p>
       </div>
-      
+
       <div style="text-align: center; margin-top: 20px;">
         <a href="${process.env.NEXT_PUBLIC_APP_URL}/promotion/${promotionId}" style="background-color: #4f46e5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">View Your Promotion</a>
       </div>
-      
+
       <div style="border-top: 1px solid #e0e0e0; padding-top: 15px; margin-top: 20px; font-size: 14px; color: #666;">
         <p>For any questions or assistance, please contact our support team at support@tinerary.app</p>
       </div>
-      
+
       <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #999;">
         <p>&copy; ${new Date().getFullYear()} Tinerary. All rights reserved.</p>
       </div>
@@ -216,6 +216,94 @@ export async function sendPromotionApprovalEmail(
   return sendEmail({
     to: email,
     subject: `Your Promotion "${promotionTitle}" Has Been Approved`,
+    html,
+  })
+}
+
+// Function to send account deletion warning email (7 days before deletion)
+export async function sendAccountDeletionWarningEmail(data: {
+  email: string
+  name?: string
+  username?: string
+  deletionDate: string
+  daysRemaining: number
+}) {
+  const { email, name, username, deletionDate, daysRemaining } = data
+
+  const displayName = name || username || "there"
+
+  // Format the deletion date
+  const formattedDeletionDate = new Date(deletionDate).toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  })
+
+  // Create email HTML
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+      <div style="text-align: center; margin-bottom: 20px; padding: 20px; background-color: #fee2e2; border-radius: 5px;">
+        <h1 style="color: #dc2626; margin: 0;">⚠️ Account Deletion Warning</h1>
+      </div>
+
+      <div style="padding: 20px; background-color: #f9f9f9; border-radius: 5px; margin-bottom: 20px;">
+        <p style="font-size: 16px; margin-bottom: 15px;">Hi ${displayName},</p>
+
+        <p style="font-size: 16px; margin-bottom: 15px;">
+          This is a reminder that your Tinerary account is scheduled for <strong>permanent deletion</strong>.
+        </p>
+
+        <div style="background-color: #fff; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0;">
+          <p style="margin: 0; font-size: 18px; font-weight: bold; color: #dc2626;">
+            Deletion Date: ${formattedDeletionDate}
+          </p>
+          <p style="margin: 10px 0 0 0; font-size: 16px; color: #666;">
+            Time remaining: <strong>${daysRemaining} day${daysRemaining === 1 ? "" : "s"}</strong>
+          </p>
+        </div>
+
+        <p style="font-size: 16px; margin-bottom: 15px;">
+          <strong>What will be deleted:</strong>
+        </p>
+        <ul style="font-size: 14px; color: #666; line-height: 1.8;">
+          <li>All your itineraries (public and private)</li>
+          <li>All activities, packing lists, and expenses</li>
+          <li>Comments and interactions</li>
+          <li>Profile information and settings</li>
+          <li>All associated data</li>
+        </ul>
+      </div>
+
+      <div style="background-color: #dcfce7; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
+        <h2 style="margin-top: 0; color: #15803d; font-size: 18px;">Want to keep your account?</h2>
+        <p style="margin-bottom: 15px; font-size: 14px; color: #166534;">
+          Simply log in to your Tinerary account within the next ${daysRemaining} day${daysRemaining === 1 ? "" : "s"} to cancel the deletion.
+        </p>
+        <div style="text-align: center; margin-top: 20px;">
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://tinerary.app"}/auth"
+             style="background-color: #15803d; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+            Cancel Deletion & Keep My Account
+          </a>
+        </div>
+      </div>
+
+      <div style="border-top: 1px solid #e0e0e0; padding-top: 15px; font-size: 14px; color: #666;">
+        <p><strong>Note:</strong> If you do nothing, your account will be permanently deleted on ${formattedDeletionDate}. This action cannot be undone after that date.</p>
+        <p>If you have any questions or need help, please contact our support team at support@tinerary.app</p>
+      </div>
+
+      <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #999;">
+        <p>You received this email because your Tinerary account was scheduled for deletion.</p>
+        <p>&copy; ${new Date().getFullYear()} Tinerary. All rights reserved.</p>
+      </div>
+    </div>
+  `
+
+  // Send the email
+  return sendEmail({
+    to: email,
+    subject: `⚠️ Your Tinerary Account Will Be Deleted in ${daysRemaining} Day${daysRemaining === 1 ? "" : "s"}`,
     html,
   })
 }

@@ -160,9 +160,14 @@ export function DeleteAccountDialog({ userId, userEmail }: DeleteAccountDialogPr
             </div>
 
             {userEmail && (
-              <p className="text-xs text-muted-foreground">
-                You have 30 days to cancel this deletion by logging in with {userEmail}
-              </p>
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  You have 30 days to cancel this deletion by logging in with {userEmail}
+                </p>
+                <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                  📧 You'll receive a warning email 7 days before permanent deletion
+                </p>
+              </div>
             )}
           </div>
         </div>

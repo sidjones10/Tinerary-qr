@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Calendar, MapPin, Users } from "lucide-react"
+import { Calendar, MapPin, Users, Heart, MessageCircle } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 
@@ -17,6 +17,8 @@ interface EventCardProps {
     }
     isOrganizer?: boolean
     attendees: number
+    like_count?: number
+    comment_count?: number
   }
 }
 
@@ -62,9 +64,25 @@ export function EventCard({ event }: EventCardProps) {
           </div>
 
           <div className="flex items-center justify-between">
-            <div className="flex items-center text-sm text-gray-500">
-              <Users className="h-4 w-4 mr-2" />
-              <span>{event.attendees} attending</span>
+            <div className="flex items-center gap-3 text-sm text-gray-500">
+              {event.like_count !== undefined && event.like_count > 0 && (
+                <div className="flex items-center">
+                  <Heart className="h-4 w-4 mr-1" />
+                  <span>{event.like_count}</span>
+                </div>
+              )}
+              {event.comment_count !== undefined && event.comment_count > 0 && (
+                <div className="flex items-center">
+                  <MessageCircle className="h-4 w-4 mr-1" />
+                  <span>{event.comment_count}</span>
+                </div>
+              )}
+              {event.attendees > 0 && (
+                <div className="flex items-center">
+                  <Users className="h-4 w-4 mr-1" />
+                  <span>{event.attendees}</span>
+                </div>
+              )}
             </div>
             <span className="text-sm font-medium text-[#FF9B7D] hover:text-[#FF8A6A]">View Details</span>
           </div>

@@ -17,6 +17,12 @@ export interface FeedItem {
     avatar_url: string | null
     username: string
   }
+  metrics?: {
+    like_count: number
+    comment_count: number
+    save_count: number
+    view_count: number
+  }
   is_invited?: boolean
   invitation_status?: string
   status?: "upcoming" | "ongoing" | "past"
@@ -43,7 +49,8 @@ export async function getUserFeed(userId: string, filters: FeedFilters = {}) {
       .from("itineraries")
       .select(`
         *,
-        owner:profiles!itineraries_user_id_fkey(name, avatar_url, username)
+        owner:profiles!itineraries_user_id_fkey(name, avatar_url, username),
+        metrics:itinerary_metrics(like_count, comment_count, save_count, view_count)
       `)
       .eq("user_id", userId)
 
@@ -54,7 +61,8 @@ export async function getUserFeed(userId: string, filters: FeedFilters = {}) {
         invitation_status:status,
         itinerary:itineraries(
           *,
-          owner:profiles!itineraries_user_id_fkey(name, avatar_url, username)
+          owner:profiles!itineraries_user_id_fkey(name, avatar_url, username),
+          metrics:itinerary_metrics(like_count, comment_count, save_count, view_count)
         )
       `)
       .eq("invitee_id", userId)

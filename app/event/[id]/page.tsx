@@ -61,7 +61,7 @@ const getEventById = async (id: string) => {
 
     const supabase = createClient()
 
-    // Fetch the itinerary with owner profile information
+    // Fetch the itinerary with owner profile information and metrics
     const { data: itineraryData, error: itineraryError } = await supabase
       .from("itineraries")
       .select(`
@@ -72,6 +72,12 @@ const getEventById = async (id: string) => {
           username,
           avatar_url,
           email
+        ),
+        metrics:itinerary_metrics(
+          like_count,
+          comment_count,
+          save_count,
+          view_count
         )
       `)
       .eq("id", id)
@@ -174,6 +180,9 @@ const getEventById = async (id: string) => {
     // Extract owner information
     const owner = Array.isArray(itineraryData.owner) ? itineraryData.owner[0] : itineraryData.owner
 
+    // Extract metrics
+    const metrics = Array.isArray(itineraryData.metrics) ? itineraryData.metrics[0] : itineraryData.metrics
+
     // Format the data to match the expected structure
     return {
       id: itineraryData.id,
@@ -197,7 +206,11 @@ const getEventById = async (id: string) => {
         username: owner?.username ? `@${owner.username}` : "@anonymous",
         avatar: owner?.avatar_url || "/placeholder.svg?height=40&width=40",
       },
-      likes: 0, // Default value
+      likes: 0, // Legacy field for compatibility
+      like_count: metrics?.like_count || 0,
+      comment_count: metrics?.comment_count || 0,
+      save_count: metrics?.save_count || 0,
+      view_count: metrics?.view_count || 0,
       description: itineraryData.description,
       days: days,
       activities: activitiesData || [], // Include raw activities data for the EventDetail component

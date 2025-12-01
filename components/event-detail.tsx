@@ -32,6 +32,8 @@ export function EventDetail({ event }: EventDetailProps) {
   const { toast } = useToast()
   const router = useRouter()
   const [liked, setLiked] = useState(false)
+  const [likeCount, setLikeCount] = useState(event.like_count || 0)
+  const [isLiking, setIsLiking] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [inviteEmail, setInviteEmail] = useState("")
@@ -55,6 +57,28 @@ export function EventDetail({ event }: EventDetailProps) {
     }
     fetchPackingItems()
   }, [event.id])
+
+  // Check if user has liked this itinerary
+  useEffect(() => {
+    const checkLikeStatus = async () => {
+      if (!user?.id) {
+        setLiked(false)
+        return
+      }
+
+      const supabase = createClient()
+      const { data, error } = await supabase.rpc('user_has_liked', {
+        user_uuid: user.id,
+        itinerary_uuid: event.id
+      })
+
+      if (!error && data !== null) {
+        setLiked(data)
+      }
+    }
+
+    checkLikeStatus()
+  }, [user?.id, event.id])
 
   // Check if it's a multi-day trip
   const startDate = new Date(event.start_date)
@@ -112,6 +136,50 @@ export function EventDetail({ event }: EventDetailProps) {
     }
   }
 
+  const handleLike = async () => {
+    if (!user?.id) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to like itineraries",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsLiking(true)
+
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase.rpc('toggle_like', {
+        user_uuid: user.id,
+        itinerary_uuid: event.id
+      })
+
+      if (error) throw error
+
+      if (data && data.length > 0) {
+        const result = data[0]
+        setLiked(result.is_liked)
+        setLikeCount(result.new_like_count)
+
+        toast({
+          title: result.is_liked ? "Added to favorites" : "Removed from favorites",
+          description: result.is_liked
+            ? "This itinerary has been added to your favorites"
+            : "This itinerary has been removed from your favorites",
+        })
+      }
+    } catch (error: any) {
+      console.error("Error toggling like:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update favorite status",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLiking(false)
+    }
+  }
 
   const handleInvite = async () => {
     if (!inviteEmail || !user) return
@@ -193,10 +261,12 @@ export function EventDetail({ event }: EventDetailProps) {
                   variant="outline"
                   size="sm"
                   className="bg-white/20 backdrop-blur-sm border-white/40 text-white hover:bg-white/30"
-                  onClick={() => setLiked(!liked)}
+                  onClick={handleLike}
+                  disabled={isLiking}
                 >
                   <Heart className={`h-4 w-4 mr-2 ${liked ? "fill-red-500 text-red-500" : ""}`} />
-                  {liked ? "Saved" : "Save"}
+                  {liked ? "Liked" : "Like"}
+                  {likeCount > 0 && <span className="ml-1">({likeCount})</span>}
                 </Button>
 
                 <ShareDialog

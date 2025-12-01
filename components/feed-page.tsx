@@ -291,6 +291,8 @@ export function FeedPage() {
       dateStr = `${startDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
     }
 
+    const metrics = Array.isArray(item.metrics) ? item.metrics[0] : item.metrics
+
     return {
       id: item.id,
       title: item.title,
@@ -304,6 +306,8 @@ export function FeedPage() {
       },
       isOrganizer: !item.is_invited,
       attendees: 0, // We'll need to fetch this separately if needed
+      like_count: metrics?.like_count || 0,
+      comment_count: metrics?.comment_count || 0,
     }
   }
 

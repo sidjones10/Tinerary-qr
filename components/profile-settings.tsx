@@ -9,11 +9,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Pencil, ArrowLeft, Upload } from "lucide-react"
+import { Loader2, Pencil, ArrowLeft, Upload, Download } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
 import { compressImage, updateImage, deleteImage } from "@/lib/storage-service"
 import Link from "next/link"
+import { DeleteAccountDialog } from "@/components/delete-account-dialog"
+import { Separator } from "@/components/ui/separator"
 
 export function ProfileSettings() {
   const { user, refreshSession } = useAuth()
@@ -35,6 +37,7 @@ export function ProfileSettings() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [avatarPath, setAvatarPath] = useState<string | null>(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [downloadingData, setDownloadingData] = useState(false)
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -237,6 +240,55 @@ export function ProfileSettings() {
       })
     } finally {
       setUploadingAvatar(false)
+    }
+  }
+
+  const handleDownloadData = async () => {
+    if (!user) return
+
+    setDownloadingData(true)
+    try {
+      // Call the export API endpoint
+      const response = await fetch("/api/user/export-data", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to download data")
+      }
+
+      // Get the blob data
+      const blob = await response.blob()
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      const timestamp = new Date().toISOString().split("T")[0]
+      a.download = `tinerary-data-export-${timestamp}.json`
+      document.body.appendChild(a)
+      a.click()
+
+      // Cleanup
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      toast({
+        title: "Data exported",
+        description: "Your data has been downloaded successfully.",
+      })
+    } catch (error: any) {
+      console.error("Error downloading data:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to download data.",
+        variant: "destructive",
+      })
+    } finally {
+      setDownloadingData(false)
     }
   }
 
@@ -521,6 +573,63 @@ export function ProfileSettings() {
             </Button>
           </div>
         </form>
+
+        <Separator className="my-6" />
+
+        {/* Data & Privacy Section */}
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-medium">Data & Privacy</h3>
+            <p className="text-sm text-muted-foreground">
+              Manage your data and account privacy settings
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {/* Download My Data */}
+            <div className="flex items-start justify-between p-4 border rounded-lg">
+              <div className="space-y-1 flex-1">
+                <h4 className="font-medium">Download Your Data</h4>
+                <p className="text-sm text-muted-foreground">
+                  Export all your data including itineraries, comments, and profile information in JSON format.
+                  This complies with GDPR data portability requirements.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={handleDownloadData}
+                disabled={downloadingData}
+                className="ml-4 shrink-0"
+              >
+                {downloadingData ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Downloading...
+                  </>
+                ) : (
+                  <>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download Data
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {/* Delete Account */}
+            <div className="flex items-start justify-between p-4 border border-red-200 rounded-lg bg-red-50/50">
+              <div className="space-y-1 flex-1">
+                <h4 className="font-medium text-red-900">Delete Account</h4>
+                <p className="text-sm text-red-700">
+                  Permanently delete your account and all associated data. This action cannot be undone,
+                  but you have 30 days to cancel. You'll receive a warning email 7 days before deletion.
+                </p>
+              </div>
+              <div className="ml-4 shrink-0">
+                {user && <DeleteAccountDialog userId={user.id} userEmail={user.email} />}
+              </div>
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   )

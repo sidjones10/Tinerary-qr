@@ -30,8 +30,10 @@
 --
 -- ============================================================================
 
--- Extend the account_deletion_monitoring view to include warning status
-CREATE OR REPLACE VIEW account_deletion_monitoring AS
+-- Drop and recreate the account_deletion_monitoring view to include warning status
+DROP VIEW IF EXISTS account_deletion_monitoring;
+
+CREATE VIEW account_deletion_monitoring AS
 SELECT
   (SELECT COUNT(*) FROM profiles WHERE account_deleted_at IS NOT NULL) AS accounts_pending_deletion,
   (SELECT COUNT(*) FROM profiles WHERE deletion_scheduled_for IS NOT NULL AND deletion_scheduled_for <= NOW()) AS accounts_ready_for_deletion,

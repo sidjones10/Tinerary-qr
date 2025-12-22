@@ -1,0 +1,208 @@
+"use client"
+
+import type React from "react"
+
+import { useState } from "react"
+import { useAuth } from "@/providers/auth-provider"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Switch } from "@/components/ui/switch"
+import { Loader2 } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
+import { DeleteAccountDialog } from "@/components/delete-account-dialog"
+
+export function AccountSettings() {
+  const { user } = useAuth()
+  const [isLoading, setIsLoading] = useState(false)
+  const { toast } = useToast()
+
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+
+    try {
+      if (newPassword !== confirmPassword) {
+        throw new Error("New passwords don't match")
+      }
+
+      // Password update logic would go here
+
+      toast({
+        title: "Password updated",
+        description: "Your password has been updated successfully.",
+      })
+
+      setCurrentPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "There was a problem updating your password.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Account Settings</CardTitle>
+          <CardDescription>Manage your account credentials and security</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label>Phone Number</Label>
+            <div className="flex gap-2">
+              <Input value="+1 (555) 123-4567" disabled className="flex-1" />
+              <Button variant="outline">Verify</Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Your primary login method. We'll send verification codes to this number.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Email Address</Label>
+            <div className="flex gap-2">
+              <Input value={user?.email || "jessica.chen@example.com"} disabled className="flex-1" />
+              <Button variant="outline">Verify</Button>
+            </div>
+            <p className="text-xs text-muted-foreground">Secondary login method and for important notifications.</p>
+          </div>
+
+          <form onSubmit={handlePasswordChange} className="space-y-4 pt-4 border-t">
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">Current Password</Label>
+              <Input
+                id="currentPassword"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="bg-amber-50 p-3 rounded-md text-amber-800 text-sm">
+              <p>
+                Password requirements: At least 8 characters, including a number, uppercase letter, and special
+                character.
+              </p>
+            </div>
+
+            <div className="flex justify-end">
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Update Password"
+                )}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Two-Factor Authentication</CardTitle>
+          <CardDescription>Add an extra layer of security to your account</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">SMS Authentication</p>
+              <p className="text-sm text-muted-foreground">Receive a code via SMS when logging in</p>
+            </div>
+            <Switch />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Connected Accounts</CardTitle>
+          <CardDescription>Link your accounts for easier login</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">G</div>
+              <div>
+                <p className="font-medium">Google</p>
+                <p className="text-sm text-muted-foreground">Connected</p>
+              </div>
+            </div>
+            <Button variant="outline" size="sm">
+              Disconnect
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">F</div>
+              <div>
+                <p className="font-medium">Facebook</p>
+                <p className="text-sm text-muted-foreground">Not connected</p>
+              </div>
+            </div>
+            <Button variant="outline" size="sm">
+              Connect
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-destructive">
+        <CardHeader>
+          <CardTitle className="text-destructive">Danger Zone</CardTitle>
+          <CardDescription>Irreversible actions that affect your account</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-medium mb-1">Delete Account</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Permanently delete your account and all associated data. This action cannot be undone.
+              </p>
+              <DeleteAccountDialog userId={user?.id || ""} userEmail={user?.email} />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

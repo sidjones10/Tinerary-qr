@@ -1,0 +1,292 @@
+"use server"
+
+import { supabase } from "@/lib/supabase-client"
+
+export interface EventDraft {
+  id: string
+  title: string
+  description: string
+  user_id: string
+  created_at: string
+  updated_at: string
+  content: any
+  is_published: boolean
+}
+
+export async function getUserDrafts() {
+  try {
+    const { data: session } = await supabase.auth.getSession()
+
+    if (!session.session?.user) {
+      return {
+        success: false,
+        error: "User not authenticated",
+      }
+    }
+
+    const userId = session.session.user.id
+
+    const { data, error } = await supabase
+      .from("drafts")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("is_published", false)
+      .order("updated_at", { ascending: false })
+
+    if (error) {
+      console.error("Error fetching drafts:", error)
+      return {
+        success: false,
+        error: error.message,
+      }
+    }
+
+    return {
+      success: true,
+      drafts: data as EventDraft[],
+    }
+  } catch (err) {
+    console.error("Exception in getUserDrafts:", err)
+    return {
+      success: false,
+      error: "Failed to fetch drafts",
+    }
+  }
+}
+
+export async function saveDraft(draftData: Partial<EventDraft>) {
+  try {
+    const { data: session } = await supabase.auth.getSession()
+
+    if (!session.session?.user) {
+      return {
+        success: false,
+        error: "User not authenticated",
+      }
+    }
+
+    const userId = session.session.user.id
+
+    // If draft has an ID, update it
+    if (draftData.id) {
+      const { data, error } = await supabase
+        .from("drafts")
+        .update({
+          ...draftData,
+          updated_at: new Date().toISOString(),
+          user_id: userId,
+        })
+        .eq("id", draftData.id)
+        .eq("user_id", userId) // Ensure user owns this draft
+        .select()
+        .single()
+
+      if (error) {
+        console.error("Error updating draft:", error)
+        return {
+          success: false,
+          error: error.message,
+        }
+      }
+
+      return {
+        success: true,
+        draft: data as EventDraft,
+      }
+    }
+    // Otherwise create a new draft
+    else {
+      const { data, error } = await supabase
+        .from("drafts")
+        .insert({
+          ...draftData,
+          user_id: userId,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          is_published: false,
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error("Error creating draft:", error)
+        return {
+          success: false,
+          error: error.message,
+        }
+      }
+
+      return {
+        success: true,
+        draft: data as EventDraft,
+      }
+    }
+  } catch (err) {
+    console.error("Exception in saveDraft:", err)
+    return {
+      success: false,
+      error: "Failed to save draft",
+    }
+  }
+}
+
+export async function getDraftById(draftId: string) {
+  try {
+    const { data: session } = await supabase.auth.getSession()
+
+    if (!session.session?.user) {
+      return {
+        success: false,
+        error: "User not authenticated",
+      }
+    }
+
+    const userId = session.session.user.id
+
+    const { data, error } = await supabase
+      .from("drafts")
+      .select("*")
+      .eq("id", draftId)
+      .eq("user_id", userId) // Ensure user owns this draft
+      .single()
+
+    if (error) {
+      console.error("Error fetching draft:", error)
+      return {
+        success: false,
+        error: error.message,
+      }
+    }
+
+    return {
+      success: true,
+      draft: data as EventDraft,
+    }
+  } catch (err) {
+    console.error("Exception in getDraftById:", err)
+    return {
+      success: false,
+      error: "Failed to fetch draft",
+    }
+  }
+}
+
+export async function getDraft(draftId: string) {
+  return getDraftById(draftId)
+}
+
+export async function publishDraft(draftId: string) {
+  try {
+    const { data: session } = await supabase.auth.getSession()
+
+    if (!session.session?.user) {
+      return {
+        success: false,
+        error: "User not authenticated",
+      }
+    }
+
+    const userId = session.session.user.id
+
+    // First, get the draft
+    const { data: draft, error: fetchError } = await supabase
+      .from("drafts")
+      .select("*")
+      .eq("id", draftId)
+      .eq("user_id", userId)
+      .single()
+
+    if (fetchError) {
+      console.error("Error fetching draft for publishing:", fetchError)
+      return {
+        success: false,
+        error: fetchError.message,
+      }
+    }
+
+    // Create a new itinerary from the draft
+    const { data: itinerary, error: insertError } = await supabase
+      .from("itineraries")
+      .insert({
+        title: draft.title,
+        description: draft.description,
+        content: draft.content,
+        user_id: userId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        is_public: true, // Default to public
+        draft_id: draftId,
+      })
+      .select()
+      .single()
+
+    if (insertError) {
+      console.error("Error creating itinerary from draft:", insertError)
+      return {
+        success: false,
+        error: insertError.message,
+      }
+    }
+
+    // Mark the draft as published
+    const { error: updateError } = await supabase
+      .from("drafts")
+      .update({
+        is_published: true,
+        published_at: new Date().toISOString(),
+      })
+      .eq("id", draftId)
+      .eq("user_id", userId)
+
+    if (updateError) {
+      console.error("Error marking draft as published:", updateError)
+      // We still return success since the itinerary was created
+    }
+
+    return {
+      success: true,
+      itinerary,
+    }
+  } catch (err) {
+    console.error("Exception in publishDraft:", err)
+    return {
+      success: false,
+      error: "Failed to publish draft",
+    }
+  }
+}
+
+export async function deleteDraft(draftId: string) {
+  try {
+    const { data: session } = await supabase.auth.getSession()
+
+    if (!session.session?.user) {
+      return {
+        success: false,
+        error: "User not authenticated",
+      }
+    }
+
+    const userId = session.session.user.id
+
+    const { error } = await supabase.from("drafts").delete().eq("id", draftId).eq("user_id", userId)
+
+    if (error) {
+      console.error("Error deleting draft:", error)
+      return {
+        success: false,
+        error: error.message,
+      }
+    }
+
+    return {
+      success: true,
+    }
+  } catch (err) {
+    console.error("Exception in deleteDraft:", err)
+    return {
+      success: false,
+      error: "Failed to delete draft",
+    }
+  }
+}

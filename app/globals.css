@@ -314,3 +314,247 @@ select:focus {
 .dark ::-webkit-scrollbar-thumb:hover {
   @apply bg-muted-foreground/60;
 }
+
+/* ==========================================
+   Cute Liked/Saved Sections (Instagram/TikTok inspired)
+   ========================================== */
+
+/* Section header with gradient text */
+.cute-section-header {
+  @apply text-2xl font-bold;
+  background: linear-gradient(135deg, #ec4899, #8b5cf6, #f97316);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Animated heart icon */
+.heart-icon-cute {
+  @apply transition-all duration-300;
+  filter: drop-shadow(0 2px 4px rgba(236, 72, 153, 0.3));
+}
+
+.heart-icon-cute:hover {
+  transform: scale(1.2);
+  filter: drop-shadow(0 4px 8px rgba(236, 72, 153, 0.5));
+}
+
+/* Animated bookmark icon */
+.bookmark-icon-cute {
+  @apply transition-all duration-300;
+  filter: drop-shadow(0 2px 4px rgba(139, 92, 246, 0.3));
+}
+
+.bookmark-icon-cute:hover {
+  transform: scale(1.2);
+  filter: drop-shadow(0 4px 8px rgba(139, 92, 246, 0.5));
+}
+
+/* Cute card with gradient border */
+.cute-card {
+  @apply relative rounded-2xl overflow-hidden bg-white transition-all duration-300;
+  box-shadow: 0 4px 20px rgba(236, 72, 153, 0.08), 0 2px 8px rgba(139, 92, 246, 0.06);
+}
+
+.cute-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 1rem;
+  padding: 2px;
+  z-index: -1;
+  background: linear-gradient(135deg, #ec4899, #8b5cf6, #f97316);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  opacity: 0.6;
+  transition: opacity 0.3s ease;
+}
+
+.cute-card:hover::before {
+  opacity: 1;
+}
+
+.cute-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 12px 32px rgba(236, 72, 153, 0.15), 0 4px 12px rgba(139, 92, 246, 0.1);
+}
+
+.dark .cute-card {
+  @apply bg-card;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.dark .cute-card:hover {
+  box-shadow: 0 12px 32px rgba(236, 72, 153, 0.2), 0 4px 12px rgba(139, 92, 246, 0.15);
+}
+
+/* Instagram-style grid for liked/saved items */
+.insta-grid {
+  @apply grid gap-4;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+@media (min-width: 640px) {
+  .insta-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .insta-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Cute badge styles with app colors */
+.cute-badge-trip {
+  @apply px-3 py-1 text-xs font-semibold rounded-full text-white;
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+}
+
+.cute-badge-event {
+  @apply px-3 py-1 text-xs font-semibold rounded-full text-white;
+  background: linear-gradient(135deg, #ec4899, #f472b6);
+  box-shadow: 0 2px 8px rgba(236, 72, 153, 0.4);
+}
+
+/* Cute action button (heart/bookmark) */
+.cute-action-btn {
+  @apply p-2 rounded-full backdrop-blur-md transition-all duration-300;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.cute-action-btn:hover {
+  transform: scale(1.15);
+  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.3);
+}
+
+.cute-action-btn.liked {
+  background: linear-gradient(135deg, #fce7f3, #fdf2f8);
+}
+
+.cute-action-btn.saved {
+  background: linear-gradient(135deg, #ede9fe, #f5f3ff);
+}
+
+/* Cute empty state */
+.cute-empty-state {
+  @apply text-center py-16 px-6;
+}
+
+.cute-empty-icon {
+  @apply mx-auto mb-6 opacity-60;
+  width: 120px;
+  height: 120px;
+  background: linear-gradient(135deg, #fce7f3, #ede9fe, #ffedd5);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse-cute 2s ease-in-out infinite;
+}
+
+@keyframes pulse-cute {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.2);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 20px rgba(236, 72, 153, 0);
+  }
+}
+
+/* Cute CTA button */
+.cute-cta-btn {
+  @apply px-6 py-3 rounded-full font-semibold text-white transition-all duration-300;
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.3);
+}
+
+.cute-cta-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(236, 72, 153, 0.4);
+  background: linear-gradient(135deg, #db2777, #7c3aed);
+}
+
+/* Cute tab buttons (for toggling between views) */
+.cute-toggle-group {
+  @apply flex gap-1 p-1 rounded-full;
+  background: linear-gradient(135deg, #fce7f3, #ede9fe);
+}
+
+.cute-toggle-btn {
+  @apply px-4 py-2 rounded-full text-sm font-medium transition-all duration-300;
+  color: #6b7280;
+}
+
+.cute-toggle-btn.active {
+  @apply text-white;
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  box-shadow: 0 2px 8px rgba(236, 72, 153, 0.3);
+}
+
+.dark .cute-toggle-group {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(139, 92, 246, 0.15));
+}
+
+/* Search input with cute styling */
+.cute-search-input {
+  @apply w-full pl-10 pr-4 py-3 rounded-full border-2 transition-all duration-300;
+  border-color: rgba(236, 72, 153, 0.2);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.cute-search-input:focus {
+  border-color: #ec4899;
+  box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.1);
+  outline: none;
+}
+
+.dark .cute-search-input {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(236, 72, 153, 0.3);
+}
+
+/* Section background with subtle gradient */
+.cute-section-bg {
+  background: linear-gradient(180deg,
+    rgba(252, 231, 243, 0.3) 0%,
+    rgba(237, 233, 254, 0.2) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+.dark .cute-section-bg {
+  background: linear-gradient(180deg,
+    rgba(236, 72, 153, 0.05) 0%,
+    rgba(139, 92, 246, 0.03) 50%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+/* Image overlay gradient for cards */
+.cute-card-overlay {
+  background: linear-gradient(to top,
+    rgba(0, 0, 0, 0.6) 0%,
+    rgba(0, 0, 0, 0.2) 40%,
+    transparent 100%
+  );
+}
+
+/* Sparkle animation for empty states */
+@keyframes sparkle {
+  0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1) rotate(180deg); }
+}
+
+.sparkle {
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+.sparkle-delay-1 { animation-delay: 0.3s; }
+.sparkle-delay-2 { animation-delay: 0.6s; }
+.sparkle-delay-3 { animation-delay: 0.9s; }

@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { DeleteAccountDialog } from "@/components/delete-account-dialog"
+import { createClient } from "@/lib/supabase/client"
 
 export function AccountSettings() {
   const { user } = useAuth()
@@ -22,16 +23,52 @@ export function AccountSettings() {
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
 
+  const validatePassword = (password: string): string | null => {
+    if (password.length < 8) {
+      return "Password must be at least 8 characters long"
+    }
+    if (!/\d/.test(password)) {
+      return "Password must contain at least one number"
+    }
+    if (!/[A-Z]/.test(password)) {
+      return "Password must contain at least one uppercase letter"
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      return "Password must contain at least one special character"
+    }
+    return null
+  }
+
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
+      // Validate all fields are filled
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        throw new Error("All fields are required")
+      }
+
+      // Validate passwords match
       if (newPassword !== confirmPassword) {
         throw new Error("New passwords don't match")
       }
 
-      // Password update logic would go here
+      // Validate password strength
+      const validationError = validatePassword(newPassword)
+      if (validationError) {
+        throw new Error(validationError)
+      }
+
+      // Update password using Supabase
+      const supabase = createClient()
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      })
+
+      if (error) {
+        throw error
+      }
 
       toast({
         title: "Password updated",
@@ -88,6 +125,7 @@ export function AccountSettings() {
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
+                required
               />
             </div>
 
@@ -99,6 +137,7 @@ export function AccountSettings() {
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
+                  required
                 />
               </div>
 
@@ -109,6 +148,7 @@ export function AccountSettings() {
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
                 />
               </div>
             </div>

@@ -13,6 +13,41 @@ import { useToast } from "@/components/ui/use-toast"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
+// Type definitions
+interface Draft {
+  id: string
+  user_id: string
+  title: string
+  description: string | null
+  destination: string | null
+  created_at: string
+  updated_at: string
+  [key: string]: unknown
+}
+
+interface DiscoveryItem {
+  id: string
+  title: string
+  description: string | null
+  destination: string | null
+  is_public: boolean
+  user_id: string
+  owner?: {
+    name: string | null
+    avatar_url: string | null
+    username: string | null
+  }
+  metrics?: {
+    view_count: number
+    save_count: number
+    trending_score: number
+  }
+  categories?: {
+    category: string
+  }[]
+  [key: string]: unknown
+}
+
 // Sample data
 const exampleEvents = [
   {
@@ -129,8 +164,8 @@ export function FeedPage() {
   const [feedTab, setFeedTab] = useState<"forYou" | "discover">("forYou")
   const [timeTab, setTimeTab] = useState<"upcoming" | "past">("upcoming")
   const [feedItems, setFeedItems] = useState<FeedItem[]>([])
-  const [drafts, setDrafts] = useState<any[]>([])
-  const [discoveryItems, setDiscoveryItems] = useState<any[]>([])
+  const [drafts, setDrafts] = useState<Draft[]>([])
+  const [discoveryItems, setDiscoveryItems] = useState<DiscoveryItem[]>([])
   const [loading, setLoading] = useState(true)
   const [feedStats, setFeedStats] = useState({ upcoming: 0, past: 0, total: 0 })
   const { user } = useAuth()

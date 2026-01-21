@@ -23,7 +23,6 @@ export async function getPromotionById(id: string) {
 export async function recordPromotionView(id: string, userId?: string) {
   const supabase = createClient()
   // Increment view count logic would go here
-//   console.log("recordPromotionView called for", id, userId)
   return { success: true }
 }
 

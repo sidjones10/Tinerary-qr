@@ -14,9 +14,36 @@ interface TicketsListProps {
   limit?: number
 }
 
+interface TicketData {
+  id: string
+  user_id: string
+  booking_id: string
+  qr_code: string
+  status: string
+  created_at: string
+  booking: {
+    id: string
+    promotion_id: string
+    booking_date: string
+    status: string
+    promotion: {
+      id: string
+      title: string
+      description: string | null
+      location: string
+      start_date: string
+      end_date: string
+      image: string | null
+      [key: string]: unknown
+    } | null
+    [key: string]: unknown
+  } | null
+  [key: string]: unknown
+}
+
 export function TicketsList({ upcoming = true, limit = 20 }: TicketsListProps) {
   const router = useRouter()
-  const [tickets, setTickets] = useState<any[]>([])
+  const [tickets, setTickets] = useState<TicketData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 

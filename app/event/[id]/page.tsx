@@ -388,11 +388,23 @@ const getMockEventData = (id: string) => {
   }
 }
 
+interface EventData {
+  id: string
+  title: string
+  description: string | null
+  start_date: string | null
+  end_date: string | null
+  destination: string | null
+  user_id: string
+  is_public: boolean
+  [key: string]: unknown
+}
+
 // Update the EventDetailPage component to use async data fetching
 export default function EventPage() {
   const { id } = useParams()
   const { user } = useAuth()
-  const [event, setEvent] = useState<any>(null)
+  const [event, setEvent] = useState<EventData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [notFound, setNotFound] = useState(false)

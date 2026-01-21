@@ -13,10 +13,34 @@ import { useToast } from "@/components/ui/use-toast"
 import { ShareDialog } from "@/components/share-dialog"
 import Link from "next/link"
 
+interface DiscoveryItem {
+  id: string
+  title: string
+  description: string | null
+  destination: string | null
+  is_public: boolean
+  user_id: string
+  image_url?: string | null
+  owner?: {
+    name: string | null
+    avatar_url: string | null
+    username: string | null
+  }
+  metrics?: {
+    view_count: number
+    save_count: number
+    trending_score: number
+  }
+  categories?: {
+    category: string
+  }[]
+  [key: string]: unknown
+}
+
 export function DiscoveryFeed() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [discoveryItems, setDiscoveryItems] = useState<any[]>([])
+  const [discoveryItems, setDiscoveryItems] = useState<DiscoveryItem[]>([])
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [likedItems, setLikedItems] = useState<Set<string>>(new Set())

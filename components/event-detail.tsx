@@ -58,7 +58,6 @@ interface EventDetailProps {
 export function EventDetail({ event }: EventDetailProps) {
   // Extract activities from the event (they come from the database join)
   const activities = event.activities || []
-//   console.log("EventDetail - Raw activities:", activities)
   const { user } = useAuth()
   const { toast } = useToast()
   const router = useRouter()
@@ -115,7 +114,6 @@ export function EventDetail({ event }: EventDetailProps) {
   const startDate = new Date(event.start_date)
   const endDate = new Date(event.end_date)
   const isMultiDay = startDate.toDateString() !== endDate.toDateString()
-//   console.log("EventDetail - Is multi-day:", isMultiDay, "Start:", event.start_date, "End:", event.end_date)
 
   // Group activities by day for multi-day trips
   const groupedActivities = activities.reduce((acc: any, activity: any) => {
@@ -126,7 +124,6 @@ export function EventDetail({ event }: EventDetailProps) {
     acc[day].push(activity)
     return acc
   }, {})
-//   console.log("EventDetail - Grouped activities:", groupedActivities)
 
   const formatDate = (dateString: string) => {
     try {

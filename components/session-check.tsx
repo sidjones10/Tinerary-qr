@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { useAuth } from "@/app/providers"
+import { useAuth } from "@/providers/auth-provider"
 import { useRouter } from "next/navigation"
 
 export function SessionCheck() {

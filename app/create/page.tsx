@@ -306,9 +306,11 @@ function CreatePageContent() {
         if (!draftId) {
           setDraftId(response.data[0].id)
           // Update URL with draft ID without navigation
-          const url = new URL(window.location.href)
-          url.searchParams.set("draftId", response.data[0].id)
-          window.history.replaceState({}, "", url.toString())
+          if (typeof window !== "undefined") {
+            const url = new URL(window.location.href)
+            url.searchParams.set("draftId", response.data[0].id)
+            window.history.replaceState({}, "", url.toString())
+          }
         }
 
         if (showToast) {

@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Home, Calendar, Heart, Bell, Settings, PlusCircle, LogOut } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -32,6 +32,19 @@ const navItems = [
 
 export function MobileNav() {
   const pathname = usePathname()
+  const router = useRouter()
+
+  const handleSignOut = async () => {
+    try {
+      const response = await fetch("/api/auth/signout", { method: "POST" })
+      if (response.ok) {
+        router.push("/auth")
+        router.refresh()
+      }
+    } catch (error) {
+      console.error("Sign out error:", error)
+    }
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -71,11 +84,9 @@ export function MobileNav() {
               Settings
             </Link>
           </Button>
-          <Button asChild variant="ghost" className="justify-start text-muted-foreground">
-            <Link href="/signout">
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
-            </Link>
+          <Button variant="ghost" className="justify-start text-muted-foreground" onClick={handleSignOut}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign Out
           </Button>
         </div>
       </div>

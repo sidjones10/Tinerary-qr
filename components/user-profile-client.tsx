@@ -11,13 +11,38 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useToast } from "@/components/ui/use-toast"
 import { followUser, unfollowUser } from "@/lib/user-service"
 
+interface Profile {
+  id: string
+  username: string | null
+  full_name: string | null
+  avatar_url: string | null
+  bio: string | null
+  location: string | null
+  website: string | null
+  is_private: boolean
+  followers_count?: number
+  created_at: string
+}
+
+interface Itinerary {
+  id: string
+  title: string
+  description: string | null
+  destination: string | null
+  start_date: string | null
+  end_date: string | null
+  is_public: boolean
+  created_at: string
+  user_id: string
+}
+
 interface UserProfileClientProps {
-  profile: any
+  profile: Profile
   isOwnProfile: boolean
   currentUserId: string | null
   isPrivate: boolean
   isFollowing: boolean
-  itineraries: any[]
+  itineraries: Itinerary[]
 }
 
 export function UserProfileClient({

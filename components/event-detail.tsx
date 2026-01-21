@@ -19,9 +19,40 @@ import { EnhancedExpenseTracker } from "@/components/enhanced-expense-tracker"
 import { CommentsSection } from "@/components/comments-section"
 import { PackingList } from "@/components/packing-list"
 
+interface Activity {
+  id: string
+  title: string
+  description: string | null
+  start_time: string | null
+  end_time: string | null
+  location: string | null
+  [key: string]: unknown
+}
+
+interface Event {
+  id: string
+  title: string
+  description: string | null
+  start_date: string | null
+  end_date: string | null
+  destination: string | null
+  user_id: string
+  like_count?: number
+  activities?: Activity[]
+  [key: string]: unknown
+}
+
+interface PackingItem {
+  id: string
+  item_name: string
+  category: string | null
+  packed: boolean
+  [key: string]: unknown
+}
+
 interface EventDetailProps {
-  event: any
-  packingItems?: any[]
+  event: Event
+  packingItems?: PackingItem[]
 }
 
 export function EventDetail({ event }: EventDetailProps) {
@@ -38,7 +69,7 @@ export function EventDetail({ event }: EventDetailProps) {
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [inviteEmail, setInviteEmail] = useState("")
   const [isSendingInvite, setIsSendingInvite] = useState(false)
-  const [packingItems, setPackingItems] = useState<any[]>([])
+  const [packingItems, setPackingItems] = useState<PackingItem[]>([])
   const isOwner = user && user.id === event.user_id
 
   // Fetch packing items

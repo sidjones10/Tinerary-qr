@@ -12,7 +12,9 @@ import { useAuth } from "@/providers/auth-provider"
 import { useToast } from "@/components/ui/use-toast"
 import { ShareDialog } from "@/components/share-dialog"
 import { InlineComments } from "@/components/inline-comments"
+import { FeedItemSkeleton } from "@/components/skeleton-screens"
 import Link from "next/link"
+import confetti from "canvas-confetti"
 
 interface DiscoveryItem {
   id: string
@@ -47,6 +49,10 @@ export function DiscoveryFeed() {
   const [likedItems, setLikedItems] = useState<Set<string>>(new Set())
   const [savedItems, setSavedItems] = useState<Set<string>>(new Set())
   const [commentsOpenFor, setCommentsOpenFor] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [lastTap, setLastTap] = useState<number>(0)
+  const [showHeartAnimation, setShowHeartAnimation] = useState(false)
   const { user } = useAuth()
   const { toast } = useToast()
 
@@ -56,37 +62,62 @@ export function DiscoveryFeed() {
   }, [])
 
   // Fetch discovery feed and saved items
-  useEffect(() => {
-    const fetchDiscovery = async () => {
+  const fetchDiscovery = async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true)
+    } else {
       setLoading(true)
-      try {
-        const result = await getTrendingItineraries(user?.id || null, 30)
-        if (result.success && result.items) {
-          setDiscoveryItems(result.items)
-        }
-
-        // Fetch user's saved items to show correct state
-        if (user?.id) {
-          const supabase = createClient()
-          const { data: savedData } = await supabase
-            .from("saved_itineraries")
-            .select("itinerary_id")
-            .eq("user_id", user.id)
-
-          if (savedData) {
-            const savedIds = new Set(savedData.map((s) => s.itinerary_id))
-            setSavedItems(savedIds)
-            // For now, treat saved items as liked too
-            setLikedItems(savedIds)
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching discovery:", error)
-      } finally {
-        setLoading(false)
-      }
     }
 
+    try {
+      const result = await getTrendingItineraries(user?.id || null, 30)
+      if (result.success && result.items) {
+        setDiscoveryItems(result.items)
+
+        // Show success toast on refresh
+        if (isRefresh) {
+          confetti({
+            particleCount: 50,
+            spread: 60,
+            origin: { y: 0.4 },
+            colors: ['#F97316', '#EC4899'],
+          })
+          toast({
+            title: "Feed refreshed!",
+            description: `Found ${result.items.length} amazing trips`,
+          })
+        }
+      }
+
+      // Fetch user's saved items to show correct state
+      if (user?.id) {
+        const supabase = createClient()
+        const { data: savedData } = await supabase
+          .from("saved_itineraries")
+          .select("itinerary_id, type")
+          .eq("user_id", user.id)
+
+        if (savedData) {
+          const savedIds = new Set(savedData.filter(s => s.type === 'save').map((s) => s.itinerary_id))
+          const likedIds = new Set(savedData.filter(s => s.type === 'like').map((s) => s.itinerary_id))
+          setSavedItems(savedIds)
+          setLikedItems(likedIds)
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching discovery:", error)
+      toast({
+        title: "Couldn't load feed",
+        description: "Pull down to try again",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }
+
+  useEffect(() => {
     fetchDiscovery()
   }, [user?.id])
 
@@ -181,6 +212,55 @@ export function DiscoveryFeed() {
     setSavedItems(newSaved)
   }
 
+  // Pull-to-refresh handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.touches[0].clientY)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStart === null) return
+
+    const currentTouch = e.touches[0].clientY
+    const diff = currentTouch - touchStart
+
+    // If scrolled to top and pulling down
+    if (scrollRef.current && scrollRef.current.scrollTop === 0 && diff > 80) {
+      // Trigger refresh
+      if (!refreshing) {
+        fetchDiscovery(true)
+        setTouchStart(null)
+      }
+    }
+  }
+
+  const handleTouchEnd = () => {
+    setTouchStart(null)
+  }
+
+  // Double-tap to like (TikTok-style)
+  const handleDoubleTap = (e: React.MouseEvent | React.TouchEvent, itemId: string) => {
+    const currentTime = new Date().getTime()
+    const tapLength = currentTime - lastTap
+
+    if (tapLength < 300 && tapLength > 0) {
+      // Double tap detected!
+      if (!likedItems.has(itemId)) {
+        handleLike(itemId)
+
+        // Show heart animation
+        setShowHeartAnimation(true)
+        confetti({
+          particleCount: 20,
+          spread: 40,
+          origin: { y: 0.6 },
+          colors: ['#EC4899', '#F43F5E'],
+        })
+        setTimeout(() => setShowHeartAnimation(false), 1000)
+      }
+    }
+
+    setLastTap(currentTime)
+  }
 
   // Format sample data for display
   const formatDiscoveryItem = (item: any) => {
@@ -238,14 +318,7 @@ export function DiscoveryFeed() {
 
   // Prevent hydration errors by not rendering until mounted
   if (!mounted || loading) {
-    return (
-      <div className="h-full flex items-center justify-center bg-gradient-to-b from-orange-50 to-pink-50 rounded-xl">
-        <div className="text-center">
-          <Sparkles className="h-12 w-12 mx-auto mb-4 text-orange-500 animate-pulse" />
-          <p className="text-lg font-medium text-gray-700">Finding amazing trips for you...</p>
-        </div>
-      </div>
-    )
+    return <FeedItemSkeleton />
   }
 
   if (discoveryItems.length === 0) {
@@ -361,12 +434,39 @@ export function DiscoveryFeed() {
 
   return (
     <div className="relative h-full overflow-hidden rounded-xl bg-gradient-to-b from-white to-orange-50 shadow-2xl">
-      <ScrollArea ref={scrollRef} className="h-full snap-y snap-mandatory" onScrollCapture={handleScroll}>
+      {/* Pull to refresh indicator */}
+      {refreshing && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-white/90 backdrop-blur-md px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-orange-500 animate-spin" />
+          <span className="text-sm font-medium">Refreshing...</span>
+        </div>
+      )}
+
+      <ScrollArea
+        ref={scrollRef}
+        className="h-full snap-y snap-mandatory"
+        onScrollCapture={handleScroll}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         {itemsToDisplay.map((item, index) => (
           <div key={item.id} className="relative h-full w-full snap-start snap-always">
-            <div className="relative h-full w-full">
+            <div
+              className="relative h-full w-full"
+              onClick={(e) => handleDoubleTap(e, item.id)}
+              onTouchEnd={(e) => handleDoubleTap(e, item.id)}
+            >
               <img src={item.image || "/placeholder.svg"} alt={item.title} className="h-full w-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+              {/* Double-tap heart animation */}
+              {showHeartAnimation && currentIndex === index && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                  <Heart className="h-32 w-32 text-red-500 fill-red-500 animate-ping" />
+                  <Heart className="h-32 w-32 text-red-500 fill-red-500 absolute animate-pulse" />
+                </div>
+              )}
 
               {/* Promoted badge */}
               {item.promoted && (

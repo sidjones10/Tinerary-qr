@@ -405,8 +405,8 @@ export function EventDetail({ event }: EventDetailProps) {
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="packing">Packing List</TabsTrigger>
             <TabsTrigger value="expenses">Expenses</TabsTrigger>
-            <TabsTrigger value="discussion">Discussion</TabsTrigger>
             <TabsTrigger value="attendees">Attendees</TabsTrigger>
+            <TabsTrigger value="comments">Comments</TabsTrigger>
           </TabsList>
 
           <TabsContent value="schedule">
@@ -549,13 +549,6 @@ export function EventDetail({ event }: EventDetailProps) {
             />
           </TabsContent>
 
-          <TabsContent value="discussion">
-            <CommentsSection
-              itineraryId={event.id}
-              currentUserId={user?.id}
-            />
-          </TabsContent>
-
           <TabsContent value="attendees">
             <div className="text-center py-8">
               <p className="text-muted-foreground">No attendees yet.</p>
@@ -566,6 +559,13 @@ export function EventDetail({ event }: EventDetailProps) {
                 </Button>
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="comments">
+            <CommentsSection
+              itineraryId={event.id}
+              currentUserId={user?.id}
+            />
           </TabsContent>
         </Tabs>
 

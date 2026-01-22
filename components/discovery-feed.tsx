@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/providers/auth-provider"
 import { useToast } from "@/components/ui/use-toast"
 import { ShareDialog } from "@/components/share-dialog"
+import { InlineComments } from "@/components/inline-comments"
 import Link from "next/link"
 
 interface DiscoveryItem {
@@ -45,6 +46,7 @@ export function DiscoveryFeed() {
   const [mounted, setMounted] = useState(false)
   const [likedItems, setLikedItems] = useState<Set<string>>(new Set())
   const [savedItems, setSavedItems] = useState<Set<string>>(new Set())
+  const [commentsOpenFor, setCommentsOpenFor] = useState<string | null>(null)
   const { user } = useAuth()
   const { toast } = useToast()
 
@@ -459,15 +461,14 @@ export function DiscoveryFeed() {
                   <span className="text-xs text-white mt-1 font-bold">{item.likes + (likedItems.has(item.id) ? 1 : 0)}</span>
                 </div>
                 <div className="flex flex-col items-center">
-                  <Link href={`/event/${item.id}`}>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-12 w-12 rounded-full bg-black/30 backdrop-blur-sm border-white/20 text-white hover:bg-black/50 transition-all hover:scale-110"
-                    >
-                      <MessageCircle className="h-5 w-5" />
-                    </Button>
-                  </Link>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setCommentsOpenFor(item.id)}
+                    className="h-12 w-12 rounded-full bg-black/30 backdrop-blur-sm border-white/20 text-white hover:bg-black/50 transition-all hover:scale-110"
+                  >
+                    <MessageCircle className="h-5 w-5" />
+                  </Button>
                   <span className="text-xs text-white mt-1 font-bold">{item.comments}</span>
                 </div>
                 <div className="flex flex-col items-center">
@@ -529,6 +530,16 @@ export function DiscoveryFeed() {
           Discover
         </Badge>
       </div>
+
+      {/* Inline Comments Sheet */}
+      {commentsOpenFor && (
+        <InlineComments
+          itineraryId={commentsOpenFor}
+          open={commentsOpenFor !== null}
+          onOpenChange={(open) => !open && setCommentsOpenFor(null)}
+          initialCommentCount={itemsToDisplay.find((item) => item.id === commentsOpenFor)?.comments || 0}
+        />
+      )}
     </div>
   )
 }

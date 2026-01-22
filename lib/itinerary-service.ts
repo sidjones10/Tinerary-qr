@@ -245,32 +245,46 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
       }
     }
 
-    // 6. Initialize itinerary metrics
-    const { error: metricsError } = await supabase.from("itinerary_metrics").insert({
-      itinerary_id: itineraryId,
-      view_count: 0,
-      save_count: 0,
-      share_count: 0,
-      like_count: 0,
-      comment_count: 0,
-      average_rating: 0,
-      trending_score: 0,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
+    // 6. Initialize itinerary metrics (optional - don't fail if this errors)
+    try {
+      const { error: metricsError } = await supabase.from("itinerary_metrics").insert({
+        itinerary_id: itineraryId,
+        view_count: 0,
+        save_count: 0,
+        share_count: 0,
+        like_count: 0,
+        comment_count: 0,
+        average_rating: 0,
+        trending_score: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
 
-    if (metricsError) {
-      console.error("Metrics initialization error:", metricsError)
+      if (metricsError) {
+        console.warn("Metrics initialization skipped:", metricsError.message || metricsError.code || "Unknown error")
+        console.warn("This is non-critical - the itinerary was created successfully")
+      }
+    } catch (error: any) {
+      console.warn("Metrics initialization skipped:", error.message || "Unknown error")
     }
 
-    // 7. Create success notification
-    await createNotification({
-      userId: userId,
-      type: "system_message",
-      title: "Itinerary Published!",
-      message: `Your ${data.type || "itinerary"} "${data.title}" has been successfully published.`,
-      linkUrl: `/event/${itineraryId}`,
-    })
+    // 7. Create success notification (optional - don't fail if this errors)
+    try {
+      const notificationResult = await createNotification({
+        userId: userId,
+        type: "system_message",
+        title: "Itinerary Published!",
+        message: `Your ${data.type || "itinerary"} "${data.title}" has been successfully published.`,
+        linkUrl: `/event/${itineraryId}`,
+      })
+
+      if (!notificationResult.success) {
+        console.warn("Notification creation skipped:", notificationResult.error || "Unknown error")
+        console.warn("This is non-critical - the itinerary was created successfully")
+      }
+    } catch (error: any) {
+      console.warn("Notification creation skipped:", error.message || "Unknown error")
+    }
 
     return {
       success: true,

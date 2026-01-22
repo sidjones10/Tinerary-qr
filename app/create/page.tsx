@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/providers/auth-provider"
 import { ProtectedRoute } from "@/components/protected-route"
 import { Navbar } from "@/components/navbar"
-import { createItinerary } from "@/lib/itinerary-service"
+import { createItinerary, updateItinerary } from "@/lib/itinerary-service"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -62,6 +62,7 @@ function CreatePageContent() {
   const [isSaving, setIsSaving] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [draftId, setDraftId] = useState<string | null>(null)
+  const [editingItineraryId, setEditingItineraryId] = useState<string | null>(null)
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -153,6 +154,7 @@ function CreatePageContent() {
 
           if (itineraryData) {
             // It's a published itinerary - load for editing
+            setEditingItineraryId(draftIdFromUrl) // Track that we're editing
             setTitle(itineraryData.title || "")
             setDescription(itineraryData.description || "")
             setLocation(itineraryData.location || "")
@@ -372,8 +374,8 @@ function CreatePageContent() {
       const formattedStartDate = startDate || new Date().toISOString().split("T")[0]
       const formattedEndDate = endDate || formattedStartDate
 
-      // Use the enhanced itinerary service
-      const result = await createItinerary(user.id, {
+      // Prepare itinerary data
+      const itineraryData = {
         title,
         description,
         location,
@@ -385,10 +387,20 @@ function CreatePageContent() {
         packingItems: showPackingExpenses ? packingItems : [],
         expenses: showPackingExpenses ? expenses.filter((e) => e.amount > 0) : [],
         imageUrl: coverImage,
-      })
+      }
+
+      // Use the appropriate service based on whether we're editing or creating
+      let result
+      if (editingItineraryId) {
+        // Update existing itinerary
+        result = await updateItinerary(editingItineraryId, user.id, itineraryData)
+      } else {
+        // Create new itinerary
+        result = await createItinerary(user.id, itineraryData)
+      }
 
       if (!result.success || !result.itinerary) {
-        throw new Error(result.error || "Failed to create itinerary")
+        throw new Error(result.error || `Failed to ${editingItineraryId ? 'update' : 'create'} itinerary`)
       }
 
       const itineraryId = result.itinerary.id
@@ -416,14 +428,16 @@ function CreatePageContent() {
         }
       }
 
-      // Delete the draft if it exists
-      if (draftId) {
+      // Delete the draft if it exists (only when creating new, not when editing)
+      if (draftId && !editingItineraryId) {
         await supabase.from("drafts").delete().eq("id", draftId)
       }
 
       toast({
         title: "Success!",
-        description: `Your ${type} has been published${inviteEmails.length > 0 ? " and invitations sent" : ""}.`,
+        description: editingItineraryId
+          ? `Your ${type} has been updated${inviteEmails.length > 0 ? " and invitations sent" : ""}.`
+          : `Your ${type} has been published${inviteEmails.length > 0 ? " and invitations sent" : ""}.`,
       })
 
       // Redirect to the event page
@@ -1179,7 +1193,9 @@ function CreatePageContent() {
               onClick={handlePublish}
               disabled={isSubmitting || isSaving}
             >
-              {isSubmitting ? "Publishing..." : `Publish ${type}`}
+              {isSubmitting
+                ? (editingItineraryId ? "Updating..." : "Publishing...")
+                : (editingItineraryId ? `Update ${type}` : `Publish ${type}`)}
             </Button>
           </div>
         </div>

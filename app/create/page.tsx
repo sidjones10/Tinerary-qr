@@ -19,6 +19,7 @@ import { EventPreviewModal } from "@/components/event-preview-modal"
 import { LocationAutocomplete } from "@/components/location-autocomplete"
 import { ActivityBrowserDialog } from "@/components/activity-browser-dialog"
 import type { Activity as ImportedActivity } from "@/lib/activity-service"
+import confetti from "canvas-confetti"
 
 export default function CreatePage() {
   return (
@@ -432,6 +433,14 @@ function CreatePageContent() {
       if (draftId && !editingItineraryId) {
         await supabase.from("drafts").delete().eq("id", draftId)
       }
+
+      // Celebration confetti!
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#F97316', '#EC4899', '#8B5CF6'], // Orange, Pink, Purple
+      })
 
       toast({
         title: "Success!",

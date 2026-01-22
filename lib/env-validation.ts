@@ -29,10 +29,26 @@ export function validateEnv(): EnvConfig {
   }
 
   if (missingVars.length > 0) {
-    throw new Error(
-      `Missing required environment variables: ${missingVars.join(", ")}\n` +
+    const isClient = typeof window !== "undefined"
+    const errorMessage = isClient
+      ? `Missing required environment variables: ${missingVars.join(", ")}\n\n` +
+        "⚠️  NEXT.JS ENVIRONMENT VARIABLE ISSUE ⚠️\n\n" +
+        "If you just created or edited .env.local:\n" +
+        "1. Stop your dev server (Ctrl+C)\n" +
+        "2. Run: npm run dev\n" +
+        "3. Refresh your browser\n\n" +
+        "If .env.local doesn't exist:\n" +
+        "1. Create .env.local in your project root\n" +
+        "2. Add these lines:\n" +
+        "   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url\n" +
+        "   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key\n" +
+        "3. Restart the dev server\n\n" +
+        "Get your Supabase credentials from:\n" +
+        "https://app.supabase.com → Your Project → Settings → API"
+      : `Missing required environment variables: ${missingVars.join(", ")}\n` +
         "Please check your .env.local file and ensure all required variables are set."
-    )
+
+    throw new Error(errorMessage)
   }
 
   // Warn about optional but recommended variables

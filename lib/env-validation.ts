@@ -30,25 +30,36 @@ export function validateEnv(): EnvConfig {
 
   if (missingVars.length > 0) {
     const isClient = typeof window !== "undefined"
-    const errorMessage = isClient
-      ? `Missing required environment variables: ${missingVars.join(", ")}\n\n` +
-        "⚠️  NEXT.JS ENVIRONMENT VARIABLE ISSUE ⚠️\n\n" +
-        "If you just created or edited .env.local:\n" +
-        "1. Stop your dev server (Ctrl+C)\n" +
-        "2. Run: npm run dev\n" +
-        "3. Refresh your browser\n\n" +
-        "If .env.local doesn't exist:\n" +
-        "1. Create .env.local in your project root\n" +
-        "2. Add these lines:\n" +
-        "   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url\n" +
-        "   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key\n" +
-        "3. Restart the dev server\n\n" +
-        "Get your Supabase credentials from:\n" +
-        "https://app.supabase.com → Your Project → Settings → API"
-      : `Missing required environment variables: ${missingVars.join(", ")}\n` +
-        "Please check your .env.local file and ensure all required variables are set."
 
-    throw new Error(errorMessage)
+    // Only throw error on server side - on client, just warn
+    if (!isClient) {
+      throw new Error(
+        `Missing required environment variables: ${missingVars.join(", ")}\n` +
+        "Please check your .env.local file and ensure all required variables are set."
+      )
+    }
+
+    // On client side, just log warning and return empty config
+    console.error(
+      `⚠️  NEXT.JS ENVIRONMENT VARIABLE ISSUE ⚠️\n\n` +
+      `Missing: ${missingVars.join(", ")}\n\n` +
+      "Steps to fix:\n" +
+      "1. Stop your dev server (Ctrl+C)\n" +
+      "2. Delete cache: rm -rf .next\n" +
+      "3. Run: npm run dev\n" +
+      "4. Hard refresh browser (Ctrl+Shift+R)\n\n" +
+      "Your .env.local should contain:\n" +
+      "NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co\n" +
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci..."
+    )
+
+    // Return with placeholder values to prevent crash
+    return {
+      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+      NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+      NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    }
   }
 
   // Warn about optional but recommended variables

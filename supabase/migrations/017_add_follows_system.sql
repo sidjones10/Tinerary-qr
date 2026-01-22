@@ -1,8 +1,8 @@
 -- Migration: Add Following System
 -- Allows users to follow each other for social features
 
--- Create follows table
-CREATE TABLE IF NOT EXISTS follows (
+-- Create user_follows table
+CREATE TABLE IF NOT EXISTS user_follows (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   follower_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   following_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -16,9 +16,9 @@ CREATE TABLE IF NOT EXISTS follows (
 );
 
 -- Create indexes for performance
-CREATE INDEX IF NOT EXISTS idx_follows_follower ON follows(follower_id);
-CREATE INDEX IF NOT EXISTS idx_follows_following ON follows(following_id);
-CREATE INDEX IF NOT EXISTS idx_follows_created_at ON follows(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_follows_follower ON user_follows(follower_id);
+CREATE INDEX IF NOT EXISTS idx_user_follows_following ON user_follows(following_id);
+CREATE INDEX IF NOT EXISTS idx_user_follows_created_at ON user_follows(created_at DESC);
 
 -- Add follower/following counts to profiles (optional, for caching)
 ALTER TABLE profiles
@@ -57,28 +57,28 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Create trigger to update counts
-DROP TRIGGER IF EXISTS update_follower_counts_trigger ON follows;
+DROP TRIGGER IF EXISTS update_follower_counts_trigger ON user_follows;
 CREATE TRIGGER update_follower_counts_trigger
-AFTER INSERT OR DELETE ON follows
+AFTER INSERT OR DELETE ON user_follows
 FOR EACH ROW
 EXECUTE FUNCTION update_follower_counts();
 
--- RLS Policies for follows table
-ALTER TABLE follows ENABLE ROW LEVEL SECURITY;
+-- RLS Policies for user_follows table
+ALTER TABLE user_follows ENABLE ROW LEVEL SECURITY;
 
--- Users can see all follows (for public profiles)
+-- Users can see all user_follows (for public profiles)
 CREATE POLICY "Anyone can view follows"
-  ON follows FOR SELECT
+  ON user_follows FOR SELECT
   USING (true);
 
 -- Users can follow others
 CREATE POLICY "Users can follow others"
-  ON follows FOR INSERT
+  ON user_follows FOR INSERT
   WITH CHECK (auth.uid() = follower_id);
 
 -- Users can unfollow
 CREATE POLICY "Users can unfollow"
-  ON follows FOR DELETE
+  ON user_follows FOR DELETE
   USING (auth.uid() = follower_id);
 
 -- Helper function to check if user is following another user
@@ -89,7 +89,7 @@ CREATE OR REPLACE FUNCTION is_following(
 RETURNS BOOLEAN AS $$
 BEGIN
   RETURN EXISTS (
-    SELECT 1 FROM follows
+    SELECT 1 FROM user_follows
     WHERE follower_id = p_follower_id
     AND following_id = p_following_id
   );
@@ -115,8 +115,8 @@ BEGIN
     p.username,
     p.avatar_url
   FROM profiles p
-  INNER JOIN follows f1 ON f1.following_id = p.id
-  INNER JOIN follows f2 ON f2.following_id = p.id
+  INNER JOIN user_follows f1 ON f1.following_id = p.id
+  INNER JOIN user_follows f2 ON f2.following_id = p.id
   WHERE f1.follower_id = p_user_id
   AND f2.follower_id = p_other_user_id
   AND p.id != p_user_id
@@ -149,7 +149,7 @@ BEGIN
     p.bio,
     f.created_at as followed_at,
     is_following(auth.uid(), p.id) as is_following
-  FROM follows f
+  FROM user_follows f
   INNER JOIN profiles p ON p.id = f.follower_id
   WHERE f.following_id = p_user_id
   ORDER BY f.created_at DESC
@@ -183,7 +183,7 @@ BEGIN
     p.bio,
     f.created_at as followed_at,
     is_following(auth.uid(), p.id) as is_following
-  FROM follows f
+  FROM user_follows f
   INNER JOIN profiles p ON p.id = f.following_id
   WHERE f.follower_id = p_user_id
   ORDER BY f.created_at DESC
@@ -199,7 +199,7 @@ GRANT EXECUTE ON FUNCTION get_followers(UUID, INT, INT) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_following(UUID, INT, INT) TO authenticated;
 
 -- Comments
-COMMENT ON TABLE follows IS 'Stores user following relationships';
+COMMENT ON TABLE user_follows IS 'Stores user following relationships';
 COMMENT ON FUNCTION is_following IS 'Check if a user is following another user';
 COMMENT ON FUNCTION get_mutual_followers IS 'Get users followed by both users';
 COMMENT ON FUNCTION get_followers IS 'Get list of users following a specific user';

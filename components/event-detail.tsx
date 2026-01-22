@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
-import { ArrowLeft, Calendar, MapPin, Clock, Share2, Heart, Users, Edit, Trash2 } from "lucide-react"
+import { ArrowLeft, Calendar, MapPin, Clock, Share2, Heart, Users, Edit, Trash2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -18,6 +18,10 @@ import { ShareDialog } from "@/components/share-dialog"
 import { EnhancedExpenseTracker } from "@/components/enhanced-expense-tracker"
 import { CommentsSection } from "@/components/comments-section"
 import { PackingList } from "@/components/packing-list"
+import { EventMap } from "@/components/event-map"
+import { PhotoGallery } from "@/components/photo-gallery"
+import { getEventPhotos, type EventPhoto } from "@/lib/photo-service"
+import { CalendarExportButton } from "@/components/calendar-export-button"
 import { MutualsSection } from "@/components/mutuals-section"
 
 interface Activity {
@@ -54,6 +58,35 @@ interface PackingItem {
 interface EventDetailProps {
   event: Event
   packingItems?: PackingItem[]
+}
+
+// Component to fetch and display photos
+function PhotoGalleryLoader({ eventId, isOwner }: { eventId: string; isOwner: boolean }) {
+  const [photos, setPhotos] = useState<EventPhoto[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchPhotos = async () => {
+    setLoading(true)
+    const result = await getEventPhotos(eventId)
+    if (result.success && result.photos) {
+      setPhotos(result.photos)
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    fetchPhotos()
+  }, [eventId])
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  return <PhotoGallery itineraryId={eventId} photos={photos} isOwner={isOwner} onPhotosChange={fetchPhotos} />
 }
 
 export function EventDetail({ event }: EventDetailProps) {
@@ -315,6 +348,20 @@ export function EventDetail({ event }: EventDetailProps) {
                   }
                 />
 
+                <CalendarExportButton
+                  event={{
+                    title: event.title,
+                    description: event.description || undefined,
+                    location: event.location || undefined,
+                    startDate: event.start_date,
+                    endDate: event.end_date,
+                    url: typeof window !== "undefined" ? window.location.href : undefined,
+                  }}
+                  size="sm"
+                  showLabel={true}
+                  variant="outline"
+                />
+
                 {isOwner && (
                   <>
                     <Button
@@ -409,6 +456,7 @@ export function EventDetail({ event }: EventDetailProps) {
           <TabsList className="mb-4">
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
             <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="photos">Photos</TabsTrigger>
             <TabsTrigger value="packing">Packing List</TabsTrigger>
             <TabsTrigger value="expenses">Expenses</TabsTrigger>
             <TabsTrigger value="attendees">Attendees</TabsTrigger>
@@ -516,7 +564,8 @@ export function EventDetail({ event }: EventDetailProps) {
                   {event.location && (
                     <div>
                       <h3 className="font-medium mb-1">Location</h3>
-                      <p className="text-sm text-muted-foreground">{event.location}</p>
+                      <p className="text-sm text-muted-foreground mb-3">{event.location}</p>
+                      <EventMap location={event.location} title={event.title} className="h-64" />
                     </div>
                   )}
 
@@ -531,6 +580,10 @@ export function EventDetail({ event }: EventDetailProps) {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="photos">
+            <PhotoGalleryLoader eventId={event.id} isOwner={isOwner} />
           </TabsContent>
 
           <TabsContent value="packing">

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useToast } from "@/components/ui/use-toast"
 import { followUser, unfollowUser } from "@/lib/user-service"
+import { FollowButton } from "@/components/follow-button"
 
 interface Profile {
   id: string
@@ -150,14 +151,14 @@ export function UserProfileClient({
             {profile.username && <p className="text-muted-foreground mb-4">@{profile.username}</p>}
 
             <div className="flex items-center justify-center gap-6 mb-6">
-              <div className="text-center">
+              <Link href={`/followers/${profile.id}`} className="text-center hover:underline">
                 <div className="font-bold text-lg">{followersCount}</div>
                 <div className="text-sm text-muted-foreground">Followers</div>
-              </div>
-              <div className="text-center">
+              </Link>
+              <Link href={`/following/${profile.id}`} className="text-center hover:underline">
                 <div className="font-bold text-lg">{profile.following_count || 0}</div>
                 <div className="text-sm text-muted-foreground">Following</div>
-              </div>
+              </Link>
             </div>
 
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-6">
@@ -169,9 +170,15 @@ export function UserProfileClient({
             </div>
 
             {currentUserId && (
-              <Button onClick={handleFollowToggle} disabled={isLoading} size="lg" className="px-8">
-                {isLoading ? "Loading..." : "Follow"}
-              </Button>
+              <FollowButton
+                userId={profile.id}
+                onFollowChange={(newStatus) => {
+                  setIsFollowing(newStatus)
+                  setFollowersCount((prev) => newStatus ? prev + 1 : Math.max(0, prev - 1))
+                }}
+                size="lg"
+                className="px-8"
+              />
             )}
           </div>
         </div>
@@ -208,13 +215,13 @@ export function UserProfileClient({
                 </div>
 
                 {!isOwnProfile && currentUserId && (
-                  <Button
-                    onClick={handleFollowToggle}
-                    disabled={isLoading}
-                    variant={isFollowing ? "outline" : "default"}
-                  >
-                    {isLoading ? "Loading..." : isFollowing ? "Following" : "Follow"}
-                  </Button>
+                  <FollowButton
+                    userId={profile.id}
+                    onFollowChange={(newStatus) => {
+                      setIsFollowing(newStatus)
+                      setFollowersCount((prev) => newStatus ? prev + 1 : Math.max(0, prev - 1))
+                    }}
+                  />
                 )}
 
                 {isOwnProfile && (
@@ -251,14 +258,14 @@ export function UserProfileClient({
               </div>
 
               <div className="flex gap-6">
-                <div>
+                <Link href={`/followers/${profile.id}`} className="hover:underline">
                   <span className="font-bold">{followersCount}</span>{" "}
                   <span className="text-muted-foreground">Followers</span>
-                </div>
-                <div>
+                </Link>
+                <Link href={`/following/${profile.id}`} className="hover:underline">
                   <span className="font-bold">{profile.following_count || 0}</span>{" "}
                   <span className="text-muted-foreground">Following</span>
-                </div>
+                </Link>
               </div>
             </div>
           </div>

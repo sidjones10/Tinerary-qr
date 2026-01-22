@@ -25,7 +25,7 @@ export async function followUser(
       return { success: false, error: "You cannot follow yourself" }
     }
 
-    const { error } = await supabase.from("follows").insert({
+    const { error } = await supabase.from("user_follows").insert({
       follower_id: userId,
       following_id: targetUserId,
     })
@@ -56,7 +56,7 @@ export async function unfollowUser(
     const supabase = createClient()
 
     const { error } = await supabase
-      .from("follows")
+      .from("user_follows")
       .delete()
       .eq("follower_id", userId)
       .eq("following_id", targetUserId)

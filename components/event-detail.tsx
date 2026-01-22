@@ -18,6 +18,7 @@ import { ShareDialog } from "@/components/share-dialog"
 import { EnhancedExpenseTracker } from "@/components/enhanced-expense-tracker"
 import { CommentsSection } from "@/components/comments-section"
 import { PackingList } from "@/components/packing-list"
+import { MutualsSection } from "@/components/mutuals-section"
 
 interface Activity {
   id: string
@@ -397,6 +398,11 @@ export function EventDetail({ event }: EventDetailProps) {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Mutuals Section */}
+        <div className="mb-8 rounded-xl bg-gradient-to-br from-purple-600 via-pink-500 to-orange-500 p-8 shadow-xl">
+          <MutualsSection eventId={event.id} limit={8} showSeeAll={true} />
         </div>
 
         <Tabs defaultValue="schedule" className="mb-8">

@@ -97,6 +97,7 @@
     "react-resizable-panels": "^2.1.7",
     "react-use": "^17.6.0",
     "recharts": "2.15.0",
+    "resend": "^6.8.0",
     "sonner": "^1.7.1",
     "sql.js": "^1.13.0",
     "sqlite3": "^5.1.7",

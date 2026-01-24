@@ -314,3 +314,17 @@ select:focus {
 .dark ::-webkit-scrollbar-thumb:hover {
   @apply bg-muted-foreground/60;
 }
+
+/* Shimmer animation for skeleton screens */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite linear;
+}

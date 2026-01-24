@@ -129,13 +129,21 @@ export function EnhancedExpenseTracker({
         .eq("itinerary_id", itineraryId)
         .order("date", { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        console.error("Supabase error fetching expenses:", {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
+        throw error
+      }
       setExpenses(data || [])
     } catch (error: any) {
-      console.error("Error fetching expenses:", error)
+      console.error("Error fetching expenses:", error?.message || error)
       toast({
         title: "Error",
-        description: "Failed to load expenses",
+        description: error?.message || "Failed to load expenses. Please check database schema.",
         variant: "destructive",
       })
     } finally {
@@ -203,7 +211,12 @@ export function EnhancedExpenseTracker({
 
       setSettlements(newSettlements)
     } catch (error: any) {
-      console.error("Error calculating settlements:", error)
+      console.error("Error calculating settlements:", error?.message || error)
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to calculate settlements. Please check database schema.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -271,10 +284,16 @@ export function EnhancedExpenseTracker({
       fetchExpenses()
       calculateSettlements()
     } catch (error: any) {
-      console.error("Error adding expense:", error)
+      console.error("Error adding expense:", {
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+        code: error?.code,
+        fullError: error
+      })
       toast({
         title: "Error",
-        description: "Failed to add expense",
+        description: error?.message || "Failed to add expense. Please check database schema.",
         variant: "destructive",
       })
     }

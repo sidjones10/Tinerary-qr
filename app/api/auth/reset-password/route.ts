@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/utils/supabase/server"
+import { getSiteUrl } from "@/lib/env-validation"
 
 export async function POST(request: Request) {
   try {
@@ -15,10 +16,10 @@ export async function POST(request: Request) {
       )
     }
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`,
+      redirectTo: `${getSiteUrl()}/auth/reset-password`,
     })
 
     if (error) {

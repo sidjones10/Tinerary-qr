@@ -20,7 +20,6 @@ let twilioClient: any = null
 if (typeof window === "undefined" && twilio && accountSid && authToken) {
   try {
     twilioClient = twilio(accountSid, authToken)
-    console.log("Twilio client initialized successfully")
   } catch (e) {
     console.error("Failed to initialize Twilio client:", e)
   }
@@ -80,13 +79,12 @@ export async function sendVerificationSMS(phoneNumber: string, code: string): Pr
       return false
     }
 
-    const message = await twilioClient.messages.create({
+    await twilioClient.messages.create({
       body: `Your Tinerary verification code is: ${code}`,
       from: twilioPhoneNumber,
       to: phoneNumber,
     })
 
-    console.log(`Verification SMS sent to ${phoneNumber} with SID: ${message.sid}`)
     return true
   } catch (error) {
     console.error(`Failed to send verification SMS to ${phoneNumber}:`, error)

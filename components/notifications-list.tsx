@@ -18,10 +18,23 @@ interface NotificationsListProps {
   limit?: number
 }
 
+interface Notification {
+  id: string
+  user_id: string
+  type: string
+  title: string
+  message: string
+  link_url: string | null
+  image_url: string | null
+  is_read: boolean
+  created_at: string
+  metadata?: Record<string, unknown>
+}
+
 export function NotificationsList({ type, limit = 20 }: NotificationsListProps) {
   const router = useRouter()
   const { user } = useAuth()
-  const [notifications, setNotifications] = useState<any[]>([])
+  const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -58,7 +71,7 @@ export function NotificationsList({ type, limit = 20 }: NotificationsListProps) 
     fetchNotifications()
   }, [type, limit, user?.id])
 
-  const handleNotificationClick = async (notification: any) => {
+  const handleNotificationClick = async (notification: Notification) => {
     // Mark as read
     if (!notification.is_read) {
       await markNotificationAsRead(notification.id)

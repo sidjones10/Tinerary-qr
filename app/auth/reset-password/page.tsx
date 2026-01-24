@@ -82,7 +82,9 @@ export default function ResetPasswordPage() {
 
       // Redirect to dashboard after a delay
       setTimeout(() => {
-        window.location.href = "/dashboard"
+        if (typeof window !== "undefined") {
+          window.location.href = "/dashboard"
+        }
       }, 2000)
     } catch (error: any) {
       console.error("Password reset error:", error)
@@ -105,7 +107,14 @@ export default function ResetPasswordPage() {
               <AlertDescription>Invalid or expired reset link. Please request a new password reset.</AlertDescription>
             </Alert>
             <div className="mt-4">
-              <Button onClick={() => (window.location.href = "/auth")} className="w-full">
+              <Button
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    window.location.href = "/auth"
+                  }
+                }}
+                className="w-full"
+              >
                 Back to Sign In
               </Button>
             </div>

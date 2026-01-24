@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
-import { ArrowLeft, Calendar, MapPin, Clock, Share2, Heart, Users, Edit, Trash2 } from "lucide-react"
+import { ArrowLeft, Calendar, MapPin, Clock, Share2, Heart, Users, Edit, Trash2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -18,16 +18,80 @@ import { ShareDialog } from "@/components/share-dialog"
 import { EnhancedExpenseTracker } from "@/components/enhanced-expense-tracker"
 import { CommentsSection } from "@/components/comments-section"
 import { PackingList } from "@/components/packing-list"
+import { EventMap } from "@/components/event-map"
+import { PhotoGallery } from "@/components/photo-gallery"
+import { getEventPhotos, type EventPhoto } from "@/lib/photo-service"
+import { CalendarExportButton } from "@/components/calendar-export-button"
+import { MutualsSection } from "@/components/mutuals-section"
+
+interface Activity {
+  id: string
+  title: string
+  description: string | null
+  start_time: string | null
+  end_time: string | null
+  location: string | null
+  [key: string]: unknown
+}
+
+interface Event {
+  id: string
+  title: string
+  description: string | null
+  start_date: string | null
+  end_date: string | null
+  destination: string | null
+  user_id: string
+  like_count?: number
+  activities?: Activity[]
+  [key: string]: unknown
+}
+
+interface PackingItem {
+  id: string
+  item_name: string
+  category: string | null
+  packed: boolean
+  [key: string]: unknown
+}
 
 interface EventDetailProps {
-  event: any
-  packingItems?: any[]
+  event: Event
+  packingItems?: PackingItem[]
+}
+
+// Component to fetch and display photos
+function PhotoGalleryLoader({ eventId, isOwner }: { eventId: string; isOwner: boolean }) {
+  const [photos, setPhotos] = useState<EventPhoto[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchPhotos = async () => {
+    setLoading(true)
+    const result = await getEventPhotos(eventId)
+    if (result.success && result.photos) {
+      setPhotos(result.photos)
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    fetchPhotos()
+  }, [eventId])
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  return <PhotoGallery itineraryId={eventId} photos={photos} isOwner={isOwner} onPhotosChange={fetchPhotos} />
 }
 
 export function EventDetail({ event }: EventDetailProps) {
   // Extract activities from the event (they come from the database join)
   const activities = event.activities || []
-//   console.log("EventDetail - Raw activities:", activities)
   const { user } = useAuth()
   const { toast } = useToast()
   const router = useRouter()
@@ -38,7 +102,7 @@ export function EventDetail({ event }: EventDetailProps) {
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [inviteEmail, setInviteEmail] = useState("")
   const [isSendingInvite, setIsSendingInvite] = useState(false)
-  const [packingItems, setPackingItems] = useState<any[]>([])
+  const [packingItems, setPackingItems] = useState<PackingItem[]>([])
   const isOwner = user && user.id === event.user_id
 
   // Fetch packing items
@@ -84,7 +148,6 @@ export function EventDetail({ event }: EventDetailProps) {
   const startDate = new Date(event.start_date)
   const endDate = new Date(event.end_date)
   const isMultiDay = startDate.toDateString() !== endDate.toDateString()
-//   console.log("EventDetail - Is multi-day:", isMultiDay, "Start:", event.start_date, "End:", event.end_date)
 
   // Group activities by day for multi-day trips
   const groupedActivities = activities.reduce((acc: any, activity: any) => {
@@ -95,7 +158,6 @@ export function EventDetail({ event }: EventDetailProps) {
     acc[day].push(activity)
     return acc
   }, {})
-//   console.log("EventDetail - Grouped activities:", groupedActivities)
 
   const formatDate = (dateString: string) => {
     try {
@@ -286,6 +348,20 @@ export function EventDetail({ event }: EventDetailProps) {
                   }
                 />
 
+                <CalendarExportButton
+                  event={{
+                    title: event.title,
+                    description: event.description || undefined,
+                    location: event.location || undefined,
+                    startDate: event.start_date,
+                    endDate: event.end_date,
+                    url: typeof window !== "undefined" ? window.location.href : undefined,
+                  }}
+                  size="sm"
+                  showLabel={true}
+                  variant="outline"
+                />
+
                 {isOwner && (
                   <>
                     <Button
@@ -371,14 +447,20 @@ export function EventDetail({ event }: EventDetailProps) {
           )}
         </div>
 
+        {/* Mutuals Section */}
+        <div className="mb-8 rounded-xl bg-gradient-to-br from-purple-600 via-pink-500 to-orange-500 p-8 shadow-xl">
+          <MutualsSection eventId={event.id} limit={8} showSeeAll={true} />
+        </div>
+
         <Tabs defaultValue="schedule" className="mb-8">
           <TabsList className="mb-4">
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
             <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="photos">Photos</TabsTrigger>
             <TabsTrigger value="packing">Packing List</TabsTrigger>
             <TabsTrigger value="expenses">Expenses</TabsTrigger>
-            <TabsTrigger value="discussion">Discussion</TabsTrigger>
             <TabsTrigger value="attendees">Attendees</TabsTrigger>
+            <TabsTrigger value="comments">Comments</TabsTrigger>
           </TabsList>
 
           <TabsContent value="schedule">
@@ -482,7 +564,8 @@ export function EventDetail({ event }: EventDetailProps) {
                   {event.location && (
                     <div>
                       <h3 className="font-medium mb-1">Location</h3>
-                      <p className="text-sm text-muted-foreground">{event.location}</p>
+                      <p className="text-sm text-muted-foreground mb-3">{event.location}</p>
+                      <EventMap location={event.location} title={event.title} className="h-64" />
                     </div>
                   )}
 
@@ -497,6 +580,10 @@ export function EventDetail({ event }: EventDetailProps) {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="photos">
+            <PhotoGalleryLoader eventId={event.id} isOwner={isOwner} />
           </TabsContent>
 
           <TabsContent value="packing">
@@ -521,13 +608,6 @@ export function EventDetail({ event }: EventDetailProps) {
             />
           </TabsContent>
 
-          <TabsContent value="discussion">
-            <CommentsSection
-              itineraryId={event.id}
-              currentUserId={user?.id}
-            />
-          </TabsContent>
-
           <TabsContent value="attendees">
             <div className="text-center py-8">
               <p className="text-muted-foreground">No attendees yet.</p>
@@ -538,6 +618,13 @@ export function EventDetail({ event }: EventDetailProps) {
                 </Button>
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="comments">
+            <CommentsSection
+              itineraryId={event.id}
+              currentUserId={user?.id}
+            />
           </TabsContent>
         </Tabs>
 

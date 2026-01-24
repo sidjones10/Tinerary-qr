@@ -28,6 +28,22 @@ type Itinerary = {
   user?: User
 }
 
+type Activity = {
+  id: string
+  title: string
+  image: string
+  location: string
+}
+
+type Event = {
+  id: string
+  title: string
+  image: string
+  date: string
+  time: string
+  location: string
+}
+
 // This is the personalized feed that shows content tailored to the user
 // It should be accessible from the main navigation
 export default function ForYouPage() {
@@ -35,8 +51,8 @@ export default function ForYouPage() {
   const [loading, setLoading] = useState(true)
   const [recommendedItineraries, setRecommendedItineraries] = useState<Itinerary[]>([])
   const [friendsItineraries, setFriendsItineraries] = useState<Itinerary[]>([])
-  const [nearbyActivities, setNearbyActivities] = useState<any[]>([])
-  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([])
+  const [nearbyActivities, setNearbyActivities] = useState<Activity[]>([])
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([])
   const [currentUser, setCurrentUser] = useState<User | null>(null)
 
   useEffect(() => {

@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect } from "react"
-import { useAuth } from "@/app/providers"
+import { useAuth } from "@/providers/auth-provider"
 import { useRouter } from "next/navigation"
+import { AUTH_CONFIG } from "@/lib/config"
 
 export function SessionCheck() {
   const { session, refreshSession, isLoading } = useAuth()
@@ -23,8 +24,8 @@ export function SessionCheck() {
 
     checkSession()
 
-    // Set up periodic checks
-    const intervalId = setInterval(checkSession, 60 * 1000) // Check every minute
+    // Set up periodic checks using configurable interval
+    const intervalId = setInterval(checkSession, AUTH_CONFIG.SESSION_CHECK_INTERVAL)
 
     return () => clearInterval(intervalId)
   }, [session, refreshSession, isLoading, router])

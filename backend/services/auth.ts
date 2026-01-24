@@ -1,15 +1,18 @@
 import { createClient } from "@supabase/supabase-js"
 import { formatPhoneNumber, generateVerificationCode, sendVerificationSMS } from "./sms"
+import { getEnv, getSiteUrl } from "@/lib/env-validation"
+import { PHONE_VERIFICATION_CONFIG } from "@/lib/config"
 
 // Initialize Supabase client for server-side operations
+const env = getEnv()
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
 )
 
-// Configuration
-const CODE_EXPIRY_MINUTES = 15
-const MAX_VERIFICATION_ATTEMPTS = 3
+// Configuration - use centralized config
+const CODE_EXPIRY_MINUTES = PHONE_VERIFICATION_CONFIG.CODE_EXPIRY_MINUTES
+const MAX_VERIFICATION_ATTEMPTS = PHONE_VERIFICATION_CONFIG.MAX_VERIFICATION_ATTEMPTS
 
 interface VerificationResult {
   success: boolean
@@ -249,7 +252,7 @@ export async function createUserSession(phone: string) {
       type: "magiclink",
       email: `${user.id}@placeholder.local`, // Placeholder email
       options: {
-        redirectTo: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+        redirectTo: getSiteUrl(),
       },
     })
 

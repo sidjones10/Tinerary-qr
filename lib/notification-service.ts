@@ -44,14 +44,16 @@ export async function createNotification(data: NotificationData) {
       .single()
 
     if (error) {
-      console.error("Error creating notification:", error)
-      return { success: false, error }
+      const errorMessage = error.message || error.code || error.hint || "Unknown database error"
+      console.error("Error creating notification:", errorMessage, error)
+      return { success: false, error: errorMessage }
     }
 
     return { success: true, notification }
-  } catch (error) {
-    console.error("Error in notification service:", error)
-    return { success: false, error }
+  } catch (error: any) {
+    const errorMessage = error.message || "Unknown error in notification service"
+    console.error("Error in notification service:", errorMessage, error)
+    return { success: false, error: errorMessage }
   }
 }
 

@@ -19,10 +19,31 @@ interface SavedItemsListProps {
   limit?: number
 }
 
+interface SavedItem {
+  id: string
+  created_at: string
+  itineraries: {
+    id: string
+    title: string
+    description: string | null
+    location: string | null
+    start_date: string | null
+    end_date: string | null
+    image_url: string | null
+    duration: string | null
+    user_id: string
+    profiles: {
+      name: string | null
+      username: string | null
+      avatar_url: string | null
+    } | null
+  } | null
+}
+
 export function SavedItemsList({ limit = 20 }: SavedItemsListProps) {
   const router = useRouter()
   const { user } = useAuth()
-  const [items, setItems] = useState<any[]>([])
+  const [items, setItems] = useState<SavedItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")

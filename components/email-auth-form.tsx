@@ -70,8 +70,10 @@ export default function EmailAuthForm() {
 
         // Redirect after successful login - check for redirectTo param
         setTimeout(() => {
-          const redirectTo = new URLSearchParams(window.location.search).get("redirectTo") || "/dashboard"
-          window.location.href = redirectTo
+          if (typeof window !== "undefined") {
+            const redirectTo = new URLSearchParams(window.location.search).get("redirectTo") || "/dashboard"
+            window.location.href = redirectTo
+          }
         }, 1500)
       }
     } catch (error: any) {
@@ -152,8 +154,10 @@ export default function EmailAuthForm() {
         })
 
         setTimeout(() => {
-          const redirectTo = new URLSearchParams(window.location.search).get("redirectTo") || "/dashboard"
-          window.location.href = redirectTo
+          if (typeof window !== "undefined") {
+            const redirectTo = new URLSearchParams(window.location.search).get("redirectTo") || "/dashboard"
+            window.location.href = redirectTo
+          }
         }, 1500)
       }
     } catch (error: any) {
@@ -181,8 +185,9 @@ export default function EmailAuthForm() {
     setIsLoading(true)
 
     try {
+      const origin = typeof window !== "undefined" ? window.location.origin : ""
       const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+        redirectTo: `${origin}/auth/reset-password`,
       })
 
       if (error) {

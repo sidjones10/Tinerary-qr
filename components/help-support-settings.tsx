@@ -23,7 +23,21 @@ export function HelpSupportSettings() {
     setIsLoading(true)
 
     try {
+      // Validate form fields
+      if (!subject) {
+        throw new Error("Please select a subject")
+      }
+
+      if (!message || message.trim().length === 0) {
+        throw new Error("Please enter a message")
+      }
+
+      if (message.trim().length < 10) {
+        throw new Error("Message must be at least 10 characters long")
+      }
+
       // Submit support request logic would go here
+      // In a real implementation, this would send to a backend API or support system
 
       toast({
         title: "Request submitted",
@@ -32,10 +46,10 @@ export function HelpSupportSettings() {
 
       setSubject("")
       setMessage("")
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to submit your request. Please try again.",
+        description: error.message || "Failed to submit your request. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -87,7 +101,7 @@ export function HelpSupportSettings() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="subject">Subject</Label>
-                <Select value={subject} onValueChange={setSubject} required>
+                <Select value={subject} onValueChange={setSubject}>
                   <SelectTrigger id="subject">
                     <SelectValue placeholder="Select a subject" />
                   </SelectTrigger>
@@ -109,7 +123,6 @@ export function HelpSupportSettings() {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   rows={5}
-                  required
                 />
               </div>
 

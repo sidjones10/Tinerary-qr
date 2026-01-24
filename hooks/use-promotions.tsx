@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { getPromotions, recordPromotionClick } from "@/lib/supabase-client"
+import type { Database } from "@/lib/database.types"
+
+type Promotion = Database["public"]["Tables"]["promotions"]["Row"]
 
 interface PromotionFilters {
   type?: string
@@ -12,8 +15,8 @@ interface PromotionFilters {
 }
 
 export function usePromotions(initialFilters?: PromotionFilters) {
-  const [promotions, setPromotions] = useState<any[]>([])
-  const [featuredPromotions, setFeaturedPromotions] = useState<any[]>([])
+  const [promotions, setPromotions] = useState<Promotion[]>([])
+  const [featuredPromotions, setFeaturedPromotions] = useState<Promotion[]>([])
   const [filters, setFilters] = useState<PromotionFilters>(initialFilters || {})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

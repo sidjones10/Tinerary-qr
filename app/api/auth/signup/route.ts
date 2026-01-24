@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/utils/supabase/server"
+import { getSiteUrl } from "@/lib/env-validation"
 
 export async function POST(request: Request) {
   try {
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
         data: {
           username: username || email.split("@")[0],
         },
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+        emailRedirectTo: `${getSiteUrl()}/auth/callback`,
       },
     })
 
@@ -66,21 +67,46 @@ export async function POST(request: Request) {
     }
 
     // Profile is created automatically by database trigger
-    // Wait a moment for the trigger to complete
+    // Verify the profile was created with retry logic
     if (data.user) {
-      // Give the trigger time to create the profile
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      const maxRetries = 5
+      const baseDelay = 100
+      let profile = null
+      let profileError = null
 
-      // Verify the profile was created
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("id", data.user.id)
-        .single()
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        // Wait with exponential backoff
+        if (attempt > 0) {
+          const delay = baseDelay * Math.pow(2, attempt - 1)
+          await new Promise((resolve) => setTimeout(resolve, delay))
+        }
 
-      if (profileError || !profile) {
-        console.error("Profile creation may have failed:", profileError)
-        // The trigger should handle this, but log for monitoring
+        // Check if profile exists
+        const result = await supabase.from("profiles").select("id").eq("id", data.user.id).single()
+
+        if (result.data && !result.error) {
+          profile = result.data
+          break
+        }
+
+        profileError = result.error
+
+        // If it's not a "not found" error, stop retrying
+        if (result.error && result.error.code !== "PGRST116") {
+          break
+        }
+      }
+
+      if (!profile) {
+        console.error("Profile creation failed after retries:", profileError)
+        // Return error since profile is required for app functionality
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Account created but profile setup failed. Please contact support.",
+          },
+          { status: 500 },
+        )
       }
     }
 

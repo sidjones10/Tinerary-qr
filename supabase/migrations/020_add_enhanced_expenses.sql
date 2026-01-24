@@ -1,15 +1,34 @@
 -- Migration: Enhanced Expense Tracking System
 -- Adds split expenses, settlements, and advanced expense features
 
--- First, add missing columns to expenses table
+-- First, ensure user_id column exists (it should, but let's be safe)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'expenses' AND column_name = 'user_id'
+  ) THEN
+    ALTER TABLE expenses ADD COLUMN user_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+
+-- Add missing columns to expenses table
 ALTER TABLE expenses
   ADD COLUMN IF NOT EXISTS paid_by_user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS date TIMESTAMPTZ DEFAULT NOW(),
   ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'USD',
   ADD COLUMN IF NOT EXISTS split_type TEXT DEFAULT 'equal' CHECK (split_type IN ('equal', 'percentage', 'custom', 'shares'));
 
--- Set paid_by_user_id to user_id for existing records
-UPDATE expenses SET paid_by_user_id = user_id WHERE paid_by_user_id IS NULL;
+-- Set paid_by_user_id to user_id for existing records (only if user_id exists)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'expenses' AND column_name = 'user_id'
+  ) THEN
+    UPDATE expenses SET paid_by_user_id = user_id WHERE paid_by_user_id IS NULL;
+  END IF;
+END $$;
 
 -- Set date to created_at for existing records
 UPDATE expenses SET date = created_at WHERE date IS NULL;
@@ -194,7 +213,8 @@ BEGIN
       split_amount := NEW.amount;
 
       INSERT INTO expense_splits (expense_id, user_id, amount, is_paid)
-      VALUES (NEW.id, NEW.paid_by_user_id, split_amount, true);
+      VALUES (NEW.id, NEW.paid_by_user_id, split_amount, true)
+      ON CONFLICT (expense_id, user_id) DO NOTHING;
     ELSE
       -- Calculate equal split amount
       split_amount := NEW.amount / participant_count;
@@ -209,7 +229,8 @@ BEGIN
           participant.user_id,
           split_amount,
           participant.user_id = NEW.paid_by_user_id -- Mark as paid if they're the payer
-        );
+        )
+        ON CONFLICT (expense_id, user_id) DO NOTHING;
       END LOOP;
     END IF;
   END IF;

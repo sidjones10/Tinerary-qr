@@ -101,8 +101,9 @@ export function PackingList({ simplified = false, items, tripId }: PackingListPr
       tripId,
     }
 
-    // Add optimistic item
-    addOptimisticItem({ type: "add", item: optimisticItem })
+    // Save values before reset
+    const itemName = newItemName
+    const itemQuantity = newItemQuantity
 
     // Reset form
     setNewItemName("")
@@ -111,12 +112,15 @@ export function PackingList({ simplified = false, items, tripId }: PackingListPr
 
     // Create form data
     const formData = new FormData()
-    formData.append("name", newItemName)
-    formData.append("quantity", newItemQuantity.toString())
+    formData.append("name", itemName)
+    formData.append("quantity", itemQuantity.toString())
     formData.append("packed", "off")
 
     try {
       startTransition(async () => {
+        // Add optimistic item inside transition
+        addOptimisticItem({ type: "add", item: optimisticItem })
+
         const result = await createPackingItem(tripId, formData)
 
         if (!result.success) {
@@ -134,7 +138,7 @@ export function PackingList({ simplified = false, items, tripId }: PackingListPr
         } else {
           toast({
             title: "Item added",
-            description: `${newItemName} has been added to your packing list.`,
+            description: `${itemName} has been added to your packing list.`,
           })
         }
 
@@ -142,11 +146,13 @@ export function PackingList({ simplified = false, items, tripId }: PackingListPr
       })
     } catch (err) {
       setError("Failed to add item. Please try again.")
-      // Remove optimistic item on error
-      addOptimisticItem({
-        type: "delete",
-        item: optimisticItem,
-        id: tempId,
+      // Remove optimistic item on error - also needs to be in transition
+      startTransition(() => {
+        addOptimisticItem({
+          type: "delete",
+          item: optimisticItem,
+          id: tempId,
+        })
       })
       setIsAddingItem(false)
     }

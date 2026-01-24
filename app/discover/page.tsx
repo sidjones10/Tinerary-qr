@@ -282,7 +282,7 @@ export default function DiscoverPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-orange-50 to-pink-50">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="min-h-screen bg-gradient-to-b from-orange-50 to-pink-50">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white border-b">
         <div className="container px-4 py-3 max-w-md mx-auto">
@@ -312,12 +312,10 @@ export default function DiscoverPage() {
           )}
 
           <div className="mt-3">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid grid-cols-2 w-full">
-                <TabsTrigger value="for-you">For You</TabsTrigger>
-                <TabsTrigger value="trending">Trending</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <TabsList className="grid grid-cols-2 w-full">
+              <TabsTrigger value="for-you">For You</TabsTrigger>
+              <TabsTrigger value="trending">Trending</TabsTrigger>
+            </TabsList>
           </div>
         </div>
       </div>
@@ -479,6 +477,6 @@ export default function DiscoverPage() {
           </div>
         </TabsContent>
       </div>
-    </div>
+    </Tabs>
   )
 }

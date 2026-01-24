@@ -1,7 +1,6 @@
 "use server"
 
-import { supabaseClient } from "@/lib/db/supabase-db"
-import { createClient } from "@supabase/supabase-js"
+import { createClient } from "@/lib/supabase"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { z } from "zod"
@@ -14,15 +13,7 @@ const PackingItemSchema = z.object({
 
 // Helper function to get the current user
 async function getCurrentUser() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
-    {
-      auth: {
-        persistSession: false,
-      },
-    },
-  )
+  const supabase = await createClient()
 
   const { data, error } = await supabase.auth.getUser()
 
@@ -55,7 +46,8 @@ export async function createPackingItem(tripId: string, formData: FormData) {
     const { name, quantity, packed } = validatedFields.data
 
     // Use Supabase client directly for better error handling
-    const { error } = await supabaseClient.from("packing_items").insert({
+    const supabase = await createClient()
+    const { error } = await supabase.from("packing_items").insert({
       name,
       quantity,
       packed,
@@ -108,7 +100,8 @@ export async function updatePackingItem(itemId: string, tripId: string, formData
     const { name, quantity, packed } = validatedFields.data
 
     // Use Supabase client directly for better error handling
-    const { error } = await supabaseClient
+    const supabase = await createClient()
+    const { error } = await supabase
       .from("packing_items")
       .update({
         name,
@@ -148,7 +141,8 @@ export async function togglePackingItem(itemId: string, tripId: string, packed: 
     }
 
     // Use Supabase client directly for better error handling
-    const { error } = await supabaseClient
+    const supabase = await createClient()
+    const { error } = await supabase
       .from("packing_items")
       .update({
         packed,
@@ -186,7 +180,8 @@ export async function deletePackingItem(itemId: string, tripId: string) {
     }
 
     // Use Supabase client directly for better error handling
-    const { error } = await supabaseClient.from("packing_items").delete().eq("id", itemId).eq("trip_id", tripId)
+    const supabase = await createClient()
+    const { error } = await supabase.from("packing_items").delete().eq("id", itemId).eq("trip_id", tripId)
 
     if (error) {
       console.error("Error deleting packing item:", error)
@@ -217,7 +212,8 @@ export async function getPackingItems(tripId: string) {
     }
 
     // Use Supabase client directly for better error handling
-    const { data, error } = await supabaseClient
+    const supabase = await createClient()
+    const { data, error } = await supabase
       .from("packing_items")
       .select("*")
       .eq("trip_id", tripId)

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowLeft, Search, Grid, List, Bookmark, Calendar, MapPin, Users, Star, Sparkles, Heart, Eye, TrendingUp, Filter } from "lucide-react"
+import { ArrowLeft, Search, Grid, List, Bookmark, Calendar, MapPin, Users, Star, Sparkles, Heart, Eye, TrendingUp, Filter, Loader2 } from "lucide-react"
 
 import { AppHeader } from "@/components/app-header"
 import { Button } from "@/components/ui/button"
@@ -12,9 +12,6 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ArrowLeft, Search, Grid, List, Bookmark, Calendar, MapPin, Sparkles, Loader2 } from "lucide-react"
-
-import { AppHeader } from "@/components/app-header"
 import { supabase } from "@/lib/supabase-client"
 
 export default function SavedItemsPage() {

@@ -84,6 +84,18 @@ export function AppHeader() {
     }
   }
 
+  const handleSignOut = async () => {
+    try {
+      const response = await fetch("/api/auth/signout", { method: "POST" })
+      if (response.ok) {
+        router.push("/auth")
+        router.refresh()
+      }
+    } catch (error) {
+      console.error("Sign out error:", error)
+    }
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/40 supports-[backdrop-filter]:bg-white/20">
       <div className="container flex h-14 items-center">
@@ -179,11 +191,9 @@ export function AppHeader() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/signout" className="flex items-center text-red-500">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Sign out
-                    </Link>
+                  <DropdownMenuItem onClick={handleSignOut} className="flex items-center text-red-500 cursor-pointer">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

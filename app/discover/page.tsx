@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import {
   Heart,
   MessageCircle,
@@ -172,11 +173,13 @@ export default function DiscoverPage() {
         className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
         onClick={() => handleCardClick(itinerary.id)}
       >
-        <div className="relative">
-          <img
+        <div className="relative h-48">
+          <Image
             src={itinerary.image_url || "/placeholder.svg?height=300&width=500"}
             alt={itinerary.title}
-            className="w-full h-48 object-cover"
+            fill
+            className="object-cover"
+            loading="lazy"
           />
           {badge && (
             <Badge className="absolute top-2 left-2 bg-pink-500">
@@ -441,11 +444,13 @@ export default function DiscoverPage() {
                     onClick={() => handleCardClick(itinerary.id)}
                   >
                     <div className="flex h-24">
-                      <div className="w-1/3">
-                        <img
+                      <div className="w-1/3 relative">
+                        <Image
                           src={itinerary.image_url || "/placeholder.svg?height=300&width=500"}
                           alt={itinerary.title}
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
+                          loading="lazy"
                         />
                       </div>
                       <div className="w-2/3 p-3 flex flex-col justify-between">

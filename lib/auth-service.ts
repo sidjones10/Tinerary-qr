@@ -169,13 +169,20 @@ export async function signInWithEmail(email: string, password: string): Promise<
 
 /**
  * Ensure profile exists for a user (for legacy users or after auth)
+ * With 10-second timeout to prevent hanging
  */
 export async function ensureProfileExists(userId: string, email: string): Promise<void> {
-  try {
-    const supabase = createClient()
+  const timeoutPromise = new Promise<void>((_, reject) => {
+    setTimeout(() => reject(new Error("Profile check timeout")), 10000)
+  })
 
-    // Check if profile exists
-    const { data: existingProfile } = await supabase.from("profiles").select("id").eq("id", userId).single()
+  try {
+    await Promise.race([
+      (async () => {
+        const supabase = createClient()
+
+        // Check if profile exists
+        const { data: existingProfile } = await supabase.from("profiles").select("id").eq("id", userId).single()
 
     if (!existingProfile) {
       // Create profile if it doesn't exist
@@ -227,7 +234,9 @@ export async function ensureProfileExists(userId: string, email: string): Promis
           updated_at: new Date().toISOString(),
         })
       }
-    }
+      })(),
+      timeoutPromise,
+    ])
   } catch (error) {
     console.error("Error ensuring profile exists:", error)
   }

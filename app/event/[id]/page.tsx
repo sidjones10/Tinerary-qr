@@ -93,32 +93,34 @@ const getEventById = async (id: string) => {
       throw new Error("Itinerary not found")
     }
 
-    // Fetch activities for this itinerary
-    const { data: activitiesData, error: activitiesError } = await supabase
-      .from("activities")
-      .select("*")
-      .eq("itinerary_id", id)
-      .order("start_time", { ascending: true })
+    // Fetch activities, packing items, and expenses in parallel for better performance
+    const [
+      { data: activitiesData, error: activitiesError },
+      { data: packingData, error: packingError },
+      { data: expensesData, error: expensesError }
+    ] = await Promise.all([
+      supabase
+        .from("activities")
+        .select("*")
+        .eq("itinerary_id", id)
+        .order("start_time", { ascending: true }),
+      supabase
+        .from("packing_items")
+        .select("*")
+        .eq("itinerary_id", id),
+      supabase
+        .from("expenses")
+        .select("*")
+        .eq("itinerary_id", id)
+    ])
 
     if (activitiesError) {
       console.error("Error fetching activities:", activitiesError)
     }
 
-    // Fetch packing items for this itinerary
-    const { data: packingData, error: packingError } = await supabase
-      .from("packing_items")
-      .select("*")
-      .eq("itinerary_id", id)
-
     if (packingError) {
       console.error("Error fetching packing items:", packingError)
     }
-
-    // Fetch expenses for this itinerary
-    const { data: expensesData, error: expensesError } = await supabase
-      .from("expenses")
-      .select("*")
-      .eq("itinerary_id", id)
 
     if (expensesError) {
       console.error("Error fetching expenses:", expensesError)

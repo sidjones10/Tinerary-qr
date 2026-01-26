@@ -30,12 +30,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session)
       setUser(session?.user ?? null)
 
-      // Ensure profile exists for existing users
+      // Ensure profile exists for existing users (with error handling)
       if (session?.user) {
-        await ensureProfileExists(session.user.id, session.user.email || "")
+        try {
+          await ensureProfileExists(session.user.id, session.user.email || "")
+        } catch (error) {
+          console.error("Failed to ensure profile exists:", error)
+          // Continue loading page even if profile check fails
+        }
       }
 
       setLoading(false)
+    }).catch((error) => {
+      console.error("Error getting session:", error)
+      setLoading(false) // Always stop loading even on error
     })
 
     // Listen for auth changes
@@ -45,9 +53,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session)
       setUser(session?.user ?? null)
 
-      // Ensure profile exists when user signs in
+      // Ensure profile exists when user signs in (with error handling)
       if (session?.user && _event === "SIGNED_IN") {
-        await ensureProfileExists(session.user.id, session.user.email || "")
+        try {
+          await ensureProfileExists(session.user.id, session.user.email || "")
+        } catch (error) {
+          console.error("Failed to ensure profile exists:", error)
+        }
       }
 
       setLoading(false)

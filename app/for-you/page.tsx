@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { Heart, MessageCircle, Calendar, MapPin, Users, Search, Bell, Loader2, Sparkles, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -72,7 +73,7 @@ export default function ForYouPage() {
           })
         }
 
-        // Fetch recommended itineraries (newest public itineraries)
+        // Fetch recommended itineraries (newest public itineraries) with user data in single query
         const { data: recommended, error: recommendedError } = await supabase
           .from("itineraries")
           .select(`
@@ -84,7 +85,12 @@ export default function ForYouPage() {
           end_date,
           cover_image_url,
           user_id,
-          created_at
+          created_at,
+          profiles:user_id (
+            id,
+            email,
+            avatar_url
+          )
         `)
           .eq("is_public", true)
           .order("created_at", { ascending: false })
@@ -93,29 +99,14 @@ export default function ForYouPage() {
         if (recommendedError) {
           console.error("Error fetching recommended itineraries:", recommendedError)
         } else {
-          // Fetch user data separately to avoid potential join issues
-          const itinerariesWithUsers = await Promise.all(
-            (recommended || []).map(async (itinerary) => {
-              try {
-                const { data: userData } = await supabase
-                  .from("profiles")
-                  .select("id, email, avatar_url")
-                  .eq("id", itinerary.user_id)
-                  .single()
-
-                return {
-                  ...itinerary,
-                  user: userData || { id: itinerary.user_id, email: "Anonymous", avatar_url: null },
-                }
-              } catch (error) {
-                console.error("Error fetching user data:", error)
-                return {
-                  ...itinerary,
-                  user: { id: itinerary.user_id, email: "Anonymous", avatar_url: null },
-                }
-              }
-            }),
-          )
+          // Transform the data to match expected format (no additional queries needed!)
+          const itinerariesWithUsers = (recommended || []).map((itinerary) => {
+            const profile = Array.isArray(itinerary.profiles) ? itinerary.profiles[0] : itinerary.profiles
+            return {
+              ...itinerary,
+              user: profile || { id: itinerary.user_id, email: "Anonymous", avatar_url: null },
+            }
+          })
 
           setRecommendedItineraries(itinerariesWithUsers || [])
           // For demo purposes, we'll use the same data for friends' itineraries
@@ -233,11 +224,13 @@ export default function ForYouPage() {
                       className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
                       onClick={() => handleCardClick(itinerary.id)}
                     >
-                      <div className="relative">
-                        <img
+                      <div className="relative h-48">
+                        <Image
                           src={itinerary.cover_image_url || "/placeholder.svg?height=300&width=500"}
                           alt={itinerary.title}
-                          className="w-full h-48 object-cover"
+                          fill
+                          className="object-cover"
+                          loading="lazy"
                         />
                         <Badge className="absolute top-2 left-2 bg-pink-500">
                           <Sparkles className="h-3 w-3 mr-1" />
@@ -319,11 +312,13 @@ export default function ForYouPage() {
                       onClick={() => handleCardClick(trip.id)}
                     >
                       <div className="flex h-24">
-                        <div className="w-1/3">
-                          <img
+                        <div className="w-1/3 relative">
+                          <Image
                             src={trip.cover_image_url || "/placeholder.svg?height=300&width=500"}
                             alt={trip.title}
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
+                            loading="lazy"
                           />
                         </div>
                         <div className="w-2/3 p-3 flex flex-col justify-between">
@@ -373,11 +368,13 @@ export default function ForYouPage() {
                     className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
                     onClick={() => handleCardClick(activity.id)}
                   >
-                    <div className="relative">
-                      <img
+                    <div className="relative h-24">
+                      <Image
                         src={activity.image || "/placeholder.svg"}
                         alt={activity.title}
-                        className="w-full h-24 object-cover"
+                        fill
+                        className="object-cover"
+                        loading="lazy"
                       />
                       <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
                         <div className="text-center text-white">
@@ -408,11 +405,13 @@ export default function ForYouPage() {
                     onClick={() => handleCardClick(event.id)}
                   >
                     <div className="flex h-24">
-                      <div className="w-1/3">
-                        <img
+                      <div className="w-1/3 relative">
+                        <Image
                           src={event.image || "/placeholder.svg"}
                           alt={event.title}
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
+                          loading="lazy"
                         />
                       </div>
                       <div className="w-2/3 p-3">

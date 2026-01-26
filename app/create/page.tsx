@@ -196,6 +196,7 @@ function CreatePageContent() {
                 checked: item.is_packed || false,
               }))
               setPackingItems(formattedPackingItems)
+              setShowPackingExpenses(true) // Enable the toggle since packing items exist
             }
 
             // Load expenses if they exist
@@ -205,6 +206,7 @@ function CreatePageContent() {
                 amount: Number(exp.amount) || 0,
               }))
               setExpenses(formattedExpenses)
+              setShowPackingExpenses(true) // Enable the toggle since expenses exist
             }
 
             toast({

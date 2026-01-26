@@ -1,7 +1,7 @@
--- FIX EXPENSES TABLE TO SUPPORT BOTH SIMPLE AND COMPLEX EXPENSES
--- Run this in Supabase SQL Editor
+-- FIX EXPENSES TABLE - CLEAN VERSION
+-- Copy and paste this entire script into Supabase SQL Editor and click RUN
 
--- Add missing columns to expenses table (if they don't exist)
+-- Step 1: Add missing columns to expenses table
 ALTER TABLE public.expenses
   ADD COLUMN IF NOT EXISTS description TEXT,
   ADD COLUMN IF NOT EXISTS paid_by_user_id UUID REFERENCES auth.users(id),
@@ -9,7 +9,7 @@ ALTER TABLE public.expenses
   ADD COLUMN IF NOT EXISTS date DATE DEFAULT CURRENT_DATE,
   ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'USD';
 
--- Update existing expenses to have default values
+-- Step 2: Update existing expenses with default values
 UPDATE public.expenses
 SET
   description = COALESCE(description, 'Expense for ' || category),
@@ -23,7 +23,7 @@ WHERE description IS NULL
    OR date IS NULL
    OR currency IS NULL;
 
--- Create expense_splits table if it doesn't exist (for advanced expense splitting)
+-- Step 3: Create expense_splits table for advanced splitting
 CREATE TABLE IF NOT EXISTS public.expense_splits (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   expense_id UUID REFERENCES public.expenses(id) ON DELETE CASCADE NOT NULL,
@@ -34,18 +34,20 @@ CREATE TABLE IF NOT EXISTS public.expense_splits (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create index for better performance
+-- Step 4: Create indexes
 CREATE INDEX IF NOT EXISTS idx_expense_splits_expense_id ON public.expense_splits(expense_id);
 CREATE INDEX IF NOT EXISTS idx_expense_splits_user_id ON public.expense_splits(user_id);
 
--- Enable RLS on expense_splits
+-- Step 5: Enable RLS
 ALTER TABLE public.expense_splits ENABLE ROW LEVEL SECURITY;
 
--- RLS policies for expense_splits
+-- Step 6: Drop old policies if they exist
 DROP POLICY IF EXISTS "Users can view expense splits for their itineraries" ON public.expense_splits;
 DROP POLICY IF EXISTS "Users can insert expense splits" ON public.expense_splits;
 DROP POLICY IF EXISTS "Users can update their own expense splits" ON public.expense_splits;
+DROP POLICY IF EXISTS "Anyone can view profiles" ON public.profiles;
 
+-- Step 7: Create new RLS policies for expense_splits
 CREATE POLICY "Users can view expense splits for their itineraries"
   ON public.expense_splits FOR SELECT
   USING (
@@ -71,34 +73,10 @@ CREATE POLICY "Users can update their own expense splits"
   ON public.expense_splits FOR UPDATE
   USING (user_id = auth.uid());
 
--- Make sure profiles RLS allows reading for expense display
--- This is needed so expense tracker can show who paid for each expense
-DROP POLICY IF EXISTS "Anyone can view profiles" ON public.profiles;
+-- Step 8: Allow profiles to be read for expense display
 CREATE POLICY "Anyone can view profiles"
   ON public.profiles FOR SELECT
   USING (true);
 
--- Verify the changes
-SELECT
-  column_name,
-  data_type,
-  column_default,
-  is_nullable
-FROM information_schema.columns
-WHERE table_schema = 'public'
-  AND table_name = 'expenses'
-  AND column_name IN ('description', 'paid_by_user_id', 'split_type', 'date', 'currency')
-ORDER BY column_name;
-
--- Test query to verify expense tracker will work
-SELECT
-  e.id,
-  e.description,
-  e.amount,
-  e.category,
-  e.paid_by_user_id,
-  e.date,
-  p.name as paid_by_name
-FROM public.expenses e
-LEFT JOIN public.profiles p ON e.paid_by_user_id = p.id
-LIMIT 5;
+-- Done! Check the output below to verify success
+SELECT 'Expenses table updated successfully!' as status;

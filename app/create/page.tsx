@@ -10,6 +10,7 @@ import { useAuth } from "@/providers/auth-provider"
 import { ProtectedRoute } from "@/components/protected-route"
 import { Navbar } from "@/components/navbar"
 import { createItinerary, updateItinerary } from "@/lib/itinerary-service"
+import { uploadImage, compressImage } from "@/lib/storage-service"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -597,34 +598,34 @@ function CreatePageContent() {
     setUploadingImage(true)
 
     try {
-      // Convert image to base64 for now (temporary solution until storage bucket is created)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const base64String = reader.result as string
-        setCoverImage(base64String)
+      console.log("📸 Starting image upload...", { name: file.name, size: file.size, type: file.type })
 
-        toast({
-          title: "Image uploaded",
-          description: "Cover image has been uploaded successfully",
-        })
-        setUploadingImage(false)
+      // Compress image to reduce file size
+      const compressedFile = await compressImage(file, 1200, 800, 0.85)
+      console.log("✅ Image compressed", { originalSize: file.size, compressedSize: compressedFile.size })
+
+      // Upload to Supabase Storage
+      const result = await uploadImage(compressedFile, "itinerary-images", "covers")
+      console.log("📊 Upload result:", result)
+
+      if (!result.success || !result.url) {
+        throw new Error(result.error || "Failed to upload image")
       }
-      reader.onerror = () => {
-        toast({
-          title: "Upload failed",
-          description: "Failed to read image file",
-          variant: "destructive",
-        })
-        setUploadingImage(false)
-      }
-      reader.readAsDataURL(file)
+
+      setCoverImage(result.url)
+
+      toast({
+        title: "Image uploaded",
+        description: "Cover image has been uploaded successfully",
+      })
     } catch (error: any) {
-      console.error("Error uploading image:", error)
+      console.error("❌ Error uploading image:", error)
       toast({
         title: "Upload failed",
-        description: error.message || "Failed to upload image",
+        description: error.message || "Failed to upload image. Make sure storage buckets are configured in Supabase.",
         variant: "destructive",
       })
+    } finally {
       setUploadingImage(false)
     }
   }

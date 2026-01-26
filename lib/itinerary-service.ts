@@ -218,6 +218,11 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
           category: expense.category,
           amount: expense.amount,
           user_id: userId,
+          description: `Expense for ${expense.category}`,
+          paid_by_user_id: userId,
+          split_type: 'equal',
+          date: data.startDate || new Date().toISOString().split('T')[0],
+          currency: 'USD',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         }))

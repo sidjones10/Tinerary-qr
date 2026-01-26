@@ -3,6 +3,7 @@
 
 -- Step 1: Add missing columns to expenses table
 ALTER TABLE public.expenses
+  ADD COLUMN IF NOT EXISTS title TEXT,
   ADD COLUMN IF NOT EXISTS description TEXT,
   ADD COLUMN IF NOT EXISTS paid_by_user_id UUID REFERENCES auth.users(id),
   ADD COLUMN IF NOT EXISTS split_type TEXT DEFAULT 'equal',
@@ -12,12 +13,14 @@ ALTER TABLE public.expenses
 -- Step 2: Update existing expenses with default values
 UPDATE public.expenses
 SET
+  title = COALESCE(title, category, description, 'Expense'),
   description = COALESCE(description, 'Expense for ' || category),
   paid_by_user_id = COALESCE(paid_by_user_id, user_id),
   split_type = COALESCE(split_type, 'equal'),
   date = COALESCE(date, created_at::date),
   currency = COALESCE(currency, 'USD')
-WHERE description IS NULL
+WHERE title IS NULL
+   OR description IS NULL
    OR paid_by_user_id IS NULL
    OR split_type IS NULL
    OR date IS NULL

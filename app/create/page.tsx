@@ -58,7 +58,7 @@ function CreatePageContent() {
   const [uploadingImage, setUploadingImage] = useState(false)
   const [inviteEmails, setInviteEmails] = useState<string[]>([])
   const [newInviteEmail, setNewInviteEmail] = useState("")
-  const [splitCount, setSplitCount] = useState(1)
+  const [splitCount, setSplitCount] = useState<number | ''>(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
@@ -350,7 +350,18 @@ function CreatePageContent() {
   }
 
   const handlePublish = async () => {
+    console.log("🚀 handlePublish called", {
+      userId: user?.id,
+      title,
+      type,
+      isPublic,
+      hasActivities: activities.length,
+      hasExpenses: expenses.length,
+      hasCoverImage: !!coverImage
+    })
+
     if (!user) {
+      console.error("❌ No user logged in")
       toast({
         title: "Authentication required",
         description: "You must be logged in to publish an event",
@@ -360,6 +371,7 @@ function CreatePageContent() {
     }
 
     if (!title) {
+      console.error("❌ No title provided")
       toast({
         title: "Missing information",
         description: "Please provide a title for your " + type,
@@ -368,6 +380,7 @@ function CreatePageContent() {
       return
     }
 
+    console.log("✅ Validation passed, starting publish...")
     setIsSubmitting(true)
 
     try {
@@ -394,17 +407,23 @@ function CreatePageContent() {
       let result
       if (editingItineraryId) {
         // Update existing itinerary
+        console.log("📝 Updating existing itinerary:", editingItineraryId)
         result = await updateItinerary(editingItineraryId, user.id, itineraryData)
       } else {
         // Create new itinerary
+        console.log("✨ Creating new itinerary with data:", itineraryData)
         result = await createItinerary(user.id, itineraryData)
       }
 
+      console.log("📊 Service result:", result)
+
       if (!result.success || !result.itinerary) {
+        console.error("❌ Service returned error:", result.error)
         throw new Error(result.error || `Failed to ${editingItineraryId ? 'update' : 'create'} itinerary`)
       }
 
       const itineraryId = result.itinerary.id
+      console.log("✅ Successfully created/updated itinerary:", itineraryId)
 
       // Send invitations if there are any
       if (inviteEmails.length > 0) {
@@ -453,6 +472,12 @@ function CreatePageContent() {
       router.push(`/event/${itineraryId}`)
     } catch (error: any) {
       console.error("Error publishing:", error)
+      console.error("Error details:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        cause: error.cause
+      })
 
       let errorMessage = error.message || "There was a problem publishing your " + type
 
@@ -461,6 +486,10 @@ function CreatePageContent() {
         errorMessage = "Database setup required: Please run the database migrations to create the necessary tables."
       } else if (error.message?.includes("relation") && error.message?.includes("does not exist")) {
         errorMessage = "Database setup required: Required tables don't exist. Please run the database migrations."
+      } else if (error.message?.includes("duplicate key") || error.message?.includes("unique constraint")) {
+        errorMessage = "This " + type + " already exists or there's a conflict with existing data."
+      } else if (error.message?.includes("permission denied") || error.message?.includes("RLS")) {
+        errorMessage = "Permission denied. Please check your authentication and try again."
       }
 
       toast({
@@ -468,6 +497,9 @@ function CreatePageContent() {
         description: errorMessage,
         variant: "destructive",
       })
+
+      // Also alert to make sure user sees it
+      alert(`Publishing failed: ${errorMessage}\n\nCheck browser console for details.`)
     } finally {
       setIsSubmitting(false)
     }
@@ -630,7 +662,8 @@ function CreatePageContent() {
 
   const calculateSplitAmount = () => {
     const totalExpenses = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0)
-    return splitCount > 0 ? (totalExpenses / splitCount).toFixed(2) : "0.00"
+    const count = typeof splitCount === 'number' && splitCount > 0 ? splitCount : 1
+    return (totalExpenses / count).toFixed(2)
   }
 
   return (
@@ -1078,7 +1111,22 @@ function CreatePageContent() {
                               type="number"
                               min="1"
                               value={splitCount}
-                              onChange={(e) => setSplitCount(Number.parseInt(e.target.value) || 1)}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                if (val === '') {
+                                  setSplitCount('')
+                                } else {
+                                  const num = Number.parseInt(val)
+                                  if (!isNaN(num) && num > 0) {
+                                    setSplitCount(num)
+                                  }
+                                }
+                              }}
+                              onBlur={() => {
+                                if (splitCount === '' || splitCount < 1) {
+                                  setSplitCount(1)
+                                }
+                              }}
                               className="w-24 bg-white"
                             />
                           </div>

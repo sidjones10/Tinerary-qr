@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/utils/supabase/server"
 import { getSiteUrl } from "@/lib/env-validation"
+import { sendWelcomeEmail } from "@/lib/email-notifications"
 
 export async function POST(request: Request) {
   try {
@@ -107,6 +108,15 @@ export async function POST(request: Request) {
           },
           { status: 500 },
         )
+      }
+
+      // Send welcome email via Resend
+      try {
+        const displayName = username || email.split("@")[0]
+        await sendWelcomeEmail(email, displayName)
+      } catch (emailError) {
+        console.error("Failed to send welcome email:", emailError)
+        // Don't fail signup if email fails - just log it
       }
     }
 

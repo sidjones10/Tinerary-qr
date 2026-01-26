@@ -239,6 +239,7 @@ export function EnhancedExpenseTracker({
         .insert({
           itinerary_id: itineraryId,
           user_id: currentUserId,
+          title: newExpense.description || newExpense.category || 'Expense',
           description: newExpense.description,
           amount,
           category: newExpense.category,

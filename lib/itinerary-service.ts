@@ -215,6 +215,7 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
         .filter((e) => e.amount > 0)
         .map((expense) => ({
           itinerary_id: itineraryId,
+          title: expense.category || 'Expense',
           category: expense.category,
           amount: expense.amount,
           user_id: userId,

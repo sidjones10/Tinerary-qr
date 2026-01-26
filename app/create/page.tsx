@@ -146,7 +146,9 @@ function CreatePageContent() {
             .from("itineraries")
             .select(`
               *,
-              activities:activities(*)
+              activities:activities(*),
+              packing_items:packing_items(*),
+              expenses:expenses(*)
             `)
             .eq("id", draftIdFromUrl)
             .eq("user_id", user.id)
@@ -164,6 +166,11 @@ function CreatePageContent() {
             setEndDate(itineraryData.end_date || "")
             setIsPublic(itineraryData.is_public !== undefined ? itineraryData.is_public : true)
 
+            // Load cover image
+            if (itineraryData.cover_image_url) {
+              setCoverImage(itineraryData.cover_image_url)
+            }
+
             // Determine type based on dates
             const start = new Date(itineraryData.start_date)
             const end = new Date(itineraryData.end_date)
@@ -180,6 +187,24 @@ function CreatePageContent() {
                 day: act.day || "",
               }))
               setActivities(formattedActivities)
+            }
+
+            // Load packing items if they exist
+            if (itineraryData.packing_items && itineraryData.packing_items.length > 0) {
+              const formattedPackingItems = itineraryData.packing_items.map((item: any) => ({
+                name: item.name || "",
+                checked: item.is_packed || false,
+              }))
+              setPackingItems(formattedPackingItems)
+            }
+
+            // Load expenses if they exist
+            if (itineraryData.expenses && itineraryData.expenses.length > 0) {
+              const formattedExpenses = itineraryData.expenses.map((exp: any) => ({
+                category: exp.category || "",
+                amount: Number(exp.amount) || 0,
+              }))
+              setExpenses(formattedExpenses)
             }
 
             toast({

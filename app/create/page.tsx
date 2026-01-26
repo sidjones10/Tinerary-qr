@@ -130,8 +130,18 @@ function CreatePageContent() {
             }
 
             if (draftData.expenses && draftData.expenses.length > 0) {
-              setExpenses(draftData.expenses)
+              // Ensure expenses have the right structure (category and amount)
+              const formattedExpenses = draftData.expenses.map((exp: any) => ({
+                category: exp.category || exp.title || exp.description || "",
+                amount: Number(exp.amount) || 0,
+              }))
+              setExpenses(formattedExpenses)
               setShowPackingExpenses(true)
+
+              // Restore splitCount if it was saved in the draft
+              if (draftData.split_count && draftData.split_count > 0) {
+                setSplitCount(draftData.split_count)
+              }
             }
 
             toast({
@@ -202,11 +212,19 @@ function CreatePageContent() {
             // Load expenses if they exist
             if (itineraryData.expenses && itineraryData.expenses.length > 0) {
               const formattedExpenses = itineraryData.expenses.map((exp: any) => ({
-                category: exp.category || "",
+                // Fallback to title or description if category is empty (for expenses created via EnhancedExpenseTracker)
+                category: exp.category || exp.title || exp.description || "",
                 amount: Number(exp.amount) || 0,
               }))
               setExpenses(formattedExpenses)
               setShowPackingExpenses(true) // Enable the toggle since expenses exist
+
+              // Set split count based on number of unique participants or default to 1
+              // This is a rough estimate since splitCount isn't persisted
+              const uniquePayers = new Set(itineraryData.expenses.map((e: any) => e.paid_by_user_id).filter(Boolean))
+              if (uniquePayers.size > 1) {
+                setSplitCount(uniquePayers.size)
+              }
             }
 
             toast({
@@ -316,6 +334,7 @@ function CreatePageContent() {
         activities,
         packing_items: showPackingExpenses ? packingItems : [],
         expenses: showPackingExpenses ? expenses : [],
+        split_count: typeof splitCount === 'number' ? splitCount : 1,
         user_id: user.id,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),

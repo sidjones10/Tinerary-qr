@@ -3,6 +3,7 @@
 
 -- Add missing columns to expenses table (if they don't exist)
 ALTER TABLE public.expenses
+  ADD COLUMN IF NOT EXISTS title TEXT,
   ADD COLUMN IF NOT EXISTS description TEXT,
   ADD COLUMN IF NOT EXISTS paid_by_user_id UUID REFERENCES auth.users(id),
   ADD COLUMN IF NOT EXISTS split_type TEXT DEFAULT 'equal',
@@ -12,12 +13,14 @@ ALTER TABLE public.expenses
 -- Update existing expenses to have default values
 UPDATE public.expenses
 SET
+  title = COALESCE(title, category, description, 'Expense'),
   description = COALESCE(description, 'Expense for ' || category),
   paid_by_user_id = COALESCE(paid_by_user_id, user_id),
   split_type = COALESCE(split_type, 'equal'),
   date = COALESCE(date, created_at::date),
   currency = COALESCE(currency, 'USD')
-WHERE description IS NULL
+WHERE title IS NULL
+   OR description IS NULL
    OR paid_by_user_id IS NULL
    OR split_type IS NULL
    OR date IS NULL
@@ -87,7 +90,7 @@ SELECT
 FROM information_schema.columns
 WHERE table_schema = 'public'
   AND table_name = 'expenses'
-  AND column_name IN ('description', 'paid_by_user_id', 'split_type', 'date', 'currency')
+  AND column_name IN ('title', 'description', 'paid_by_user_id', 'split_type', 'date', 'currency')
 ORDER BY column_name;
 
 -- Test query to verify expense tracker will work

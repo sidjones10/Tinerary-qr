@@ -139,7 +139,6 @@ SELECT
   i.title as itinerary_title,
   p.name,
   p.is_packed,
-  p.category,
   p.quantity,
   p.user_id,
   p.created_at

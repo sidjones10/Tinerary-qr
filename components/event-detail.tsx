@@ -116,7 +116,17 @@ export function EventDetail({ event }: EventDetailProps) {
         .order('created_at', { ascending: true })
 
       if (data) {
-        setPackingItems(data)
+        // Transform database column names to match component interface
+        const transformedItems = data.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          packed: item.is_packed ?? false,
+          tripId: item.itinerary_id,
+          category: item.category,
+          quantity: item.quantity,
+          url: item.url,
+        }))
+        setPackingItems(transformedItems)
       }
     }
     fetchPackingItems()

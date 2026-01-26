@@ -234,6 +234,7 @@ export async function ensureProfileExists(userId: string, email: string): Promis
           updated_at: new Date().toISOString(),
         })
       }
+    }
       })(),
       timeoutPromise,
     ])

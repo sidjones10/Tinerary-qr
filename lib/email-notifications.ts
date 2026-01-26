@@ -2,8 +2,8 @@ import { Resend } from "resend"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-const FROM_EMAIL = "Tinerary <onboarding@resend.dev>" // Change to your verified domain
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+const FROM_EMAIL = "Tinerary <noreply@tinerary-app.com>"
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary-app.com"
 
 /**
  * Send welcome email to new users

@@ -71,6 +71,13 @@ CREATE POLICY "Users can update their own expense splits"
   ON public.expense_splits FOR UPDATE
   USING (user_id = auth.uid());
 
+-- Make sure profiles RLS allows reading for expense display
+-- This is needed so expense tracker can show who paid for each expense
+DROP POLICY IF EXISTS "Anyone can view profiles" ON public.profiles;
+CREATE POLICY "Anyone can view profiles"
+  ON public.profiles FOR SELECT
+  USING (true);
+
 -- Verify the changes
 SELECT
   column_name,
@@ -82,3 +89,16 @@ WHERE table_schema = 'public'
   AND table_name = 'expenses'
   AND column_name IN ('description', 'paid_by_user_id', 'split_type', 'date', 'currency')
 ORDER BY column_name;
+
+-- Test query to verify expense tracker will work
+SELECT
+  e.id,
+  e.description,
+  e.amount,
+  e.category,
+  e.paid_by_user_id,
+  e.date,
+  p.name as paid_by_name
+FROM public.expenses e
+LEFT JOIN public.profiles p ON e.paid_by_user_id = p.id
+LIMIT 5;

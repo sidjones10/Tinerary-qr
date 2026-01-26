@@ -50,8 +50,8 @@ export async function createPackingItem(tripId: string, formData: FormData) {
     const { error } = await supabase.from("packing_items").insert({
       name,
       quantity,
-      packed,
-      trip_id: tripId,
+      is_packed: packed,
+      itinerary_id: tripId,
       user_id: user.id,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -106,11 +106,11 @@ export async function updatePackingItem(itemId: string, tripId: string, formData
       .update({
         name,
         quantity,
-        packed,
+        is_packed: packed,
         updated_at: new Date().toISOString(),
       })
       .eq("id", itemId)
-      .eq("trip_id", tripId)
+      .eq("itinerary_id", tripId)
 
     if (error) {
       console.error("Error updating packing item:", error)
@@ -145,11 +145,11 @@ export async function togglePackingItem(itemId: string, tripId: string, packed: 
     const { error } = await supabase
       .from("packing_items")
       .update({
-        packed,
+        is_packed: packed,
         updated_at: new Date().toISOString(),
       })
       .eq("id", itemId)
-      .eq("trip_id", tripId)
+      .eq("itinerary_id", tripId)
 
     if (error) {
       console.error("Error toggling packing item:", error)
@@ -181,7 +181,7 @@ export async function deletePackingItem(itemId: string, tripId: string) {
 
     // Use Supabase client directly for better error handling
     const supabase = await createClient()
-    const { error } = await supabase.from("packing_items").delete().eq("id", itemId).eq("trip_id", tripId)
+    const { error } = await supabase.from("packing_items").delete().eq("id", itemId).eq("itinerary_id", tripId)
 
     if (error) {
       console.error("Error deleting packing item:", error)
@@ -216,7 +216,7 @@ export async function getPackingItems(tripId: string) {
     const { data, error } = await supabase
       .from("packing_items")
       .select("*")
-      .eq("trip_id", tripId)
+      .eq("itinerary_id", tripId)
       .order("created_at", { ascending: true })
 
     if (error) {

@@ -26,6 +26,7 @@ type Itinerary = {
   cover_image_url: string | null
   user_id: string
   created_at: string
+  is_draft?: boolean
   user?: User
 }
 
@@ -96,19 +97,66 @@ export default function ForYouPage() {
           .order("created_at", { ascending: false })
           .limit(5)
 
+        // Also fetch user's own drafts if logged in
+        let userDrafts: any[] = []
+        if (session?.user) {
+          const { data: drafts, error: draftsError } = await supabase
+            .from("drafts")
+            .select(`
+            id,
+            title,
+            description,
+            location,
+            start_date,
+            end_date,
+            cover_image_url,
+            user_id,
+            created_at
+          `)
+            .eq("user_id", session.user.id)
+            .order("created_at", { ascending: false })
+            .limit(3)
+
+          if (!draftsError && drafts) {
+            // Mark drafts and add user info
+            userDrafts = drafts.map(draft => ({
+              ...draft,
+              is_draft: true,
+              profiles: {
+                id: session.user.id,
+                email: session.user.email,
+                avatar_url: session.user.user_metadata?.avatar_url
+              }
+            }))
+          }
+        }
+
         if (recommendedError) {
           console.error("Error fetching recommended itineraries:", recommendedError)
         } else {
-          // Transform the data to match expected format (no additional queries needed!)
+          // Transform the data to match expected format
           const itinerariesWithUsers = (recommended || []).map((itinerary) => {
             const profile = Array.isArray(itinerary.profiles) ? itinerary.profiles[0] : itinerary.profiles
             return {
               ...itinerary,
+              is_draft: false,
               user: profile || { id: itinerary.user_id, email: "Anonymous", avatar_url: null },
             }
           })
 
-          setRecommendedItineraries(itinerariesWithUsers || [])
+          // Transform drafts
+          const draftsWithUsers = userDrafts.map((draft) => {
+            const profile = Array.isArray(draft.profiles) ? draft.profiles[0] : draft.profiles
+            return {
+              ...draft,
+              user: profile || { id: draft.user_id, email: "Anonymous", avatar_url: null },
+            }
+          })
+
+          // Combine drafts and published itineraries, with drafts first
+          const combinedItineraries = [...draftsWithUsers, ...itinerariesWithUsers]
+
+          setRecommendedItineraries(combinedItineraries || [])
           // For demo purposes, we'll use the same data for friends' itineraries
           setFriendsItineraries(itinerariesWithUsers?.slice(0, 2) || [])
         }
@@ -149,8 +197,12 @@ export default function ForYouPage() {
     fetchData()
   }, [])
 
-  const handleCardClick = (id: string) => {
-    router.push(`/event/${id}`)
+  const handleCardClick = (id: string, isDraft: boolean = false) => {
+    if (isDraft) {
+      router.push(`/create?draft=${id}`)
+    } else {
+      router.push(`/event/${id}`)
+    }
   }
 
   // Format date range for display
@@ -222,7 +274,7 @@ export default function ForYouPage() {
                     <Card
                       key={itinerary.id}
                       className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-                      onClick={() => handleCardClick(itinerary.id)}
+                      onClick={() => handleCardClick(itinerary.id, itinerary.is_draft)}
                     >
                       <div className="relative h-48">
                         <Image
@@ -232,10 +284,17 @@ export default function ForYouPage() {
                           className="object-cover"
                           loading="lazy"
                         />
-                        <Badge className="absolute top-2 left-2 bg-pink-500">
-                          <Sparkles className="h-3 w-3 mr-1" />
-                          Perfect Match
-                        </Badge>
+                        {itinerary.is_draft ? (
+                          <Badge className="absolute top-2 right-2 bg-yellow-500 hover:bg-yellow-600">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Draft
+                          </Badge>
+                        ) : (
+                          <Badge className="absolute top-2 left-2 bg-pink-500">
+                            <Sparkles className="h-3 w-3 mr-1" />
+                            Perfect Match
+                          </Badge>
+                        )}
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
                           <h3 className="text-white font-bold text-lg">{itinerary.title}</h3>
                           <div className="flex flex-wrap items-center gap-y-1 gap-x-3 mt-1">

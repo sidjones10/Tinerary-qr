@@ -111,7 +111,7 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
         is_public: data.isPublic !== undefined ? data.isPublic : true,
         is_template: false,
         user_id: userId,
-        image_url: data.imageUrl || null,
+        cover_image_url: data.imageUrl || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
@@ -336,7 +336,7 @@ export async function updateItinerary(
     if (data.startDate) updateData.start_date = data.startDate
     if (data.endDate) updateData.end_date = data.endDate
     if (data.isPublic !== undefined) updateData.is_public = data.isPublic
-    if (data.imageUrl !== undefined) updateData.image_url = data.imageUrl
+    if (data.imageUrl !== undefined) updateData.cover_image_url = data.imageUrl
 
     const { data: itinerary, error: updateError } = await supabase
       .from("itineraries")

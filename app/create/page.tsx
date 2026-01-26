@@ -1078,7 +1078,15 @@ function CreatePageContent() {
                               type="number"
                               min="1"
                               value={splitCount}
-                              onChange={(e) => setSplitCount(Number.parseInt(e.target.value) || 1)}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                if (val === '') {
+                                  setSplitCount(1)
+                                } else {
+                                  const num = Number.parseInt(val)
+                                  setSplitCount(num > 0 ? num : 1)
+                                }
+                              }}
                               className="w-24 bg-white"
                             />
                           </div>

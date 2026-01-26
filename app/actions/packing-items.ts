@@ -7,7 +7,6 @@ import { z } from "zod"
 
 const PackingItemSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  quantity: z.coerce.number().int().positive().default(1),
   packed: z.boolean().default(false),
 })
 
@@ -33,7 +32,6 @@ export async function createPackingItem(tripId: string, formData: FormData) {
 
     const validatedFields = PackingItemSchema.safeParse({
       name: formData.get("name"),
-      quantity: formData.get("quantity"),
       packed: formData.get("packed") === "on",
     })
 
@@ -43,13 +41,12 @@ export async function createPackingItem(tripId: string, formData: FormData) {
       }
     }
 
-    const { name, quantity, packed } = validatedFields.data
+    const { name, packed } = validatedFields.data
 
     // Use Supabase client directly for better error handling
     const supabase = await createClient()
     const { error } = await supabase.from("packing_items").insert({
       name,
-      quantity,
       is_packed: packed,
       itinerary_id: tripId,
       user_id: user.id,
@@ -87,7 +84,6 @@ export async function updatePackingItem(itemId: string, tripId: string, formData
 
     const validatedFields = PackingItemSchema.safeParse({
       name: formData.get("name"),
-      quantity: formData.get("quantity"),
       packed: formData.get("packed") === "on",
     })
 
@@ -97,7 +93,7 @@ export async function updatePackingItem(itemId: string, tripId: string, formData
       }
     }
 
-    const { name, quantity, packed } = validatedFields.data
+    const { name, packed } = validatedFields.data
 
     // Use Supabase client directly for better error handling
     const supabase = await createClient()
@@ -105,7 +101,6 @@ export async function updatePackingItem(itemId: string, tripId: string, formData
       .from("packing_items")
       .update({
         name,
-        quantity,
         is_packed: packed,
         updated_at: new Date().toISOString(),
       })

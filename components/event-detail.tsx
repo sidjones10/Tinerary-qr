@@ -55,6 +55,13 @@ interface PackingItem {
   [key: string]: unknown
 }
 
+interface Attendee {
+  id: string
+  name: string
+  avatar_url?: string
+  role?: string
+}
+
 interface EventDetailProps {
   event: Event
   packingItems?: PackingItem[]
@@ -607,7 +614,7 @@ export function EventDetail({ event }: EventDetailProps) {
           <TabsContent value="expenses">
             <EnhancedExpenseTracker
               itineraryId={event.id}
-              participants={[
+              participants={(event.attendees as Attendee[] || []).length > 0 ? (event.attendees as Attendee[]) : [
                 {
                   id: event.user_id,
                   name: event.host_name || "Host",

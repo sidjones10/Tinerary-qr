@@ -109,11 +109,20 @@ USING (
   )
 );
 
-RAISE NOTICE '  ✓ RLS policies created';
+-- Confirm RLS policies created
+DO $$
+BEGIN
+  RAISE NOTICE '  ✓ RLS policies created';
+END $$;
 
 -- Grant necessary permissions
 GRANT SELECT, INSERT, DELETE ON saved_itineraries TO authenticated;
-RAISE NOTICE '  ✓ Permissions granted';
+
+-- Confirm permissions granted
+DO $$
+BEGIN
+  RAISE NOTICE '  ✓ Permissions granted';
+END $$;
 
 -- ====================================================================================
 -- STEP 3: Verify the setup

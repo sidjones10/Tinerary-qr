@@ -157,6 +157,10 @@ export default function DiscoverPage() {
       comment_count: 0,
     }
 
+    // Determine if it's a trip or event
+    const isTrip = itinerary.start_date && itinerary.end_date && itinerary.start_date !== itinerary.end_date
+    const itineraryType = isTrip ? "Trip" : "Event"
+
     // Determine badge type
     let badge = null
     if (itinerary.popularityScore > 0.8) {
@@ -175,7 +179,7 @@ export default function DiscoverPage() {
       >
         <div className="relative h-48">
           <Image
-            src={itinerary.image_url || "/placeholder.svg?height=300&width=500"}
+            src={itinerary.cover_image_url || "/placeholder.svg?height=300&width=500"}
             alt={itinerary.title}
             fill
             className="object-cover"
@@ -194,7 +198,12 @@ export default function DiscoverPage() {
             </Badge>
           )}
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
-            <h3 className="text-white font-bold text-lg">{itinerary.title}</h3>
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="text-white font-bold text-lg flex-1">{itinerary.title}</h3>
+              <Badge variant="secondary" className="bg-white/90 text-black text-xs shrink-0">
+                {itineraryType}
+              </Badge>
+            </div>
             <div className="flex flex-wrap items-center gap-y-1 gap-x-3 mt-1">
               {itinerary.start_date && itinerary.end_date && (
                 <div className="flex items-center text-white/90 text-xs">
@@ -446,7 +455,7 @@ export default function DiscoverPage() {
                     <div className="flex h-24">
                       <div className="w-1/3 relative">
                         <Image
-                          src={itinerary.image_url || "/placeholder.svg?height=300&width=500"}
+                          src={itinerary.cover_image_url || "/placeholder.svg?height=300&width=500"}
                           alt={itinerary.title}
                           fill
                           className="object-cover"

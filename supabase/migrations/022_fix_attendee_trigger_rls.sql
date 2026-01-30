@@ -107,8 +107,8 @@ EXECUTE FUNCTION create_equal_splits();
 -- Verify the changes
 DO $$
 DECLARE
-  add_owner_security TEXT;
-  create_splits_security TEXT;
+  add_owner_security BOOLEAN;
+  create_splits_security BOOLEAN;
 BEGIN
   -- Check if functions have SECURITY DEFINER
   SELECT prosecdef INTO add_owner_security

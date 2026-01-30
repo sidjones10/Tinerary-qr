@@ -69,6 +69,7 @@ export interface Itinerary {
   updatedAt: string
   isPublic: boolean
   isPromoted: boolean
+  currency?: string
   activities: Activity[]
   collaborators: Collaborator[]
   expenses?: Expense[]
@@ -130,6 +131,7 @@ export interface CreateItineraryRequest {
   location: string
   coverImage?: string
   isPublic?: boolean
+  currency?: string
   activities?: Omit<Activity, "id" | "itineraryId">[]
   collaborators?: {
     email: string
@@ -145,6 +147,7 @@ export interface UpdateItineraryRequest {
   location?: string
   coverImage?: string
   isPublic?: boolean
+  currency?: string
   customization?: ItineraryCustomization
 }
 

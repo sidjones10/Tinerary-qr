@@ -20,6 +20,7 @@ import { EventPreviewModal } from "@/components/event-preview-modal"
 import { LocationAutocomplete } from "@/components/location-autocomplete"
 import { ActivityBrowserDialog } from "@/components/activity-browser-dialog"
 import type { Activity as ImportedActivity } from "@/lib/activity-service"
+import { getCurrencySymbol, type Currency } from "@/lib/currency-utils"
 import confetti from "canvas-confetti"
 
 export default function CreatePage() {
@@ -62,6 +63,7 @@ function CreatePageContent() {
   const [inviteEmails, setInviteEmails] = useState<string[]>([])
   const [newInviteEmail, setNewInviteEmail] = useState("")
   const [splitCount, setSplitCount] = useState<number | ''>(1)
+  const [currency, setCurrency] = useState<'USD' | 'EUR' | 'GBP' | 'JPY' | 'CAD' | 'AUD'>('USD')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
@@ -74,6 +76,29 @@ function CreatePageContent() {
   const { user } = useAuth()
 
   const supabase = createClient()
+
+  // Load user's currency preference from settings
+  useEffect(() => {
+    const loadUserCurrencyPreference = async () => {
+      if (!user?.id) return
+
+      try {
+        const { data, error } = await supabase
+          .from("user_preferences")
+          .select("language_preferences")
+          .eq("user_id", user.id)
+          .maybeSingle()
+
+        if (!error && data?.language_preferences?.currency) {
+          setCurrency(data.language_preferences.currency)
+        }
+      } catch (error) {
+        console.error("Error loading currency preference:", error)
+      }
+    }
+
+    loadUserCurrencyPreference()
+  }, [user?.id])
 
   // Auto-save draft every 30 seconds
   useEffect(() => {
@@ -123,6 +148,9 @@ function CreatePageContent() {
             setIsPublic(draftData.is_public !== undefined ? draftData.is_public : true)
             setPackingListPublic(draftData.packing_list_public !== undefined ? draftData.packing_list_public : false)
             setExpensesPublic(draftData.expenses_public !== undefined ? draftData.expenses_public : false)
+            if (draftData.currency) {
+              setCurrency(draftData.currency)
+            }
 
             if (draftData.activities && draftData.activities.length > 0) {
               setActivities(draftData.activities)
@@ -181,6 +209,9 @@ function CreatePageContent() {
             setIsPublic(itineraryData.is_public !== undefined ? itineraryData.is_public : true)
             setPackingListPublic(itineraryData.packing_list_public !== undefined ? itineraryData.packing_list_public : false)
             setExpensesPublic(itineraryData.expenses_public !== undefined ? itineraryData.expenses_public : false)
+            if (itineraryData.currency) {
+              setCurrency(itineraryData.currency)
+            }
 
             // Load cover image
             if (itineraryData.cover_image_url) {
@@ -339,6 +370,7 @@ function CreatePageContent() {
         is_public: isPublic,
         packing_list_public: packingListPublic,
         expenses_public: expensesPublic,
+        currency,
         activities,
         packing_items: showPackingExpenses ? packingItems : [],
         expenses: showPackingExpenses ? expenses : [],
@@ -454,6 +486,7 @@ function CreatePageContent() {
         isPublic,
         packingListPublic,
         expensesPublic,
+        currency,
         activities: activities.filter((a) => a.title),
         packingItems: showPackingExpenses ? packingItems : [],
         expenses: showPackingExpenses ? expenses.filter((e) => e.amount > 0) : [],
@@ -1110,11 +1143,31 @@ function CreatePageContent() {
                         <div className="text-right">
                           <p className="text-xs text-muted-foreground">Total</p>
                           <p className="text-lg font-bold text-green-600">
-                            ${expenses.reduce((sum, e) => sum + (e.amount || 0), 0).toFixed(2)}
+                            {getCurrencySymbol(currency)}{expenses.reduce((sum, e) => sum + (e.amount || 0), 0).toFixed(2)}
                           </p>
                         </div>
                       </div>
                       <p className="text-sm text-muted-foreground mb-4">Estimate and track expenses for your {type}</p>
+
+                      {/* Currency Selector */}
+                      <div className="mb-4">
+                        <Label htmlFor="currency" className="text-sm mb-2 block">
+                          Currency
+                        </Label>
+                        <select
+                          id="currency"
+                          value={currency}
+                          onChange={(e) => setCurrency(e.target.value as Currency)}
+                          className="w-48 h-10 px-3 py-2 text-sm rounded-md border border-input bg-background"
+                        >
+                          <option value="USD">USD - US Dollar ($)</option>
+                          <option value="EUR">EUR - Euro (€)</option>
+                          <option value="GBP">GBP - British Pound (£)</option>
+                          <option value="JPY">JPY - Japanese Yen (¥)</option>
+                          <option value="CAD">CAD - Canadian Dollar (C$)</option>
+                          <option value="AUD">AUD - Australian Dollar (A$)</option>
+                        </select>
+                      </div>
 
                       <div className="space-y-3 mb-4">
                         {expenses.map((expense, index) => (
@@ -1126,7 +1179,7 @@ function CreatePageContent() {
                               className="flex-1"
                             />
                             <div className="flex items-center gap-1">
-                              <span className="text-sm font-medium">$</span>
+                              <span className="text-sm font-medium">{getCurrencySymbol(currency)}</span>
                               <Input
                                 type="number"
                                 placeholder="0.00"
@@ -1189,7 +1242,7 @@ function CreatePageContent() {
                           </div>
                           <div className="text-right">
                             <p className="text-xs text-muted-foreground mb-1">Per person</p>
-                            <p className="text-2xl font-bold text-blue-600">${calculateSplitAmount()}</p>
+                            <p className="text-2xl font-bold text-blue-600">{getCurrencySymbol(currency)}{calculateSplitAmount()}</p>
                           </div>
                         </div>
                       </div>

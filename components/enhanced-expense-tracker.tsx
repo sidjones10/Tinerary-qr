@@ -29,6 +29,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
+import { getCurrencySymbol, formatDualCurrency, type Currency } from "@/lib/currency-utils"
 
 interface Expense {
   id: string
@@ -80,7 +81,8 @@ export function EnhancedExpenseTracker({
   const [settlements, setSettlements] = useState<Settlement[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddDialog, setShowAddDialog] = useState(false)
-  const [userCurrency, setUserCurrency] = useState("USD")
+  const [userCurrency, setUserCurrency] = useState<Currency>("USD")
+  const [itineraryCurrency, setItineraryCurrency] = useState<Currency>("USD")
   const { toast } = useToast()
   const supabase = createClient()
 
@@ -129,7 +131,27 @@ export function EnhancedExpenseTracker({
     fetchUserCurrency()
   }, [currentUserId])
 
+  // Fetch itinerary currency
   useEffect(() => {
+    const fetchItineraryCurrency = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("itineraries")
+          .select("currency")
+          .eq("id", itineraryId)
+          .single()
+
+        if (!error && data?.currency) {
+          setItineraryCurrency(data.currency as Currency)
+          // Use itinerary currency for new expenses by default
+          setNewExpense(prev => ({ ...prev, currency: data.currency }))
+        }
+      } catch (error) {
+        console.error("Error fetching itinerary currency:", error)
+      }
+    }
+
+    fetchItineraryCurrency()
     fetchExpenses()
     calculateSettlements()
   }, [itineraryId])
@@ -326,6 +348,19 @@ export function EnhancedExpenseTracker({
     }
   }
 
+  // Helper function to format amount with dual currency if needed
+  const formatAmount = (amount: number, expenseCurrency?: string) => {
+    const currency = (expenseCurrency || itineraryCurrency) as Currency
+
+    // If user's currency is different from the expense/itinerary currency, show both
+    if (userCurrency !== currency) {
+      return formatDualCurrency(amount, currency, userCurrency, { showBothCodes: true })
+    }
+
+    // Otherwise just show the amount with the currency symbol
+    return `${getCurrencySymbol(currency)}${amount.toFixed(2)}`
+  }
+
   const exportToCSV = () => {
     const headers = ["Date", "Description", "Category", "Paid By", "Amount", "Currency"]
     const rows = expenses.map((e) => [
@@ -489,7 +524,7 @@ export function EnhancedExpenseTracker({
             <div className="flex justify-between items-center">
               <div>
                 <p className="text-sm text-muted-foreground">Total Expenses</p>
-                <p className="text-2xl font-bold">${totalExpenses.toFixed(2)}</p>
+                <p className="text-2xl font-bold">{formatAmount(totalExpenses)}</p>
               </div>
               <Button variant="outline" size="sm" onClick={exportToCSV}>
                 <Download className="h-4 w-4 mr-2" />
@@ -528,9 +563,9 @@ export function EnhancedExpenseTracker({
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-lg font-bold">${expense.amount.toFixed(2)}</p>
+                            <p className="text-lg font-bold">{formatAmount(expense.amount, expense.currency)}</p>
                             <p className="text-xs text-muted-foreground">
-                              ${(expense.amount / participants.length).toFixed(2)} per person
+                              {formatAmount(expense.amount / participants.length, expense.currency)} per person
                             </p>
                           </div>
                         </div>
@@ -578,7 +613,7 @@ export function EnhancedExpenseTracker({
                         </div>
 
                         <div className="text-center">
-                          <p className="text-2xl font-bold text-red-500">${settlement.amount.toFixed(2)}</p>
+                          <p className="text-2xl font-bold text-red-500">{formatAmount(settlement.amount)}</p>
                         </div>
 
                         <div className="flex items-center gap-3">
@@ -606,13 +641,13 @@ export function EnhancedExpenseTracker({
               <Card>
                 <CardContent className="p-4">
                   <p className="text-sm text-muted-foreground mb-1">Total Group Spending</p>
-                  <p className="text-2xl font-bold">${totalExpenses.toFixed(2)}</p>
+                  <p className="text-2xl font-bold">{formatAmount(totalExpenses)}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
                   <p className="text-sm text-muted-foreground mb-1">You Paid</p>
-                  <p className="text-2xl font-bold text-green-600">${myTotal.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-green-600">{formatAmount(myTotal)}</p>
                 </CardContent>
               </Card>
             </div>

@@ -342,9 +342,9 @@ export function EventDetail({ event }: EventDetailProps) {
 
       <div className="max-w-4xl mx-auto">
         <div className="relative rounded-xl overflow-hidden mb-6">
-          {event.cover_image_url ? (
+          {event.image_url ? (
             <img
-              src={event.cover_image_url || "/placeholder.svg"}
+              src={event.image_url || "/placeholder.svg"}
               alt={event.title}
               className="w-full h-64 md:h-96 object-cover"
             />

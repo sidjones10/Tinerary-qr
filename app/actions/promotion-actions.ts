@@ -168,7 +168,7 @@ export async function getPromotionById(id: string) {
           location,
           start_date,
           end_date,
-          cover_image_url
+          image_url
         )
       `)
       .eq("id", id)

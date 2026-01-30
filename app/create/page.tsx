@@ -100,27 +100,27 @@ function CreatePageContent() {
     loadUserCurrencyPreference()
   }, [user?.id])
 
-  // Auto-save draft every 30 seconds
+  // Auto-save draft every 30 seconds (only for drafts, not when editing published itineraries)
   useEffect(() => {
-    if (!user?.id || !title) return
+    if (!user?.id || !title || editingItineraryId) return
 
     const autoSaveInterval = setInterval(() => {
       handleSaveDraft(false) // Silent auto-save
     }, 30000) // 30 seconds
 
     return () => clearInterval(autoSaveInterval)
-  }, [user?.id, title, description, location, startDate, endDate, type, isPublic, packingListPublic, expensesPublic, activities, packingItems, expenses])
+  }, [user?.id, title, description, location, startDate, endDate, type, isPublic, packingListPublic, expensesPublic, activities, packingItems, expenses, editingItineraryId])
 
-  // Auto-save draft when user makes changes (debounced)
+  // Auto-save draft when user makes changes (debounced) - only for drafts, not when editing published itineraries
   useEffect(() => {
-    if (!user?.id || !title) return
+    if (!user?.id || !title || editingItineraryId) return
 
     const timeoutId = setTimeout(() => {
       handleSaveDraft(false) // Silent auto-save
     }, 3000) // 3 seconds after user stops typing
 
     return () => clearTimeout(timeoutId)
-  }, [title, description, location, startDate, endDate, type, isPublic, packingListPublic, expensesPublic])
+  }, [title, description, location, startDate, endDate, type, isPublic, packingListPublic, expensesPublic, editingItineraryId])
 
   // Load draft or itinerary for editing if ID is provided in URL
   useEffect(() => {
@@ -150,6 +150,11 @@ function CreatePageContent() {
             setExpensesPublic(draftData.expenses_public !== undefined ? draftData.expenses_public : false)
             if (draftData.currency) {
               setCurrency(draftData.currency)
+            }
+
+            // Load cover image if it exists
+            if (draftData.image_url) {
+              setCoverImage(draftData.image_url)
             }
 
             if (draftData.activities && draftData.activities.length > 0) {
@@ -214,8 +219,8 @@ function CreatePageContent() {
             }
 
             // Load cover image
-            if (itineraryData.cover_image_url) {
-              setCoverImage(itineraryData.cover_image_url)
+            if (itineraryData.image_url) {
+              setCoverImage(itineraryData.image_url)
             }
 
             // Determine type based on dates
@@ -371,6 +376,7 @@ function CreatePageContent() {
         packing_list_public: packingListPublic,
         expenses_public: expensesPublic,
         currency,
+        image_url: coverImage || null,
         activities,
         packing_items: showPackingExpenses ? packingItems : [],
         expenses: showPackingExpenses ? expenses : [],

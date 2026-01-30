@@ -51,9 +51,9 @@ export function EventPreviewModal({ isOpen, onClose, draft }: EventPreviewModalP
 
         <div className="mt-4">
           <div className="relative rounded-lg overflow-hidden mb-4">
-            {draft.cover_image_url ? (
+            {draft.image_url ? (
               <img
-                src={draft.cover_image_url || "/placeholder.svg"}
+                src={draft.image_url || "/placeholder.svg"}
                 alt={draft.title}
                 className="w-full h-48 object-cover"
               />

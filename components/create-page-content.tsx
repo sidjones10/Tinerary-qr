@@ -129,7 +129,7 @@ export default function CreatePageContent() {
             setEndDate(draft.end_date || "2023-05-16")
             setType(draft.type || "trip")
             setIsPublic(draft.is_public !== undefined ? draft.is_public : true)
-            setCoverImageUrl(draft.cover_image_url || null)
+            setCoverImageUrl(draft.image_url || null)
 
             if (draft.activities && draft.activities.length > 0) {
               setActivities(draft.activities)
@@ -315,7 +315,7 @@ export default function CreatePageContent() {
         expenses,
         photos,
         discussions,
-        cover_image_url: coverImageUrl,
+        image_url: coverImageUrl,
       }
 
       const { success, draftId: newDraftId, error } = await saveDraft(draftData)
@@ -506,7 +506,7 @@ export default function CreatePageContent() {
           is_public: isPublic,
           is_template: false,
           user_id: user.id,
-          cover_image_url: coverImageUrl,
+          image_url: coverImageUrl,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
@@ -741,7 +741,7 @@ export default function CreatePageContent() {
         expenses,
         photos,
         discussions,
-        cover_image_url: coverImageUrl,
+        image_url: coverImageUrl,
       }
 
       const { success, draftId: newDraftId, error } = await saveDraft(draftData)
@@ -1530,7 +1530,7 @@ export default function CreatePageContent() {
           expenses,
           photos,
           discussions,
-          cover_image_url: coverImageUrl,
+          image_url: coverImageUrl,
         }}
       />
 

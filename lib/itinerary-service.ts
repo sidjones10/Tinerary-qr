@@ -117,7 +117,7 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
         currency: data.currency || 'USD',
         is_template: false,
         user_id: userId,
-        cover_image_url: data.imageUrl || null,
+        image_url: data.imageUrl || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
@@ -351,7 +351,7 @@ export async function updateItinerary(
     if (data.packingListPublic !== undefined) updateData.packing_list_public = data.packingListPublic
     if (data.expensesPublic !== undefined) updateData.expenses_public = data.expensesPublic
     if (data.currency !== undefined) updateData.currency = data.currency
-    if (data.imageUrl !== undefined) updateData.cover_image_url = data.imageUrl
+    if (data.imageUrl !== undefined) updateData.image_url = data.imageUrl
 
     const { data: itinerary, error: updateError } = await supabase
       .from("itineraries")

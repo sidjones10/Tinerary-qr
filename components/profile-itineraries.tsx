@@ -50,9 +50,9 @@ export function ProfileItineraries({ itineraries, loading, onCreateNew }: Profil
             {itineraries.map((itinerary) => (
               <Card key={itinerary.id} className="overflow-hidden">
                 <div className="aspect-video bg-muted relative">
-                  {itinerary.cover_image_url ? (
+                  {itinerary.image_url ? (
                     <img
-                      src={itinerary.cover_image_url || "/placeholder.svg"}
+                      src={itinerary.image_url || "/placeholder.svg"}
                       alt={itinerary.title}
                       className="object-cover w-full h-full"
                     />

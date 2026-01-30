@@ -23,7 +23,7 @@ type Itinerary = {
   location: string
   start_date: string
   end_date: string
-  cover_image_url: string | null
+  image_url: string | null
   user_id: string
   created_at: string
   is_draft?: boolean
@@ -84,7 +84,7 @@ export default function ForYouPage() {
           location,
           start_date,
           end_date,
-          cover_image_url,
+          image_url,
           user_id,
           created_at,
           profiles:user_id (
@@ -109,7 +109,7 @@ export default function ForYouPage() {
             location,
             start_date,
             end_date,
-            cover_image_url,
+            image_url,
             user_id,
             created_at
           `)
@@ -278,7 +278,7 @@ export default function ForYouPage() {
                     >
                       <div className="relative h-48">
                         <Image
-                          src={itinerary.cover_image_url || "/placeholder.svg?height=300&width=500"}
+                          src={itinerary.image_url || "/placeholder.svg?height=300&width=500"}
                           alt={itinerary.title}
                           fill
                           className="object-cover"
@@ -373,7 +373,7 @@ export default function ForYouPage() {
                       <div className="flex h-24">
                         <div className="w-1/3 relative">
                           <Image
-                            src={trip.cover_image_url || "/placeholder.svg?height=300&width=500"}
+                            src={trip.image_url || "/placeholder.svg?height=300&width=500"}
                             alt={trip.title}
                             fill
                             className="object-cover"

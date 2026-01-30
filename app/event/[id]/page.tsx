@@ -209,8 +209,8 @@ const getEventById = async (id: string) => {
       user_id: itineraryData.user_id,
       title: itineraryData.title,
       type: isTrip ? "Trip" : "Event",
-      image: itineraryData.cover_image_url || "/placeholder.svg?height=400&width=800",
-      cover_image_url: itineraryData.cover_image_url,
+      image: itineraryData.image_url || "/placeholder.svg?height=400&width=800",
+      image_url: itineraryData.image_url,
       start_date: itineraryData.start_date,
       end_date: itineraryData.end_date,
       date: isTrip

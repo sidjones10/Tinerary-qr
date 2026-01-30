@@ -153,8 +153,8 @@ function CreatePageContent() {
             }
 
             // Load cover image if it exists
-            if (draftData.cover_image_url) {
-              setCoverImage(draftData.cover_image_url)
+            if (draftData.image_url) {
+              setCoverImage(draftData.image_url)
             }
 
             if (draftData.activities && draftData.activities.length > 0) {
@@ -219,8 +219,8 @@ function CreatePageContent() {
             }
 
             // Load cover image
-            if (itineraryData.cover_image_url) {
-              setCoverImage(itineraryData.cover_image_url)
+            if (itineraryData.image_url) {
+              setCoverImage(itineraryData.image_url)
             }
 
             // Determine type based on dates
@@ -376,7 +376,7 @@ function CreatePageContent() {
         packing_list_public: packingListPublic,
         expenses_public: expensesPublic,
         currency,
-        cover_image_url: coverImage || null,
+        image_url: coverImage || null,
         activities,
         packing_items: showPackingExpenses ? packingItems : [],
         expenses: showPackingExpenses ? expenses : [],

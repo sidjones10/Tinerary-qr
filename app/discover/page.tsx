@@ -212,7 +212,7 @@ export default function DiscoverPage() {
       >
         <div className="relative h-48">
           <Image
-            src={itinerary.cover_image_url || "/placeholder.svg?height=300&width=500"}
+            src={itinerary.image_url || "/placeholder.svg?height=300&width=500"}
             alt={itinerary.title}
             fill
             className="object-cover"
@@ -496,7 +496,7 @@ export default function DiscoverPage() {
                     <div className="flex h-24">
                       <div className="w-1/3 relative">
                         <Image
-                          src={itinerary.cover_image_url || "/placeholder.svg?height=300&width=500"}
+                          src={itinerary.image_url || "/placeholder.svg?height=300&width=500"}
                           alt={itinerary.title}
                           fill
                           className="object-cover"

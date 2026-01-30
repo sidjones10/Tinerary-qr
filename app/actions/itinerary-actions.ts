@@ -32,7 +32,7 @@ export async function createItinerary(formData: FormData) {
       start_date: formData.get("start_date") as string,
       end_date: formData.get("end_date") as string,
       location: formData.get("location") as string,
-      cover_image_url: (formData.get("cover_image_url") as string) || null,
+      image_url: (formData.get("image_url") as string) || null,
       is_public: formData.get("is_public") === "true",
       is_template: formData.get("is_template") === "true",
     }
@@ -75,7 +75,7 @@ export async function updateItinerary(id: string, formData: FormData) {
     if (formData.has("start_date")) updates.start_date = formData.get("start_date") as string
     if (formData.has("end_date")) updates.end_date = formData.get("end_date") as string
     if (formData.has("location")) updates.location = formData.get("location") as string
-    if (formData.has("cover_image_url")) updates.cover_image_url = formData.get("cover_image_url") as string
+    if (formData.has("image_url")) updates.image_url = formData.get("image_url") as string
     if (formData.has("is_public")) updates.is_public = formData.get("is_public") === "true"
     if (formData.has("is_template")) updates.is_template = formData.get("is_template") === "true"
 

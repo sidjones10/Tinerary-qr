@@ -14,7 +14,7 @@ export interface Itinerary {
   duration: number
   budget: string
   is_public: boolean
-  cover_image_url: string
+  image_url: string
   travel_style: string
   activities: string[]
   itinerary_categories?: any[]
@@ -244,7 +244,7 @@ function calculateQuality(itinerary: any, metrics: ItineraryMetrics | null): num
   const hasLocation = !!itinerary.location
   const hasDates = !!itinerary.start_date && !!itinerary.end_date
   const hasActivities = itinerary.activities && itinerary.activities.length > 0
-  const hasImage = !!itinerary.cover_image_url
+  const hasImage = !!itinerary.image_url
 
   const completenessScore =
     (hasTitle ? 0.1 : 0) +

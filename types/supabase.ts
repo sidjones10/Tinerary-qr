@@ -138,7 +138,7 @@ export interface Database {
           start_date: string
           end_date: string
           location: string | null
-          cover_image_url: string | null
+          image_url: string | null
           is_public: boolean
           created_at: string
           updated_at: string
@@ -151,7 +151,7 @@ export interface Database {
           start_date: string
           end_date: string
           location?: string | null
-          cover_image_url?: string | null
+          image_url?: string | null
           is_public?: boolean
           created_at?: string
           updated_at?: string
@@ -164,7 +164,7 @@ export interface Database {
           start_date?: string
           end_date?: string
           location?: string | null
-          cover_image_url?: string | null
+          image_url?: string | null
           is_public?: boolean
           created_at?: string
           updated_at?: string

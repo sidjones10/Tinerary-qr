@@ -74,7 +74,7 @@ export function FollowingListClient({
           {/* Header */}
           <div className="mb-6">
             <Link
-              href={isOwnProfile ? "/profile" : `/user/${profile.username}`}
+              href={isOwnProfile ? "/profile" : `/user/${profile.id}`}
               className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -142,7 +142,7 @@ export function FollowingListClient({
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start gap-4">
-                      <Link href={`/user/${user.username}`}>
+                      <Link href={`/user/${user.id}`}>
                         <Avatar className="h-12 w-12">
                           <AvatarImage src={user.avatar_url || undefined} alt={user.name || "User"} />
                           <AvatarFallback>{user.name?.[0] || user.username?.[0] || "U"}</AvatarFallback>
@@ -150,7 +150,7 @@ export function FollowingListClient({
                       </Link>
 
                       <div className="flex-1 min-w-0">
-                        <Link href={`/user/${user.username}`} className="block group">
+                        <Link href={`/user/${user.id}`} className="block group">
                           <h3 className="font-semibold group-hover:text-primary transition-colors truncate">
                             {user.name || user.username}
                           </h3>

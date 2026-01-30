@@ -115,22 +115,55 @@ export default function DiscoverPage() {
   const handleLike = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation()
     if (userId) {
-      await trackUserInteraction(userId, id, "like")
+      try {
+        // Use toggle_like RPC function to properly like/unlike
+        const { data, error } = await supabase.rpc('toggle_like', {
+          user_uuid: userId,
+          itinerary_uuid: id
+        })
 
-      // Update the UI optimistically
-      setItineraries((prev) =>
-        prev.map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                metrics: {
-                  ...item.metrics,
-                  like_count: (item.metrics?.like_count || 0) + 1,
-                },
-              }
-            : item,
-        ),
-      )
+        if (error) throw error
+
+        // Update the UI with the actual like count from the database
+        if (data && data.length > 0) {
+          const result = data[0]
+          setItineraries((prev) =>
+            prev.map((item) =>
+              item.id === id
+                ? {
+                    ...item,
+                    metrics: {
+                      ...item.metrics,
+                      like_count: result.new_like_count,
+                    },
+                  }
+                : item,
+            ),
+          )
+
+          // Also update trending itineraries if this item is there
+          setTrendingItineraries((prev) =>
+            prev.map((item) =>
+              item.id === id
+                ? {
+                    ...item,
+                    metrics: {
+                      ...item.metrics,
+                      like_count: result.new_like_count,
+                    },
+                  }
+                : item,
+            ),
+          )
+
+          // Track interaction for analytics
+          if (result.is_liked) {
+            await trackUserInteraction(userId, id, "like")
+          }
+        }
+      } catch (error) {
+        console.error("Error toggling like:", error)
+      }
     } else {
       // Prompt to sign in
       router.push("/login")
@@ -225,7 +258,15 @@ export default function DiscoverPage() {
         </div>
         <CardContent className="p-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center">
+            <div
+              className="flex items-center cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation()
+                if (itinerary.user_id) {
+                  router.push(`/user/${itinerary.user_id}`)
+                }
+              }}
+            >
               <Avatar className="h-6 w-6">
                 <AvatarImage
                   src={itinerary.creator?.avatar_url || "/placeholder.svg?height=40&width=40"}

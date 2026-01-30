@@ -5,16 +5,16 @@
 -- Copy ALL the output and share with Claude for analysis
 -- ============================================================================
 
-\echo '=========================================='
-\echo '📊 TINERARY DATABASE HEALTH CHECK'
-\echo '=========================================='
-\echo ''
+-- echo '=========================================='
+-- echo '📊 TINERARY DATABASE HEALTH CHECK'
+-- echo '=========================================='
+-- echo ''
 
 -- ============================================================================
 -- 1. List all public tables
 -- ============================================================================
-\echo '1️⃣  TABLES IN DATABASE:'
-\echo '------------------------------------------'
+-- echo '1️⃣  TABLES IN DATABASE:'
+-- echo '------------------------------------------'
 SELECT
   tablename AS table_name,
   (SELECT COUNT(*)
@@ -25,14 +25,14 @@ FROM pg_tables
 WHERE schemaname = 'public'
 ORDER BY tablename;
 
-\echo ''
-\echo '=========================================='
+-- echo ''
+-- echo '=========================================='
 
 -- ============================================================================
 -- 2. Check critical missing tables
 -- ============================================================================
-\echo '2️⃣  CRITICAL TABLES STATUS:'
-\echo '------------------------------------------'
+-- echo '2️⃣  CRITICAL TABLES STATUS:'
+-- echo '------------------------------------------'
 WITH required_tables AS (
   SELECT unnest(ARRAY['profiles', 'itineraries', 'activities', 'notifications',
                        'comments', 'saved_itineraries', 'itinerary_metrics']) AS table_name
@@ -47,14 +47,14 @@ SELECT
 FROM required_tables rt
 ORDER BY rt.table_name;
 
-\echo ''
-\echo '=========================================='
+-- echo ''
+-- echo '=========================================='
 
 -- ============================================================================
 -- 3. Check notifications table structure
 -- ============================================================================
-\echo '3️⃣  NOTIFICATIONS TABLE STRUCTURE:'
-\echo '------------------------------------------'
+-- echo '3️⃣  NOTIFICATIONS TABLE STRUCTURE:'
+-- echo '------------------------------------------'
 SELECT
   column_name,
   data_type,
@@ -64,17 +64,17 @@ FROM information_schema.columns
 WHERE table_name = 'notifications' AND table_schema = 'public'
 ORDER BY ordinal_position;
 
-\echo ''
-\echo 'Expected columns: id, user_id, type, title, message, link_url, is_read, created_at, image_url, metadata'
+-- echo ''
+-- echo 'Expected columns: id, user_id, type, title, message, link_url, is_read, created_at, image_url, metadata'
 
-\echo ''
-\echo '=========================================='
+-- echo ''
+-- echo '=========================================='
 
 -- ============================================================================
 -- 4. Check saved_itineraries structure (for likes)
 -- ============================================================================
-\echo '4️⃣  SAVED_ITINERARIES TABLE STRUCTURE:'
-\echo '------------------------------------------'
+-- echo '4️⃣  SAVED_ITINERARIES TABLE STRUCTURE:'
+-- echo '------------------------------------------'
 SELECT
   column_name,
   data_type,
@@ -84,17 +84,17 @@ FROM information_schema.columns
 WHERE table_name = 'saved_itineraries' AND table_schema = 'public'
 ORDER BY ordinal_position;
 
-\echo ''
-\echo 'Expected columns: id, user_id, itinerary_id, created_at, type (for likes)'
+-- echo ''
+-- echo 'Expected columns: id, user_id, itinerary_id, created_at, type (for likes)'
 
-\echo ''
-\echo '=========================================='
+-- echo ''
+-- echo '=========================================='
 
 -- ============================================================================
 -- 5. Check RLS policies for critical tables
 -- ============================================================================
-\echo '5️⃣  RLS POLICIES:'
-\echo '------------------------------------------'
+-- echo '5️⃣  RLS POLICIES:'
+-- echo '------------------------------------------'
 SELECT
   tablename,
   policyname,
@@ -104,17 +104,17 @@ FROM pg_policies
 WHERE tablename IN ('notifications', 'itinerary_metrics', 'comments', 'saved_itineraries')
 ORDER BY tablename, policyname;
 
-\echo ''
-\echo 'Expected: INSERT policies for notifications, itinerary_metrics, comments'
+-- echo ''
+-- echo 'Expected: INSERT policies for notifications, itinerary_metrics, comments'
 
-\echo ''
-\echo '=========================================='
+-- echo ''
+-- echo '=========================================='
 
 -- ============================================================================
 -- 6. Check for required functions
 -- ============================================================================
-\echo '6️⃣  DATABASE FUNCTIONS:'
-\echo '------------------------------------------'
+-- echo '6️⃣  DATABASE FUNCTIONS:'
+-- echo '------------------------------------------'
 SELECT
   routine_name AS function_name,
   routine_type AS type
@@ -132,17 +132,17 @@ WHERE routine_schema = 'public'
   )
 ORDER BY routine_name;
 
-\echo ''
-\echo 'Expected: 8 functions for likes, comments, and metrics'
+-- echo ''
+-- echo 'Expected: 8 functions for likes, comments, and metrics'
 
-\echo ''
-\echo '=========================================='
+-- echo ''
+-- echo '=========================================='
 
 -- ============================================================================
 -- 7. Check triggers
 -- ============================================================================
-\echo '7️⃣  ACTIVE TRIGGERS:'
-\echo '------------------------------------------'
+-- echo '7️⃣  ACTIVE TRIGGERS:'
+-- echo '------------------------------------------'
 SELECT
   event_object_table AS table_name,
   trigger_name,
@@ -152,14 +152,14 @@ WHERE trigger_schema = 'public'
   AND event_object_table IN ('comments', 'saved_itineraries', 'itinerary_metrics')
 ORDER BY event_object_table, trigger_name;
 
-\echo ''
-\echo '=========================================='
+-- echo ''
+-- echo '=========================================='
 
 -- ============================================================================
 -- 8. Check for data in critical tables
 -- ============================================================================
-\echo '8️⃣  ROW COUNTS:'
-\echo '------------------------------------------'
+-- echo '8️⃣  ROW COUNTS:'
+-- echo '------------------------------------------'
 DO $$
 DECLARE
   table_record RECORD;
@@ -177,14 +177,14 @@ BEGIN
   END LOOP;
 END $$;
 
-\echo ''
-\echo '=========================================='
+-- echo ''
+-- echo '=========================================='
 
 -- ============================================================================
 -- 9. Quick fix suggestions
 -- ============================================================================
-\echo '9️⃣  QUICK FIX CHECKLIST:'
-\echo '------------------------------------------'
+-- echo '9️⃣  QUICK FIX CHECKLIST:'
+-- echo '------------------------------------------'
 
 -- Check if saved_itineraries needs type column
 DO $$
@@ -233,13 +233,13 @@ BEGIN
   END IF;
 END $$;
 
-\echo ''
-\echo '=========================================='
-\echo '✅ DIAGNOSTIC COMPLETE'
-\echo '=========================================='
-\echo ''
-\echo 'Next steps:'
-\echo '1. Copy ALL output above'
-\echo '2. Share with Claude for analysis'
-\echo '3. Claude will create targeted fixes'
-\echo ''
+-- echo ''
+-- echo '=========================================='
+-- echo '✅ DIAGNOSTIC COMPLETE'
+-- echo '=========================================='
+-- echo ''
+-- echo 'Next steps:'
+-- echo '1. Copy ALL output above'
+-- echo '2. Share with Claude for analysis'
+-- echo '3. Claude will create targeted fixes'
+-- echo ''

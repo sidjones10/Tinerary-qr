@@ -140,7 +140,7 @@ function SearchContent() {
 
   const renderUserCard = (item: any) => {
     return (
-      <Link href={`/profile/${item.username || item.id}`} key={item.id}>
+      <Link href={`/user/${item.id}`} key={item.id}>
         <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
           <CardContent className="p-4">
             <div className="flex items-center gap-4">

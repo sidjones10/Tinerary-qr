@@ -80,6 +80,7 @@ export function EnhancedExpenseTracker({
   const [settlements, setSettlements] = useState<Settlement[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddDialog, setShowAddDialog] = useState(false)
+  const [userCurrency, setUserCurrency] = useState("USD")
   const { toast } = useToast()
   const supabase = createClient()
 
@@ -102,6 +103,31 @@ export function EnhancedExpenseTracker({
     { value: "shopping", label: "Shopping", icon: "🛍️" },
     { value: "other", label: "Other", icon: "📝" },
   ]
+
+  // Fetch user's currency preference
+  useEffect(() => {
+    const fetchUserCurrency = async () => {
+      if (!currentUserId) return
+
+      try {
+        const { data, error } = await supabase
+          .from("user_preferences")
+          .select("language_preferences")
+          .eq("user_id", currentUserId)
+          .single()
+
+        if (!error && data?.language_preferences?.currency) {
+          const currency = data.language_preferences.currency.toUpperCase()
+          setUserCurrency(currency)
+          setNewExpense(prev => ({ ...prev, currency }))
+        }
+      } catch (error) {
+        console.error("Error fetching user currency:", error)
+      }
+    }
+
+    fetchUserCurrency()
+  }, [currentUserId])
 
   useEffect(() => {
     fetchExpenses()

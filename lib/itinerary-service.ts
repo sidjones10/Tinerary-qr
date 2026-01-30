@@ -69,6 +69,8 @@ export interface CreateItineraryData {
   endDate?: string
   type?: "event" | "trip"
   isPublic?: boolean
+  packingListPublic?: boolean
+  expensesPublic?: boolean
   activities?: Activity[]
   packingItems?: PackingItem[]
   expenses?: Expense[]
@@ -109,6 +111,8 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
         start_date: data.startDate,
         end_date: data.endDate || data.startDate,
         is_public: data.isPublic !== undefined ? data.isPublic : true,
+        packing_list_public: data.packingListPublic !== undefined ? data.packingListPublic : false,
+        expenses_public: data.expensesPublic !== undefined ? data.expensesPublic : false,
         is_template: false,
         user_id: userId,
         cover_image_url: data.imageUrl || null,
@@ -342,6 +346,8 @@ export async function updateItinerary(
     if (data.startDate) updateData.start_date = data.startDate
     if (data.endDate) updateData.end_date = data.endDate
     if (data.isPublic !== undefined) updateData.is_public = data.isPublic
+    if (data.packingListPublic !== undefined) updateData.packing_list_public = data.packingListPublic
+    if (data.expensesPublic !== undefined) updateData.expenses_public = data.expensesPublic
     if (data.imageUrl !== undefined) updateData.cover_image_url = data.imageUrl
 
     const { data: itinerary, error: updateError } = await supabase

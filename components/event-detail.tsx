@@ -110,11 +110,44 @@ export function EventDetail({ event }: EventDetailProps) {
   const [inviteEmail, setInviteEmail] = useState("")
   const [isSendingInvite, setIsSendingInvite] = useState(false)
   const [packingItems, setPackingItems] = useState<PackingItem[]>([])
+  const [canAccessPacking, setCanAccessPacking] = useState(false)
+  const [canAccessExpenses, setCanAccessExpenses] = useState(false)
+  const [checkingAccess, setCheckingAccess] = useState(true)
   const isOwner = user && user.id === event.user_id
 
-  // Fetch packing items
+  // Check access permissions for packing and expenses
+  useEffect(() => {
+    const checkAccess = async () => {
+      setCheckingAccess(true)
+      const supabase = createClient()
+
+      // Check packing list access
+      const { data: packingAccess, error: packingError } = await supabase.rpc('can_access_private_content', {
+        user_uuid: user?.id || null,
+        itinerary_uuid: event.id,
+        content_type: 'packing'
+      })
+
+      // Check expenses access
+      const { data: expensesAccess, error: expensesError } = await supabase.rpc('can_access_private_content', {
+        user_uuid: user?.id || null,
+        itinerary_uuid: event.id,
+        content_type: 'expenses'
+      })
+
+      setCanAccessPacking(packingAccess ?? false)
+      setCanAccessExpenses(expensesAccess ?? false)
+      setCheckingAccess(false)
+    }
+
+    checkAccess()
+  }, [user?.id, event.id])
+
+  // Fetch packing items (only if user has access)
   useEffect(() => {
     const fetchPackingItems = async () => {
+      if (!canAccessPacking) return
+
       const supabase = createClient()
       const { data } = await supabase
         .from('packing_items')
@@ -137,7 +170,7 @@ export function EventDetail({ event }: EventDetailProps) {
       }
     }
     fetchPackingItems()
-  }, [event.id])
+  }, [event.id, canAccessPacking])
 
   // Check if user has liked this itinerary
   useEffect(() => {
@@ -604,25 +637,83 @@ export function EventDetail({ event }: EventDetailProps) {
           </TabsContent>
 
           <TabsContent value="packing">
-            <PackingList
-              simplified={false}
-              items={packingItems}
-              tripId={event.id}
-            />
+            {checkingAccess ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : canAccessPacking ? (
+              <PackingList
+                simplified={false}
+                items={packingItems}
+                tripId={event.id}
+              />
+            ) : (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="rounded-full bg-amber-100 p-4 mb-4">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-8 w-8 text-amber-600"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Packing List is Private</h3>
+                  <p className="text-muted-foreground max-w-md">
+                    This packing list is only visible to the event owner and invited guests.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="expenses">
-            <EnhancedExpenseTracker
-              itineraryId={event.id}
-              participants={(event.attendees as Attendee[] || []).length > 0 ? (event.attendees as Attendee[]) : [
-                {
-                  id: event.user_id,
-                  name: event.host_name || "Host",
-                  avatar_url: event.host_avatar,
-                },
-              ]}
-              currentUserId={user?.id}
-            />
+            {checkingAccess ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : canAccessExpenses ? (
+              <EnhancedExpenseTracker
+                itineraryId={event.id}
+                participants={(event.attendees as Attendee[] || []).length > 0 ? (event.attendees as Attendee[]) : [
+                  {
+                    id: event.user_id,
+                    name: event.host_name || "Host",
+                    avatar_url: event.host_avatar,
+                  },
+                ]}
+                currentUserId={user?.id}
+              />
+            ) : (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="rounded-full bg-amber-100 p-4 mb-4">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-8 w-8 text-amber-600"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Expenses are Private</h3>
+                  <p className="text-muted-foreground max-w-md">
+                    Expense details are only visible to the event owner and invited guests.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="attendees">

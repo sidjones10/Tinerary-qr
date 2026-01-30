@@ -41,6 +41,8 @@ function CreatePageContent() {
   const [endDate, setEndDate] = useState("")
   const [time, setTime] = useState("")
   const [isPublic, setIsPublic] = useState(true)
+  const [packingListPublic, setPackingListPublic] = useState(false)
+  const [expensesPublic, setExpensesPublic] = useState(false)
   const [activities, setActivities] = useState([
     { title: "", location: "", time: "", description: "", requireRsvp: false, day: "" },
   ])
@@ -82,7 +84,7 @@ function CreatePageContent() {
     }, 30000) // 30 seconds
 
     return () => clearInterval(autoSaveInterval)
-  }, [user?.id, title, description, location, startDate, endDate, type, isPublic, activities, packingItems, expenses])
+  }, [user?.id, title, description, location, startDate, endDate, type, isPublic, packingListPublic, expensesPublic, activities, packingItems, expenses])
 
   // Auto-save draft when user makes changes (debounced)
   useEffect(() => {
@@ -93,7 +95,7 @@ function CreatePageContent() {
     }, 3000) // 3 seconds after user stops typing
 
     return () => clearTimeout(timeoutId)
-  }, [title, description, location, startDate, endDate, type, isPublic])
+  }, [title, description, location, startDate, endDate, type, isPublic, packingListPublic, expensesPublic])
 
   // Load draft or itinerary for editing if ID is provided in URL
   useEffect(() => {
@@ -119,6 +121,8 @@ function CreatePageContent() {
             setEndDate(draftData.end_date || "")
             setType(draftData.type || "event")
             setIsPublic(draftData.is_public !== undefined ? draftData.is_public : true)
+            setPackingListPublic(draftData.packing_list_public !== undefined ? draftData.packing_list_public : false)
+            setExpensesPublic(draftData.expenses_public !== undefined ? draftData.expenses_public : false)
 
             if (draftData.activities && draftData.activities.length > 0) {
               setActivities(draftData.activities)
@@ -175,6 +179,8 @@ function CreatePageContent() {
             setStartDate(itineraryData.start_date || "")
             setEndDate(itineraryData.end_date || "")
             setIsPublic(itineraryData.is_public !== undefined ? itineraryData.is_public : true)
+            setPackingListPublic(itineraryData.packing_list_public !== undefined ? itineraryData.packing_list_public : false)
+            setExpensesPublic(itineraryData.expenses_public !== undefined ? itineraryData.expenses_public : false)
 
             // Load cover image
             if (itineraryData.cover_image_url) {
@@ -331,6 +337,8 @@ function CreatePageContent() {
         end_date: endDate || startDate || new Date().toISOString().split("T")[0],
         type,
         is_public: isPublic,
+        packing_list_public: packingListPublic,
+        expenses_public: expensesPublic,
         activities,
         packing_items: showPackingExpenses ? packingItems : [],
         expenses: showPackingExpenses ? expenses : [],
@@ -444,6 +452,8 @@ function CreatePageContent() {
         endDate: formattedEndDate,
         type,
         isPublic,
+        packingListPublic,
+        expensesPublic,
         activities: activities.filter((a) => a.title),
         packingItems: showPackingExpenses ? packingItems : [],
         expenses: showPackingExpenses ? expenses.filter((e) => e.amount > 0) : [],
@@ -1274,14 +1284,46 @@ function CreatePageContent() {
                 <h2 className="text-lg font-semibold mb-2">Privacy Settings</h2>
                 <p className="text-sm text-muted-foreground mb-4">Control who can see and join your {type}</p>
 
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <h3 className="font-medium">Public Visibility</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Make this {type} visible to everyone in the "For You" feed
-                    </p>
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium">Public Visibility</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Make this {type} visible to everyone in the "For You" feed
+                      </p>
+                    </div>
+                    <Switch checked={isPublic} onCheckedChange={setIsPublic} />
                   </div>
-                  <Switch checked={isPublic} onCheckedChange={setIsPublic} />
+
+                  <div className="border-t pt-6">
+                    <h3 className="font-medium mb-4">Public Access to Private Details</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Control whether the public can view packing lists and expenses for posted itineraries.
+                      By default, only you and invited guests can see these details.
+                    </p>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium text-sm">Public Packing List</h4>
+                          <p className="text-xs text-muted-foreground">
+                            Allow anyone to view your packing list
+                          </p>
+                        </div>
+                        <Switch checked={packingListPublic} onCheckedChange={setPackingListPublic} />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium text-sm">Public Expenses</h4>
+                          <p className="text-xs text-muted-foreground">
+                            Allow anyone to view your expense details
+                          </p>
+                        </div>
+                        <Switch checked={expensesPublic} onCheckedChange={setExpensesPublic} />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

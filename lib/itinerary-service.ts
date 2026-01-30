@@ -71,6 +71,7 @@ export interface CreateItineraryData {
   isPublic?: boolean
   packingListPublic?: boolean
   expensesPublic?: boolean
+  currency?: string
   activities?: Activity[]
   packingItems?: PackingItem[]
   expenses?: Expense[]
@@ -113,6 +114,7 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
         is_public: data.isPublic !== undefined ? data.isPublic : true,
         packing_list_public: data.packingListPublic !== undefined ? data.packingListPublic : false,
         expenses_public: data.expensesPublic !== undefined ? data.expensesPublic : false,
+        currency: data.currency || 'USD',
         is_template: false,
         user_id: userId,
         cover_image_url: data.imageUrl || null,
@@ -227,7 +229,7 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
           paid_by_user_id: userId,
           split_type: 'equal',
           date: data.startDate || new Date().toISOString().split('T')[0],
-          currency: 'USD',
+          currency: data.currency || 'USD',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         }))
@@ -348,6 +350,7 @@ export async function updateItinerary(
     if (data.isPublic !== undefined) updateData.is_public = data.isPublic
     if (data.packingListPublic !== undefined) updateData.packing_list_public = data.packingListPublic
     if (data.expensesPublic !== undefined) updateData.expenses_public = data.expensesPublic
+    if (data.currency !== undefined) updateData.currency = data.currency
     if (data.imageUrl !== undefined) updateData.cover_image_url = data.imageUrl
 
     const { data: itinerary, error: updateError } = await supabase
@@ -485,7 +488,7 @@ export async function updateItinerary(
             paid_by_user_id: userId,
             split_type: 'equal',
             date: data.startDate || updateData.start_date || new Date().toISOString().split('T')[0],
-            currency: 'USD',
+            currency: data.currency || updateData.currency || 'USD',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           }))

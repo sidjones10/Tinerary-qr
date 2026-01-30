@@ -1,12 +1,6 @@
 -- Add RLS policies for saved_itineraries table
 -- This allows users to manage their own likes and saves
 
-\echo '';
-\echo '========================================';
-\echo 'Adding RLS policies to saved_itineraries';
-\echo '========================================';
-\echo '';
-
 -- Policy: Users can view their own saved itineraries
 CREATE POLICY IF NOT EXISTS "Users can view own saved itineraries"
 ON saved_itineraries
@@ -41,18 +35,3 @@ USING (
 
 -- Grant necessary permissions
 GRANT SELECT, INSERT, DELETE ON saved_itineraries TO authenticated;
-
-\echo '';
-\echo '✓ RLS policies created successfully';
-\echo '';
-\echo 'Policies created:';
-\echo '  ✓ Users can view own saved itineraries';
-\echo '  ✓ Users can insert own saved itineraries';
-\echo '  ✓ Users can delete own saved itineraries';
-\echo '  ✓ Anyone can view save counts for public itineraries';
-\echo '';
-\echo 'Users can now:';
-\echo '  - Like/unlike itineraries';
-\echo '  - Save/unsave itineraries';
-\echo '  - View their own likes and saves';
-\echo '';

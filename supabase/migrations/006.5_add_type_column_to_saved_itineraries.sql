@@ -1,12 +1,6 @@
 -- Add type column to saved_itineraries table
 -- This column distinguishes between 'like' and 'save' actions
 
-\echo '';
-\echo '========================================';
-\echo 'Adding type column to saved_itineraries';
-\echo '========================================';
-\echo '';
-
 -- Step 1: Add the type column with default value
 ALTER TABLE saved_itineraries
 ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'save';
@@ -33,15 +27,3 @@ COMMENT ON COLUMN saved_itineraries.type IS 'Type of saved item: like (favorited
 
 -- Step 6: Grant necessary permissions (already covered by table-level RLS but being explicit)
 -- Permissions are handled by RLS policies on the table
-
-\echo '';
-\echo '✓ Type column added successfully';
-\echo '✓ Index created on type column';
-\echo '✓ Unique constraint updated';
-\echo '✓ Check constraint added';
-\echo '';
-\echo 'The saved_itineraries table now supports:';
-\echo '  - type = ''like'': User has liked/favorited the itinerary';
-\echo '  - type = ''save'': User has saved/bookmarked the itinerary';
-\echo '  - Users can both like AND save the same itinerary';
-\echo '';

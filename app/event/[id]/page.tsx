@@ -93,11 +93,12 @@ const getEventById = async (id: string) => {
       throw new Error("Itinerary not found")
     }
 
-    // Fetch activities, packing items, and expenses in parallel for better performance
+    // Fetch activities, packing items, expenses, and attendees in parallel for better performance
     const [
       { data: activitiesData, error: activitiesError },
       { data: packingData, error: packingError },
-      { data: expensesData, error: expensesError }
+      { data: expensesData, error: expensesError },
+      { data: attendeesData, error: attendeesError }
     ] = await Promise.all([
       supabase
         .from("activities")
@@ -111,6 +112,19 @@ const getEventById = async (id: string) => {
       supabase
         .from("expenses")
         .select("*")
+        .eq("itinerary_id", id),
+      supabase
+        .from("itinerary_attendees")
+        .select(`
+          user_id,
+          role,
+          profiles:user_id (
+            id,
+            name,
+            username,
+            avatar_url
+          )
+        `)
         .eq("itinerary_id", id)
     ])
 
@@ -124,6 +138,10 @@ const getEventById = async (id: string) => {
 
     if (expensesError) {
       console.error("Error fetching expenses:", expensesError)
+    }
+
+    if (attendeesError) {
+      console.error("Error fetching attendees:", attendeesError)
     }
 
     // Determine if this is a trip or event based on date fields
@@ -264,6 +282,16 @@ const getEventById = async (id: string) => {
           total,
         }
       })(),
+      // Format attendees/participants
+      attendees: attendeesData ? attendeesData.map((attendee: any) => {
+        const profile = Array.isArray(attendee.profiles) ? attendee.profiles[0] : attendee.profiles
+        return {
+          id: profile?.id || attendee.user_id,
+          name: profile?.name || profile?.username || "Unknown",
+          avatar_url: profile?.avatar_url,
+          role: attendee.role || 'member'
+        }
+      }) : [],
       people: [],
       discussion: [],
     }

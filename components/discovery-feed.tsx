@@ -130,44 +130,46 @@ export function DiscoveryFeed() {
 
   // Handle like action
   const handleLike = async (itemId: string) => {
-    if (!user?.id) return
-
-    const newLiked = new Set(likedItems)
-    const wasLiked = likedItems.has(itemId)
-
-    if (wasLiked) {
-      newLiked.delete(itemId)
-      // Remove like from database
-      try {
-        const supabase = createClient()
-        await supabase
-          .from("saved_itineraries")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("itinerary_id", itemId)
-          .eq("type", "like")
-      } catch (error) {
-        console.warn("Could not remove like from database:", error)
-      }
-    } else {
-      newLiked.add(itemId)
-      // Record interaction and save to database
-      await recordInteraction(user.id, itemId, "like")
-
-      // Save to saved_itineraries table with type = 'like'
-      try {
-        const supabase = createClient()
-        await supabase.from("saved_itineraries").insert({
-          user_id: user.id,
-          itinerary_id: itemId,
-          type: "like",
-          created_at: new Date().toISOString(),
-        })
-      } catch (error) {
-        console.warn("Could not save like to database:", error)
-      }
+    if (!user?.id) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to like itineraries",
+        variant: "destructive",
+      })
+      return
     }
-    setLikedItems(newLiked)
+
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase.rpc('toggle_like', {
+        user_uuid: user.id,
+        itinerary_uuid: itemId
+      })
+
+      if (error) throw error
+
+      if (data && data.length > 0) {
+        const result = data[0]
+        const newLiked = new Set(likedItems)
+
+        if (result.is_liked) {
+          newLiked.add(itemId)
+          // Record interaction for analytics
+          await recordInteraction(user.id, itemId, "like")
+        } else {
+          newLiked.delete(itemId)
+        }
+
+        setLikedItems(newLiked)
+      }
+    } catch (error) {
+      console.error("Error toggling like:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update like status",
+        variant: "destructive",
+      })
+    }
   }
 
   // Handle save action

@@ -69,6 +69,8 @@ export interface CreateItineraryData {
   endDate?: string
   type?: "event" | "trip"
   isPublic?: boolean
+  packingListPublic?: boolean
+  expensesPublic?: boolean
   activities?: Activity[]
   packingItems?: PackingItem[]
   expenses?: Expense[]
@@ -109,6 +111,8 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
         start_date: data.startDate,
         end_date: data.endDate || data.startDate,
         is_public: data.isPublic !== undefined ? data.isPublic : true,
+        packing_list_public: data.packingListPublic !== undefined ? data.packingListPublic : false,
+        expenses_public: data.expensesPublic !== undefined ? data.expensesPublic : false,
         is_template: false,
         user_id: userId,
         cover_image_url: data.imageUrl || null,
@@ -342,6 +346,8 @@ export async function updateItinerary(
     if (data.startDate) updateData.start_date = data.startDate
     if (data.endDate) updateData.end_date = data.endDate
     if (data.isPublic !== undefined) updateData.is_public = data.isPublic
+    if (data.packingListPublic !== undefined) updateData.packing_list_public = data.packingListPublic
+    if (data.expensesPublic !== undefined) updateData.expenses_public = data.expensesPublic
     if (data.imageUrl !== undefined) updateData.cover_image_url = data.imageUrl
 
     const { data: itinerary, error: updateError } = await supabase
@@ -353,6 +359,144 @@ export async function updateItinerary(
 
     if (updateError) {
       return { success: false, error: updateError.message }
+    }
+
+    // Update activities if provided
+    if (data.activities !== undefined) {
+      // Delete existing activities
+      await supabase.from("activities").delete().eq("itinerary_id", itineraryId)
+
+      // Insert new activities
+      if (data.activities.length > 0) {
+        const activitiesToInsert = data.activities
+          .filter((a) => a.title)
+          .map((activity, index) => {
+            // Convert time string to proper timestamp
+            let startTime = new Date().toISOString()
+            if (activity.time) {
+              try {
+                // Try to parse the time and combine with start date
+                const baseDate = new Date(data.startDate || updateData.start_date)
+
+                // Check if it's in HTML5 time format (HH:MM in 24-hour)
+                if (/^\d{2}:\d{2}$/.test(activity.time)) {
+                  const [hours, minutes] = activity.time.split(':').map(Number)
+                  baseDate.setHours(hours, minutes, 0, 0)
+                  startTime = baseDate.toISOString()
+                } else {
+                  // Try to parse text format like "7:00 PM"
+                  const timeMatch = activity.time.match(/(\d+):(\d+)\s*(AM|PM)?/i)
+                  if (timeMatch) {
+                    let hours = parseInt(timeMatch[1])
+                    const minutes = parseInt(timeMatch[2])
+                    const meridiem = timeMatch[3]?.toUpperCase()
+
+                    // Convert to 24-hour format
+                    if (meridiem === 'PM' && hours !== 12) hours += 12
+                    if (meridiem === 'AM' && hours === 12) hours = 0
+
+                    baseDate.setHours(hours, minutes, 0, 0)
+                    startTime = baseDate.toISOString()
+                  }
+                }
+              } catch (e) {
+                console.error("Error parsing activity time:", e)
+              }
+            }
+
+            return {
+              itinerary_id: itineraryId,
+              title: activity.title,
+              description: activity.description || null,
+              location: activity.location || null,
+              start_time: startTime,
+              day: activity.day || null,
+              user_id: userId,
+              require_rsvp: activity.requireRsvp || false,
+              order_index: index,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }
+          })
+
+        if (activitiesToInsert.length > 0) {
+          const { error: activitiesError } = await supabase.from("activities").insert(activitiesToInsert)
+          if (activitiesError) {
+            console.error("Activities update error:", activitiesError)
+          }
+        }
+      }
+    }
+
+    // Update packing items if provided
+    if (data.packingItems !== undefined) {
+      // Delete existing packing items
+      await supabase.from("packing_items").delete().eq("itinerary_id", itineraryId)
+
+      // Insert new packing items
+      if (data.packingItems.length > 0) {
+        const packingItemsToInsert = data.packingItems
+          .filter((item) => item.name)
+          .map((item) => ({
+            itinerary_id: itineraryId,
+            name: item.name,
+            is_packed: item.checked || false,
+            user_id: userId,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }))
+
+        if (packingItemsToInsert.length > 0) {
+          const { error: packingError } = await supabase.from("packing_items").insert(packingItemsToInsert)
+          if (packingError) {
+            console.error("Packing items update error:", packingError)
+          }
+        }
+      }
+    }
+
+    // Update expenses if provided
+    if (data.expenses !== undefined) {
+      // Delete existing expenses and their splits
+      const { data: existingExpenses } = await supabase
+        .from("expenses")
+        .select("id")
+        .eq("itinerary_id", itineraryId)
+
+      if (existingExpenses && existingExpenses.length > 0) {
+        const expenseIds = existingExpenses.map(e => e.id)
+        // Delete expense splits first
+        await supabase.from("expense_splits").delete().in("expense_id", expenseIds)
+        // Then delete expenses
+        await supabase.from("expenses").delete().eq("itinerary_id", itineraryId)
+      }
+
+      // Insert new expenses
+      if (data.expenses.length > 0) {
+        const expensesToInsert = data.expenses
+          .filter((e) => e.amount > 0)
+          .map((expense) => ({
+            itinerary_id: itineraryId,
+            title: expense.category || 'Expense',
+            category: expense.category,
+            amount: expense.amount,
+            user_id: userId,
+            description: `Expense for ${expense.category}`,
+            paid_by_user_id: userId,
+            split_type: 'equal',
+            date: data.startDate || updateData.start_date || new Date().toISOString().split('T')[0],
+            currency: 'USD',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }))
+
+        if (expensesToInsert.length > 0) {
+          const { error: expensesError } = await supabase.from("expenses").insert(expensesToInsert)
+          if (expensesError) {
+            console.error("Expenses update error:", expensesError)
+          }
+        }
+      }
     }
 
     return {

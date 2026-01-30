@@ -1,17 +1,9 @@
 -- Comprehensive fix for the likes system
 -- This script fixes the saved_itineraries table structure and permissions
 
-\echo '';
-\echo '╔════════════════════════════════════════╗';
-\echo '║   Fixing Likes System                 ║';
-\echo '╚════════════════════════════════════════╝';
-\echo '';
-
 -- ====================================================================================
 -- STEP 1: Add type column to saved_itineraries
 -- ====================================================================================
-
-\echo '→ Step 1: Adding type column to saved_itineraries...';
 
 -- Add the type column with default value
 DO $$
@@ -80,9 +72,6 @@ END $$;
 -- STEP 2: Add RLS policies for saved_itineraries
 -- ====================================================================================
 
-\echo '';
-\echo '→ Step 2: Adding RLS policies...';
-
 -- Drop existing policies to recreate them (in case they need updating)
 DROP POLICY IF EXISTS "Users can view own saved itineraries" ON saved_itineraries;
 DROP POLICY IF EXISTS "Users can insert own saved itineraries" ON saved_itineraries;
@@ -129,9 +118,6 @@ RAISE NOTICE '  ✓ Permissions granted';
 -- ====================================================================================
 -- STEP 3: Verify the setup
 -- ====================================================================================
-
-\echo '';
-\echo '→ Step 3: Verifying setup...';
 
 -- Check if type column exists
 DO $$
@@ -212,26 +198,19 @@ END $$;
 -- ====================================================================================
 -- SUCCESS!
 -- ====================================================================================
-
-\echo '';
-\echo '╔════════════════════════════════════════╗';
-\echo '║   ✓ Likes System Fixed!               ║';
-\echo '╚════════════════════════════════════════╝';
-\echo '';
-\echo 'What was fixed:';
-\echo '  1. Added type column to saved_itineraries';
-\echo '  2. Updated unique constraint to allow both likes and saves';
-\echo '  3. Added RLS policies for user access';
-\echo '  4. Granted necessary permissions';
-\echo '';
-\echo 'Users can now:';
-\echo '  ✓ Like itineraries from detail view';
-\echo '  ✓ Like itineraries from discover feed';
-\echo '  ✓ View their liked itineraries in the Likes tab';
-\echo '  ✓ Unlike itineraries';
-\echo '';
-\echo 'Next steps:';
-\echo '  1. Test liking an itinerary';
-\echo '  2. Check the Likes tab to see it appear';
-\echo '  3. Test unliking';
-\echo '';
+-- What was fixed:
+--   1. Added type column to saved_itineraries
+--   2. Updated unique constraint to allow both likes and saves
+--   3. Added RLS policies for user access
+--   4. Granted necessary permissions
+--
+-- Users can now:
+--   ✓ Like itineraries from detail view
+--   ✓ Like itineraries from discover feed
+--   ✓ View their liked itineraries in the Likes tab
+--   ✓ Unlike itineraries
+--
+-- Next steps:
+--   1. Test liking an itinerary
+--   2. Check the Likes tab to see it appear
+--   3. Test unliking

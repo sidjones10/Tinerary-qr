@@ -452,7 +452,15 @@ export function EventDetail({ event }: EventDetailProps) {
               </div>
             )}
 
-            <div className="flex items-center gap-2">
+            <div
+              className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation()
+                if (event.user_id) {
+                  router.push(`/user/${event.user_id}`)
+                }
+              }}
+            >
               {event.host_avatar && (
                 <img
                   src={event.host_avatar}

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { MessageSquare, Send, Reply, Edit2, Trash2, MoreVertical, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -40,6 +41,7 @@ interface CommentsSectionProps {
 }
 
 export function CommentsSection({ itineraryId, currentUserId }: CommentsSectionProps) {
+  const router = useRouter()
   const [comments, setComments] = useState<Comment[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -310,9 +312,29 @@ export function CommentsSection({ itineraryId, currentUserId }: CommentsSectionP
           <div className="flex-1 space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="font-medium text-sm">{userName}</span>
+                <span
+                  className="font-medium text-sm cursor-pointer hover:text-violet-600 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (comment.user_id) {
+                      router.push(`/user/${comment.user_id}`)
+                    }
+                  }}
+                >
+                  {userName}
+                </span>
                 {comment.user?.username && (
-                  <span className="text-xs text-muted-foreground">@{comment.user.username}</span>
+                  <span
+                    className="text-xs text-muted-foreground cursor-pointer hover:text-violet-600 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (comment.user_id) {
+                        router.push(`/user/${comment.user_id}`)
+                      }
+                    }}
+                  >
+                    @{comment.user.username}
+                  </span>
                 )}
                 <span className="text-xs text-muted-foreground">
                   {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}

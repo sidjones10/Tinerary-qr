@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, Suspense } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { Search, Filter, Calendar, MapPin, User, ArrowLeft, Loader2 } from "lucide-react"
@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 function SearchContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const initialQuery = searchParams.get("q") || ""
 
   const [query, setQuery] = useState(initialQuery)
@@ -127,7 +128,16 @@ function SearchContent() {
               <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{item.description}</p>
             )}
             {item.username && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div
+                className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer hover:text-violet-600 transition-colors"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  if (item.user_id) {
+                    router.push(`/user/${item.user_id}`)
+                  }
+                }}
+              >
                 <User className="h-3.5 w-3.5" />
                 <span>@{item.username}</span>
               </div>

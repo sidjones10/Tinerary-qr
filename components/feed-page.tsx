@@ -502,7 +502,7 @@ export function FeedPage() {
         )}
 
         {feedTab === "discover" && (
-          <div className="h-[calc(100vh-250px)]">
+          <div className="min-h-[600px] md:min-h-[700px] lg:min-h-[800px]">
             <DiscoveryFeed />
           </div>
         )}

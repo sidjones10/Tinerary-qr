@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useAuth } from "@/providers/auth-provider"
-import { User, Shield, Bell, Palette, Lock, CreditCard, Globe, HelpCircle, LogOut, ExternalLink } from "lucide-react"
+import { User, Shield, Bell, Palette, Lock, Globe, HelpCircle, LogOut, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface SettingsNavProps {
@@ -19,7 +19,6 @@ export function SettingsNav({ activeSection, setActiveSection }: SettingsNavProp
     { id: "notifications", label: "Notifications", icon: <Bell className="w-4 h-4" /> },
     { id: "appearance", label: "Appearance", icon: <Palette className="w-4 h-4" /> },
     { id: "privacy", label: "Privacy", icon: <Lock className="w-4 h-4" /> },
-    { id: "payment", label: "Payment", icon: <CreditCard className="w-4 h-4" /> },
     { id: "language", label: "Language & Region", icon: <Globe className="w-4 h-4" /> },
     { id: "help", label: "Help & Support", icon: <HelpCircle className="w-4 h-4" /> },
   ]

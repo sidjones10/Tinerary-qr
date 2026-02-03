@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client"
+import { notifyNewComment } from "@/lib/notification-service"
 
 export interface Comment {
   id: string
@@ -138,6 +139,30 @@ export async function createComment(
     const comment: Comment = {
       ...data,
       user: Array.isArray(data.profiles) ? data.profiles[0] : data.profiles,
+    }
+
+    // Send notification to itinerary owner (if not commenting on own post)
+    try {
+      const { data: itinerary } = await supabase
+        .from("itineraries")
+        .select("user_id, title")
+        .eq("id", itineraryId)
+        .single()
+
+      if (itinerary && itinerary.user_id !== userId) {
+        const commenterProfile = comment.user
+        await notifyNewComment(
+          itinerary.user_id,
+          commenterProfile?.name || "Someone",
+          commenterProfile?.avatar_url || null,
+          itineraryId,
+          itinerary.title,
+          content
+        )
+      }
+    } catch (notifyError) {
+      // Don't fail the comment if notification fails
+      console.error("Failed to send comment notification:", notifyError)
     }
 
     return { success: true, comment }

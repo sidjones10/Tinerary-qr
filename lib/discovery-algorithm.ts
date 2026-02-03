@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client"
+import { notifyViewMilestone, checkViewMilestone } from "@/lib/notification-service"
 
 // Types
 export interface Itinerary {
@@ -116,11 +117,44 @@ export async function getItineraryMetrics(itineraryId: string): Promise<Itinerar
   }
 }
 
-// Helper function to update itinerary view count
+// Helper function to update itinerary view count and check for milestones
 export async function incrementItineraryViews(itineraryId: string): Promise<void> {
   try {
     const supabase = createClient()
+
+    // Get current view count before incrementing
+    const { data: metricsBefore } = await supabase
+      .from("itinerary_metrics")
+      .select("view_count")
+      .eq("itinerary_id", itineraryId)
+      .single()
+
+    const previousViews = metricsBefore?.view_count || 0
+
+    // Increment the view count
     await supabase.rpc("increment_view_count", { itinerary_id: itineraryId })
+
+    const newViews = previousViews + 1
+
+    // Check if we've crossed a view milestone (500, 1000, 5000)
+    const milestone = checkViewMilestone(newViews, previousViews)
+    if (milestone) {
+      // Get itinerary details for the notification
+      const { data: itinerary } = await supabase
+        .from("itineraries")
+        .select("user_id, title")
+        .eq("id", itineraryId)
+        .single()
+
+      if (itinerary) {
+        await notifyViewMilestone(
+          itinerary.user_id,
+          itineraryId,
+          itinerary.title,
+          milestone
+        )
+      }
+    }
   } catch (error) {
     console.error("Error incrementing view count:", error)
   }

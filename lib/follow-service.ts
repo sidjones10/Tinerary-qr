@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client"
+import { notifyNewFollower } from "@/lib/notification-service"
 
 export interface FollowUser {
   id: string
@@ -36,6 +37,29 @@ export async function followUser(
         return { success: false, error: "Already following this user" }
       }
       throw error
+    }
+
+    // Send notification to the user being followed
+    try {
+      // Get follower's profile info for the notification
+      const { data: followerProfile } = await supabase
+        .from("profiles")
+        .select("name, username, avatar_url")
+        .eq("id", userId)
+        .single()
+
+      if (followerProfile) {
+        await notifyNewFollower(
+          targetUserId,
+          followerProfile.name || "Someone",
+          followerProfile.username,
+          followerProfile.avatar_url,
+          userId
+        )
+      }
+    } catch (notifyError) {
+      // Don't fail the follow if notification fails
+      console.error("Failed to send follow notification:", notifyError)
     }
 
     return { success: true }

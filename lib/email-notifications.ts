@@ -46,7 +46,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
                 <li>📅 Export events to your calendar</li>
                 <li>💰 Track expenses and split costs</li>
               </ul>
-              <a href="${APP_URL}/discover" class="button">Start Exploring</a>
+              <a href="${APP_URL}/" class="button">Start Exploring</a>
             </div>
             <div class="footer">
               <p>Happy travels! ✈️<br>The Tinerary Team</p>

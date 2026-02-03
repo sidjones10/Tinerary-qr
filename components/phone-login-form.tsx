@@ -171,7 +171,7 @@ export function PhoneLoginForm() {
               disabled={isLoading}
             />
             <p className="text-xs text-muted-foreground">
-              Check your console for the verification code (development mode)
+              Enter the 6-digit code sent to your phone
             </p>
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>

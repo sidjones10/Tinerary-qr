@@ -33,11 +33,8 @@ export function Navbar() {
         </Link>
 
         <nav className="hidden md:flex items-center space-x-6">
-          <Link href="/dashboard" className="text-sm font-medium transition-colors hover:text-primary">
+          <Link href="/" className="text-sm font-medium transition-colors hover:text-primary">
             Home
-          </Link>
-          <Link href="/discover" className="text-sm font-medium transition-colors hover:text-primary">
-            Discover
           </Link>
         </nav>
 

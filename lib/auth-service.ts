@@ -109,7 +109,7 @@ export async function signUpWithProfile(data: SignUpData): Promise<SignUpResult>
       type: "system_message",
       title: "Welcome to Tinerary!",
       message: "Start exploring amazing travel itineraries and create your own.",
-      link_url: "/discover",
+      link_url: "/",
       is_read: false,
       created_at: new Date().toISOString(),
     })

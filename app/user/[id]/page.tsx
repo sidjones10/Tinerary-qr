@@ -223,7 +223,7 @@ export default function UnifiedProfilePage() {
         </header>
         <div className="flex flex-col items-center justify-center py-20 px-4">
           <p className="text-muted-foreground text-lg">User not found</p>
-          <Button variant="outline" className="mt-4 cute-cta-btn" onClick={() => router.push("/discover")}>
+          <Button variant="outline" className="mt-4 cute-cta-btn" onClick={() => router.push("/")}>
             Back to Discover
           </Button>
         </div>

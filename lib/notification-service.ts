@@ -13,6 +13,8 @@ export type NotificationType =
   | "follower"
   | "share"
   | "invitation"
+  | "first_post"
+  | "view_milestone"
 
 interface NotificationData {
   userId: string
@@ -168,4 +170,108 @@ export async function getUnreadNotificationCount(userId: string) {
     console.error("Error in notification service:", error)
     return { success: false, count: 0, error: error.message || "Failed to count notifications" }
   }
+}
+
+// ============================================================================
+// Dopamine Hit Notifications - Milestone & Achievement Helpers
+// ============================================================================
+
+/**
+ * Send notification for user's first post
+ */
+export async function notifyFirstPost(userId: string, itineraryId: string, itineraryTitle: string) {
+  return createNotification({
+    userId,
+    type: "first_post",
+    title: "🎉 Congratulations on your first post!",
+    message: `Your itinerary "${itineraryTitle}" is now live! Share it with friends and start building your travel community.`,
+    linkUrl: `/event/${itineraryId}`,
+  })
+}
+
+/**
+ * Send notification for new comment on user's itinerary
+ */
+export async function notifyNewComment(
+  itineraryOwnerId: string,
+  commenterName: string,
+  commenterAvatar: string | null,
+  itineraryId: string,
+  itineraryTitle: string,
+  commentPreview: string
+) {
+  return createNotification({
+    userId: itineraryOwnerId,
+    type: "new_comment",
+    title: `💬 ${commenterName} commented on your itinerary`,
+    message: commentPreview.length > 100 ? commentPreview.substring(0, 100) + "..." : commentPreview,
+    linkUrl: `/event/${itineraryId}`,
+    imageUrl: commenterAvatar || undefined,
+    metadata: { itineraryTitle },
+  })
+}
+
+/**
+ * Send notification for new follower
+ */
+export async function notifyNewFollower(
+  userId: string,
+  followerName: string,
+  followerUsername: string | null,
+  followerAvatar: string | null,
+  followerId: string
+) {
+  return createNotification({
+    userId,
+    type: "follower",
+    title: `🎊 ${followerName} started following you!`,
+    message: followerUsername ? `@${followerUsername} is now following your journey` : `${followerName} is now following your journey`,
+    linkUrl: `/user/${followerId}`,
+    imageUrl: followerAvatar || undefined,
+  })
+}
+
+/**
+ * View milestone thresholds
+ */
+export const VIEW_MILESTONES = [500, 1000, 5000] as const
+
+/**
+ * Send notification for view milestone (500, 1000, 5000 views)
+ */
+export async function notifyViewMilestone(
+  userId: string,
+  itineraryId: string,
+  itineraryTitle: string,
+  viewCount: number
+) {
+  // Only notify for specific milestones
+  if (!VIEW_MILESTONES.includes(viewCount as 500 | 1000 | 5000)) {
+    return { success: false, error: "Not a milestone view count" }
+  }
+
+  const emoji = viewCount >= 5000 ? "🔥" : viewCount >= 1000 ? "🚀" : "⭐"
+  const celebration = viewCount >= 5000 ? "incredible" : viewCount >= 1000 ? "amazing" : "awesome"
+
+  return createNotification({
+    userId,
+    type: "view_milestone",
+    title: `${emoji} ${viewCount.toLocaleString()} views!`,
+    message: `Your itinerary "${itineraryTitle}" has reached ${viewCount.toLocaleString()} views! That's ${celebration}!`,
+    linkUrl: `/event/${itineraryId}`,
+    metadata: { viewCount, itineraryTitle },
+  })
+}
+
+/**
+ * Check if a view milestone notification should be sent
+ * Returns the milestone number if it should be sent, null otherwise
+ */
+export function checkViewMilestone(currentViews: number, previousViews: number): number | null {
+  for (const milestone of VIEW_MILESTONES) {
+    if (currentViews >= milestone && previousViews < milestone) {
+      return milestone
+    }
+  }
+  return null
 }

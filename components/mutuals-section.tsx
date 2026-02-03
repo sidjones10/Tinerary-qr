@@ -131,7 +131,7 @@ export function MutualsSection({ eventId, limit = 8, showSeeAll = true, classNam
           return (
             <Link
               key={mutual.id}
-              href={`/profile/${mutual.username || mutual.id}`}
+              href={`/user/${mutual.id}`}
               className="flex flex-col items-center group cursor-pointer"
             >
               {/* Avatar with gradient or photo */}

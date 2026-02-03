@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { ArrowLeft, Search, Grid, List, Bookmark, Calendar, MapPin, Users, Star, Sparkles, Heart, Eye, TrendingUp, Filter, Loader2 } from "lucide-react"
@@ -15,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { supabase } from "@/lib/supabase-client"
 
 export default function SavedItemsPage() {
+  const router = useRouter()
   const [viewMode, setViewMode] = useState("grid")
   const [searchQuery, setSearchQuery] = useState("")
   const [savedItems, setSavedItems] = useState([])
@@ -328,7 +330,18 @@ export default function SavedItemsPage() {
                           <div className="mt-3 pt-3 border-t border-violet-100 dark:border-violet-900/20">
                             <p className="text-xs text-muted-foreground flex items-center gap-1">
                               <span className="text-violet-400">by</span>
-                              <span className="font-medium">{profile.name || profile.username || "Anonymous"}</span>
+                              <span
+                                className="font-medium cursor-pointer hover:text-violet-600 transition-colors"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  if (itinerary.user_id) {
+                                    router.push(`/user/${itinerary.user_id}`)
+                                  }
+                                }}
+                              >
+                                {profile.name || profile.username || "Anonymous"}
+                              </span>
                             </p>
                           </div>
                         )}
@@ -394,7 +407,18 @@ export default function SavedItemsPage() {
                             <div className="mt-3 pt-3 border-t border-violet-100 dark:border-violet-900/20">
                               <p className="text-xs text-muted-foreground flex items-center gap-1">
                                 <span className="text-violet-400">by</span>
-                                <span className="font-medium">{profile.name || profile.username || "Anonymous"}</span>
+                                <span
+                                  className="font-medium cursor-pointer hover:text-violet-600 transition-colors"
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    if (itinerary.user_id) {
+                                      router.push(`/user/${itinerary.user_id}`)
+                                    }
+                                  }}
+                                >
+                                  {profile.name || profile.username || "Anonymous"}
+                                </span>
                               </p>
                             </div>
                           )}

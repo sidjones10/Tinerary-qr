@@ -9,7 +9,6 @@ import { AccountSettings } from "@/components/account-settings"
 import { NotificationSettings } from "@/components/notification-settings"
 import { AppearanceSettings } from "@/components/appearance-settings"
 import { PrivacySettings } from "@/components/privacy-settings"
-import { PaymentSettings } from "@/components/payment-settings"
 import { LanguageSettings } from "@/components/language-settings"
 import { HelpSupportSettings } from "@/components/help-support-settings"
 import { Navbar } from "@/components/navbar"
@@ -37,7 +36,6 @@ function SettingsContent() {
         {activeSection === "notifications" && <NotificationSettings />}
         {activeSection === "appearance" && <AppearanceSettings />}
         {activeSection === "privacy" && <PrivacySettings />}
-        {activeSection === "payment" && <PaymentSettings />}
         {activeSection === "language" && <LanguageSettings />}
         {activeSection === "help" && <HelpSupportSettings />}
       </div>

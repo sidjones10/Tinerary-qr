@@ -329,7 +329,7 @@ export default function UnifiedProfilePage() {
           <div className="flex items-center justify-center gap-2 mt-6 w-full max-w-sm">
             <div className="flex-1 text-center bg-white/70 backdrop-blur-sm rounded-2xl py-4 px-3 shadow-sm">
               <p className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">{itineraries.length}</p>
-              <p className="text-xs text-gray-500 mt-1">Trips</p>
+              <p className="text-xs text-gray-500 mt-1">Itineraries</p>
             </div>
             <Link href={`/followers/${userId}`} className="flex-1">
               <div className="text-center bg-white/70 backdrop-blur-sm rounded-2xl py-4 px-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
@@ -409,7 +409,7 @@ export default function UnifiedProfilePage() {
             className="flex-1 data-[state=active]:border-b-2 data-[state=active]:border-orange-500 data-[state=active]:text-orange-600 data-[state=active]:shadow-none rounded-none text-gray-500 font-medium"
           >
             <Grid3X3 className="h-4 w-4 mr-2" />
-            Trips
+            Itineraries
           </TabsTrigger>
           {isOwnProfile && (
             <TabsTrigger
@@ -436,14 +436,14 @@ export default function UnifiedProfilePage() {
                 <Grid3X3 className="h-7 w-7 text-orange-400" />
               </div>
               <p className="text-gray-500 mb-4">
-                {isOwnProfile ? "You haven't created any trips yet" : "No public trips yet"}
+                {isOwnProfile ? "You haven't created any itineraries yet" : "No public itineraries yet"}
               </p>
               {isOwnProfile && (
                 <Button
                   className="bg-gradient-to-r from-orange-400 to-pink-500 hover:from-orange-500 hover:to-pink-600 text-white rounded-full px-6"
                   asChild
                 >
-                  <Link href="/create">Create Your First Trip</Link>
+                  <Link href="/create">Create Your First Itinerary</Link>
                 </Button>
               )}
             </div>
@@ -559,7 +559,7 @@ export default function UnifiedProfilePage() {
               <Bookmark className="h-7 w-7 text-orange-400" />
             </div>
             <p className="text-gray-500">
-              {isOwnProfile ? "Your saved trips will appear here" : "Saved trips are private"}
+              {isOwnProfile ? "Your saved itineraries will appear here" : "Saved itineraries are private"}
             </p>
           </div>
         </TabsContent>

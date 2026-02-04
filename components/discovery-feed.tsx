@@ -140,27 +140,52 @@ export function DiscoveryFeed() {
 
     try {
       const supabase = createClient()
-      const { data, error } = await supabase.rpc('toggle_like', {
-        user_uuid: user.id,
-        itinerary_uuid: itemId
-      })
+      const isCurrentlyLiked = likedItems.has(itemId)
+      const newLiked = new Set(likedItems)
 
-      if (error) throw error
+      if (isCurrentlyLiked) {
+        // Unlike: Remove from saved_itineraries
+        const { error } = await supabase
+          .from("saved_itineraries")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("itinerary_id", itemId)
+          .eq("type", "like")
 
-      if (data && data.length > 0) {
-        const result = data[0]
-        const newLiked = new Set(likedItems)
-
-        if (result.is_liked) {
-          newLiked.add(itemId)
-          // Record interaction for analytics
-          await recordInteraction(user.id, itemId, "like")
-        } else {
-          newLiked.delete(itemId)
+        if (error) {
+          console.error("Error unliking:", error)
+          throw error
         }
 
-        setLikedItems(newLiked)
+        newLiked.delete(itemId)
+      } else {
+        // Like: Add to saved_itineraries
+        const { error } = await supabase
+          .from("saved_itineraries")
+          .insert({
+            user_id: user.id,
+            itinerary_id: itemId,
+            type: "like",
+            created_at: new Date().toISOString(),
+          })
+
+        if (error) {
+          // Check if already liked (duplicate)
+          if (error.code === "23505") {
+            newLiked.add(itemId)
+            setLikedItems(newLiked)
+            return
+          }
+          console.error("Error liking:", error)
+          throw error
+        }
+
+        newLiked.add(itemId)
+        // Record interaction for analytics
+        await recordInteraction(user.id, itemId, "like")
       }
+
+      setLikedItems(newLiked)
     } catch (error) {
       console.error("Error toggling like:", error)
       toast({

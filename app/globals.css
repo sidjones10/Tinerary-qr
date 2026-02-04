@@ -571,3 +571,13 @@ select:focus {
 .sparkle-delay-1 { animation-delay: 0.3s; }
 .sparkle-delay-2 { animation-delay: 0.6s; }
 .sparkle-delay-3 { animation-delay: 0.9s; }
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}

@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from "react"
 import { Bookmark, Calendar, Heart, MapPin, MessageCircle, Share2, Star, Sparkles } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { getTrendingItineraries, recordInteraction } from "@/lib/feed-service"
 import { createClient } from "@/lib/supabase/client"
@@ -435,7 +434,7 @@ export function DiscoveryFeed() {
   const itemsToDisplay = formattedItems.length > 0 ? formattedItems : fallbackItems
 
   return (
-    <div className="relative min-h-[600px] md:min-h-[700px] lg:min-h-[800px] h-full overflow-hidden rounded-xl bg-gradient-to-b from-white to-orange-50 shadow-2xl">
+    <div className="relative h-[600px] md:h-[700px] lg:h-[800px] overflow-hidden rounded-xl bg-gradient-to-b from-white to-orange-50 shadow-2xl">
       {/* Pull to refresh indicator */}
       {refreshing && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-white/90 backdrop-blur-md px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
@@ -444,22 +443,23 @@ export function DiscoveryFeed() {
         </div>
       )}
 
-      <ScrollArea
+      <div
         ref={scrollRef}
-        className="h-full snap-y snap-mandatory"
-        onScrollCapture={handleScroll}
+        className="h-full overflow-y-auto snap-y snap-mandatory scrollbar-hide"
+        onScroll={handleScroll}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
       >
         {itemsToDisplay.map((item, index) => (
-          <div key={item.id} className="relative min-h-[600px] md:min-h-[700px] lg:min-h-[800px] h-full w-full snap-start snap-always">
+          <div key={item.id} className="relative h-[600px] md:h-[700px] lg:h-[800px] w-full snap-start snap-always">
             <div
-              className="relative min-h-[600px] md:min-h-[700px] lg:min-h-[800px] h-full w-full"
+              className="relative h-[600px] md:h-[700px] lg:h-[800px] w-full"
               onClick={(e) => handleDoubleTap(e, item.id)}
               onTouchEnd={(e) => handleDoubleTap(e, item.id)}
             >
-              <img src={item.image || "/placeholder.svg"} alt={item.title} className="min-h-[600px] md:min-h-[700px] lg:min-h-[800px] h-full w-full object-cover" />
+              <img src={item.image || "/placeholder.svg"} alt={item.title} className="h-[600px] md:h-[700px] lg:h-[800px] w-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
               {/* Double-tap heart animation */}
@@ -609,7 +609,7 @@ export function DiscoveryFeed() {
             </div>
           </div>
         ))}
-      </ScrollArea>
+      </div>
 
       {/* Scroll indicator */}
       <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-1 z-10">

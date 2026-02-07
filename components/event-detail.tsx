@@ -121,27 +121,44 @@ export function EventDetail({ event }: EventDetailProps) {
       setCheckingAccess(true)
       const supabase = createClient()
 
-      // Check packing list access
-      const { data: packingAccess, error: packingError } = await supabase.rpc('can_access_private_content', {
-        user_uuid: user?.id || null,
-        itinerary_uuid: event.id,
-        content_type: 'packing'
-      })
+      // Owner always has access - this is a fallback in case RPC function fails
+      const isUserOwner = user?.id === event.user_id
 
-      // Check expenses access
-      const { data: expensesAccess, error: expensesError } = await supabase.rpc('can_access_private_content', {
-        user_uuid: user?.id || null,
-        itinerary_uuid: event.id,
-        content_type: 'expenses'
-      })
+      // Try RPC function first, but fall back to owner check if it fails
+      try {
+        // Check packing list access
+        const { data: packingAccess, error: packingError } = await supabase.rpc('can_access_private_content', {
+          user_uuid: user?.id || null,
+          itinerary_uuid: event.id,
+          content_type: 'packing'
+        })
 
-      setCanAccessPacking(packingAccess ?? false)
-      setCanAccessExpenses(expensesAccess ?? false)
+        // Check expenses access
+        const { data: expensesAccess, error: expensesError } = await supabase.rpc('can_access_private_content', {
+          user_uuid: user?.id || null,
+          itinerary_uuid: event.id,
+          content_type: 'expenses'
+        })
+
+        // If RPC returns null (function may not exist), fall back to owner check
+        setCanAccessPacking(packingAccess ?? isUserOwner)
+        setCanAccessExpenses(expensesAccess ?? isUserOwner)
+
+        // Log errors for debugging
+        if (packingError) console.warn('Packing access RPC error:', packingError)
+        if (expensesError) console.warn('Expenses access RPC error:', expensesError)
+      } catch (error) {
+        console.warn('Access check failed, falling back to owner check:', error)
+        // Fall back to owner check if RPC completely fails
+        setCanAccessPacking(isUserOwner)
+        setCanAccessExpenses(isUserOwner)
+      }
+
       setCheckingAccess(false)
     }
 
     checkAccess()
-  }, [user?.id, event.id])
+  }, [user?.id, event.id, event.user_id])
 
   // Fetch packing items (only if user has access)
   useEffect(() => {

@@ -9,7 +9,13 @@ import { OnboardingWrapper } from "@/components/onboarding-wrapper"
 export const metadata: Metadata = {
   title: "Tinerary",
   description: "Create and share your travel itineraries",
-    generator: 'v0.app'
+  generator: 'v0.app',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
 }
 
 export default function RootLayout({
@@ -20,7 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="font-sans" suppressHydrationWarning>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
           <AuthProvider>
             <OnboardingWrapper>
               {children}

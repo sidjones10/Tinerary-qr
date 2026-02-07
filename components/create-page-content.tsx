@@ -48,7 +48,6 @@ export default function CreatePageContent() {
       cost: 0,
     },
   ])
-  const [showAiRecommendations, setShowAiRecommendations] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [activeTab, setActiveTab] = useState("details")
@@ -1533,24 +1532,6 @@ export default function CreatePageContent() {
           image_url: coverImageUrl,
         }}
       />
-
-      {/* AI Recommendations Modal */}
-      {showAiRecommendations && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full">
-            <h2 className="text-xl font-bold mb-4">AI Recommendations</h2>
-            <p className="mb-4">Here are some recommendations for your {type}:</p>
-            <ul className="list-disc pl-5 mb-4">
-              <li>Consider adding more details about the location</li>
-              <li>Don't forget to invite your friends</li>
-              <li>Add a cover image to make your {type} stand out</li>
-            </ul>
-            <Button onClick={() => setShowAiRecommendations(false)} className="w-full">
-              Close
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

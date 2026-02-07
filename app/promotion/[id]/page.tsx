@@ -191,8 +191,8 @@ export default function PromotionPage({ params }: { params: { id: string } }) {
       <div className="container max-w-5xl mx-auto px-4 py-8 text-center">
         <h1 className="text-2xl font-bold mb-4">Promotion Not Found</h1>
         <p className="mb-6">The promotion you're looking for doesn't exist or has been removed.</p>
-        <Link href="/discover">
-          <Button>Back to Discover</Button>
+        <Link href="/">
+          <Button>Back to Home</Button>
         </Link>
       </div>
     )
@@ -204,11 +204,11 @@ export default function PromotionPage({ params }: { params: { id: string } }) {
   return (
     <div className="container max-w-5xl mx-auto px-4 py-8">
       <Link
-        href="/discover"
+        href="/"
         className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6"
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Discover
+        Back to Home
       </Link>
 
       {/* Promotion Badge */}

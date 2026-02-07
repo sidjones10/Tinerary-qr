@@ -29,18 +29,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
+      setLoading(false) // Set loading false IMMEDIATELY - don't block on profile check
 
-      // Ensure profile exists for existing users (with error handling)
+      // Ensure profile exists for existing users (run in background, don't block)
       if (session?.user) {
-        try {
-          await ensureProfileExists(session.user.id, session.user.email || "")
-        } catch (error) {
+        ensureProfileExists(session.user.id, session.user.email || "").catch((error) => {
           console.error("Failed to ensure profile exists:", error)
-          // Continue loading page even if profile check fails
-        }
+        })
       }
-
-      setLoading(false)
     }).catch((error) => {
       console.error("Error getting session:", error)
       setLoading(false) // Always stop loading even on error
@@ -49,20 +45,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
+      setLoading(false) // Set loading false IMMEDIATELY
 
-      // Ensure profile exists when user signs in (with error handling)
+      // Ensure profile exists when user signs in (run in background, don't block)
       if (session?.user && _event === "SIGNED_IN") {
-        try {
-          await ensureProfileExists(session.user.id, session.user.email || "")
-        } catch (error) {
+        ensureProfileExists(session.user.id, session.user.email || "").catch((error) => {
           console.error("Failed to ensure profile exists:", error)
-        }
+        })
       }
-
-      setLoading(false)
     })
 
     return () => subscription.unsubscribe()

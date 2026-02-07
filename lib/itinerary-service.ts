@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/client"
-import { createNotification } from "@/lib/notification-service"
+import { createNotification, notifyFirstPost } from "@/lib/notification-service"
 
 /**
  * Ensure user profile exists in the profiles table
@@ -280,19 +280,32 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
       console.warn("Metrics initialization skipped:", error.message || "Unknown error")
     }
 
-    // 7. Create success notification (optional - don't fail if this errors)
+    // 7. Check if this is the user's first post and send special notification
     try {
-      const notificationResult = await createNotification({
-        userId: userId,
-        type: "system_message",
-        title: "Itinerary Published!",
-        message: `Your ${data.type || "itinerary"} "${data.title}" has been successfully published.`,
-        linkUrl: `/event/${itineraryId}`,
-      })
+      const { count: existingCount, error: countError } = await supabase
+        .from("itineraries")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
 
-      if (!notificationResult.success) {
-        console.warn("Notification creation skipped:", notificationResult.error || "Unknown error")
-        console.warn("This is non-critical - the itinerary was created successfully")
+      if (!countError && existingCount === 1) {
+        // This is their first post! Send congratulations notification
+        const firstPostResult = await notifyFirstPost(userId, itineraryId, data.title)
+        if (!firstPostResult.success) {
+          console.warn("First post notification skipped:", firstPostResult.error || "Unknown error")
+        }
+      } else {
+        // Regular success notification for subsequent posts
+        const notificationResult = await createNotification({
+          userId: userId,
+          type: "system_message",
+          title: "Itinerary Published!",
+          message: `Your ${data.type || "itinerary"} "${data.title}" has been successfully published.`,
+          linkUrl: `/event/${itineraryId}`,
+        })
+
+        if (!notificationResult.success) {
+          console.warn("Notification creation skipped:", notificationResult.error || "Unknown error")
+        }
       }
     } catch (error: any) {
       console.warn("Notification creation skipped:", error.message || "Unknown error")

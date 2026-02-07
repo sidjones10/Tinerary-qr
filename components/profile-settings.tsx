@@ -59,6 +59,8 @@ export function ProfileSettings() {
               variant: "destructive",
             })
           } else if (data) {
+            console.log("Profile data loaded:", data)
+            console.log("Avatar URL from DB:", data.avatar_url)
             setFormData({
               fullName: data.name || "",
               username: data.username || "",
@@ -140,9 +142,14 @@ export function ProfileSettings() {
       // Upload to storage (will delete old photo if exists)
       const result = await updateImage(compressedFile, avatarPath, "user-avatars")
 
+      console.log("Upload result:", result)
+
       if (!result.success) {
         throw new Error(result.error || "Failed to upload image")
       }
+
+      console.log("Avatar URL to save:", result.url)
+      console.log("Avatar path:", result.path)
 
       // Update profile in database
       const { error: profileError } = await supabase
@@ -165,6 +172,7 @@ export function ProfileSettings() {
         },
       })
 
+      console.log("Setting avatar URL state:", result.url)
       setAvatarUrl(result.url || null)
       setAvatarPath(result.path || null)
 
@@ -172,6 +180,8 @@ export function ProfileSettings() {
         title: "Photo updated",
         description: "Your profile photo has been updated successfully.",
       })
+
+      console.log("Avatar state updated, URL:", result.url)
 
       await refreshSession()
     } catch (error: any) {
@@ -503,9 +513,15 @@ export function ProfileSettings() {
                 <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center overflow-hidden">
                   {avatarUrl ? (
                     <img
+                      key={avatarUrl}
                       src={avatarUrl}
                       alt="Profile"
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.error("Failed to load avatar:", avatarUrl)
+                        // Hide broken image and show fallback
+                        e.currentTarget.style.display = 'none'
+                      }}
                     />
                   ) : (
                     <div className="text-muted-foreground">

@@ -127,7 +127,7 @@ export function FollowingListClient({
                       : "This user isn't following anyone yet"}
                 </p>
                 {isOwnProfile && !searchQuery && (
-                  <Link href="/discover">
+                  <Link href="/">
                     <Button className="mt-4">Discover People</Button>
                   </Link>
                 )}

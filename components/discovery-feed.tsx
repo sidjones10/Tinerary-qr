@@ -435,7 +435,7 @@ export function DiscoveryFeed() {
   const itemsToDisplay = formattedItems.length > 0 ? formattedItems : fallbackItems
 
   return (
-    <div className="relative h-full overflow-hidden rounded-xl bg-gradient-to-b from-white to-orange-50 shadow-2xl">
+    <div className="relative min-h-[600px] md:min-h-[700px] lg:min-h-[800px] h-full overflow-hidden rounded-xl bg-gradient-to-b from-white to-orange-50 shadow-2xl">
       {/* Pull to refresh indicator */}
       {refreshing && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-white/90 backdrop-blur-md px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
@@ -453,13 +453,13 @@ export function DiscoveryFeed() {
         onTouchEnd={handleTouchEnd}
       >
         {itemsToDisplay.map((item, index) => (
-          <div key={item.id} className="relative h-full w-full snap-start snap-always">
+          <div key={item.id} className="relative min-h-[600px] md:min-h-[700px] lg:min-h-[800px] h-full w-full snap-start snap-always">
             <div
-              className="relative h-full w-full"
+              className="relative min-h-[600px] md:min-h-[700px] lg:min-h-[800px] h-full w-full"
               onClick={(e) => handleDoubleTap(e, item.id)}
               onTouchEnd={(e) => handleDoubleTap(e, item.id)}
             >
-              <img src={item.image || "/placeholder.svg"} alt={item.title} className="h-full w-full object-cover" />
+              <img src={item.image || "/placeholder.svg"} alt={item.title} className="min-h-[600px] md:min-h-[700px] lg:min-h-[800px] h-full w-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
               {/* Double-tap heart animation */}
@@ -481,39 +481,39 @@ export function DiscoveryFeed() {
               )}
 
               {/* Content overlay */}
-              <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+              <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 text-white">
                 <div className="flex items-start justify-between mb-4">
-                  <div>
+                  <div className="max-w-[80%]">
                     <Badge
                       className={
                         item.type === "trip"
-                          ? "bg-gradient-to-r from-blue-400 to-cyan-300 hover:from-blue-500 hover:to-cyan-400 border-0"
+                          ? "bg-gradient-to-r from-blue-400 to-cyan-300 hover:from-blue-500 hover:to-cyan-400 border-0 text-sm px-3 py-1"
                           : item.type === "business"
-                            ? "bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 border-0"
-                            : "bg-gradient-to-r from-purple-400 to-pink-300 hover:from-purple-500 hover:to-pink-400 border-0"
+                            ? "bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 border-0 text-sm px-3 py-1"
+                            : "bg-gradient-to-r from-purple-400 to-pink-300 hover:from-purple-500 hover:to-pink-400 border-0 text-sm px-3 py-1"
                       }
                     >
                       {item.type === "trip" ? "Trip" : item.type === "business" ? "Business" : "Event"}
                     </Badge>
-                    <h2 className="text-2xl font-bold mt-2">{item.title}</h2>
-                    <div className="flex items-center text-sm mt-1">
+                    <h2 className="text-2xl md:text-3xl font-bold mt-3">{item.title}</h2>
+                    <div className="flex items-center text-sm md:text-base mt-2 opacity-90">
                       <MapPin className="mr-1 h-4 w-4" />
                       {item.location}
-                      <span className="mx-1">•</span>
+                      <span className="mx-2">•</span>
                       <Calendar className="mr-1 h-4 w-4" />
                       {item.date}
                     </div>
                   </div>
                 </div>
 
-                <p className="text-sm mb-4">{item.description}</p>
+                <p className="text-sm md:text-base mb-5 leading-relaxed opacity-90 max-w-[90%]">{item.description}</p>
 
                 {item.highlights && item.highlights.length > 0 && (
-                  <div className="grid grid-cols-2 gap-2 mb-4">
+                  <div className="grid grid-cols-2 gap-2 md:gap-3 mb-5">
                     {item.highlights.map((highlight, i) => (
                       <div
                         key={i}
-                        className="flex items-center bg-white/10 backdrop-blur-sm rounded-full px-3 py-1 text-xs"
+                        className="flex items-center bg-white/15 backdrop-blur-sm rounded-full px-4 py-2 text-xs md:text-sm"
                       >
                         {highlight}
                       </div>

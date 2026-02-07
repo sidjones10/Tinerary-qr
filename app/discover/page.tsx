@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import {
@@ -30,8 +28,9 @@ import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { createClient } from "@/lib/supabase/client"
 import { discoverItineraries, trackUserInteraction, type ItineraryWithScores } from "@/lib/discovery-algorithm"
+import { Loader2 } from "lucide-react"
 
-export default function DiscoverPage() {
+export default function DiscoverRedirectPage() {
   const router = useRouter()
   const supabase = createClient()
   const [activeTab, setActiveTab] = useState("for-you")
@@ -645,5 +644,13 @@ export default function DiscoverPage() {
         </div>
       )}
     </Tabs>
+    // Redirect to the main page which has the discovery feed
+    router.replace("/")
+  }, [router])
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
   )
 }

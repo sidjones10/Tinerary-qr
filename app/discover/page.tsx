@@ -18,6 +18,7 @@ import {
   Sparkles,
   Zap,
   Loader2,
+  ChevronDown,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -41,6 +42,9 @@ export default function DiscoverPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [showSearch, setShowSearch] = useState(false)
+  const [likedItineraries, setLikedItineraries] = useState<Set<string>>(new Set())
+  const [showScrollPrompt, setShowScrollPrompt] = useState(false)
+  const [scrollPromptTimer, setScrollPromptTimer] = useState<NodeJS.Timeout | null>(null)
 
   const categories = ["All", "Weekend Trips", "Beach", "Mountains", "City", "Food", "Adventure", "Relaxation"]
 
@@ -54,6 +58,73 @@ export default function DiscoverPage() {
 
     fetchUser()
   }, [supabase])
+
+  // Fetch user's liked itineraries
+  useEffect(() => {
+    const fetchLikedItineraries = async () => {
+      if (!userId) return
+
+      try {
+        const { data, error } = await supabase
+          .from("saved_itineraries")
+          .select("itinerary_id")
+          .eq("user_id", userId)
+          .eq("type", "like")
+
+        if (error) throw error
+
+        if (data) {
+          setLikedItineraries(new Set(data.map((item) => item.itinerary_id)))
+        }
+      } catch (error) {
+        console.error("Error fetching liked itineraries:", error)
+      }
+    }
+
+    fetchLikedItineraries()
+  }, [userId, supabase])
+
+  // Scroll prompt logic (TikTok-style)
+  useEffect(() => {
+    // Check if user has seen the prompt today
+    const lastPromptDate = localStorage.getItem("discoverScrollPromptDate")
+    const today = new Date().toDateString()
+
+    if (lastPromptDate !== today) {
+      // Show prompt after 5 seconds if user is still on first item
+      const timer = setTimeout(() => {
+        setShowScrollPrompt(true)
+        // Hide after 3 seconds
+        setTimeout(() => setShowScrollPrompt(false), 3000)
+      }, 5000)
+
+      setScrollPromptTimer(timer)
+
+      // Mark as shown for today
+      localStorage.setItem("discoverScrollPromptDate", today)
+    }
+
+    return () => {
+      if (scrollPromptTimer) {
+        clearTimeout(scrollPromptTimer)
+      }
+    }
+  }, [])
+
+  // Hide scroll prompt when user scrolls
+  useEffect(() => {
+    const handleScroll = () => {
+      if (showScrollPrompt) {
+        setShowScrollPrompt(false)
+      }
+      if (scrollPromptTimer) {
+        clearTimeout(scrollPromptTimer)
+      }
+    }
+
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [showScrollPrompt, scrollPromptTimer])
 
   useEffect(() => {
     const fetchItineraries = async () => {
@@ -127,6 +198,18 @@ export default function DiscoverPage() {
         // Update the UI with the actual like count from the database
         if (data && data.length > 0) {
           const result = data[0]
+
+          // Update liked itineraries set
+          setLikedItineraries((prev) => {
+            const newSet = new Set(prev)
+            if (result.is_liked) {
+              newSet.add(id)
+            } else {
+              newSet.delete(id)
+            }
+            return newSet
+          })
+
           setItineraries((prev) =>
             prev.map((item) =>
               item.id === id
@@ -194,14 +277,25 @@ export default function DiscoverPage() {
     const isTrip = itinerary.start_date && itinerary.end_date && itinerary.start_date !== itinerary.end_date
     const itineraryType = isTrip ? "Trip" : "Event"
 
-    // Determine badge type
-    let badge = null
-    if (itinerary.popularityScore > 0.8) {
-      badge = "Popular"
-    } else if (itinerary.freshnessScore > 0.9) {
-      badge = "New"
-    } else if (itinerary.relevanceScore > 0.9) {
-      badge = "For You"
+    // Check if user has liked this itinerary
+    const isLiked = likedItineraries.has(itinerary.id)
+
+    // Generate a default cover image based on location or category
+    const getDefaultCoverImage = () => {
+      const location = itinerary.location?.toLowerCase() || ""
+      const categories = itinerary.itinerary_categories || []
+
+      if (location.includes("beach") || categories.some((c: any) => c.category?.name?.toLowerCase().includes("beach"))) {
+        return "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop"
+      } else if (location.includes("mountain") || categories.some((c: any) => c.category?.name?.toLowerCase().includes("mountain"))) {
+        return "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop"
+      } else if (location.includes("city") || categories.some((c: any) => c.category?.name?.toLowerCase().includes("city"))) {
+        return "https://images.unsplash.com/photo-1514565131-fce0801e5785?w=800&h=600&fit=crop"
+      } else if (categories.some((c: any) => c.category?.name?.toLowerCase().includes("food"))) {
+        return "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop"
+      }
+      // Default travel image
+      return "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=600&fit=crop"
     }
 
     return (
@@ -212,24 +306,12 @@ export default function DiscoverPage() {
       >
         <div className="relative h-48">
           <Image
-            src={itinerary.image_url || "/placeholder.svg?height=300&width=500"}
+            src={itinerary.image_url || getDefaultCoverImage()}
             alt={itinerary.title}
             fill
             className="object-cover"
             loading="lazy"
           />
-          {badge && (
-            <Badge className="absolute top-2 left-2 bg-pink-500">
-              {badge === "Popular" ? (
-                <TrendingUp className="h-3 w-3 mr-1" />
-              ) : badge === "New" ? (
-                <Sparkles className="h-3 w-3 mr-1" />
-              ) : (
-                <Zap className="h-3 w-3 mr-1" />
-              )}
-              {badge}
-            </Badge>
-          )}
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
             <div className="flex items-start justify-between gap-2">
               <h3 className="text-white font-bold text-lg flex-1">{itinerary.title}</h3>
@@ -278,10 +360,12 @@ export default function DiscoverPage() {
             </div>
             <div className="flex items-center gap-3">
               <button
-                className="flex items-center text-xs text-muted-foreground hover:text-pink-500 transition-colors"
+                className={`flex items-center text-xs transition-colors ${
+                  isLiked ? "text-pink-500" : "text-muted-foreground hover:text-pink-500"
+                }`}
                 onClick={(e) => handleLike(e, itinerary.id)}
               >
-                <Heart className="h-3 w-3 mr-1" />
+                <Heart className={`h-3 w-3 mr-1 ${isLiked ? "fill-pink-500" : ""}`} />
                 {metrics.like_count || 0}
               </button>
               <div className="flex items-center text-xs text-muted-foreground">
@@ -338,7 +422,7 @@ export default function DiscoverPage() {
     <Tabs value={activeTab} onValueChange={setActiveTab} className="min-h-screen bg-gradient-to-b from-orange-50 to-pink-50">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white border-b">
-        <div className="container px-4 py-3 max-w-md mx-auto">
+        <div className="container px-4 py-3 max-w-full sm:max-w-2xl md:max-w-4xl lg:max-w-6xl mx-auto">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 text-transparent bg-clip-text">
               Discover
@@ -374,7 +458,7 @@ export default function DiscoverPage() {
       </div>
 
       {/* Content */}
-      <div className="container px-4 py-4 max-w-md mx-auto">
+      <div className="container px-4 py-4 max-w-full sm:max-w-2xl md:max-w-4xl lg:max-w-6xl mx-auto relative">
         <TabsContent value="for-you" className="mt-0 space-y-4">
           {/* Categories */}
           <ScrollArea className="w-full whitespace-nowrap pb-2">
@@ -394,15 +478,15 @@ export default function DiscoverPage() {
           </ScrollArea>
 
           {/* Trip Cards */}
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {loading ? (
-              <div className="flex justify-center items-center py-12">
+              <div className="col-span-full flex justify-center items-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-pink-500" />
               </div>
             ) : itineraries.length > 0 ? (
               itineraries.map((itinerary, index) => renderItineraryCard(itinerary, index))
             ) : (
-              <div className="text-center py-12">
+              <div className="col-span-full text-center py-12">
                 <p className="text-muted-foreground">No itineraries found</p>
                 <Button
                   variant="outline"
@@ -487,22 +571,39 @@ export default function DiscoverPage() {
               </div>
             ) : trendingItineraries.length > 1 ? (
               <div className="space-y-3">
-                {trendingItineraries.slice(1, 3).map((itinerary, index) => (
-                  <Card
-                    key={itinerary.id}
-                    className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => handleCardClick(itinerary.id)}
-                  >
-                    <div className="flex h-24">
-                      <div className="w-1/3 relative">
-                        <Image
-                          src={itinerary.image_url || "/placeholder.svg?height=300&width=500"}
-                          alt={itinerary.title}
-                          fill
-                          className="object-cover"
-                          loading="lazy"
-                        />
-                      </div>
+                {trendingItineraries.slice(1, 3).map((itinerary, index) => {
+                  const getDefaultCoverImage = () => {
+                    const location = itinerary.location?.toLowerCase() || ""
+                    const categories = itinerary.itinerary_categories || []
+
+                    if (location.includes("beach") || categories.some((c: any) => c.category?.name?.toLowerCase().includes("beach"))) {
+                      return "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop"
+                    } else if (location.includes("mountain") || categories.some((c: any) => c.category?.name?.toLowerCase().includes("mountain"))) {
+                      return "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop"
+                    } else if (location.includes("city") || categories.some((c: any) => c.category?.name?.toLowerCase().includes("city"))) {
+                      return "https://images.unsplash.com/photo-1514565131-fce0801e5785?w=800&h=600&fit=crop"
+                    } else if (categories.some((c: any) => c.category?.name?.toLowerCase().includes("food"))) {
+                      return "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop"
+                    }
+                    return "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=600&fit=crop"
+                  }
+
+                  return (
+                    <Card
+                      key={itinerary.id}
+                      className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                      onClick={() => handleCardClick(itinerary.id)}
+                    >
+                      <div className="flex h-24">
+                        <div className="w-1/3 relative">
+                          <Image
+                            src={itinerary.image_url || getDefaultCoverImage()}
+                            alt={itinerary.title}
+                            fill
+                            className="object-cover"
+                            loading="lazy"
+                          />
+                        </div>
                       <div className="w-2/3 p-3 flex flex-col justify-between">
                         <div>
                           <h3 className="font-semibold">{itinerary.title}</h3>
@@ -522,7 +623,8 @@ export default function DiscoverPage() {
                       </div>
                     </div>
                   </Card>
-                ))}
+                  )
+                })}
               </div>
             ) : (
               <div className="text-center py-8">
@@ -532,6 +634,16 @@ export default function DiscoverPage() {
           </div>
         </TabsContent>
       </div>
+
+      {/* Scroll Prompt (TikTok-style) */}
+      {showScrollPrompt && (
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
+          <div className="bg-black/70 text-white px-4 py-2 rounded-full flex items-center gap-2">
+            <span className="text-sm">Scroll for more</span>
+            <ChevronDown className="h-4 w-4" />
+          </div>
+        </div>
+      )}
     </Tabs>
   )
 }

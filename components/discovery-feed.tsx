@@ -320,12 +320,30 @@ export function DiscoveryFeed() {
     // Metrics comes as an array from Supabase join, so we need to access the first element
     const metrics = Array.isArray(item.metrics) && item.metrics.length > 0 ? item.metrics[0] : null
 
+    // Generate a gradient background if no image is provided
+    const getDefaultBackground = (id: string, title: string) => {
+      const gradients = [
+        "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+        "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+        "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
+        "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
+        "linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)",
+        "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)",
+        "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)",
+      ]
+      // Use hash of id to pick a consistent gradient
+      const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+      return gradients[hash % gradients.length]
+    }
+
     return {
       id: item.id,
       title: item.title,
       type: isTrip ? "trip" : "event",
       date: dateStr,
-      image: item.image_url || "/placeholder.svg?height=600&width=400",
+      image: item.image_url || null,
+      defaultBackground: !item.image_url ? getDefaultBackground(item.id, item.title) : null,
       location: item.location || "Somewhere amazing",
       likes: metrics?.like_count || 0,
       comments: metrics?.comment_count || 0,
@@ -458,8 +476,40 @@ export function DiscoveryFeed() {
 
   const itemsToDisplay = formattedItems.length > 0 ? formattedItems : fallbackItems
 
+  // Check if user should see scroll prompt (first time or lingering)
+  const [showScrollPrompt, setShowScrollPrompt] = useState(false)
+  const [hasScrolled, setHasScrolled] = useState(false)
+
+  useEffect(() => {
+    // Check localStorage for first-time visit today
+    const today = new Date().toDateString()
+    const lastVisit = localStorage.getItem('discover_last_visit')
+
+    if (lastVisit !== today) {
+      setShowScrollPrompt(true)
+      localStorage.setItem('discover_last_visit', today)
+    }
+
+    // Also show prompt if lingering on first item for 5 seconds
+    const timer = setTimeout(() => {
+      if (!hasScrolled && currentIndex === 0) {
+        setShowScrollPrompt(true)
+      }
+    }, 5000)
+
+    return () => clearTimeout(timer)
+  }, [hasScrolled, currentIndex])
+
+  // Hide prompt when user scrolls
+  useEffect(() => {
+    if (currentIndex > 0) {
+      setHasScrolled(true)
+      setShowScrollPrompt(false)
+    }
+  }, [currentIndex])
+
   return (
-    <div className="relative h-[600px] md:h-[700px] lg:h-[800px] overflow-hidden rounded-xl bg-gradient-to-b from-white to-orange-50 shadow-2xl">
+    <div className="relative h-[calc(100vh-200px)] min-h-[500px] max-h-[800px] w-full overflow-hidden rounded-xl bg-gradient-to-b from-white to-orange-50 shadow-2xl">
       {/* Pull to refresh indicator */}
       {refreshing && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-white/90 backdrop-blur-md px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
@@ -468,9 +518,19 @@ export function DiscoveryFeed() {
         </div>
       )}
 
+      {/* Scroll prompt for first-time users */}
+      {showScrollPrompt && !hasScrolled && (
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-50 animate-bounce">
+          <div className="bg-black/70 backdrop-blur-md px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-white">
+            <span className="text-sm font-medium">Swipe up to explore more</span>
+            <span className="text-lg">👆</span>
+          </div>
+        </div>
+      )}
+
       <div
         ref={scrollRef}
-        className="h-full overflow-y-auto snap-y snap-mandatory scrollbar-hide"
+        className="h-full w-full overflow-y-auto overflow-x-hidden snap-y snap-mandatory scrollbar-hide"
         onScroll={handleScroll}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -478,13 +538,24 @@ export function DiscoveryFeed() {
         style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
       >
         {itemsToDisplay.map((item, index) => (
-          <div key={item.id} className="relative h-[600px] md:h-[700px] lg:h-[800px] w-full snap-start snap-always">
+          <div key={item.id} className="relative h-[calc(100vh-200px)] min-h-[500px] max-h-[800px] w-full snap-start snap-always">
             <div
-              className="relative h-[600px] md:h-[700px] lg:h-[800px] w-full"
+              className="relative h-full w-full"
               onClick={(e) => handleDoubleTap(e, item.id)}
               onTouchEnd={(e) => handleDoubleTap(e, item.id)}
             >
-              <img src={item.image || "/placeholder.svg"} alt={item.title} className="h-[600px] md:h-[700px] lg:h-[800px] w-full object-cover" />
+              {item.image ? (
+                <img src={item.image} alt={item.title} className="h-full w-full object-cover" />
+              ) : (
+                <div
+                  className="h-full w-full flex items-center justify-center"
+                  style={{ background: item.defaultBackground || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+                >
+                  <div className="text-white/30 text-9xl font-bold">
+                    {item.title.charAt(0).toUpperCase()}
+                  </div>
+                </div>
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
               {/* Double-tap heart animation */}

@@ -52,6 +52,8 @@ export function DiscoveryFeed() {
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [lastTap, setLastTap] = useState<number>(0)
   const [showHeartAnimation, setShowHeartAnimation] = useState(false)
+  const [showScrollPrompt, setShowScrollPrompt] = useState(false)
+  const [hasScrolled, setHasScrolled] = useState(false)
   const { user } = useAuth()
   const { toast } = useToast()
 
@@ -476,10 +478,7 @@ export function DiscoveryFeed() {
 
   const itemsToDisplay = formattedItems.length > 0 ? formattedItems : fallbackItems
 
-  // Check if user should see scroll prompt (first time or lingering)
-  const [showScrollPrompt, setShowScrollPrompt] = useState(false)
-  const [hasScrolled, setHasScrolled] = useState(false)
-
+  // Scroll prompt effect for first-time users
   useEffect(() => {
     // Check localStorage for first-time visit today
     const today = new Date().toDateString()

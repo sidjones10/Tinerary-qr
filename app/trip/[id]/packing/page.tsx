@@ -24,11 +24,20 @@ export default async function PackingPage({ params }: { params: { id: string } }
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: hasAccess } = await supabase.rpc('can_access_private_content', {
-    user_uuid: user?.id || null,
-    itinerary_uuid: tripId,
-    content_type: 'packing'
-  })
+  // Owner always has access
+  const isOwner = user?.id === trip.user_id
+
+  // Try RPC function, fall back to owner check if it fails
+  let hasAccess = isOwner
+  if (!isOwner) {
+    const { data: rpcResult, error } = await supabase.rpc('can_access_private_content', {
+      user_uuid: user?.id || null,
+      itinerary_uuid: tripId,
+      content_type: 'packing'
+    })
+    hasAccess = rpcResult ?? false
+    if (error) console.warn('Packing access RPC error:', error)
+  }
 
   // If user doesn't have access, show access denied page
   if (!hasAccess) {

@@ -224,11 +224,26 @@ export default function ForYouPage() {
     return `${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(start)} - ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(end)}`
   }
 
+  // Generate a default cover image based on location
+  const getDefaultCoverImage = (location: string) => {
+    const loc = location?.toLowerCase() || ""
+
+    if (loc.includes("beach")) {
+      return "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop"
+    } else if (loc.includes("mountain")) {
+      return "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop"
+    } else if (loc.includes("city")) {
+      return "https://images.unsplash.com/photo-1514565131-fce0801e5785?w=800&h=600&fit=crop"
+    }
+    // Default travel image
+    return "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=600&fit=crop"
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-orange-50 to-pink-50">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white border-b">
-        <div className="container px-4 py-3 max-w-md mx-auto">
+        <div className="container px-4 py-3 max-w-full sm:max-w-2xl md:max-w-4xl lg:max-w-6xl mx-auto">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 text-transparent bg-clip-text">
               For You
@@ -251,7 +266,7 @@ export default function ForYouPage() {
       </div>
 
       {/* Content */}
-      <div className="container px-4 py-4 max-w-md mx-auto">
+      <div className="container px-4 py-4 max-w-full sm:max-w-2xl md:max-w-4xl lg:max-w-6xl mx-auto">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-pink-500 mb-4" />
@@ -269,7 +284,7 @@ export default function ForYouPage() {
               </div>
 
               {recommendedItineraries.length > 0 ? (
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {recommendedItineraries.map((itinerary) => (
                     <Card
                       key={itinerary.id}
@@ -278,7 +293,7 @@ export default function ForYouPage() {
                     >
                       <div className="relative h-48">
                         <Image
-                          src={itinerary.image_url || "/placeholder.svg?height=300&width=500"}
+                          src={itinerary.image_url || getDefaultCoverImage(itinerary.location)}
                           alt={itinerary.title}
                           fill
                           className="object-cover"
@@ -373,7 +388,7 @@ export default function ForYouPage() {
                       <div className="flex h-24">
                         <div className="w-1/3 relative">
                           <Image
-                            src={trip.image_url || "/placeholder.svg?height=300&width=500"}
+                            src={trip.image_url || getDefaultCoverImage(trip.location)}
                             alt={trip.title}
                             fill
                             className="object-cover"

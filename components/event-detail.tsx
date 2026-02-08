@@ -44,6 +44,8 @@ interface Event {
   user_id: string
   like_count?: number
   activities?: Activity[]
+  packing_list_public?: boolean
+  expenses_public?: boolean
   [key: string]: unknown
 }
 
@@ -119,6 +121,15 @@ export function EventDetail({ event }: EventDetailProps) {
   useEffect(() => {
     const checkAccess = async () => {
       setCheckingAccess(true)
+
+      // Owner always has access
+      if (isOwner) {
+        setCanAccessPacking(true)
+        setCanAccessExpenses(true)
+        setCheckingAccess(false)
+        return
+      }
+
       const supabase = createClient()
 
       // Owner always has access - this is a fallback in case RPC function fails
@@ -158,7 +169,7 @@ export function EventDetail({ event }: EventDetailProps) {
     }
 
     checkAccess()
-  }, [user?.id, event.id, event.user_id])
+  }, [user?.id, event.id, isOwner])
 
   // Fetch packing items (only if user has access)
   useEffect(() => {
@@ -497,7 +508,15 @@ export function EventDetail({ event }: EventDetailProps) {
               </div>
             )}
 
-            <div className="flex items-center gap-2">
+            <div
+              className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation()
+                if (event.user_id) {
+                  router.push(`/user/${event.user_id}`)
+                }
+              }}
+            >
               {event.host_avatar && (
                 <img
                   src={event.host_avatar}
@@ -552,8 +571,22 @@ export function EventDetail({ event }: EventDetailProps) {
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="photos">Photos</TabsTrigger>
-            <TabsTrigger value="packing">Packing List</TabsTrigger>
-            <TabsTrigger value="expenses">Expenses</TabsTrigger>
+            <TabsTrigger value="packing" className="relative">
+              Packing List
+              {isOwner && (
+                <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${event.packing_list_public ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                  {event.packing_list_public ? 'Public' : 'Private'}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="expenses" className="relative">
+              Expenses
+              {isOwner && (
+                <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${event.expenses_public ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                  {event.expenses_public ? 'Public' : 'Private'}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="attendees">Attendees</TabsTrigger>
             <TabsTrigger value="comments">Comments</TabsTrigger>
           </TabsList>

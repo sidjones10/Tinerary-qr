@@ -60,6 +60,7 @@ export async function searchContent(
         .select(
           `
           id,
+          user_id,
           title,
           description,
           image_url,
@@ -99,6 +100,7 @@ export async function searchContent(
       } else if (itineraries) {
         results.itineraries = itineraries.map((item: any) => ({
           id: item.id,
+          user_id: item.user_id,
           type: "itinerary" as const,
           title: item.title,
           description: item.description,

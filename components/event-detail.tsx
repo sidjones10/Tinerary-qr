@@ -23,6 +23,8 @@ import { PhotoGallery } from "@/components/photo-gallery"
 import { getEventPhotos, type EventPhoto } from "@/lib/photo-service"
 import { CalendarExportButton } from "@/components/calendar-export-button"
 import { MutualsSection } from "@/components/mutuals-section"
+import { ThemeIcon } from "@/components/theme-selector"
+import { getFontFamily } from "@/components/font-selector"
 
 interface Activity {
   id: string
@@ -416,7 +418,10 @@ export function EventDetail({ event }: EventDetailProps) {
       <div className="fixed inset-0 z-0 bg-white/60 backdrop-blur-sm" />
 
       {/* Content */}
-      <div className="relative z-10 container px-4 py-6 md:py-10">
+      <div
+        className="relative z-10 container px-4 py-6 md:py-10"
+        style={{ fontFamily: getFontFamily((event.font as string) || "default") }}
+      >
         <Link href="/app" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Home
@@ -441,8 +446,9 @@ export function EventDetail({ event }: EventDetailProps) {
             <div className="flex justify-between items-end">
               <div>
                 <h1 className="text-3xl font-bold text-white mb-2">{event.title}</h1>
-                <div className="flex items-center text-white/90 text-sm">
-                  <Calendar className="h-4 w-4 mr-1" />
+                <div className="flex items-center text-white/90 text-sm gap-2">
+                  <ThemeIcon theme={(event.theme as string) || "default"} className="h-4 w-4" />
+                  <Calendar className="h-4 w-4" />
                   <span>
                     {formatDate(event.start_date)}
                     {event.end_date && event.end_date !== event.start_date && <> - {formatDate(event.end_date)}</>}

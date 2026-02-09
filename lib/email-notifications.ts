@@ -1,6 +1,17 @@
 import { Resend } from "resend"
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Lazy-load Resend client to avoid build-time API key requirement
+let resendClient: Resend | null = null
+
+function getResendClient(): Resend {
+  if (!resendClient) {
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error("RESEND_API_KEY is not set")
+    }
+    resendClient = new Resend(process.env.RESEND_API_KEY)
+  }
+  return resendClient
+}
 
 const FROM_EMAIL = "Tinerary <noreply@tinerary-app.com>"
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary-app.com"
@@ -10,6 +21,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary-app.com"
  */
 export async function sendWelcomeEmail(email: string, name: string) {
   try {
+    const resend = getResendClient()
     await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
@@ -78,6 +90,7 @@ export async function sendEventInviteEmail(
   try {
     const eventUrl = `${APP_URL}/event/${eventId}`
 
+    const resend = getResendClient()
     await resend.emails.send({
       from: FROM_EMAIL,
       to: recipientEmail,
@@ -154,6 +167,7 @@ export async function sendEventReminderEmail(
     const eventUrl = `${APP_URL}/event/${eventId}`
     const timeText = hoursUntil < 24 ? `in ${hoursUntil} hours` : `tomorrow`
 
+    const resend = getResendClient()
     await resend.emails.send({
       from: FROM_EMAIL,
       to: recipientEmail,
@@ -214,6 +228,7 @@ export async function sendNewFollowerEmail(
   try {
     const profileUrl = `${APP_URL}/user/${followerUsername}`
 
+    const resend = getResendClient()
     await resend.emails.send({
       from: FROM_EMAIL,
       to: recipientEmail,
@@ -274,6 +289,7 @@ export async function sendNewCommentEmail(
   try {
     const eventUrl = `${APP_URL}/event/${eventId}`
 
+    const resend = getResendClient()
     await resend.emails.send({
       from: FROM_EMAIL,
       to: recipientEmail,
@@ -326,6 +342,7 @@ export async function sendPasswordResetEmail(email: string, resetToken: string) 
   try {
     const resetUrl = `${APP_URL}/auth/reset-password?token=${resetToken}`
 
+    const resend = getResendClient()
     await resend.emails.send({
       from: FROM_EMAIL,
       to: email,

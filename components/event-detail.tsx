@@ -594,7 +594,7 @@ export function EventDetail({ event }: EventDetailProps) {
         </div>
 
         {/* Mutuals Section */}
-        <div className="mb-8 rounded-xl bg-gradient-to-br from-purple-600 via-pink-500 to-orange-500 p-8 shadow-xl">
+        <div className="mb-8">
           <MutualsSection eventId={event.id} limit={8} showSeeAll={true} />
         </div>
 

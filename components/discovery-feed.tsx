@@ -129,6 +129,37 @@ export function DiscoveryFeed() {
     }
   }, [currentIndex, user?.id, discoveryItems])
 
+  // Scroll prompt effect for first-time users
+  useEffect(() => {
+    if (!mounted) return // Don't run until mounted
+
+    // Check localStorage for first-time visit today
+    const today = new Date().toDateString()
+    const lastVisit = localStorage.getItem('discover_last_visit')
+
+    if (lastVisit !== today) {
+      setShowScrollPrompt(true)
+      localStorage.setItem('discover_last_visit', today)
+    }
+
+    // Also show prompt if lingering on first item for 5 seconds
+    const timer = setTimeout(() => {
+      if (!hasScrolled && currentIndex === 0) {
+        setShowScrollPrompt(true)
+      }
+    }, 5000)
+
+    return () => clearTimeout(timer)
+  }, [mounted, hasScrolled, currentIndex])
+
+  // Hide prompt when user scrolls
+  useEffect(() => {
+    if (currentIndex > 0) {
+      setHasScrolled(true)
+      setShowScrollPrompt(false)
+    }
+  }, [currentIndex])
+
   // Handle like action
   const handleLike = async (itemId: string) => {
     if (!user?.id) {
@@ -477,35 +508,6 @@ export function DiscoveryFeed() {
   }
 
   const itemsToDisplay = formattedItems.length > 0 ? formattedItems : fallbackItems
-
-  // Scroll prompt effect for first-time users
-  useEffect(() => {
-    // Check localStorage for first-time visit today
-    const today = new Date().toDateString()
-    const lastVisit = localStorage.getItem('discover_last_visit')
-
-    if (lastVisit !== today) {
-      setShowScrollPrompt(true)
-      localStorage.setItem('discover_last_visit', today)
-    }
-
-    // Also show prompt if lingering on first item for 5 seconds
-    const timer = setTimeout(() => {
-      if (!hasScrolled && currentIndex === 0) {
-        setShowScrollPrompt(true)
-      }
-    }, 5000)
-
-    return () => clearTimeout(timer)
-  }, [hasScrolled, currentIndex])
-
-  // Hide prompt when user scrolls
-  useEffect(() => {
-    if (currentIndex > 0) {
-      setHasScrolled(true)
-      setShowScrollPrompt(false)
-    }
-  }, [currentIndex])
 
   return (
     <div className="relative h-[calc(100vh-200px)] min-h-[500px] max-h-[800px] w-full overflow-hidden rounded-xl bg-gradient-to-b from-white to-orange-50 shadow-2xl">

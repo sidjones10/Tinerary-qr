@@ -458,7 +458,7 @@ export function EventDetail({ event }: EventDetailProps) {
                 </div>
               </div>
 
-              <div className="flex space-x-2">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -466,8 +466,8 @@ export function EventDetail({ event }: EventDetailProps) {
                   onClick={handleLike}
                   disabled={isLiking}
                 >
-                  <Heart className={`h-4 w-4 mr-2 ${liked ? "fill-red-500 text-red-500" : ""}`} />
-                  {liked ? "Liked" : "Like"}
+                  <Heart className={`h-4 w-4 ${liked ? "fill-red-500 text-red-500" : ""}`} />
+                  <span className="hidden sm:inline ml-2">{liked ? "Liked" : "Like"}</span>
                   {likeCount > 0 && <span className="ml-1">({likeCount})</span>}
                 </Button>
 
@@ -482,8 +482,8 @@ export function EventDetail({ event }: EventDetailProps) {
                       size="sm"
                       className="bg-white/20 backdrop-blur-sm border-white/40 text-white hover:bg-white/30"
                     >
-                      <Share2 className="h-4 w-4 mr-2" />
-                      Share
+                      <Share2 className="h-4 w-4" />
+                      <span className="hidden sm:inline ml-2">Share</span>
                     </Button>
                   }
                 />
@@ -498,7 +498,7 @@ export function EventDetail({ event }: EventDetailProps) {
                     url: typeof window !== "undefined" ? window.location.href : undefined,
                   }}
                   size="sm"
-                  showLabel={true}
+                  showLabel={false}
                   variant="outline"
                 />
 
@@ -511,8 +511,8 @@ export function EventDetail({ event }: EventDetailProps) {
                       asChild
                     >
                       <Link href={`/create?draftId=${event.id}`}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
+                        <Edit className="h-4 w-4" />
+                        <span className="hidden sm:inline ml-2">Edit</span>
                       </Link>
                     </Button>
 
@@ -523,8 +523,8 @@ export function EventDetail({ event }: EventDetailProps) {
                       onClick={handleDelete}
                       disabled={isDeleting}
                     >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      {isDeleting ? "Deleting..." : "Delete"}
+                      <Trash2 className="h-4 w-4" />
+                      <span className="hidden sm:inline ml-2">{isDeleting ? "Deleting..." : "Delete"}</span>
                     </Button>
                   </>
                 )}
@@ -601,29 +601,32 @@ export function EventDetail({ event }: EventDetailProps) {
         </div>
 
         <Tabs defaultValue="schedule" className="mb-8">
-          <TabsList className="mb-4">
-            <TabsTrigger value="schedule">Schedule</TabsTrigger>
-            <TabsTrigger value="details">Details</TabsTrigger>
-            <TabsTrigger value="photos">Photos</TabsTrigger>
-            <TabsTrigger value="packing" className="relative">
-              Packing List
-              {isOwner && (
-                <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${event.packing_list_public ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                  {event.packing_list_public ? 'Public' : 'Private'}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="expenses" className="relative">
-              Expenses
-              {isOwner && (
-                <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${event.expenses_public ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                  {event.expenses_public ? 'Public' : 'Private'}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="attendees">Attendees</TabsTrigger>
-            <TabsTrigger value="comments">Comments</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-4 px-4 mb-4">
+            <TabsList className="inline-flex w-max min-w-full sm:w-full">
+              <TabsTrigger value="schedule">Schedule</TabsTrigger>
+              <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="photos">Photos</TabsTrigger>
+              <TabsTrigger value="packing" className="relative">
+                <span className="hidden sm:inline">Packing List</span>
+                <span className="sm:hidden">Packing</span>
+                {isOwner && (
+                  <span className={`ml-1 sm:ml-2 text-[10px] px-1 sm:px-1.5 py-0.5 rounded-full ${event.packing_list_public ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                    {event.packing_list_public ? 'Public' : 'Private'}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="expenses" className="relative">
+                Expenses
+                {isOwner && (
+                  <span className={`ml-1 sm:ml-2 text-[10px] px-1 sm:px-1.5 py-0.5 rounded-full ${event.expenses_public ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                    {event.expenses_public ? 'Public' : 'Private'}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="attendees">Attendees</TabsTrigger>
+              <TabsTrigger value="comments">Comments</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="schedule">
             {activities.length > 0 ? (

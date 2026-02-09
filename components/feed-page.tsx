@@ -351,8 +351,8 @@ export function FeedPage() {
       className="min-h-screen"
       style={{ background: "linear-gradient(to bottom, #ffecd2, #fcb69f 40%, #ffffff 80%)" }}
     >
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">Your Feed</h1>
           <Button asChild className="btn-sunset">
             <Link href="/create">
@@ -363,7 +363,7 @@ export function FeedPage() {
         </div>
 
         {/* Feed Tabs */}
-        <div className="bg-white rounded-full p-1 mb-6 inline-flex w-full max-w-md">
+        <div className="bg-white rounded-full p-1 mb-4 inline-flex w-full max-w-md">
           <button
             className={`flex-1 px-6 py-2 rounded-full text-sm font-medium transition-colors ${
               feedTab === "forYou" ? "bg-[#FF9B7D] text-white" : "text-gray-500 hover:text-gray-700"

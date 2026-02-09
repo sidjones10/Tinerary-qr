@@ -754,8 +754,8 @@ export default function CreatePageContent() {
           title: "Draft Saved",
           description: `Your ${type} has been saved as a draft.`,
         })
-        // Redirect to the profile page where drafts can be viewed
-        router.push("/profile")
+        // Redirect to the home/discover page
+        router.push("/")
       } else if (error) {
         throw new Error(error)
       }
@@ -1500,13 +1500,19 @@ export default function CreatePageContent() {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end gap-4 mb-8">
-          <Button variant="outline" className="bg-white" onClick={handleSaveDraft} disabled={isSubmitting || isSaving}>
-            {isSaving ? "Saving..." : "Save as Draft"}
+        <div className="flex justify-between gap-4 mb-8">
+          <Button variant="ghost" onClick={() => router.back()} disabled={isSubmitting || isSaving}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
           </Button>
-          <Button className="btn-sunset" onClick={handlePublish} disabled={isSubmitting || isSaving}>
-            {isSubmitting ? "Publishing..." : `Publish ${type === "event" ? "Event" : "Trip"}`}
-          </Button>
+          <div className="flex gap-4">
+            <Button variant="outline" className="bg-white" onClick={handleSaveDraft} disabled={isSubmitting || isSaving}>
+              {isSaving ? "Saving..." : "Save as Draft"}
+            </Button>
+            <Button className="btn-sunset" onClick={handlePublish} disabled={isSubmitting || isSaving}>
+              {isSubmitting ? "Publishing..." : `Publish ${type === "event" ? "Event" : "Trip"}`}
+            </Button>
+          </div>
         </div>
       </div>
 

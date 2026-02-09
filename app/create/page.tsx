@@ -19,6 +19,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { EventPreviewModal } from "@/components/event-preview-modal"
 import { LocationAutocomplete } from "@/components/location-autocomplete"
 import { ActivityBrowserDialog } from "@/components/activity-browser-dialog"
+import { ThemeSelector } from "@/components/theme-selector"
+import { FontSelector } from "@/components/font-selector"
 import type { Activity as ImportedActivity } from "@/lib/activity-service"
 import { getCurrencySymbol, type Currency } from "@/lib/currency-utils"
 import confetti from "canvas-confetti"
@@ -69,6 +71,8 @@ function CreatePageContent() {
   const [showPreview, setShowPreview] = useState(false)
   const [draftId, setDraftId] = useState<string | null>(null)
   const [editingItineraryId, setEditingItineraryId] = useState<string | null>(null)
+  const [selectedTheme, setSelectedTheme] = useState("default")
+  const [selectedFont, setSelectedFont] = useState("default")
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -151,6 +155,12 @@ function CreatePageContent() {
             if (draftData.currency) {
               setCurrency(draftData.currency)
             }
+            if (draftData.theme) {
+              setSelectedTheme(draftData.theme)
+            }
+            if (draftData.font) {
+              setSelectedFont(draftData.font)
+            }
 
             // Load cover image if it exists
             if (draftData.image_url) {
@@ -216,6 +226,12 @@ function CreatePageContent() {
             setExpensesPublic(itineraryData.expenses_public !== undefined ? itineraryData.expenses_public : false)
             if (itineraryData.currency) {
               setCurrency(itineraryData.currency)
+            }
+            if (itineraryData.theme) {
+              setSelectedTheme(itineraryData.theme)
+            }
+            if (itineraryData.font) {
+              setSelectedFont(itineraryData.font)
             }
 
             // Load cover image
@@ -376,6 +392,8 @@ function CreatePageContent() {
         packing_list_public: packingListPublic,
         expenses_public: expensesPublic,
         currency,
+        theme: selectedTheme,
+        font: selectedFont,
         image_url: coverImage || null,
         activities,
         packing_items: showPackingExpenses ? packingItems : [],
@@ -414,6 +432,8 @@ function CreatePageContent() {
             title: "Draft Saved",
             description: `Your ${type} has been saved as a draft.`,
           })
+          // Redirect to home/discover page after manual save
+          router.push("/")
         }
       }
     } catch (error: any) {
@@ -493,6 +513,8 @@ function CreatePageContent() {
         packingListPublic,
         expensesPublic,
         currency,
+        theme: selectedTheme,
+        font: selectedFont,
         activities: activities.filter((a) => a.title),
         packingItems: showPackingExpenses ? packingItems : [],
         expenses: showPackingExpenses ? expenses.filter((e) => e.amount > 0) : [],
@@ -946,15 +968,6 @@ function CreatePageContent() {
                   </div>
                 </div>
 
-                <div className="flex justify-end">
-                  <Button
-                    variant="outline"
-                    className="bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100"
-                  >
-                    <Lightbulb className="mr-2 h-4 w-4" />
-                    Get AI Recommendations
-                  </Button>
-                </div>
               </div>
             )}
 
@@ -1383,25 +1396,51 @@ function CreatePageContent() {
                       </div>
                     </div>
                   </div>
+
+                  <div className="border-t pt-6">
+                    <h3 className="font-medium mb-4">Customize Appearance</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Choose a theme icon and font style for your {type} page.
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <ThemeSelector
+                        value={selectedTheme}
+                        onChange={setSelectedTheme}
+                        showLabel={true}
+                      />
+                      <FontSelector
+                        value={selectedFont}
+                        onChange={setSelectedFont}
+                        showLabel={true}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-4 mb-8">
-            <Button variant="outline" onClick={handleSaveDraft} disabled={isSubmitting || isSaving}>
-              {isSaving ? "Saving..." : "Save as Draft"}
+          <div className="flex justify-between gap-4 mb-8">
+            <Button variant="outline" className="bg-white" onClick={() => router.back()} disabled={isSubmitting || isSaving}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
             </Button>
-            <Button
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-              onClick={handlePublish}
-              disabled={isSubmitting || isSaving}
-            >
-              {isSubmitting
-                ? (editingItineraryId ? "Updating..." : "Publishing...")
-                : (editingItineraryId ? `Update ${type}` : `Publish ${type}`)}
-            </Button>
+            <div className="flex gap-4">
+              <Button variant="outline" onClick={handleSaveDraft} disabled={isSubmitting || isSaving}>
+                {isSaving ? "Saving..." : "Save as Draft"}
+              </Button>
+              <Button
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+                onClick={handlePublish}
+                disabled={isSubmitting || isSaving}
+              >
+                {isSubmitting
+                  ? (editingItineraryId ? "Updating..." : "Publishing...")
+                  : (editingItineraryId ? `Update ${type}` : `Publish ${type}`)}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

@@ -33,6 +33,8 @@ import { type EventDraft, saveDraft, getDraft } from "@/app/actions/draft-action
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { ThemeSelector, ThemeIcon, themes } from "@/components/theme-selector"
+import { FontSelector, getFontFamily } from "@/components/font-selector"
 
 export default function CreatePageContent() {
   const [type, setType] = useState<"event" | "trip">("trip")
@@ -63,6 +65,7 @@ export default function CreatePageContent() {
   const { user } = useAuth()
   const [selectedBackground, setSelectedBackground] = useState("gradient")
   const [selectedTheme, setSelectedTheme] = useState("default")
+  const [selectedFont, setSelectedFont] = useState("default")
 
   // Form state
   const [title, setTitle] = useState("Weekend in NYC")
@@ -1448,13 +1451,17 @@ export default function CreatePageContent() {
                         ? "bg-[url(/placeholder.svg)]"
                         : "bg-white"
                   }`}
+                  style={{ fontFamily: getFontFamily(selectedFont) }}
                 >
                   <div className="text-center">
                     <h2 className="text-xl font-bold">{title || "Weekend in NYC"}</h2>
-                    <p className="text-sm">
-                      {startDate && endDate
-                        ? `${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}`
-                        : "May 15-16, 2023"}
+                    <p className="text-sm flex items-center justify-center gap-2">
+                      <ThemeIcon theme={selectedTheme} />
+                      <span>
+                        {startDate && endDate
+                          ? `${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}`
+                          : "May 15-16, 2023"}
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -1496,12 +1503,25 @@ export default function CreatePageContent() {
                   <div className="aspect-square rounded-md bg-gradient-to-r from-purple-200 to-indigo-200 cursor-pointer" />
                 </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <ThemeSelector
+                  value={selectedTheme}
+                  onChange={setSelectedTheme}
+                  showLabel={true}
+                />
+                <FontSelector
+                  value={selectedFont}
+                  onChange={setSelectedFont}
+                  showLabel={true}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
 
         <div className="flex justify-between gap-4 mb-8">
-          <Button variant="ghost" onClick={() => router.back()} disabled={isSubmitting || isSaving}>
+          <Button variant="outline" className="bg-white" onClick={() => router.back()} disabled={isSubmitting || isSaving}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>

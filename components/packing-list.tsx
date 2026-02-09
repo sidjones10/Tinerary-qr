@@ -36,9 +36,10 @@ interface PackingListProps {
   simplified?: boolean
   items: PackingItem[]
   tripId: string
+  onItemsChange?: () => void
 }
 
-export function PackingList({ simplified = false, items, tripId }: PackingListProps) {
+export function PackingList({ simplified = false, items, tripId, onItemsChange }: PackingListProps) {
   // State for form inputs
   const [newItemName, setNewItemName] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("clothing")
@@ -140,6 +141,8 @@ export function PackingList({ simplified = false, items, tripId }: PackingListPr
             title: "Item added",
             description: `${itemName} has been added to your packing list.`,
           })
+          // Notify parent to refresh data
+          onItemsChange?.()
         }
 
         setIsAddingItem(false)
@@ -215,6 +218,8 @@ export function PackingList({ simplified = false, items, tripId }: PackingListPr
             title: "Item removed",
             description: `${item.name} has been removed from your packing list.`,
           })
+          // Notify parent to refresh data
+          onItemsChange?.()
         }
 
         setIsDeletingItem(null)
@@ -267,6 +272,8 @@ export function PackingList({ simplified = false, items, tripId }: PackingListPr
             description: `${editingItem.name} has been updated.`,
           })
           setEditingItem(null)
+          // Notify parent to refresh data
+          onItemsChange?.()
         }
       })
     } catch (err) {

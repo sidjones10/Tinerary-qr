@@ -173,32 +173,34 @@ export function EventDetail({ event }: EventDetailProps) {
     checkAccess()
   }, [user?.id, event.id, isOwner])
 
+  // Function to fetch packing items
+  const fetchPackingItems = async () => {
+    if (!canAccessPacking) return
+
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('packing_items')
+      .select('*')
+      .eq('itinerary_id', event.id)
+      .order('created_at', { ascending: true })
+
+    if (data) {
+      // Transform database column names to match component interface
+      const transformedItems = data.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        packed: item.is_packed ?? false,
+        tripId: item.itinerary_id,
+        category: item.category,
+        quantity: item.quantity,
+        url: item.url,
+      }))
+      setPackingItems(transformedItems)
+    }
+  }
+
   // Fetch packing items (only if user has access)
   useEffect(() => {
-    const fetchPackingItems = async () => {
-      if (!canAccessPacking) return
-
-      const supabase = createClient()
-      const { data } = await supabase
-        .from('packing_items')
-        .select('*')
-        .eq('itinerary_id', event.id)
-        .order('created_at', { ascending: true })
-
-      if (data) {
-        // Transform database column names to match component interface
-        const transformedItems = data.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          packed: item.is_packed ?? false,
-          tripId: item.itinerary_id,
-          category: item.category,
-          quantity: item.quantity,
-          url: item.url,
-        }))
-        setPackingItems(transformedItems)
-      }
-    }
     fetchPackingItems()
   }, [event.id, canAccessPacking])
 
@@ -756,6 +758,7 @@ export function EventDetail({ event }: EventDetailProps) {
                 simplified={false}
                 items={packingItems}
                 tripId={event.id}
+                onItemsChange={fetchPackingItems}
               />
             ) : (
               <Card>

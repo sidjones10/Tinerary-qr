@@ -64,6 +64,7 @@ export async function createPackingItem(tripId: string, formData: FormData) {
 
     revalidatePath(`/trip/${tripId}`)
     revalidatePath(`/trip/${tripId}/packing`)
+    revalidatePath(`/event/${tripId}`)
 
     return { success: true }
   } catch (error) {
@@ -117,6 +118,7 @@ export async function updatePackingItem(itemId: string, tripId: string, formData
 
     revalidatePath(`/trip/${tripId}`)
     revalidatePath(`/trip/${tripId}/packing`)
+    revalidatePath(`/event/${tripId}`)
 
     return { success: true }
   } catch (error) {
@@ -156,6 +158,7 @@ export async function togglePackingItem(itemId: string, tripId: string, packed: 
 
     revalidatePath(`/trip/${tripId}`)
     revalidatePath(`/trip/${tripId}/packing`)
+    revalidatePath(`/event/${tripId}`)
 
     return { success: true }
   } catch (error) {
@@ -188,6 +191,7 @@ export async function deletePackingItem(itemId: string, tripId: string) {
 
     revalidatePath(`/trip/${tripId}`)
     revalidatePath(`/trip/${tripId}/packing`)
+    revalidatePath(`/event/${tripId}`)
 
     return { success: true }
   } catch (error) {

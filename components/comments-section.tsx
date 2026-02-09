@@ -38,9 +38,10 @@ interface Comment {
 interface CommentsSectionProps {
   itineraryId: string
   currentUserId?: string
+  itineraryOwnerId?: string
 }
 
-export function CommentsSection({ itineraryId, currentUserId }: CommentsSectionProps) {
+export function CommentsSection({ itineraryId, currentUserId, itineraryOwnerId }: CommentsSectionProps) {
   const router = useRouter()
   const [comments, setComments] = useState<Comment[]>([])
   const [loading, setLoading] = useState(true)
@@ -142,26 +143,75 @@ export function CommentsSection({ itineraryId, currentUserId }: CommentsSectionP
     setSubmitting(true)
     setError(null)
 
+    // Create optimistic comment for instant display
+    const optimisticId = `temp-${Date.now()}`
+    const optimisticComment: Comment = {
+      id: optimisticId,
+      content: newComment.trim(),
+      created_at: new Date().toISOString(),
+      is_edited: false,
+      edited_at: null,
+      user_id: currentUserId,
+      parent_comment_id: null,
+      user: {
+        id: currentUserId,
+        name: 'You',
+        username: null,
+        avatar_url: null,
+      },
+      replies: [],
+    }
+
+    // Optimistically add comment to UI
+    setComments(prev => [...prev, optimisticComment])
+    const savedComment = newComment
+    setNewComment('')
+
     try {
       const supabase = createClient()
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('comments')
         .insert({
           itinerary_id: itineraryId,
           user_id: currentUserId,
-          content: newComment.trim(),
+          content: savedComment.trim(),
         })
+        .select(`
+          id,
+          content,
+          created_at,
+          is_edited,
+          edited_at,
+          user_id,
+          parent_comment_id,
+          user:profiles(
+            id,
+            name,
+            username,
+            avatar_url
+          )
+        `)
+        .single()
 
       if (error) throw error
 
-      setNewComment('')
+      // Replace optimistic comment with real one
+      if (data) {
+        setComments(prev => prev.map(c =>
+          c.id === optimisticId ? { ...data, replies: [] } : c
+        ))
+      }
+
       toast({
         title: 'Comment posted',
         description: 'Your comment has been added successfully.',
       })
     } catch (err: any) {
       console.error('Error posting comment:', err)
+      // Remove optimistic comment on error
+      setComments(prev => prev.filter(c => c.id !== optimisticId))
+      setNewComment(savedComment)
       setError(err.message || 'Failed to post comment')
       toast({
         title: 'Error',
@@ -179,28 +229,103 @@ export function CommentsSection({ itineraryId, currentUserId }: CommentsSectionP
     setSubmitting(true)
     setError(null)
 
+    // Create optimistic reply for instant display
+    const optimisticId = `temp-${Date.now()}`
+    const optimisticReply: Comment = {
+      id: optimisticId,
+      content: replyContent.trim(),
+      created_at: new Date().toISOString(),
+      is_edited: false,
+      edited_at: null,
+      user_id: currentUserId,
+      parent_comment_id: parentId,
+      user: {
+        id: currentUserId,
+        name: 'You',
+        username: null,
+        avatar_url: null,
+      },
+      replies: [],
+    }
+
+    // Optimistically add reply to UI
+    setComments(prev => prev.map(comment => {
+      if (comment.id === parentId) {
+        return {
+          ...comment,
+          replies: [...(comment.replies || []), optimisticReply]
+        }
+      }
+      return comment
+    }))
+
+    const savedReply = replyContent
+    setReplyingTo(null)
+    setReplyContent('')
+
     try {
       const supabase = createClient()
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('comments')
         .insert({
           itinerary_id: itineraryId,
           user_id: currentUserId,
-          content: replyContent.trim(),
+          content: savedReply.trim(),
           parent_comment_id: parentId,
         })
+        .select(`
+          id,
+          content,
+          created_at,
+          is_edited,
+          edited_at,
+          user_id,
+          parent_comment_id,
+          user:profiles(
+            id,
+            name,
+            username,
+            avatar_url
+          )
+        `)
+        .single()
 
       if (error) throw error
 
-      setReplyingTo(null)
-      setReplyContent('')
+      // Replace optimistic reply with real one
+      if (data) {
+        setComments(prev => prev.map(comment => {
+          if (comment.id === parentId) {
+            return {
+              ...comment,
+              replies: (comment.replies || []).map(r =>
+                r.id === optimisticId ? { ...data, replies: [] } : r
+              )
+            }
+          }
+          return comment
+        }))
+      }
+
       toast({
         title: 'Reply posted',
         description: 'Your reply has been added successfully.',
       })
     } catch (err: any) {
       console.error('Error posting reply:', err)
+      // Remove optimistic reply on error
+      setComments(prev => prev.map(comment => {
+        if (comment.id === parentId) {
+          return {
+            ...comment,
+            replies: (comment.replies || []).filter(r => r.id !== optimisticId)
+          }
+        }
+        return comment
+      }))
+      setReplyingTo(parentId)
+      setReplyContent(savedReply)
       setError(err.message || 'Failed to post reply')
       toast({
         title: 'Error',
@@ -297,7 +422,10 @@ export function CommentsSection({ itineraryId, currentUserId }: CommentsSectionP
   const renderComment = (comment: Comment, depth: number = 0) => {
     const isEditing = editingId === comment.id
     const isReplying = replyingTo === comment.id
-    const isOwner = currentUserId === comment.user_id
+    const isCommentOwner = currentUserId === comment.user_id
+    const isItineraryOwner = currentUserId === itineraryOwnerId
+    const canDelete = isCommentOwner || isItineraryOwner
+    const canEdit = isCommentOwner
     const userName = comment.user?.name || comment.user?.username || 'Anonymous'
     const userInitials = userName.slice(0, 2).toUpperCase()
 
@@ -344,7 +472,7 @@ export function CommentsSection({ itineraryId, currentUserId }: CommentsSectionP
                 )}
               </div>
 
-              {isOwner && (
+              {(canEdit || canDelete) && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -352,17 +480,21 @@ export function CommentsSection({ itineraryId, currentUserId }: CommentsSectionP
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => startEdit(comment)}>
-                      <Edit2 className="h-4 w-4 mr-2" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => handleDeleteComment(comment.id)}
-                      className="text-red-600"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
+                    {canEdit && (
+                      <DropdownMenuItem onClick={() => startEdit(comment)}>
+                        <Edit2 className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                    )}
+                    {canDelete && (
+                      <DropdownMenuItem
+                        onClick={() => handleDeleteComment(comment.id)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}

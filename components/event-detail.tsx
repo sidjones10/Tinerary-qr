@@ -842,6 +842,7 @@ export function EventDetail({ event }: EventDetailProps) {
             <CommentsSection
               itineraryId={event.id}
               currentUserId={user?.id}
+              itineraryOwnerId={event.user_id}
             />
           </TabsContent>
         </Tabs>

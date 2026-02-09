@@ -46,6 +46,7 @@ export function PackingList({ simplified = false, items, tripId, onItemsChange }
   const [newItemUrl, setNewItemUrl] = useState("")
   const [newItemQuantity, setNewItemQuantity] = useState(1)
   const [editingItem, setEditingItem] = useState<PackingItem | null>(null)
+  const [showAddDialog, setShowAddDialog] = useState(false)
 
   // State for error handling
   const [error, setError] = useState<string | null>(null)
@@ -141,7 +142,8 @@ export function PackingList({ simplified = false, items, tripId, onItemsChange }
             title: "Item added",
             description: `${itemName} has been added to your packing list.`,
           })
-          // Notify parent to refresh data
+          // Close the dialog and notify parent to refresh data
+          setShowAddDialog(false)
           onItemsChange?.()
         }
 
@@ -344,7 +346,7 @@ export function PackingList({ simplified = false, items, tripId, onItemsChange }
         {/* Only show Add Item button in full mode */}
         {!simplified && (
           <div className="flex gap-2">
-            <Dialog>
+            <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
               <DialogTrigger asChild>
                 <Button className="flex-1 bg-pink-500 hover:bg-pink-600">
                   <Plus className="h-4 w-4 mr-2" />

@@ -601,16 +601,15 @@ export function EventDetail({ event }: EventDetailProps) {
         </div>
 
         <Tabs defaultValue="schedule" className="mb-8">
-          <div className="overflow-x-auto -mx-4 px-4 mb-4">
-            <TabsList className="inline-flex w-max min-w-full sm:w-full">
+          <div className="overflow-x-auto pb-2 mb-4">
+            <TabsList className="inline-flex w-max">
               <TabsTrigger value="schedule">Schedule</TabsTrigger>
               <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="photos">Photos</TabsTrigger>
               <TabsTrigger value="packing" className="relative">
-                <span className="hidden sm:inline">Packing List</span>
-                <span className="sm:hidden">Packing</span>
+                Packing List
                 {isOwner && (
-                  <span className={`ml-1 sm:ml-2 text-[10px] px-1 sm:px-1.5 py-0.5 rounded-full ${event.packing_list_public ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                  <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${event.packing_list_public ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
                     {event.packing_list_public ? 'Public' : 'Private'}
                   </span>
                 )}
@@ -618,7 +617,7 @@ export function EventDetail({ event }: EventDetailProps) {
               <TabsTrigger value="expenses" className="relative">
                 Expenses
                 {isOwner && (
-                  <span className={`ml-1 sm:ml-2 text-[10px] px-1 sm:px-1.5 py-0.5 rounded-full ${event.expenses_public ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                  <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${event.expenses_public ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
                     {event.expenses_public ? 'Public' : 'Private'}
                   </span>
                 )}

@@ -878,5 +878,6 @@ export function EventDetail({ event }: EventDetailProps) {
         </Dialog>
       </div>
     </div>
+  </div>
   )
 }

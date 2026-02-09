@@ -399,7 +399,7 @@ export function EventDetail({ event }: EventDetailProps) {
             backgroundImage: `url(${event.image_url})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            filter: 'blur(40px)',
+            filter: 'blur(25px)',
             transform: 'scale(1.1)',
           }}
         />
@@ -408,12 +408,12 @@ export function EventDetail({ event }: EventDetailProps) {
         <div
           className="fixed inset-0 z-0 bg-gradient-to-br from-orange-400 via-pink-400 to-purple-500"
           style={{
-            filter: 'blur(40px)',
+            filter: 'blur(25px)',
           }}
         />
       )}
       {/* Overlay for readability */}
-      <div className="fixed inset-0 z-0 bg-white/70 backdrop-blur-sm" />
+      <div className="fixed inset-0 z-0 bg-white/60 backdrop-blur-sm" />
 
       {/* Content */}
       <div className="relative z-10 container px-4 py-6 md:py-10">

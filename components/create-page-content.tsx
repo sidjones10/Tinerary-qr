@@ -1501,7 +1501,7 @@ export default function CreatePageContent() {
         </Card>
 
         <div className="flex justify-between gap-4 mb-8">
-          <Button variant="ghost" onClick={() => router.back()} disabled={isSubmitting || isSaving}>
+          <Button variant="outline" className="bg-white" onClick={() => router.back()} disabled={isSubmitting || isSaving}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>

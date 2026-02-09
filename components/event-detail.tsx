@@ -390,26 +390,52 @@ export function EventDetail({ event }: EventDetailProps) {
   }
 
   return (
-    <div className="container px-4 py-6 md:py-10">
-      <Link href="/app" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Home
-      </Link>
+    <div className="relative min-h-screen">
+      {/* Gaussian blur background */}
+      {event.image_url && (
+        <div
+          className="fixed inset-0 z-0"
+          style={{
+            backgroundImage: `url(${event.image_url})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'blur(40px)',
+            transform: 'scale(1.1)',
+          }}
+        />
+      )}
+      {!event.image_url && (
+        <div
+          className="fixed inset-0 z-0 bg-gradient-to-br from-orange-400 via-pink-400 to-purple-500"
+          style={{
+            filter: 'blur(40px)',
+          }}
+        />
+      )}
+      {/* Overlay for readability */}
+      <div className="fixed inset-0 z-0 bg-white/70 backdrop-blur-sm" />
 
-      <div className="max-w-4xl mx-auto">
-        <div className="relative rounded-xl overflow-hidden mb-6">
-          {event.image_url ? (
-            <img
-              src={event.image_url || "/placeholder.svg"}
-              alt={event.title}
-              className="w-full h-64 md:h-96 object-cover"
-            />
-          ) : (
-            <div className="w-full h-64 md:h-96 bg-gradient-to-br from-orange-400 via-pink-400 to-purple-500 flex items-center justify-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
-              <span className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg z-10 text-center px-4">{event.title}</span>
-            </div>
-          )}
+      {/* Content */}
+      <div className="relative z-10 container px-4 py-6 md:py-10">
+        <Link href="/app" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Home
+        </Link>
+
+        <div className="max-w-4xl mx-auto">
+          <div className="relative rounded-xl overflow-hidden mb-6 shadow-2xl">
+            {event.image_url ? (
+              <img
+                src={event.image_url || "/placeholder.svg"}
+                alt={event.title}
+                className="w-full h-64 md:h-96 object-cover"
+              />
+            ) : (
+              <div className="w-full h-64 md:h-96 bg-gradient-to-br from-orange-400 via-pink-400 to-purple-500 flex items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
+                <span className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg z-10 text-center px-4">{event.title}</span>
+              </div>
+            )}
 
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-6 md:p-8">
             <div className="flex justify-between items-end">

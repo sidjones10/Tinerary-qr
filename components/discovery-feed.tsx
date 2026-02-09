@@ -510,7 +510,7 @@ export function DiscoveryFeed() {
   const itemsToDisplay = formattedItems.length > 0 ? formattedItems : fallbackItems
 
   return (
-    <div className="relative h-[calc(100vh-200px)] min-h-[500px] max-h-[800px] w-full overflow-hidden rounded-xl bg-gradient-to-b from-white to-orange-50 shadow-2xl">
+    <div className="relative h-[calc(100vh-160px)] min-h-[500px] max-h-[900px] w-full overflow-hidden rounded-xl bg-gradient-to-b from-white to-orange-50 shadow-2xl">
       {/* Pull to refresh indicator */}
       {refreshing && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-white/90 backdrop-blur-md px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
@@ -539,7 +539,7 @@ export function DiscoveryFeed() {
         style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
       >
         {itemsToDisplay.map((item, index) => (
-          <div key={item.id} className="relative h-[calc(100vh-200px)] min-h-[500px] max-h-[800px] w-full snap-start snap-always">
+          <div key={item.id} className="relative h-[calc(100vh-160px)] min-h-[500px] max-h-[900px] w-full snap-start snap-always">
             <div
               className="relative h-full w-full"
               onClick={(e) => handleDoubleTap(e, item.id)}

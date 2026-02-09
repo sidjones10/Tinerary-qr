@@ -414,6 +414,8 @@ function CreatePageContent() {
             title: "Draft Saved",
             description: `Your ${type} has been saved as a draft.`,
           })
+          // Redirect to home/discover page after manual save
+          router.push("/")
         }
       }
     } catch (error: any) {
@@ -946,15 +948,6 @@ function CreatePageContent() {
                   </div>
                 </div>
 
-                <div className="flex justify-end">
-                  <Button
-                    variant="outline"
-                    className="bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100"
-                  >
-                    <Lightbulb className="mr-2 h-4 w-4" />
-                    Get AI Recommendations
-                  </Button>
-                </div>
               </div>
             )}
 
@@ -1389,19 +1382,25 @@ function CreatePageContent() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-4 mb-8">
-            <Button variant="outline" onClick={handleSaveDraft} disabled={isSubmitting || isSaving}>
-              {isSaving ? "Saving..." : "Save as Draft"}
+          <div className="flex justify-between gap-4 mb-8">
+            <Button variant="outline" className="bg-white" onClick={() => router.back()} disabled={isSubmitting || isSaving}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
             </Button>
-            <Button
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-              onClick={handlePublish}
-              disabled={isSubmitting || isSaving}
-            >
-              {isSubmitting
-                ? (editingItineraryId ? "Updating..." : "Publishing...")
-                : (editingItineraryId ? `Update ${type}` : `Publish ${type}`)}
-            </Button>
+            <div className="flex gap-4">
+              <Button variant="outline" onClick={handleSaveDraft} disabled={isSubmitting || isSaving}>
+                {isSaving ? "Saving..." : "Save as Draft"}
+              </Button>
+              <Button
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+                onClick={handlePublish}
+                disabled={isSubmitting || isSaving}
+              >
+                {isSubmitting
+                  ? (editingItineraryId ? "Updating..." : "Publishing...")
+                  : (editingItineraryId ? `Update ${type}` : `Publish ${type}`)}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

@@ -19,6 +19,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { EventPreviewModal } from "@/components/event-preview-modal"
 import { LocationAutocomplete } from "@/components/location-autocomplete"
 import { ActivityBrowserDialog } from "@/components/activity-browser-dialog"
+import { ThemeSelector } from "@/components/theme-selector"
+import { FontSelector } from "@/components/font-selector"
 import type { Activity as ImportedActivity } from "@/lib/activity-service"
 import { getCurrencySymbol, type Currency } from "@/lib/currency-utils"
 import confetti from "canvas-confetti"
@@ -69,6 +71,8 @@ function CreatePageContent() {
   const [showPreview, setShowPreview] = useState(false)
   const [draftId, setDraftId] = useState<string | null>(null)
   const [editingItineraryId, setEditingItineraryId] = useState<string | null>(null)
+  const [selectedTheme, setSelectedTheme] = useState("default")
+  const [selectedFont, setSelectedFont] = useState("default")
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -151,6 +155,12 @@ function CreatePageContent() {
             if (draftData.currency) {
               setCurrency(draftData.currency)
             }
+            if (draftData.theme) {
+              setSelectedTheme(draftData.theme)
+            }
+            if (draftData.font) {
+              setSelectedFont(draftData.font)
+            }
 
             // Load cover image if it exists
             if (draftData.image_url) {
@@ -216,6 +226,12 @@ function CreatePageContent() {
             setExpensesPublic(itineraryData.expenses_public !== undefined ? itineraryData.expenses_public : false)
             if (itineraryData.currency) {
               setCurrency(itineraryData.currency)
+            }
+            if (itineraryData.theme) {
+              setSelectedTheme(itineraryData.theme)
+            }
+            if (itineraryData.font) {
+              setSelectedFont(itineraryData.font)
             }
 
             // Load cover image
@@ -376,6 +392,8 @@ function CreatePageContent() {
         packing_list_public: packingListPublic,
         expenses_public: expensesPublic,
         currency,
+        theme: selectedTheme,
+        font: selectedFont,
         image_url: coverImage || null,
         activities,
         packing_items: showPackingExpenses ? packingItems : [],
@@ -495,6 +513,8 @@ function CreatePageContent() {
         packingListPublic,
         expensesPublic,
         currency,
+        theme: selectedTheme,
+        font: selectedFont,
         activities: activities.filter((a) => a.title),
         packingItems: showPackingExpenses ? packingItems : [],
         expenses: showPackingExpenses ? expenses.filter((e) => e.amount > 0) : [],
@@ -1374,6 +1394,26 @@ function CreatePageContent() {
                         </div>
                         <Switch checked={expensesPublic} onCheckedChange={setExpensesPublic} />
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-6">
+                    <h3 className="font-medium mb-4">Customize Appearance</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Choose a theme icon and font style for your {type} page.
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <ThemeSelector
+                        value={selectedTheme}
+                        onChange={setSelectedTheme}
+                        showLabel={true}
+                      />
+                      <FontSelector
+                        value={selectedFont}
+                        onChange={setSelectedFont}
+                        showLabel={true}
+                      />
                     </div>
                   </div>
                 </div>

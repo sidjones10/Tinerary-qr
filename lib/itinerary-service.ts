@@ -72,6 +72,8 @@ export interface CreateItineraryData {
   packingListPublic?: boolean
   expensesPublic?: boolean
   currency?: string
+  theme?: string
+  font?: string
   activities?: Activity[]
   packingItems?: PackingItem[]
   expenses?: Expense[]
@@ -115,6 +117,8 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
         packing_list_public: data.packingListPublic !== undefined ? data.packingListPublic : false,
         expenses_public: data.expensesPublic !== undefined ? data.expensesPublic : false,
         currency: data.currency || 'USD',
+        theme: data.theme || 'default',
+        font: data.font || 'default',
         is_template: false,
         user_id: userId,
         image_url: data.imageUrl || null,
@@ -364,6 +368,8 @@ export async function updateItinerary(
     if (data.packingListPublic !== undefined) updateData.packing_list_public = data.packingListPublic
     if (data.expensesPublic !== undefined) updateData.expenses_public = data.expensesPublic
     if (data.currency !== undefined) updateData.currency = data.currency
+    if (data.theme !== undefined) updateData.theme = data.theme
+    if (data.font !== undefined) updateData.font = data.font
     if (data.imageUrl !== undefined) updateData.image_url = data.imageUrl
 
     const { data: itinerary, error: updateError } = await supabase

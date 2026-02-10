@@ -11,6 +11,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useToast } from "@/components/ui/use-toast"
 import { followUser, unfollowUser } from "@/lib/user-service"
 import { FollowButton } from "@/components/follow-button"
+import { ThemeIcon, getThemeColor } from "@/components/theme-selector"
+import { getFontFamily } from "@/components/font-selector"
 
 interface Profile {
   id: string
@@ -35,6 +37,10 @@ interface Itinerary {
   is_public: boolean
   created_at: string
   user_id: string
+  theme?: string | null
+  font?: string | null
+  image_url?: string | null
+  location?: string | null
 }
 
 interface UserProfileClientProps {
@@ -291,9 +297,25 @@ export function UserProfileClient({
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {itineraries.map((itinerary) => (
+                {itineraries.map((itinerary) => {
+                  const themeColor = itinerary.theme ? getThemeColor(itinerary.theme) : null
+                  const fontFamily = itinerary.font ? getFontFamily(itinerary.font) : "inherit"
+                  const themedStyle = themeColor ? {
+                    boxShadow: `0 0 0 2px ${themeColor}40, 0 0 12px 2px ${themeColor}20`,
+                    border: `1px solid ${themeColor}60`,
+                  } : {}
+
+                  return (
                   <Link key={itinerary.id} href={`/event/${itinerary.id}`}>
-                    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+                    <Card className="overflow-hidden hover:shadow-lg transition-shadow relative" style={themedStyle}>
+                      {/* Theme icon cluster */}
+                      {themeColor && itinerary.theme && itinerary.theme !== "none" && itinerary.theme !== "default" && (
+                        <div className="absolute -top-1 -right-1 z-20 flex items-center gap-0.5 opacity-80">
+                          <ThemeIcon theme={itinerary.theme} className="h-4 w-4" />
+                          <ThemeIcon theme={itinerary.theme} className="h-3 w-3 opacity-60" />
+                          <ThemeIcon theme={itinerary.theme} className="h-2 w-2 opacity-40" />
+                        </div>
+                      )}
                       <div className="relative h-48">
                         {itinerary.image_url ? (
                           <img
@@ -321,7 +343,7 @@ export function UserProfileClient({
                         )}
                       </div>
                       <CardContent className="p-4">
-                        <h3 className="font-semibold mb-2 line-clamp-1">{itinerary.title}</h3>
+                        <h3 className="font-semibold mb-2 line-clamp-1" style={{ fontFamily }}>{itinerary.title}</h3>
                         <div className="flex items-center text-sm text-muted-foreground mb-2">
                           <Calendar className="h-3 w-3 mr-1" />
                           <span>{formatItineraryDate(itinerary.start_date, itinerary.end_date)}</span>
@@ -347,7 +369,7 @@ export function UserProfileClient({
                       </CardContent>
                     </Card>
                   </Link>
-                ))}
+                )})}
               </div>
             )}
           </TabsContent>

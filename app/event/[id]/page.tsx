@@ -220,6 +220,8 @@ const getEventById = async (id: string) => {
       is_public: itineraryData.is_public,
       packing_list_public: itineraryData.packing_list_public,
       expenses_public: itineraryData.expenses_public,
+      theme: itineraryData.theme,
+      font: itineraryData.font,
       host_name: owner?.name || owner?.username || owner?.email?.split('@')[0] || "Anonymous",
       host_username: owner?.username ? `@${owner.username}` : null,
       host_avatar: owner?.avatar_url,
@@ -431,6 +433,8 @@ interface EventData {
   is_public: boolean
   packing_list_public?: boolean
   expenses_public?: boolean
+  theme?: string
+  font?: string
   [key: string]: unknown
 }
 

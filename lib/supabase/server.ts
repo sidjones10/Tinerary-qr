@@ -2,9 +2,9 @@ import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { getEnv } from "@/lib/env-validation"
 
-export function createClient() {
+export async function createClient() {
   const env = getEnv()
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
 
   return createServerClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
     cookies: {

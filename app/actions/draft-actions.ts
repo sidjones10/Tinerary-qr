@@ -1,6 +1,6 @@
 "use server"
 
-import { supabase } from "@/lib/supabase-client"
+import { createClient } from "@/lib/supabase/server"
 
 export interface EventDraft {
   id: string
@@ -15,16 +15,17 @@ export interface EventDraft {
 
 export async function getUserDrafts() {
   try {
-    const { data: session } = await supabase.auth.getSession()
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    if (!session.session?.user) {
+    if (!user) {
       return {
         success: false,
         error: "User not authenticated",
       }
     }
 
-    const userId = session.session.user.id
+    const userId = user.id
 
     const { data, error } = await supabase
       .from("drafts")
@@ -56,16 +57,17 @@ export async function getUserDrafts() {
 
 export async function saveDraft(draftData: Partial<EventDraft>) {
   try {
-    const { data: session } = await supabase.auth.getSession()
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    if (!session.session?.user) {
+    if (!user) {
       return {
         success: false,
         error: "User not authenticated",
       }
     }
 
-    const userId = session.session.user.id
+    const userId = user.id
 
     // If draft has an ID, update it
     if (draftData.id) {
@@ -132,16 +134,17 @@ export async function saveDraft(draftData: Partial<EventDraft>) {
 
 export async function getDraftById(draftId: string) {
   try {
-    const { data: session } = await supabase.auth.getSession()
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    if (!session.session?.user) {
+    if (!user) {
       return {
         success: false,
         error: "User not authenticated",
       }
     }
 
-    const userId = session.session.user.id
+    const userId = user.id
 
     const { data, error } = await supabase
       .from("drafts")
@@ -177,16 +180,17 @@ export async function getDraft(draftId: string) {
 
 export async function publishDraft(draftId: string) {
   try {
-    const { data: session } = await supabase.auth.getSession()
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    if (!session.session?.user) {
+    if (!user) {
       return {
         success: false,
         error: "User not authenticated",
       }
     }
 
-    const userId = session.session.user.id
+    const userId = user.id
 
     // First, get the draft
     const { data: draft, error: fetchError } = await supabase
@@ -258,16 +262,17 @@ export async function publishDraft(draftId: string) {
 
 export async function deleteDraft(draftId: string) {
   try {
-    const { data: session } = await supabase.auth.getSession()
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    if (!session.session?.user) {
+    if (!user) {
       return {
         success: false,
         error: "User not authenticated",
       }
     }
 
-    const userId = session.session.user.id
+    const userId = user.id
 
     const { error } = await supabase.from("drafts").delete().eq("id", draftId).eq("user_id", userId)
 

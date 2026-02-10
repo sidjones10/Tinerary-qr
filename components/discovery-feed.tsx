@@ -14,6 +14,8 @@ import { InlineComments } from "@/components/inline-comments"
 import { FeedItemSkeleton } from "@/components/skeleton-screens"
 import Link from "next/link"
 import confetti from "canvas-confetti"
+import { ThemeIcon, getThemeColor } from "@/components/theme-selector"
+import { getFontFamily } from "@/components/font-selector"
 
 interface DiscoveryItem {
   id: string
@@ -23,6 +25,8 @@ interface DiscoveryItem {
   is_public: boolean
   user_id: string
   image_url?: string | null
+  theme?: string | null
+  font?: string | null
   owner?: {
     name: string | null
     avatar_url: string | null
@@ -160,7 +164,7 @@ export function DiscoveryFeed() {
     }
   }, [currentIndex])
 
-  // Handle like action
+  // Handle like action using toggle_like RPC function
   const handleLike = async (itemId: string) => {
     if (!user?.id) {
       toast({
@@ -173,49 +177,37 @@ export function DiscoveryFeed() {
 
     try {
       const supabase = createClient()
-      const isCurrentlyLiked = likedItems.has(itemId)
       const newLiked = new Set(likedItems)
+      const wasLiked = likedItems.has(itemId)
 
-      if (isCurrentlyLiked) {
-        // Unlike: Remove from saved_itineraries
-        const { error } = await supabase
-          .from("saved_itineraries")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("itinerary_id", itemId)
-          .eq("type", "like")
+      // Use toggle_like RPC function which handles RLS properly
+      const { data, error } = await supabase.rpc('toggle_like', {
+        user_uuid: user.id,
+        itinerary_uuid: itemId
+      })
 
-        if (error) {
-          console.error("Error unliking:", error)
-          throw error
+      if (error) {
+        console.error("Error toggling like:", error)
+        throw error
+      }
+
+      // Update local state based on result
+      if (data && data.length > 0) {
+        const result = data[0]
+        if (result.is_liked) {
+          newLiked.add(itemId)
+          // Record interaction for analytics
+          await recordInteraction(user.id, itemId, "like")
+        } else {
+          newLiked.delete(itemId)
         }
-
-        newLiked.delete(itemId)
       } else {
-        // Like: Add to saved_itineraries
-        const { error } = await supabase
-          .from("saved_itineraries")
-          .insert({
-            user_id: user.id,
-            itinerary_id: itemId,
-            type: "like",
-            created_at: new Date().toISOString(),
-          })
-
-        if (error) {
-          // Check if already liked (duplicate)
-          if (error.code === "23505") {
-            newLiked.add(itemId)
-            setLikedItems(newLiked)
-            return
-          }
-          console.error("Error liking:", error)
-          throw error
+        // Fallback: toggle based on previous state
+        if (wasLiked) {
+          newLiked.delete(itemId)
+        } else {
+          newLiked.add(itemId)
         }
-
-        newLiked.add(itemId)
-        // Record interaction for analytics
-        await recordInteraction(user.id, itemId, "like")
       }
 
       setLikedItems(newLiked)
@@ -383,6 +375,8 @@ export function DiscoveryFeed() {
       saves: metrics?.save_count || 0,
       views: metrics?.view_count || 0,
       description: item.description || "",
+      theme: item.theme || null,
+      font: item.font || null,
       user: {
         name: item.owner?.name || "Travel Enthusiast",
         username: `@${item.owner?.username || "traveler"}`,
@@ -538,10 +532,29 @@ export function DiscoveryFeed() {
         onTouchEnd={handleTouchEnd}
         style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
       >
-        {itemsToDisplay.map((item, index) => (
+        {itemsToDisplay.map((item, index) => {
+          const themeColor = item.theme ? getThemeColor(item.theme) : null
+          const fontFamily = item.font ? getFontFamily(item.font) : "inherit"
+
+          // Create themed border style
+          const themedStyle = themeColor ? {
+            boxShadow: `inset 0 0 0 3px ${themeColor}50, 0 0 20px 4px ${themeColor}30`,
+          } : {}
+
+          return (
           <div key={item.id} className="relative h-[calc(100vh-160px)] min-h-[500px] max-h-[900px] w-full snap-start snap-always">
+            {/* Theme icon cluster decoration */}
+            {themeColor && item.theme && item.theme !== "none" && item.theme !== "default" && (
+              <div className="absolute top-4 left-4 z-30 flex items-center gap-1">
+                <ThemeIcon theme={item.theme} className="h-6 w-6 drop-shadow-lg" />
+                <ThemeIcon theme={item.theme} className="h-4 w-4 opacity-70 drop-shadow-lg" />
+                <ThemeIcon theme={item.theme} className="h-3 w-3 opacity-50 drop-shadow-lg" />
+              </div>
+            )}
+
             <div
-              className="relative h-full w-full"
+              className="relative h-full w-full rounded-lg overflow-hidden"
+              style={themedStyle}
               onClick={(e) => handleDoubleTap(e, item.id)}
               onTouchEnd={(e) => handleDoubleTap(e, item.id)}
             >
@@ -592,7 +605,7 @@ export function DiscoveryFeed() {
                     >
                       {item.type === "trip" ? "Trip" : item.type === "business" ? "Business" : "Event"}
                     </Badge>
-                    <h2 className="text-2xl md:text-3xl font-bold mt-3">{item.title}</h2>
+                    <h2 className="text-2xl md:text-3xl font-bold mt-3" style={{ fontFamily }}>{item.title}</h2>
                     <div className="flex items-center text-sm md:text-base mt-2 opacity-90">
                       <MapPin className="mr-1 h-4 w-4" />
                       {item.location}
@@ -705,7 +718,8 @@ export function DiscoveryFeed() {
               </div>
             </div>
           </div>
-        ))}
+        )})}
+
       </div>
 
       {/* Scroll indicator */}

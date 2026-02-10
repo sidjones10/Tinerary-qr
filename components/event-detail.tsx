@@ -309,50 +309,37 @@ export function EventDetail({ event }: EventDetailProps) {
     try {
       const supabase = createClient()
 
-      if (liked) {
-        // Unlike: Remove from saved_itineraries
-        const { error } = await supabase
-          .from("saved_itineraries")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("itinerary_id", event.id)
-          .eq("type", "like")
+      // Use toggle_like RPC function which handles RLS properly
+      const { data, error } = await supabase.rpc('toggle_like', {
+        user_uuid: user.id,
+        itinerary_uuid: event.id
+      })
 
-        if (error) throw error
+      if (error) throw error
 
-        setLiked(false)
-        setLikeCount(Math.max(0, likeCount - 1))
+      // Update state based on result
+      if (data && data.length > 0) {
+        const result = data[0]
+        setLiked(result.is_liked)
+        setLikeCount(result.new_like_count)
 
         toast({
-          title: "Removed from favorites",
-          description: "This itinerary has been removed from your favorites",
+          title: result.is_liked ? "Added to favorites" : "Removed from favorites",
+          description: result.is_liked
+            ? "This itinerary has been added to your favorites"
+            : "This itinerary has been removed from your favorites",
         })
       } else {
-        // Like: Add to saved_itineraries
-        const { error } = await supabase
-          .from("saved_itineraries")
-          .insert({
-            user_id: user.id,
-            itinerary_id: event.id,
-            type: "like",
-            created_at: new Date().toISOString(),
-          })
-
-        if (error) {
-          // Already liked (duplicate key)
-          if (error.code === "23505") {
-            setLiked(true)
-            return
-          }
-          throw error
-        }
-
-        setLiked(true)
-        setLikeCount(likeCount + 1)
+        // Fallback: toggle based on previous state
+        const newLikedState = !liked
+        setLiked(newLikedState)
+        setLikeCount(newLikedState ? likeCount + 1 : Math.max(0, likeCount - 1))
 
         toast({
-          title: "Added to favorites",
-          description: "This itinerary has been added to your favorites",
+          title: newLikedState ? "Added to favorites" : "Removed from favorites",
+          description: newLikedState
+            ? "This itinerary has been added to your favorites"
+            : "This itinerary has been removed from your favorites",
         })
       }
     } catch (error: any) {

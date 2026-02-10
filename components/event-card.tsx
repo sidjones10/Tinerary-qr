@@ -2,6 +2,8 @@ import Link from "next/link"
 import { Calendar, MapPin, Users, Heart, MessageCircle } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { ThemeIcon, getThemeColor } from "@/components/theme-selector"
+import { getFontFamily } from "@/components/font-selector"
 
 interface EventCardProps {
   event: {
@@ -19,13 +21,36 @@ interface EventCardProps {
     attendees: number
     like_count?: number
     comment_count?: number
+    theme?: string
+    font?: string
   }
 }
 
 export function EventCard({ event }: EventCardProps) {
+  const themeColor = event.theme ? getThemeColor(event.theme) : null
+  const fontFamily = event.font ? getFontFamily(event.font) : "inherit"
+
+  // Create themed border style with subtle glow
+  const themedStyle = themeColor ? {
+    boxShadow: `0 0 0 2px ${themeColor}40, 0 0 12px 2px ${themeColor}20`,
+    border: `1px solid ${themeColor}60`,
+  } : {}
+
   return (
     <Link href={`/event/${event.id}`} className="block">
-      <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 card-soft">
+      <div
+        className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 card-soft relative"
+        style={themedStyle}
+      >
+        {/* Theme icon cluster decoration */}
+        {themeColor && event.theme && event.theme !== "none" && event.theme !== "default" && (
+          <div className="absolute -top-1 -right-1 z-20 flex items-center gap-0.5 opacity-80">
+            <ThemeIcon theme={event.theme} className="h-4 w-4" />
+            <ThemeIcon theme={event.theme} className="h-3 w-3 opacity-60" />
+            <ThemeIcon theme={event.theme} className="h-2 w-2 opacity-40" />
+          </div>
+        )}
+
         <div className="relative h-48">
           <Badge
             className={`absolute top-4 left-4 z-10 ${
@@ -38,7 +63,12 @@ export function EventCard({ event }: EventCardProps) {
         </div>
 
         <div className="p-4">
-          <h3 className="text-xl font-bold mb-3">{event.title}</h3>
+          <h3
+            className="text-xl font-bold mb-3"
+            style={{ fontFamily }}
+          >
+            {event.title}
+          </h3>
 
           <div className="flex items-center mb-2">
             <Avatar className="h-6 w-6 mr-2">

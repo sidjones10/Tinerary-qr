@@ -25,6 +25,8 @@ import { CalendarExportButton } from "@/components/calendar-export-button"
 import { MutualsSection } from "@/components/mutuals-section"
 import { ThemeIcon } from "@/components/theme-selector"
 import { getFontFamily } from "@/components/font-selector"
+import { PostEventCoverPrompt } from "@/components/post-event-cover-prompt"
+import { shouldPromptCoverUpdate } from "@/lib/reminder-service"
 
 interface Activity {
   id: string
@@ -117,7 +119,19 @@ export function EventDetail({ event }: EventDetailProps) {
   const [canAccessPacking, setCanAccessPacking] = useState(false)
   const [canAccessExpenses, setCanAccessExpenses] = useState(false)
   const [checkingAccess, setCheckingAccess] = useState(true)
+  const [coverImage, setCoverImage] = useState(event.image_url as string | undefined)
+  const [showCoverPrompt, setShowCoverPrompt] = useState(false)
   const isOwner = user && user.id === event.user_id
+
+  // Check if we should show the post-event cover update prompt
+  useEffect(() => {
+    if (isOwner && event.end_date && !event.cover_update_prompted) {
+      const endDate = new Date(event.end_date)
+      if (shouldPromptCoverUpdate(endDate)) {
+        setShowCoverPrompt(true)
+      }
+    }
+  }, [isOwner, event.end_date, event.cover_update_prompted])
 
   // Check access permissions for packing and expenses
   useEffect(() => {
@@ -395,12 +409,27 @@ export function EventDetail({ event }: EventDetailProps) {
 
   return (
     <div className="relative min-h-screen">
+      {/* Post-event cover update prompt */}
+      {showCoverPrompt && isOwner && (
+        <PostEventCoverPrompt
+          itineraryId={event.id}
+          itineraryTitle={event.title}
+          eventType={event.start_date === event.end_date ? "event" : "trip"}
+          currentCover={coverImage}
+          onCoverUpdated={(newUrl) => {
+            setCoverImage(newUrl)
+            setShowCoverPrompt(false)
+          }}
+          onDismiss={() => setShowCoverPrompt(false)}
+        />
+      )}
+
       {/* Gaussian blur background */}
-      {event.image_url && (
+      {coverImage && (
         <div
           className="fixed inset-0 z-0"
           style={{
-            backgroundImage: `url(${event.image_url})`,
+            backgroundImage: `url(${coverImage})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             filter: 'blur(25px)',
@@ -408,7 +437,7 @@ export function EventDetail({ event }: EventDetailProps) {
           }}
         />
       )}
-      {!event.image_url && (
+      {!coverImage && (
         <div
           className="fixed inset-0 z-0 bg-gradient-to-br from-orange-400 via-pink-400 to-purple-500"
           style={{
@@ -431,23 +460,33 @@ export function EventDetail({ event }: EventDetailProps) {
 
         <div className="max-w-4xl mx-auto">
           <div className="relative rounded-xl overflow-hidden mb-6 shadow-2xl">
-            {event.image_url ? (
+            {coverImage ? (
               <img
-                src={event.image_url || "/placeholder.svg"}
+                src={coverImage}
                 alt={event.title}
                 className="w-full h-64 md:h-96 object-cover"
               />
             ) : (
               <div className="w-full h-64 md:h-96 bg-gradient-to-br from-orange-400 via-pink-400 to-purple-500 flex items-center justify-center relative overflow-hidden">
                 <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
-                <span className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg z-10 text-center px-4">{event.title}</span>
+                <span
+                  className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg z-10 text-center px-4"
+                  style={{ fontFamily: getFontFamily((event.font as string) || "default") }}
+                >
+                  {event.title}
+                </span>
               </div>
             )}
 
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-6 md:p-8">
             <div className="flex justify-between items-end">
               <div>
-                <h1 className="text-3xl font-bold text-white mb-2">{event.title}</h1>
+                <h1
+                  className="text-3xl font-bold text-white mb-2"
+                  style={{ fontFamily: getFontFamily((event.font as string) || "default") }}
+                >
+                  {event.title}
+                </h1>
                 <div className="flex items-center text-white/90 text-sm gap-2">
                   <ThemeIcon theme={(event.theme as string) || "default"} className="h-4 w-4" />
                   <Calendar className="h-4 w-4" />
@@ -570,7 +609,12 @@ export function EventDetail({ event }: EventDetailProps) {
           </div>
 
           {event.description && (
-            <p className="text-gray-700 mb-6 leading-relaxed">{event.description}</p>
+            <p
+              className="text-gray-700 mb-6 leading-relaxed"
+              style={{ fontFamily: getFontFamily((event.font as string) || "default") }}
+            >
+              {event.description}
+            </p>
           )}
 
           {!event.is_public && (
@@ -608,17 +652,17 @@ export function EventDetail({ event }: EventDetailProps) {
               <TabsTrigger value="photos">Photos</TabsTrigger>
               <TabsTrigger value="packing" className="relative">
                 Packing List
-                {isOwner && (
-                  <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${event.packing_list_public ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                    {event.packing_list_public ? 'Public' : 'Private'}
+                {isOwner && !event.packing_list_public && (
+                  <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                    Private
                   </span>
                 )}
               </TabsTrigger>
               <TabsTrigger value="expenses" className="relative">
                 Expenses
-                {isOwner && (
-                  <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${event.expenses_public ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                    {event.expenses_public ? 'Public' : 'Private'}
+                {isOwner && !event.expenses_public && (
+                  <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                    Private
                   </span>
                 )}
               </TabsTrigger>

@@ -3,8 +3,6 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import { useAuth } from "@/providers/auth-provider"
 import { createClient } from "@/lib/supabase/client"
-import { ConsentDialog } from "@/components/consent-dialog"
-import { Loader2 } from "lucide-react"
 
 interface ConsentContextType {
   hasConsent: boolean
@@ -21,106 +19,103 @@ interface ConsentProviderProps {
   children: React.ReactNode
 }
 
+// Consent is now collected at signup time in the email-auth-form
+// This provider just checks the consent status for feature gating
 export function ConsentProvider({ children }: ConsentProviderProps) {
   const { user, isLoading: authLoading } = useAuth()
-  const [hasConsent, setHasConsent] = useState(false)
-  const [isCheckingConsent, setIsCheckingConsent] = useState(true)
-  const [showConsentDialog, setShowConsentDialog] = useState(false)
+  const [hasConsent, setHasConsent] = useState(true) // Default to true - consent collected at signup
+  const [isCheckingConsent, setIsCheckingConsent] = useState(false)
   const [accountType, setAccountType] = useState<"minor" | "standard" | "business" | null>(null)
-  const [canUsePayments, setCanUsePayments] = useState(false)
+  const [canUsePayments, setCanUsePayments] = useState(true)
   const [canUseLocationTracking, setCanUseLocationTracking] = useState(false)
 
   const checkConsent = async () => {
     if (!user) {
-      setHasConsent(false)
+      setHasConsent(true) // Guests don't need consent checks
       setIsCheckingConsent(false)
-      setShowConsentDialog(false)
       return
     }
 
+    setIsCheckingConsent(true)
+
     try {
       const supabase = createClient()
+
+      // First try to get just the basic profile fields that definitely exist
       const { data: profile, error } = await supabase
         .from("profiles")
-        .select("tos_accepted_at, privacy_policy_accepted_at, date_of_birth, account_type, parental_consent, location_tracking_consent")
+        .select("id, name, email")
         .eq("id", user.id)
         .single()
 
       if (error) {
-        console.error("Error checking consent:", error)
-        // If profile doesn't have these columns yet (migration not run), show consent dialog
-        setHasConsent(false)
-        setShowConsentDialog(true)
+        console.error("Error fetching profile:", error)
+        // Profile doesn't exist or error - default to allowing access
+        setHasConsent(true)
         setIsCheckingConsent(false)
         return
       }
 
-      // Check if all required consent has been given
-      const hasAllConsent = !!(
-        profile?.tos_accepted_at &&
-        profile?.privacy_policy_accepted_at &&
-        profile?.date_of_birth
-      )
+      // Try to get consent-related fields if they exist (migration may not have run)
+      try {
+        const { data: consentData } = await supabase
+          .from("profiles")
+          .select("tos_accepted_at, privacy_policy_accepted_at, date_of_birth, account_type, parental_consent, location_tracking_consent")
+          .eq("id", user.id)
+          .single()
 
-      // For minors, also check parental consent
-      const isMinor = profile?.account_type === "minor"
-      const hasParentalConsent = profile?.parental_consent === true
+        if (consentData) {
+          // Check consent status from new columns
+          const hasAllConsent = !!(
+            consentData.tos_accepted_at &&
+            consentData.privacy_policy_accepted_at &&
+            consentData.date_of_birth
+          )
 
-      // Minors need parental consent acknowledgment
-      const consentComplete = hasAllConsent && (!isMinor || hasParentalConsent)
+          const isMinor = consentData.account_type === "minor"
+          const hasParentalConsent = consentData.parental_consent === true
 
-      setHasConsent(consentComplete)
-      setShowConsentDialog(!consentComplete)
-      setAccountType(profile?.account_type || null)
+          // Consent is complete if all required fields are filled
+          // Minors also need parental consent acknowledgment
+          const consentComplete = hasAllConsent && (!isMinor || hasParentalConsent)
 
-      // Determine feature access
-      setCanUsePayments(!isMinor || hasParentalConsent)
-      setCanUseLocationTracking(
-        profile?.location_tracking_consent === true && (!isMinor || hasParentalConsent)
-      )
+          setHasConsent(consentComplete)
+          setAccountType(consentData.account_type || null)
+          setCanUsePayments(!isMinor || hasParentalConsent)
+          setCanUseLocationTracking(
+            consentData.location_tracking_consent === true && (!isMinor || hasParentalConsent)
+          )
+        } else {
+          // Consent data not available, assume consent given (legacy user)
+          setHasConsent(true)
+        }
+      } catch {
+        // Consent columns don't exist yet (migration not run)
+        // Default to allowing access for existing users
+        console.log("Consent columns not available - migration may not have run yet")
+        setHasConsent(true)
+      }
     } catch (err) {
       console.error("Error checking consent:", err)
-      setHasConsent(false)
-      setShowConsentDialog(true)
+      // On error, default to allowing access
+      setHasConsent(true)
     } finally {
       setIsCheckingConsent(false)
     }
   }
 
   useEffect(() => {
-    if (!authLoading) {
+    if (!authLoading && user) {
       checkConsent()
     }
   }, [user, authLoading])
 
   const refreshConsent = async () => {
-    setIsCheckingConsent(true)
     await checkConsent()
   }
 
-  const handleConsentComplete = () => {
-    setShowConsentDialog(false)
-    setHasConsent(true)
-    refreshConsent()
-  }
-
-  // Show loading state while checking auth and consent
-  if (authLoading || (user && isCheckingConsent)) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-orange-50 to-pink-50">
-        <div className="text-center">
-          <Loader2 className="h-10 w-10 animate-spin text-orange-500 mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Show consent dialog if user is logged in but hasn't given consent
-  if (user && showConsentDialog) {
-    return <ConsentDialog userId={user.id} onConsentComplete={handleConsentComplete} />
-  }
-
+  // No blocking - just render children immediately
+  // Consent is collected at signup, not via a blocking dialog
   return (
     <ConsentContext.Provider
       value={{

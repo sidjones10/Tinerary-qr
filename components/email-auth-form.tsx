@@ -2,7 +2,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,9 +10,43 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, Mail, Eye, EyeOff } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Loader2, Mail, Eye, EyeOff, AlertTriangle } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { createClient } from "@/lib/supabase/client"
+
+const currentYear = new Date().getFullYear()
+const years = Array.from({ length: 100 }, (_, i) => currentYear - i)
+const months = [
+  { value: "01", label: "January" },
+  { value: "02", label: "February" },
+  { value: "03", label: "March" },
+  { value: "04", label: "April" },
+  { value: "05", label: "May" },
+  { value: "06", label: "June" },
+  { value: "07", label: "July" },
+  { value: "08", label: "August" },
+  { value: "09", label: "September" },
+  { value: "10", label: "October" },
+  { value: "11", label: "November" },
+  { value: "12", label: "December" },
+]
+
+function getDaysInMonth(month: string, year: string): number {
+  if (!month || !year) return 31
+  return new Date(parseInt(year), parseInt(month), 0).getDate()
+}
+
+function calculateAge(birthDate: Date): number {
+  const today = new Date()
+  let age = today.getFullYear() - birthDate.getFullYear()
+  const monthDiff = today.getMonth() - birthDate.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--
+  }
+  return age
+}
 
 export default function EmailAuthForm() {
   const [isLoading, setIsLoading] = useState(false)
@@ -23,6 +57,17 @@ export default function EmailAuthForm() {
     confirmPassword: "",
     username: "",
   })
+
+  // Age verification
+  const [birthMonth, setBirthMonth] = useState("")
+  const [birthDay, setBirthDay] = useState("")
+  const [birthYear, setBirthYear] = useState("")
+  const [ageError, setAgeError] = useState<string | null>(null)
+
+  // Consent checkboxes
+  const [tosAccepted, setTosAccepted] = useState(false)
+  const [privacyAccepted, setPrivacyAccepted] = useState(false)
+
   const [authResult, setAuthResult] = useState<{
     success: boolean
     message: string
@@ -30,6 +75,32 @@ export default function EmailAuthForm() {
   } | null>(null)
 
   const supabase = createClient()
+
+  // Calculate available days based on selected month and year
+  const daysInMonth = getDaysInMonth(birthMonth, birthYear)
+  const days = Array.from({ length: daysInMonth }, (_, i) => String(i + 1).padStart(2, "0"))
+
+  // Reset day if it exceeds days in the selected month
+  useEffect(() => {
+    if (birthDay && parseInt(birthDay) > daysInMonth) {
+      setBirthDay("")
+    }
+  }, [birthMonth, birthYear, birthDay, daysInMonth])
+
+  // Validate age when date changes
+  useEffect(() => {
+    if (birthMonth && birthDay && birthYear) {
+      const birthDate = new Date(parseInt(birthYear), parseInt(birthMonth) - 1, parseInt(birthDay))
+      const age = calculateAge(birthDate)
+      if (age < 13) {
+        setAgeError("You must be at least 13 years old to use Tinerary")
+      } else {
+        setAgeError(null)
+      }
+    } else {
+      setAgeError(null)
+    }
+  }, [birthMonth, birthDay, birthYear])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
@@ -69,7 +140,6 @@ export default function EmailAuthForm() {
           message: "Successfully signed in! Redirecting...",
         })
 
-        // Redirect after successful login - check for redirectTo param
         setTimeout(() => {
           if (typeof window !== "undefined") {
             const redirectTo = new URLSearchParams(window.location.search).get("redirectTo") || "/dashboard"
@@ -92,10 +162,43 @@ export default function EmailAuthForm() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Validate required fields
     if (!formData.email || !formData.password || !formData.confirmPassword) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate birthdate
+    if (!birthMonth || !birthDay || !birthYear) {
+      toast({
+        title: "Date of Birth Required",
+        description: "Please enter your date of birth",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Check age
+    const birthDate = new Date(parseInt(birthYear), parseInt(birthMonth) - 1, parseInt(birthDay))
+    const age = calculateAge(birthDate)
+    if (age < 13) {
+      toast({
+        title: "Age Requirement",
+        description: "You must be at least 13 years old to use Tinerary",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate consent
+    if (!tosAccepted || !privacyAccepted) {
+      toast({
+        title: "Consent Required",
+        description: "Please agree to the Terms of Service and Privacy Policy",
         variant: "destructive",
       })
       return
@@ -133,12 +236,19 @@ export default function EmailAuthForm() {
     setAuthResult(null)
 
     try {
+      const accountType = age < 18 ? "minor" : "standard"
+      const dateOfBirth = `${birthYear}-${birthMonth}-${birthDay}`
+
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
           data: {
             username: formData.username || formData.email.split("@")[0],
+            date_of_birth: dateOfBirth,
+            account_type: accountType,
+            tos_accepted: true,
+            privacy_accepted: true,
           },
         },
       })
@@ -148,10 +258,33 @@ export default function EmailAuthForm() {
       }
 
       if (data.user) {
-        // Profile is created automatically by database trigger
+        // Update profile with consent data (the trigger creates the profile)
+        // We'll update it after creation
+        setTimeout(async () => {
+          try {
+            await supabase
+              .from("profiles")
+              .update({
+                date_of_birth: dateOfBirth,
+                account_type: accountType,
+                tos_accepted_at: new Date().toISOString(),
+                tos_version: "1.0.0",
+                privacy_policy_accepted_at: new Date().toISOString(),
+                privacy_policy_version: "1.0.0",
+                data_processing_consent: true,
+              })
+              .eq("id", data.user.id)
+          } catch (updateErr) {
+            // Columns might not exist yet - that's ok, we'll handle gracefully
+            console.log("Profile update note:", updateErr)
+          }
+        }, 500)
+
         setAuthResult({
           success: true,
-          message: "Account created successfully! Redirecting...",
+          message: age < 18
+            ? "Account created! As a minor, some features require parental consent."
+            : "Account created successfully! Redirecting...",
         })
 
         setTimeout(() => {
@@ -159,7 +292,7 @@ export default function EmailAuthForm() {
             const redirectTo = new URLSearchParams(window.location.search).get("redirectTo") || "/dashboard"
             window.location.href = redirectTo
           }
-        }, 1500)
+        }, 2000)
       }
     } catch (error: any) {
       console.error("Sign up error:", error)
@@ -209,6 +342,17 @@ export default function EmailAuthForm() {
       setIsLoading(false)
     }
   }
+
+  const isSignupValid =
+    formData.email &&
+    formData.password &&
+    formData.confirmPassword &&
+    birthMonth &&
+    birthDay &&
+    birthYear &&
+    !ageError &&
+    tosAccepted &&
+    privacyAccepted
 
   return (
     <div className="w-full max-w-md mx-auto space-y-6">
@@ -328,6 +472,56 @@ export default function EmailAuthForm() {
                     onChange={handleInputChange}
                   />
                 </div>
+
+                {/* Date of Birth */}
+                <div className="space-y-2">
+                  <Label>Date of Birth *</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Select value={birthMonth} onValueChange={setBirthMonth}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Month" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {months.map((month) => (
+                          <SelectItem key={month.value} value={month.value}>
+                            {month.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={birthDay} onValueChange={setBirthDay}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Day" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {days.map((day) => (
+                          <SelectItem key={day} value={day}>
+                            {day}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={birthYear} onValueChange={setBirthYear}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Year" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {years.map((year) => (
+                          <SelectItem key={year} value={String(year)}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {ageError && (
+                    <p className="text-xs text-red-500 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      {ageError}
+                    </p>
+                  )}
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Password *</Label>
                   <div className="relative">
@@ -363,18 +557,42 @@ export default function EmailAuthForm() {
                     required
                   />
                 </div>
-                <p className="text-xs text-muted-foreground text-center">
-                  By creating an account, you agree to our{" "}
-                  <Link href="/terms" target="_blank" className="text-primary hover:underline">
-                    Terms of Service
-                  </Link>{" "}
-                  and{" "}
-                  <Link href="/privacy" target="_blank" className="text-primary hover:underline">
-                    Privacy Policy
-                  </Link>
-                  . You must be at least 13 years old to use Tinerary.
-                </p>
-                <Button type="submit" className="w-full" disabled={isLoading}>
+
+                {/* Consent Checkboxes */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-start gap-2">
+                    <Checkbox
+                      id="tos"
+                      checked={tosAccepted}
+                      onCheckedChange={(checked) => setTosAccepted(checked === true)}
+                      className="mt-0.5"
+                    />
+                    <Label htmlFor="tos" className="text-sm font-normal cursor-pointer">
+                      I agree to the{" "}
+                      <Link href="/terms" target="_blank" className="text-primary hover:underline">
+                        Terms of Service
+                      </Link>{" "}
+                      *
+                    </Label>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Checkbox
+                      id="privacy"
+                      checked={privacyAccepted}
+                      onCheckedChange={(checked) => setPrivacyAccepted(checked === true)}
+                      className="mt-0.5"
+                    />
+                    <Label htmlFor="privacy" className="text-sm font-normal cursor-pointer">
+                      I agree to the{" "}
+                      <Link href="/privacy" target="_blank" className="text-primary hover:underline">
+                        Privacy Policy
+                      </Link>{" "}
+                      and consent to data processing *
+                    </Label>
+                  </div>
+                </div>
+
+                <Button type="submit" className="w-full" disabled={isLoading || !isSignupValid}>
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

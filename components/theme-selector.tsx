@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Heart, Plane, UtensilsCrossed, Palmtree, Mountain, PartyPopper, Sparkles } from "lucide-react"
+import { Heart, Plane, UtensilsCrossed, Palmtree, Mountain, PartyPopper, Ban } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import {
@@ -19,7 +19,7 @@ export interface Theme {
 }
 
 export const themes: Theme[] = [
-  { id: "default", name: "Default", icon: <Sparkles className="h-5 w-5" />, color: "text-gray-500" },
+  { id: "none", name: "No Theme", icon: <Ban className="h-5 w-5" />, color: "text-gray-400" },
   { id: "heart", name: "Romance", icon: <Heart className="h-5 w-5" />, color: "text-pink-500" },
   { id: "plane", name: "Travel", icon: <Plane className="h-5 w-5" />, color: "text-blue-500" },
   { id: "pasta", name: "Food", icon: <UtensilsCrossed className="h-5 w-5" />, color: "text-orange-500" },
@@ -83,11 +83,30 @@ export function ThemeSelector({ value, onChange, showLabel = true }: ThemeSelect
 // Component to display theme icon inline
 export function ThemeIcon({ theme, className }: { theme: string; className?: string }) {
   const selectedTheme = themes.find(t => t.id === theme)
-  if (!selectedTheme || theme === "default") return null
+  // Don't show anything for "none", "default", or unknown themes
+  if (!selectedTheme || theme === "none" || theme === "default") return null
 
   return (
     <span className={cn(selectedTheme.color, className)}>
       {selectedTheme.icon}
     </span>
   )
+}
+
+// Get theme color for border styling
+export function getThemeColor(themeId: string): string | null {
+  const theme = themes.find(t => t.id === themeId)
+  if (!theme || themeId === "none" || themeId === "default") return null
+
+  // Map theme colors to actual color values for CSS
+  const colorMap: Record<string, string> = {
+    "text-pink-500": "#ec4899",
+    "text-blue-500": "#3b82f6",
+    "text-orange-500": "#f97316",
+    "text-teal-500": "#14b8a6",
+    "text-green-600": "#16a34a",
+    "text-purple-500": "#a855f7",
+  }
+
+  return colorMap[theme.color] || null
 }

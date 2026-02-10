@@ -20,7 +20,7 @@ import { EventPreviewModal } from "@/components/event-preview-modal"
 import { LocationAutocomplete } from "@/components/location-autocomplete"
 import { ActivityBrowserDialog } from "@/components/activity-browser-dialog"
 import { ThemeSelector } from "@/components/theme-selector"
-import { FontSelector } from "@/components/font-selector"
+import { FontSelector, getFontFamily } from "@/components/font-selector"
 import type { Activity as ImportedActivity } from "@/lib/activity-service"
 import { getCurrencySymbol, type Currency } from "@/lib/currency-utils"
 import confetti from "canvas-confetti"
@@ -869,6 +869,8 @@ function CreatePageContent() {
                         placeholder={type === "event" ? "Birthday Party" : "Weekend in NYC"}
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
+                        style={{ fontFamily: getFontFamily(selectedFont) }}
+                        className="text-lg"
                       />
                     </div>
 
@@ -923,6 +925,7 @@ function CreatePageContent() {
                         className="min-h-[100px]"
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
+                        style={{ fontFamily: getFontFamily(selectedFont) }}
                       />
                     </div>
 
@@ -964,6 +967,27 @@ function CreatePageContent() {
                           </label>
                         </div>
                       )}
+                    </div>
+
+                    {/* Customize Appearance */}
+                    <div className="border-t pt-6 mt-6">
+                      <h3 className="font-medium mb-2">Customize Appearance</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Choose a theme icon and font style for your {type} page.
+                      </p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <ThemeSelector
+                          value={selectedTheme}
+                          onChange={setSelectedTheme}
+                          showLabel={true}
+                        />
+                        <FontSelector
+                          value={selectedFont}
+                          onChange={setSelectedFont}
+                          showLabel={true}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1397,25 +1421,6 @@ function CreatePageContent() {
                     </div>
                   </div>
 
-                  <div className="border-t pt-6">
-                    <h3 className="font-medium mb-4">Customize Appearance</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Choose a theme icon and font style for your {type} page.
-                    </p>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <ThemeSelector
-                        value={selectedTheme}
-                        onChange={setSelectedTheme}
-                        showLabel={true}
-                      />
-                      <FontSelector
-                        value={selectedFont}
-                        onChange={setSelectedFont}
-                        showLabel={true}
-                      />
-                    </div>
-                  </div>
                 </div>
               </div>
             )}

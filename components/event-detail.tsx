@@ -440,14 +440,24 @@ export function EventDetail({ event }: EventDetailProps) {
             ) : (
               <div className="w-full h-64 md:h-96 bg-gradient-to-br from-orange-400 via-pink-400 to-purple-500 flex items-center justify-center relative overflow-hidden">
                 <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
-                <span className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg z-10 text-center px-4">{event.title}</span>
+                <span
+                  className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg z-10 text-center px-4"
+                  style={{ fontFamily: getFontFamily((event.font as string) || "default") }}
+                >
+                  {event.title}
+                </span>
               </div>
             )}
 
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-6 md:p-8">
             <div className="flex justify-between items-end">
               <div>
-                <h1 className="text-3xl font-bold text-white mb-2">{event.title}</h1>
+                <h1
+                  className="text-3xl font-bold text-white mb-2"
+                  style={{ fontFamily: getFontFamily((event.font as string) || "default") }}
+                >
+                  {event.title}
+                </h1>
                 <div className="flex items-center text-white/90 text-sm gap-2">
                   <ThemeIcon theme={(event.theme as string) || "default"} className="h-4 w-4" />
                   <Calendar className="h-4 w-4" />
@@ -570,7 +580,12 @@ export function EventDetail({ event }: EventDetailProps) {
           </div>
 
           {event.description && (
-            <p className="text-gray-700 mb-6 leading-relaxed">{event.description}</p>
+            <p
+              className="text-gray-700 mb-6 leading-relaxed"
+              style={{ fontFamily: getFontFamily((event.font as string) || "default") }}
+            >
+              {event.description}
+            </p>
           )}
 
           {!event.is_public && (

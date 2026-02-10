@@ -82,6 +82,15 @@ export default function HomePage() {
 
       <footer className="bg-gray-100 py-8">
         <div className="container mx-auto px-4 text-center">
+          <div className="flex justify-center gap-4 mb-4">
+            <Link href="/terms" className="text-sm text-gray-600 hover:text-gray-900 hover:underline">
+              Terms of Service
+            </Link>
+            <span className="text-gray-400">|</span>
+            <Link href="/privacy" className="text-sm text-gray-600 hover:text-gray-900 hover:underline">
+              Privacy Policy
+            </Link>
+          </div>
           <p className="text-gray-600">&copy; {new Date().getFullYear()} Tinerary. All rights reserved.</p>
         </div>
       </footer>

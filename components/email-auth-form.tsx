@@ -3,6 +3,7 @@
 
 import type React from "react"
 import { useState } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -362,6 +363,17 @@ export default function EmailAuthForm() {
                     required
                   />
                 </div>
+                <p className="text-xs text-muted-foreground text-center">
+                  By creating an account, you agree to our{" "}
+                  <Link href="/terms" target="_blank" className="text-primary hover:underline">
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link href="/privacy" target="_blank" className="text-primary hover:underline">
+                    Privacy Policy
+                  </Link>
+                  . You must be at least 13 years old to use Tinerary.
+                </p>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? (
                     <>

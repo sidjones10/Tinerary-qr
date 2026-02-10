@@ -4,6 +4,7 @@ import type { Metadata } from "next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/providers/auth-provider"
+import { ConsentProvider } from "@/providers/consent-provider"
 import { OnboardingWrapper } from "@/components/onboarding-wrapper"
 
 export const metadata: Metadata = {
@@ -34,9 +35,11 @@ export default function RootLayout({
       <body className="font-sans" suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
           <AuthProvider>
-            <OnboardingWrapper>
-              {children}
-            </OnboardingWrapper>
+            <ConsentProvider>
+              <OnboardingWrapper>
+                {children}
+              </OnboardingWrapper>
+            </ConsentProvider>
             <Toaster />
           </AuthProvider>
         </ThemeProvider>

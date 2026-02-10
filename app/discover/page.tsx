@@ -301,6 +301,22 @@ export default function DiscoverPage() {
         )}
       </main>
 
+      {/* Footer with legal links */}
+      <footer className="bg-gray-100 py-6 mt-8">
+        <div className="container mx-auto px-4 text-center">
+          <div className="flex justify-center gap-4 mb-2">
+            <Link href="/terms" className="text-sm text-gray-600 hover:text-gray-900 hover:underline">
+              Terms of Service
+            </Link>
+            <span className="text-gray-400">|</span>
+            <Link href="/privacy" className="text-sm text-gray-600 hover:text-gray-900 hover:underline">
+              Privacy Policy
+            </Link>
+          </div>
+          <p className="text-sm text-gray-500">&copy; {new Date().getFullYear()} Tinerary. All rights reserved.</p>
+        </div>
+      </footer>
+
       {/* Signup prompt dialog */}
       <SignupPromptDialog
         isOpen={showSignupPrompt}

@@ -623,17 +623,17 @@ export function EventDetail({ event }: EventDetailProps) {
               <TabsTrigger value="photos">Photos</TabsTrigger>
               <TabsTrigger value="packing" className="relative">
                 Packing List
-                {isOwner && (
-                  <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${event.packing_list_public ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                    {event.packing_list_public ? 'Public' : 'Private'}
+                {isOwner && !event.packing_list_public && (
+                  <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                    Private
                   </span>
                 )}
               </TabsTrigger>
               <TabsTrigger value="expenses" className="relative">
                 Expenses
-                {isOwner && (
-                  <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${event.expenses_public ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                    {event.expenses_public ? 'Public' : 'Private'}
+                {isOwner && !event.expenses_public && (
+                  <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                    Private
                   </span>
                 )}
               </TabsTrigger>

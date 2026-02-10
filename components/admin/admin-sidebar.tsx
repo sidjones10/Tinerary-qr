@@ -24,9 +24,7 @@ const navItems = [
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/itineraries", label: "Itineraries", icon: Map },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/admin/searches", label: "Searches", icon: Search },
-  { href: "/admin/reports", label: "Reports", icon: FileText },
-  { href: "/admin/notifications", label: "Notifications", icon: Bell },
+  { href: "/admin/errors", label: "Errors", icon: FileText },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ]
 

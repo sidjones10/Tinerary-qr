@@ -25,6 +25,8 @@ import { CalendarExportButton } from "@/components/calendar-export-button"
 import { MutualsSection } from "@/components/mutuals-section"
 import { ThemeIcon } from "@/components/theme-selector"
 import { getFontFamily } from "@/components/font-selector"
+import { PostEventCoverPrompt } from "@/components/post-event-cover-prompt"
+import { shouldPromptCoverUpdate } from "@/lib/reminder-service"
 
 interface Activity {
   id: string
@@ -117,7 +119,19 @@ export function EventDetail({ event }: EventDetailProps) {
   const [canAccessPacking, setCanAccessPacking] = useState(false)
   const [canAccessExpenses, setCanAccessExpenses] = useState(false)
   const [checkingAccess, setCheckingAccess] = useState(true)
+  const [coverImage, setCoverImage] = useState(event.image_url as string | undefined)
+  const [showCoverPrompt, setShowCoverPrompt] = useState(false)
   const isOwner = user && user.id === event.user_id
+
+  // Check if we should show the post-event cover update prompt
+  useEffect(() => {
+    if (isOwner && event.end_date && !event.cover_update_prompted) {
+      const endDate = new Date(event.end_date)
+      if (shouldPromptCoverUpdate(endDate)) {
+        setShowCoverPrompt(true)
+      }
+    }
+  }, [isOwner, event.end_date, event.cover_update_prompted])
 
   // Check access permissions for packing and expenses
   useEffect(() => {
@@ -395,12 +409,27 @@ export function EventDetail({ event }: EventDetailProps) {
 
   return (
     <div className="relative min-h-screen">
+      {/* Post-event cover update prompt */}
+      {showCoverPrompt && isOwner && (
+        <PostEventCoverPrompt
+          itineraryId={event.id}
+          itineraryTitle={event.title}
+          eventType={event.start_date === event.end_date ? "event" : "trip"}
+          currentCover={coverImage}
+          onCoverUpdated={(newUrl) => {
+            setCoverImage(newUrl)
+            setShowCoverPrompt(false)
+          }}
+          onDismiss={() => setShowCoverPrompt(false)}
+        />
+      )}
+
       {/* Gaussian blur background */}
-      {event.image_url && (
+      {coverImage && (
         <div
           className="fixed inset-0 z-0"
           style={{
-            backgroundImage: `url(${event.image_url})`,
+            backgroundImage: `url(${coverImage})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             filter: 'blur(25px)',
@@ -408,7 +437,7 @@ export function EventDetail({ event }: EventDetailProps) {
           }}
         />
       )}
-      {!event.image_url && (
+      {!coverImage && (
         <div
           className="fixed inset-0 z-0 bg-gradient-to-br from-orange-400 via-pink-400 to-purple-500"
           style={{
@@ -431,9 +460,9 @@ export function EventDetail({ event }: EventDetailProps) {
 
         <div className="max-w-4xl mx-auto">
           <div className="relative rounded-xl overflow-hidden mb-6 shadow-2xl">
-            {event.image_url ? (
+            {coverImage ? (
               <img
-                src={event.image_url || "/placeholder.svg"}
+                src={coverImage}
                 alt={event.title}
                 className="w-full h-64 md:h-96 object-cover"
               />

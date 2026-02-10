@@ -73,6 +73,7 @@ function CreatePageContent() {
   const [editingItineraryId, setEditingItineraryId] = useState<string | null>(null)
   const [selectedTheme, setSelectedTheme] = useState("default")
   const [selectedFont, setSelectedFont] = useState("default")
+  const [countdownRemindersEnabled, setCountdownRemindersEnabled] = useState(true)
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -161,6 +162,9 @@ function CreatePageContent() {
             if (draftData.font) {
               setSelectedFont(draftData.font)
             }
+            if (draftData.countdown_reminders_enabled !== undefined) {
+              setCountdownRemindersEnabled(draftData.countdown_reminders_enabled)
+            }
 
             // Load cover image if it exists
             if (draftData.image_url) {
@@ -232,6 +236,9 @@ function CreatePageContent() {
             }
             if (itineraryData.font) {
               setSelectedFont(itineraryData.font)
+            }
+            if (itineraryData.countdown_reminders_enabled !== undefined) {
+              setCountdownRemindersEnabled(itineraryData.countdown_reminders_enabled)
             }
 
             // Load cover image
@@ -394,6 +401,7 @@ function CreatePageContent() {
         currency,
         theme: selectedTheme,
         font: selectedFont,
+        countdown_reminders_enabled: countdownRemindersEnabled,
         image_url: coverImage || null,
         activities,
         packing_items: showPackingExpenses ? packingItems : [],
@@ -515,6 +523,7 @@ function CreatePageContent() {
         currency,
         theme: selectedTheme,
         font: selectedFont,
+        countdownRemindersEnabled,
         activities: activities.filter((a) => a.title),
         packingItems: showPackingExpenses ? packingItems : [],
         expenses: showPackingExpenses ? expenses.filter((e) => e.amount > 0) : [],
@@ -1418,6 +1427,23 @@ function CreatePageContent() {
                         </div>
                         <Switch checked={expensesPublic} onCheckedChange={setExpensesPublic} />
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-6">
+                    <h3 className="font-medium mb-4">Countdown Reminders</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Get notified as your {type} approaches with countdown reminders at 5 days, 2 days, 1 day, and more leading up to the start.
+                    </p>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium text-sm">Enable Countdown Reminders</h4>
+                        <p className="text-xs text-muted-foreground">
+                          Receive notifications at: 5d, 2d, 1d, 15h, 10h, 5h, 2h, 45m, 20m, 10m, 5m before start
+                        </p>
+                      </div>
+                      <Switch checked={countdownRemindersEnabled} onCheckedChange={setCountdownRemindersEnabled} />
                     </div>
                   </div>
 

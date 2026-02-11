@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { normalizeLocation } from "@/lib/location-utils"
 
 export interface AdminStats {
   totalUsers: number
@@ -323,7 +324,15 @@ export function useAdminItineraries(page = 1, limit = 20, search = "") {
         .range((page - 1) * limit, page * limit - 1)
 
       if (search) {
-        query = query.or(`title.ilike.%${search}%,location.ilike.%${search}%`)
+        // Get location variations (TX -> Texas, NYC -> New York, etc.)
+        const locationVariations = normalizeLocation(search)
+
+        // Build OR conditions for all location variations
+        const locationConditions = locationVariations
+          .map(v => `location.ilike.%${v}%`)
+          .join(",")
+
+        query = query.or(`title.ilike.%${search}%,${locationConditions}`)
       }
 
       const { data, count, error } = await query

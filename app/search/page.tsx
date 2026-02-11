@@ -12,7 +12,8 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { searchContent, getPopularSearches, type SearchResults } from "@/lib/search-service"
+import { searchContent, getPopularSearches, saveSearchHistory, type SearchResults } from "@/lib/search-service"
+import { createClient } from "@/lib/supabase/client"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 function SearchContent() {
@@ -27,6 +28,15 @@ function SearchContent() {
   const [popularSearches, setPopularSearches] = useState<string[]>([])
   const [activeTab, setActiveTab] = useState<"all" | "itinerary" | "user">("all")
   const [locationFilter, setLocationFilter] = useState<string>("")
+  const [userId, setUserId] = useState<string | null>(null)
+
+  // Get current user for search tracking
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => {
+      setUserId(data.user?.id || null)
+    })
+  }, [])
 
   useEffect(() => {
     const loadPopularSearches = async () => {
@@ -60,6 +70,11 @@ function SearchContent() {
 
       const searchResults = await searchContent(searchQuery, filters)
       setResults(searchResults)
+
+      // Track search for marketing emails (only for logged-in users)
+      if (userId) {
+        saveSearchHistory(userId, searchQuery, activeTab === "user" ? "user" : "general")
+      }
     } catch (error) {
       console.error("Error performing search:", error)
     } finally {

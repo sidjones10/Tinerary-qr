@@ -441,3 +441,106 @@ export async function sendAccountDeletionWarningEmail(data: {
     html,
   })
 }
+
+// Function to send location-based marketing email
+export async function sendLocationMarketingEmail(data: {
+  email: string
+  name?: string
+  location: string
+  itineraries: Array<{
+    id: string
+    title: string
+    description?: string
+    image_url?: string
+    like_count?: number
+  }>
+  searchQuery?: string
+}) {
+  const { email, name, location, itineraries, searchQuery } = data
+
+  const displayName = name || "there"
+
+  // Build itinerary cards HTML
+  const itineraryCardsHtml = itineraries
+    .slice(0, 5) // Limit to 5 itineraries
+    .map(
+      (itinerary) => `
+      <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 15px; background: white;">
+        ${
+          itinerary.image_url
+            ? `<img src="${itinerary.image_url}" alt="${itinerary.title}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 6px; margin-bottom: 10px;" />`
+            : ""
+        }
+        <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #333;">${itinerary.title}</h3>
+        ${
+          itinerary.description
+            ? `<p style="margin: 0 0 10px 0; font-size: 14px; color: #666; line-height: 1.4;">${itinerary.description.slice(0, 100)}${itinerary.description.length > 100 ? "..." : ""}</p>`
+            : ""
+        }
+        ${
+          itinerary.like_count
+            ? `<span style="font-size: 12px; color: #f97316;">❤️ ${itinerary.like_count} likes</span>`
+            : ""
+        }
+        <div style="margin-top: 10px;">
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://tinerary.app"}/event/${itinerary.id}"
+             style="color: #f97316; text-decoration: none; font-size: 14px; font-weight: bold;">
+            View Itinerary →
+          </a>
+        </div>
+      </div>
+    `
+    )
+    .join("")
+
+  // Create email HTML
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+      <div style="text-align: center; margin-bottom: 20px; padding: 30px; background: linear-gradient(135deg, #f97316 0%, #ec4899 100%); border-radius: 10px;">
+        <h1 style="color: white; margin: 0; font-size: 28px;">📍 Discover ${location}!</h1>
+        <p style="color: white; margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">
+          Amazing itineraries waiting for you
+        </p>
+      </div>
+
+      <div style="padding: 20px; background-color: white; border-radius: 10px; margin-bottom: 20px;">
+        <p style="font-size: 16px; margin-bottom: 15px;">Hi ${displayName},</p>
+
+        <p style="font-size: 16px; margin-bottom: 20px; line-height: 1.5;">
+          ${
+            searchQuery
+              ? `We noticed you were searching for "${searchQuery}" - great choice! `
+              : ""
+          }Check out these popular itineraries in <strong>${location}</strong> that other travelers love:
+        </p>
+
+        ${itineraryCardsHtml}
+      </div>
+
+      <div style="text-align: center; margin-bottom: 20px;">
+        <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://tinerary.app"}/discover?location=${encodeURIComponent(location)}"
+           style="background: linear-gradient(135deg, #f97316 0%, #ec4899 100%); color: white; padding: 14px 35px; text-decoration: none; border-radius: 25px; display: inline-block; font-weight: bold; font-size: 16px;">
+          Explore More in ${location}
+        </a>
+      </div>
+
+      <div style="text-align: center; padding: 20px; font-size: 12px; color: #999;">
+        <p>You're receiving this because you searched for itineraries on Tinerary.</p>
+        <p>
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://tinerary.app"}/settings/notifications"
+             style="color: #999; text-decoration: underline;">
+            Unsubscribe from marketing emails
+          </a>
+        </p>
+        <p>&copy; ${new Date().getFullYear()} Tinerary. All rights reserved.</p>
+      </div>
+    </div>
+  `
+
+  // Send the email
+  return sendEmail({
+    to: email,
+    subject: `📍 Explore ${location} - ${itineraries.length} Popular Itineraries`,
+    html,
+  })
+}

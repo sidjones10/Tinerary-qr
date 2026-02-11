@@ -174,12 +174,15 @@ END $$;
 -- ============================================================================
 -- STEP 7: Create helper function to check follow status
 -- ============================================================================
-CREATE OR REPLACE FUNCTION is_following(follower UUID, target UUID)
+-- Drop existing function first (may have different parameter names)
+DROP FUNCTION IF EXISTS is_following(UUID, UUID);
+
+CREATE OR REPLACE FUNCTION is_following(p_follower_id UUID, p_target_id UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
   RETURN EXISTS (
     SELECT 1 FROM user_follows
-    WHERE follower_id = follower AND following_id = target
+    WHERE follower_id = p_follower_id AND following_id = p_target_id
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

@@ -221,7 +221,140 @@ export async function sendPromotionApprovalEmail(
   })
 }
 
-// Function to send account deletion warning email (7 days before deletion)
+// Function to send a countdown reminder email
+export async function sendCountdownReminderEmail(data: {
+  email: string
+  name?: string
+  itineraryTitle: string
+  itineraryId: string
+  timeRemaining: string
+  eventDate: string
+  location?: string
+  eventType: "event" | "trip"
+}) {
+  const { email, name, itineraryTitle, itineraryId, timeRemaining, eventDate, location, eventType } = data
+
+  const displayName = name || "there"
+  const emoji = eventType === "trip" ? "✈️" : "🎉"
+
+  // Format the event date
+  const formattedDate = new Date(eventDate).toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  })
+
+  // Create email HTML
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+      <div style="text-align: center; margin-bottom: 20px; padding: 20px; background: linear-gradient(135deg, #f97316 0%, #ec4899 100%); border-radius: 5px;">
+        <h1 style="color: white; margin: 0; font-size: 28px;">${emoji} ${timeRemaining} to go!</h1>
+      </div>
+
+      <div style="padding: 20px; background-color: #f9f9f9; border-radius: 5px; margin-bottom: 20px;">
+        <p style="font-size: 16px; margin-bottom: 15px;">Hi ${displayName},</p>
+
+        <p style="font-size: 16px; margin-bottom: 15px;">
+          Your ${eventType} <strong>"${itineraryTitle}"</strong> is coming up in <strong>${timeRemaining}</strong>!
+        </p>
+
+        <div style="background-color: #fff; border-left: 4px solid #f97316; padding: 15px; margin: 20px 0;">
+          <p style="margin: 0; font-size: 18px; font-weight: bold; color: #333;">
+            📅 ${formattedDate}
+          </p>
+          ${location ? `<p style="margin: 10px 0 0 0; font-size: 16px; color: #666;">📍 ${location}</p>` : ""}
+        </div>
+
+        <p style="font-size: 14px; color: #666;">
+          Make sure you're all set and ready for an amazing experience!
+        </p>
+      </div>
+
+      <div style="text-align: center; margin-bottom: 20px;">
+        <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://tinerary.app"}/event/${itineraryId}"
+           style="background: linear-gradient(135deg, #f97316 0%, #ec4899 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; display: inline-block; font-weight: bold;">
+          View Your ${eventType === "trip" ? "Trip" : "Event"}
+        </a>
+      </div>
+
+      <div style="border-top: 1px solid #e0e0e0; padding-top: 15px; font-size: 14px; color: #666;">
+        <p>Have a wonderful time! 🎊</p>
+      </div>
+
+      <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #999;">
+        <p>You received this email because you enabled countdown reminders for this ${eventType}.</p>
+        <p>&copy; ${new Date().getFullYear()} Tinerary. All rights reserved.</p>
+      </div>
+    </div>
+  `
+
+  // Send the email
+  return sendEmail({
+    to: email,
+    subject: `${emoji} ${timeRemaining} until "${itineraryTitle}"!`,
+    html,
+  })
+}
+
+// Function to send event started email
+export async function sendEventStartedEmail(data: {
+  email: string
+  name?: string
+  itineraryTitle: string
+  itineraryId: string
+  location?: string
+  eventType: "event" | "trip"
+}) {
+  const { email, name, itineraryTitle, itineraryId, location, eventType } = data
+
+  const displayName = name || "there"
+  const emoji = eventType === "trip" ? "✈️" : "🎉"
+
+  // Create email HTML
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+      <div style="text-align: center; margin-bottom: 20px; padding: 30px; background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); border-radius: 5px;">
+        <h1 style="color: white; margin: 0; font-size: 32px;">${emoji} It's Time!</h1>
+        <p style="color: white; margin: 10px 0 0 0; font-size: 18px;">Your ${eventType} has started!</p>
+      </div>
+
+      <div style="padding: 20px; background-color: #f9f9f9; border-radius: 5px; margin-bottom: 20px;">
+        <p style="font-size: 16px; margin-bottom: 15px;">Hi ${displayName},</p>
+
+        <p style="font-size: 18px; margin-bottom: 15px;">
+          <strong>"${itineraryTitle}"</strong> is happening <strong>NOW</strong>!
+        </p>
+
+        ${location ? `<p style="font-size: 16px; color: #666;">📍 ${location}</p>` : ""}
+
+        <p style="font-size: 16px; margin-top: 20px;">
+          Have an amazing time and make wonderful memories! 🌟
+        </p>
+      </div>
+
+      <div style="text-align: center; margin-bottom: 20px;">
+        <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://tinerary.app"}/event/${itineraryId}"
+           style="background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; display: inline-block; font-weight: bold;">
+          View Details
+        </a>
+      </div>
+
+      <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #999;">
+        <p>&copy; ${new Date().getFullYear()} Tinerary. All rights reserved.</p>
+      </div>
+    </div>
+  `
+
+  // Send the email
+  return sendEmail({
+    to: email,
+    subject: `${emoji} "${itineraryTitle}" is happening NOW!`,
+    html,
+  })
+}
 export async function sendAccountDeletionWarningEmail(data: {
   email: string
   name?: string

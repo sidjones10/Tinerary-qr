@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client"
 import { createNotification, NotificationType } from "@/lib/notification-service"
+import { sendCountdownReminderEmail, sendEventStartedEmail } from "@/lib/email-service"
 
 // Reminder intervals in milliseconds
 export const REMINDER_INTERVALS = {
@@ -134,14 +135,19 @@ export async function recordReminderSent(
 }
 
 /**
- * Send a countdown reminder notification
+ * Send a countdown reminder notification (in-app + email)
  */
 export async function sendCountdownReminder(
   userId: string,
   itineraryId: string,
   itineraryTitle: string,
   reminderType: ReminderType,
-  eventType: "event" | "trip" = "event"
+  eventType: "event" | "trip" = "event",
+  options?: {
+    eventDate?: string
+    location?: string
+    sendEmail?: boolean
+  }
 ): Promise<{ success: boolean; error?: string }> {
   // Check if already sent
   const alreadySent = await hasReminderBeenSent(itineraryId, userId, reminderType)
@@ -152,6 +158,7 @@ export async function sendCountdownReminder(
   let title: string
   let message: string
   const emoji = eventType === "trip" ? "✈️" : "🎉"
+  const timeLabel = REMINDER_LABELS[reminderType]
 
   if (reminderType === "started") {
     title = `${emoji} Your ${eventType} has started!`
@@ -160,11 +167,11 @@ export async function sendCountdownReminder(
     title = `📸 Update your ${eventType} cover?`
     message = `Your ${eventType} "${itineraryTitle}" has ended. Would you like to update the cover with photos from the ${eventType}?`
   } else {
-    const timeLabel = REMINDER_LABELS[reminderType]
     title = `${emoji} ${timeLabel} until your ${eventType}!`
     message = `"${itineraryTitle}" starts in ${timeLabel}. Get ready!`
   }
 
+  // Send in-app notification
   const result = await createNotification({
     userId,
     type: "system_message" as NotificationType,
@@ -177,6 +184,48 @@ export async function sendCountdownReminder(
       itineraryTitle,
     },
   })
+
+  // Also send email if enabled (default: send for major milestones)
+  const shouldSendEmail = options?.sendEmail !== false &&
+    ["5_days", "2_days", "1_day", "2_hours", "started"].includes(reminderType)
+
+  if (shouldSendEmail) {
+    try {
+      const supabase = createClient()
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("email, name, email_notifications")
+        .eq("id", userId)
+        .single()
+
+      if (profile?.email && profile?.email_notifications !== false) {
+        if (reminderType === "started") {
+          await sendEventStartedEmail({
+            email: profile.email,
+            name: profile.name || undefined,
+            itineraryTitle,
+            itineraryId,
+            location: options?.location,
+            eventType,
+          })
+        } else {
+          await sendCountdownReminderEmail({
+            email: profile.email,
+            name: profile.name || undefined,
+            itineraryTitle,
+            itineraryId,
+            timeRemaining: timeLabel,
+            eventDate: options?.eventDate || new Date().toISOString(),
+            location: options?.location,
+            eventType,
+          })
+        }
+      }
+    } catch (emailError) {
+      console.error("Failed to send reminder email:", emailError)
+      // Don't fail the whole operation if email fails
+    }
+  }
 
   if (result.success) {
     await recordReminderSent(itineraryId, userId, reminderType)

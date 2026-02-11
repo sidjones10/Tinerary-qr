@@ -18,15 +18,20 @@ import { useAuth } from "@/providers/auth-provider"
 import {
   getUserItinerariesWithActivities,
   getSavedItinerariesWithActivities,
+  getSuggestedItinerariesWithActivities,
   copyActivitiesToItinerary,
   type Activity,
   type ItineraryWithActivities,
+  type SuggestedItinerary,
 } from "@/lib/activity-service"
-import { Loader2, Calendar, MapPin, Clock, Plus, Copy } from "lucide-react"
+import { Loader2, Calendar, MapPin, Clock, Plus, Copy, Sparkles, Heart, User } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 
 interface ActivityBrowserDialogProps {
   targetItineraryId?: string // If editing an existing itinerary
   targetStartDate?: string
+  targetLocation?: string // For suggestions based on location
+  targetEventType?: "event" | "trip" // For suggestions based on event type
   onActivitiesSelected?: (activities: Activity[]) => void // For draft mode
   children?: React.ReactNode
 }
@@ -34,6 +39,8 @@ interface ActivityBrowserDialogProps {
 export function ActivityBrowserDialog({
   targetItineraryId,
   targetStartDate,
+  targetLocation,
+  targetEventType,
   onActivitiesSelected,
   children,
 }: ActivityBrowserDialogProps) {
@@ -43,9 +50,10 @@ export function ActivityBrowserDialog({
   const [loading, setLoading] = useState(false)
   const [copying, setCopying] = useState(false)
 
+  const [suggestedItineraries, setSuggestedItineraries] = useState<SuggestedItinerary[]>([])
   const [myItineraries, setMyItineraries] = useState<ItineraryWithActivities[]>([])
   const [savedItineraries, setSavedItineraries] = useState<ItineraryWithActivities[]>([])
-  const [selectedItinerary, setSelectedItinerary] = useState<ItineraryWithActivities | null>(null)
+  const [selectedItinerary, setSelectedItinerary] = useState<ItineraryWithActivities | SuggestedItinerary | null>(null)
   const [selectedActivityIds, setSelectedActivityIds] = useState<Set<string>>(new Set())
 
   // Load itineraries when dialog opens
@@ -60,9 +68,10 @@ export function ActivityBrowserDialog({
 
     setLoading(true)
     try {
-      const [myResult, savedResult] = await Promise.all([
+      const [myResult, savedResult, suggestedResult] = await Promise.all([
         getUserItinerariesWithActivities(user.id),
         getSavedItinerariesWithActivities(user.id),
+        getSuggestedItinerariesWithActivities(targetLocation, targetEventType, user.id, 20),
       ])
 
       if (myResult.success && myResult.itineraries) {
@@ -75,6 +84,14 @@ export function ActivityBrowserDialog({
 
       if (savedResult.success && savedResult.itineraries) {
         setSavedItineraries(savedResult.itineraries)
+      }
+
+      if (suggestedResult.success && suggestedResult.itineraries) {
+        // Filter out the target itinerary from suggestions
+        const filtered = targetItineraryId
+          ? suggestedResult.itineraries.filter((i) => i.id !== targetItineraryId)
+          : suggestedResult.itineraries
+        setSuggestedItineraries(filtered)
       }
     } catch (error) {
       console.error("Error loading itineraries:", error)
@@ -193,18 +210,82 @@ export function ActivityBrowserDialog({
         <DialogHeader>
           <DialogTitle>Add Activities from Other Itineraries</DialogTitle>
           <DialogDescription>
-            Browse your itineraries and select activities to copy
+            Get suggestions from similar itineraries or browse your own to copy activities
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-4 h-[500px]">
           {/* Left side - Itinerary list */}
           <div className="border-r pr-4">
-            <Tabs defaultValue="mine" className="h-full flex flex-col">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="mine">My Itineraries</TabsTrigger>
-                <TabsTrigger value="saved">Saved</TabsTrigger>
+            <Tabs defaultValue="suggestions" className="h-full flex flex-col">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="suggestions" className="text-xs">
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  Suggestions
+                </TabsTrigger>
+                <TabsTrigger value="mine" className="text-xs">My Itineraries</TabsTrigger>
+                <TabsTrigger value="saved" className="text-xs">Saved</TabsTrigger>
               </TabsList>
+
+              <TabsContent value="suggestions" className="flex-1 mt-4">
+                {loading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : suggestedItineraries.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm text-center p-4">
+                    <Sparkles className="h-8 w-8 mb-2 opacity-50" />
+                    <p>No suggestions available yet</p>
+                    <p className="text-xs mt-1">
+                      Try adding a location to your itinerary for personalized suggestions
+                    </p>
+                  </div>
+                ) : (
+                  <ScrollArea className="h-full">
+                    <div className="space-y-2">
+                      {targetLocation && (
+                        <div className="text-xs text-muted-foreground mb-3 px-1">
+                          Based on <Badge variant="secondary" className="text-xs">{targetLocation}</Badge>
+                        </div>
+                      )}
+                      {suggestedItineraries.map((itinerary) => (
+                        <button
+                          key={itinerary.id}
+                          onClick={() => handleItinerarySelect(itinerary)}
+                          className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                            selectedItinerary?.id === itinerary.id
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:border-primary/50"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="font-medium truncate flex-1">{itinerary.title}</div>
+                            {itinerary.like_count ? (
+                              <div className="flex items-center text-xs text-pink-500 ml-2">
+                                <Heart className="h-3 w-3 mr-0.5 fill-current" />
+                                {itinerary.like_count}
+                              </div>
+                            ) : null}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                            <MapPin className="h-3 w-3" />
+                            {itinerary.location}
+                          </div>
+                          {(itinerary.user_name || itinerary.user_username) && (
+                            <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                              <User className="h-3 w-3" />
+                              {itinerary.user_name || `@${itinerary.user_username}`}
+                            </div>
+                          )}
+                          <div className="text-xs text-primary mt-1">
+                            {itinerary.activities?.length || 0} activities
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                )}
+              </TabsContent>
 
               <TabsContent value="mine" className="flex-1 mt-4">
                 {loading ? (

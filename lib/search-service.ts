@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client"
 import Fuse from "fuse.js"
+import { normalizeLocation, locationMatchesSearch } from "@/lib/location-utils"
 
 export interface SearchResult {
   id: string
@@ -8,6 +9,7 @@ export interface SearchResult {
   description?: string
   image_url?: string
   location?: string
+  locationSearch?: string // Normalized location variations for search
   start_date?: string
   end_date?: string
   username?: string
@@ -33,9 +35,10 @@ const itineraryFuseOptions: Fuse.IFuseOptions<SearchResult> = {
   findAllMatches: true,
   minMatchCharLength: 2,
   keys: [
-    { name: "title", weight: 0.4 },
-    { name: "description", weight: 0.2 },
-    { name: "location", weight: 0.25 },
+    { name: "title", weight: 0.35 },
+    { name: "description", weight: 0.15 },
+    { name: "location", weight: 0.15 },
+    { name: "locationSearch", weight: 0.2 }, // Includes TX/Texas variations
     { name: "username", weight: 0.1 },
     { name: "name", weight: 0.05 },
   ],
@@ -127,22 +130,29 @@ export async function searchContent(
       if (itinerariesError) {
         console.error("Error searching itineraries:", itinerariesError)
       } else if (itineraries && itineraries.length > 0) {
-        // Transform data for Fuse.js
-        const transformedItineraries: SearchResult[] = itineraries.map((item: any) => ({
-          id: item.id,
-          user_id: item.user_id,
-          type: "itinerary" as const,
-          title: item.title || "",
-          description: item.description || "",
-          image_url: item.image_url,
-          location: item.location || "",
-          start_date: item.start_date,
-          end_date: item.end_date,
-          created_at: item.created_at,
-          username: item.profiles?.username || "",
-          name: item.profiles?.name || "",
-          avatar_url: item.profiles?.avatar_url,
-        }))
+        // Transform data for Fuse.js with location variations
+        const transformedItineraries: SearchResult[] = itineraries.map((item: any) => {
+          // Get all location variations for better fuzzy matching
+          const locationVariations = item.location ? normalizeLocation(item.location) : []
+          const locationSearchString = [item.location || "", ...locationVariations].join(" ")
+
+          return {
+            id: item.id,
+            user_id: item.user_id,
+            type: "itinerary" as const,
+            title: item.title || "",
+            description: item.description || "",
+            image_url: item.image_url,
+            location: item.location || "",
+            locationSearch: locationSearchString, // Enhanced location for search
+            start_date: item.start_date,
+            end_date: item.end_date,
+            created_at: item.created_at,
+            username: item.profiles?.username || "",
+            name: item.profiles?.name || "",
+            avatar_url: item.profiles?.avatar_url,
+          }
+        })
 
         // Apply fuzzy search with Fuse.js
         const fuse = new Fuse(transformedItineraries, itineraryFuseOptions)
@@ -154,11 +164,10 @@ export async function searchContent(
           score: result.score,
         }))
 
-        // Apply location filter if provided (post-filtering)
+        // Apply location filter if provided (post-filtering with normalization)
         if (filters?.location) {
-          const locationLower = filters.location.toLowerCase()
           filteredResults = filteredResults.filter(
-            (item) => item.location?.toLowerCase().includes(locationLower)
+            (item) => item.location && locationMatchesSearch(filters.location!, item.location)
           )
         }
 
@@ -231,26 +240,95 @@ export async function getPopularSearches(limit: number = 10): Promise<string[]> 
 }
 
 /**
- * Save a search query to user's history
+ * Save a search query to user's history and optionally queue marketing email
  * @param userId - User ID
  * @param query - Search query
+ * @param searchType - Type of search (general, location, user)
  */
-export async function saveSearchHistory(userId: string, query: string): Promise<void> {
+export async function saveSearchHistory(
+  userId: string,
+  query: string,
+  searchType: "general" | "location" | "user" = "general"
+): Promise<void> {
   if (!query.trim()) return
 
   const supabase = createClient()
 
   try {
-    // For now, we'll store in user_interactions table
-    await supabase.from("user_interactions").insert({
+    // Extract location from search (check if it looks like a location search)
+    const locationExtracted = extractLocationFromSearch(query)
+
+    // Save to user_search_history
+    await supabase.from("user_search_history").insert({
       user_id: userId,
-      interaction_type: "search",
-      // We'll store the search query in a metadata field (would need to add this column)
+      search_query: query.trim(),
+      search_type: locationExtracted ? "location" : searchType,
+      location_extracted: locationExtracted,
       created_at: new Date().toISOString(),
     })
+
+    // If a location was extracted, queue a marketing email
+    if (locationExtracted) {
+      await supabase.rpc("queue_location_marketing_email", {
+        p_user_id: userId,
+        p_location: locationExtracted,
+        p_search_query: query.trim(),
+      })
+    }
   } catch (error) {
     console.error("Error saving search history:", error)
   }
+}
+
+/**
+ * Extract a location from a search query
+ * @param query - Search query
+ * @returns Extracted location or null
+ */
+function extractLocationFromSearch(query: string): string | null {
+  const normalizedQuery = query.trim().toLowerCase()
+
+  // Check against state names and abbreviations
+  const { US_STATES, STATE_ABBREVIATIONS, CITY_ALIASES } = require("@/lib/location-utils")
+
+  // Check if query is a state abbreviation
+  const upperQuery = query.toUpperCase().trim()
+  if (US_STATES[upperQuery]) {
+    return US_STATES[upperQuery]
+  }
+
+  // Check if query is a state name
+  if (STATE_ABBREVIATIONS[normalizedQuery]) {
+    return query.trim()
+  }
+
+  // Check if query contains a city alias
+  for (const [city, aliases] of Object.entries(CITY_ALIASES) as [string, string[]][]) {
+    if (normalizedQuery.includes(city) || aliases.some((a: string) => normalizedQuery.includes(a))) {
+      return city
+    }
+  }
+
+  // Check for "City, State" pattern
+  const cityStatePattern = /^([a-zA-Z\s]+),\s*([a-zA-Z]{2}|[a-zA-Z\s]+)$/
+  const match = query.match(cityStatePattern)
+  if (match) {
+    return query.trim()
+  }
+
+  // Common location keywords
+  const locationKeywords = [
+    "beach", "mountain", "city", "downtown", "coast", "island", "lake",
+    "park", "valley", "canyon", "forest", "desert"
+  ]
+
+  for (const keyword of locationKeywords) {
+    if (normalizedQuery.includes(keyword)) {
+      return query.trim()
+    }
+  }
+
+  return null
 }
 
 /**

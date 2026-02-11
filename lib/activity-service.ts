@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client"
+import { locationMatchesSearch, extractState } from "@/lib/location-utils"
 
 export interface Activity {
   id: string
@@ -219,4 +220,151 @@ export async function copySingleActivity(
   }
 
   return { success: false, error: result.error }
+}
+
+/**
+ * Extended itinerary with user info for suggestions
+ */
+export interface SuggestedItinerary extends ItineraryWithActivities {
+  user_name?: string
+  user_username?: string
+  user_avatar?: string
+  like_count?: number
+  relevance_score?: number
+}
+
+/**
+ * Get suggested itineraries with activities based on location and event type
+ * Shows what other users have done for similar locations/events
+ */
+export async function getSuggestedItinerariesWithActivities(
+  currentLocation?: string,
+  currentType?: "event" | "trip",
+  currentUserId?: string,
+  limit: number = 20
+): Promise<{ success: boolean; itineraries?: SuggestedItinerary[]; error?: string }> {
+  try {
+    const supabase = createClient()
+
+    // Fetch public itineraries with activities and user info
+    let query = supabase
+      .from("itineraries")
+      .select(
+        `
+        id,
+        title,
+        location,
+        start_date,
+        end_date,
+        image_url,
+        user_id,
+        activities (
+          id,
+          title,
+          description,
+          location,
+          start_time,
+          day,
+          require_rsvp,
+          order_index
+        ),
+        profiles:user_id (
+          name,
+          username,
+          avatar_url
+        ),
+        itinerary_metrics (
+          like_count
+        )
+      `
+      )
+      .eq("is_public", true)
+      .order("created_at", { ascending: false })
+      .limit(100) // Fetch more for filtering
+
+    // Exclude current user's itineraries from suggestions
+    if (currentUserId) {
+      query = query.neq("user_id", currentUserId)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error("Error fetching suggested itineraries:", error)
+      return { success: false, error: error.message }
+    }
+
+    if (!data || data.length === 0) {
+      return { success: true, itineraries: [] }
+    }
+
+    // Process and score itineraries based on relevance
+    let itineraries: SuggestedItinerary[] = data
+      .filter((item: any) => item.activities && item.activities.length > 0)
+      .map((item: any) => {
+        let relevanceScore = 0
+
+        // Score based on location match
+        if (currentLocation && item.location) {
+          if (locationMatchesSearch(currentLocation, item.location)) {
+            relevanceScore += 50 // Strong location match
+          } else {
+            // Check for same state/region
+            const currentState = extractState(currentLocation)
+            const itemState = extractState(item.location)
+            if (currentState && itemState && currentState.toLowerCase() === itemState.toLowerCase()) {
+              relevanceScore += 25 // Same state
+            }
+          }
+        }
+
+        // Score based on event type (single day vs multi-day trip)
+        if (currentType) {
+          const startDate = new Date(item.start_date)
+          const endDate = new Date(item.end_date)
+          const isTrip = startDate.toDateString() !== endDate.toDateString()
+          const itemType = isTrip ? "trip" : "event"
+
+          if (currentType === itemType) {
+            relevanceScore += 20 // Same type
+          }
+        }
+
+        // Score based on popularity (likes)
+        const likeCount = item.itinerary_metrics?.[0]?.like_count || 0
+        relevanceScore += Math.min(likeCount, 30) // Cap at 30 points for popularity
+
+        // Score based on activity count (more activities = more content to copy)
+        relevanceScore += Math.min(item.activities.length * 2, 20) // Cap at 20 points
+
+        return {
+          id: item.id,
+          title: item.title,
+          location: item.location,
+          start_date: item.start_date,
+          end_date: item.end_date,
+          image_url: item.image_url,
+          activities: item.activities,
+          user_name: item.profiles?.name,
+          user_username: item.profiles?.username,
+          user_avatar: item.profiles?.avatar_url,
+          like_count: likeCount,
+          relevance_score: relevanceScore,
+        } as SuggestedItinerary
+      })
+
+    // Sort by relevance score, then by like count
+    itineraries.sort((a, b) => {
+      const scoreA = a.relevance_score || 0
+      const scoreB = b.relevance_score || 0
+      if (scoreB !== scoreA) return scoreB - scoreA
+      return (b.like_count || 0) - (a.like_count || 0)
+    })
+
+    // Return top suggestions
+    return { success: true, itineraries: itineraries.slice(0, limit) }
+  } catch (error: any) {
+    console.error("Error fetching suggested itineraries:", error)
+    return { success: false, error: error.message || "Failed to fetch suggestions" }
+  }
 }

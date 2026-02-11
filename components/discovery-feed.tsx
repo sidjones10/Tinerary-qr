@@ -201,6 +201,13 @@ export function DiscoveryFeed() {
         } else {
           newLiked.delete(itemId)
         }
+
+        // Update the like count in discoveryItems
+        setDiscoveryItems(prev => prev.map(item =>
+          item.id === itemId
+            ? { ...item, likes: result.new_like_count }
+            : item
+        ))
       } else {
         // Fallback: toggle based on previous state
         if (wasLiked) {
@@ -670,7 +677,7 @@ export function DiscoveryFeed() {
                   >
                     <Heart className={`h-5 w-5 ${likedItems.has(item.id) ? "fill-current" : ""}`} />
                   </Button>
-                  <span className="text-xs text-white mt-1 font-bold">{item.likes + (likedItems.has(item.id) ? 1 : 0)}</span>
+                  <span className="text-xs text-white mt-1 font-bold">{item.likes}</span>
                 </div>
                 <div className="flex flex-col items-center">
                   <Button

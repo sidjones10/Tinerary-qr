@@ -156,6 +156,8 @@ DECLARE
   v_user_email TEXT;
   v_marketing_enabled BOOLEAN;
   v_last_email TIMESTAMPTZ;
+  v_most_active_hour INTEGER;
+  v_scheduled_time TIMESTAMPTZ;
 BEGIN
   -- Check if user has marketing emails enabled and hasn't received one recently
   SELECT email, marketing_emails_enabled, last_marketing_email_sent
@@ -168,8 +170,18 @@ BEGIN
     RETURN NULL;
   END IF;
 
-  -- Don't queue if we sent an email in the last 24 hours
-  IF v_last_email IS NOT NULL AND v_last_email > NOW() - INTERVAL '24 hours' THEN
+  -- Don't queue if we sent an email in the last 3 days
+  IF v_last_email IS NOT NULL AND v_last_email > NOW() - INTERVAL '3 days' THEN
+    RETURN NULL;
+  END IF;
+
+  -- Check if there's already a pending email for this user
+  IF EXISTS (
+    SELECT 1 FROM marketing_email_queue
+    WHERE user_id = p_user_id
+      AND status = 'pending'
+    LIMIT 1
+  ) THEN
     RETURN NULL;
   END IF;
 
@@ -183,7 +195,27 @@ BEGIN
     RETURN NULL;
   END IF;
 
-  -- Queue the email for 2 hours from now (give user time to browse first)
+  -- Try to find user's most active hour based on their search history
+  -- Default to 10am if no activity data
+  SELECT COALESCE(
+    (SELECT EXTRACT(HOUR FROM created_at)::INTEGER
+     FROM user_search_history
+     WHERE user_id = p_user_id
+     GROUP BY EXTRACT(HOUR FROM created_at)
+     ORDER BY COUNT(*) DESC
+     LIMIT 1),
+    10  -- Default to 10am
+  ) INTO v_most_active_hour;
+
+  -- Schedule email for 3 days from now at user's most active hour
+  v_scheduled_time := DATE_TRUNC('day', NOW() + INTERVAL '3 days') + (v_most_active_hour || ' hours')::INTERVAL;
+
+  -- If that time has passed today, schedule for the next occurrence
+  IF v_scheduled_time < NOW() THEN
+    v_scheduled_time := v_scheduled_time + INTERVAL '1 day';
+  END IF;
+
+  -- Queue the email
   INSERT INTO marketing_email_queue (
     user_id,
     email_type,
@@ -195,9 +227,10 @@ BEGIN
     jsonb_build_object(
       'location', p_location,
       'search_query', p_search_query,
-      'user_email', v_user_email
+      'user_email', v_user_email,
+      'scheduled_hour', v_most_active_hour
     ),
-    NOW() + INTERVAL '2 hours'
+    v_scheduled_time
   )
   RETURNING id INTO v_email_id;
 

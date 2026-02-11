@@ -17,6 +17,14 @@ import confetti from "canvas-confetti"
 import { ThemeIcon, getThemeColor } from "@/components/theme-selector"
 import { getFontFamily } from "@/components/font-selector"
 
+interface MetricsData {
+  view_count: number
+  save_count: number
+  like_count: number
+  comment_count: number
+  trending_score?: number
+}
+
 interface DiscoveryItem {
   id: string
   title: string
@@ -32,11 +40,7 @@ interface DiscoveryItem {
     avatar_url: string | null
     username: string | null
   }
-  metrics?: {
-    view_count: number
-    save_count: number
-    trending_score: number
-  }
+  metrics?: MetricsData | MetricsData[]
   categories?: {
     category: string
   }[]
@@ -166,7 +170,12 @@ export function DiscoveryFeed() {
 
   // Handle like action using toggle_like RPC function
   const handleLike = async (itemId: string) => {
+    console.log("[Like Debug] handleLike called with itemId:", itemId)
+    console.log("[Like Debug] Current user:", user?.id)
+    console.log("[Like Debug] Current likedItems:", Array.from(likedItems))
+
     if (!user?.id) {
+      console.log("[Like Debug] No user - showing sign in toast")
       toast({
         title: "Please sign in",
         description: "You need to be signed in to like itineraries",
@@ -179,37 +188,89 @@ export function DiscoveryFeed() {
       const supabase = createClient()
       const newLiked = new Set(likedItems)
       const wasLiked = likedItems.has(itemId)
+      console.log("[Like Debug] wasLiked:", wasLiked)
 
       // Use toggle_like RPC function which handles RLS properly
+      console.log("[Like Debug] Calling toggle_like RPC...")
       const { data, error } = await supabase.rpc('toggle_like', {
         user_uuid: user.id,
         itinerary_uuid: itemId
       })
 
+      console.log("[Like Debug] RPC response - data:", data, "error:", error)
+
       if (error) {
-        console.error("Error toggling like:", error)
+        console.error("[Like Debug] Error from RPC:", error)
+        // Check if it's a "function does not exist" error
+        if (error.message?.includes('function') || error.code === '42883') {
+          toast({
+            title: "Database Setup Required",
+            description: "Please run the fix-likes-complete.sql script in Supabase",
+            variant: "destructive",
+          })
+        }
         throw error
       }
 
       // Update local state based on result
-      if (data && data.length > 0) {
+      console.log("[Like Debug] Processing result - data type:", typeof data, "data:", JSON.stringify(data))
+
+      if (data && Array.isArray(data) && data.length > 0) {
         const result = data[0]
+        console.log("[Like Debug] Result from RPC:", result)
+
         if (result.is_liked) {
+          console.log("[Like Debug] Adding to liked items")
           newLiked.add(itemId)
           // Record interaction for analytics
+          await recordInteraction(user.id, itemId, "like")
+        } else {
+          console.log("[Like Debug] Removing from liked items")
+          newLiked.delete(itemId)
+        }
+
+        // Update the like count in discoveryItems
+        // Note: raw data uses metrics array with like_count, not a direct likes property
+        console.log("[Like Debug] Updating like count to:", result.new_like_count)
+        setDiscoveryItems(prev => prev.map(item => {
+          if (item.id === itemId) {
+            // Update the metrics to reflect new like count
+            const currentMetrics = Array.isArray(item.metrics) && item.metrics.length > 0
+              ? item.metrics[0]
+              : { like_count: 0, comment_count: 0, save_count: 0, view_count: 0 }
+            const updatedMetrics = { ...currentMetrics, like_count: result.new_like_count }
+            return {
+              ...item,
+              metrics: [updatedMetrics]
+            }
+          }
+          return item
+        }))
+      } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+        // Handle case where data is returned as single object instead of array
+        console.log("[Like Debug] Data is single object:", data)
+        const result = data as { is_liked: boolean; new_like_count: number }
+
+        if (result.is_liked) {
+          newLiked.add(itemId)
           await recordInteraction(user.id, itemId, "like")
         } else {
           newLiked.delete(itemId)
         }
 
-        // Update the like count in discoveryItems
-        setDiscoveryItems(prev => prev.map(item =>
-          item.id === itemId
-            ? { ...item, likes: result.new_like_count }
-            : item
-        ))
+        setDiscoveryItems(prev => prev.map(item => {
+          if (item.id === itemId) {
+            const currentMetrics = Array.isArray(item.metrics) && item.metrics.length > 0
+              ? item.metrics[0]
+              : { like_count: 0, comment_count: 0, save_count: 0, view_count: 0 }
+            const updatedMetrics = { ...currentMetrics, like_count: result.new_like_count }
+            return { ...item, metrics: [updatedMetrics] }
+          }
+          return item
+        }))
       } else {
         // Fallback: toggle based on previous state
+        console.log("[Like Debug] Using fallback toggle - data was:", data)
         if (wasLiked) {
           newLiked.delete(itemId)
         } else {
@@ -217,12 +278,13 @@ export function DiscoveryFeed() {
         }
       }
 
+      console.log("[Like Debug] Setting likedItems to:", Array.from(newLiked))
       setLikedItems(newLiked)
     } catch (error) {
-      console.error("Error toggling like:", error)
+      console.error("[Like Debug] Caught error:", error)
       toast({
         title: "Error",
-        description: "Failed to update like status",
+        description: "Failed to update like status. Check console for details.",
         variant: "destructive",
       })
     }
@@ -349,8 +411,12 @@ export function DiscoveryFeed() {
       })}`
     }
 
-    // Metrics comes as an array from Supabase join, so we need to access the first element
-    const metrics = Array.isArray(item.metrics) && item.metrics.length > 0 ? item.metrics[0] : null
+    // Metrics can come as an array from Supabase join, or as object after local state updates
+    const metrics = Array.isArray(item.metrics) && item.metrics.length > 0
+      ? item.metrics[0]
+      : (item.metrics && typeof item.metrics === 'object' && !Array.isArray(item.metrics))
+        ? item.metrics
+        : null
 
     // Generate a gradient background if no image is provided
     const getDefaultBackground = (id: string, title: string) => {
@@ -668,7 +734,12 @@ export function DiscoveryFeed() {
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => handleLike(item.id)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      e.preventDefault()
+                      console.log("[Like Debug] Like button clicked for item:", item.id)
+                      handleLike(item.id)
+                    }}
                     className={`h-12 w-12 rounded-full backdrop-blur-sm border-white/20 transition-all ${
                       likedItems.has(item.id)
                         ? "bg-gradient-to-br from-red-500 to-pink-500 text-white shadow-lg scale-110"

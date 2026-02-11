@@ -222,6 +222,7 @@ const getEventById = async (id: string) => {
       expenses_public: itineraryData.expenses_public,
       theme: itineraryData.theme,
       font: itineraryData.font,
+      cover_update_prompted: itineraryData.cover_update_prompted,
       host_name: owner?.name || owner?.username || owner?.email?.split('@')[0] || "Anonymous",
       host_username: owner?.username ? `@${owner.username}` : null,
       host_avatar: owner?.avatar_url,
@@ -435,6 +436,7 @@ interface EventData {
   expenses_public?: boolean
   theme?: string
   font?: string
+  cover_update_prompted?: boolean
   [key: string]: unknown
 }
 

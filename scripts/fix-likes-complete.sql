@@ -5,6 +5,41 @@
 -- ============================================================================
 
 -- ============================================================================
+-- STEP 0: Clean up ALL duplicate like records
+-- ============================================================================
+-- Keep only the newest like per user/itinerary, delete all others
+DELETE FROM saved_itineraries a
+USING saved_itineraries b
+WHERE a.user_id = b.user_id
+  AND a.itinerary_id = b.itinerary_id
+  AND a.type = 'like'
+  AND b.type = 'like'
+  AND a.ctid < b.ctid;
+
+-- Also clean up any records where type is NULL that might be stale likes
+-- (set them to 'save' if they don't already have a save record)
+UPDATE saved_itineraries SET type = 'save' WHERE type IS NULL;
+
+-- Delete any remaining duplicates after type normalization
+DELETE FROM saved_itineraries a
+USING saved_itineraries b
+WHERE a.user_id = b.user_id
+  AND a.itinerary_id = b.itinerary_id
+  AND a.type = b.type
+  AND a.ctid < b.ctid;
+
+-- Report cleanup results
+DO $$
+DECLARE
+  like_count INTEGER;
+  save_count INTEGER;
+BEGIN
+  SELECT COUNT(*) INTO like_count FROM saved_itineraries WHERE type = 'like';
+  SELECT COUNT(*) INTO save_count FROM saved_itineraries WHERE type = 'save';
+  RAISE NOTICE 'After cleanup: % likes, % saves (no duplicates)', like_count, save_count;
+END $$;
+
+-- ============================================================================
 -- STEP 1: Ensure saved_itineraries table has proper structure
 -- ============================================================================
 -- Add type column if missing
@@ -83,7 +118,7 @@ DROP FUNCTION IF EXISTS toggle_like(UUID, UUID);
 CREATE OR REPLACE FUNCTION toggle_like(user_uuid UUID, itinerary_uuid UUID)
 RETURNS TABLE(is_liked BOOLEAN, new_like_count INTEGER) AS $$
 DECLARE
-  existing_like_id UUID;
+  existing_count INTEGER;
   current_like_count INTEGER;
   itinerary_exists BOOLEAN;
 BEGIN
@@ -101,25 +136,27 @@ BEGIN
   VALUES (itinerary_uuid, 0)
   ON CONFLICT (itinerary_id) DO NOTHING;
 
-  -- Check if like already exists
-  SELECT id INTO existing_like_id
+  -- Count ALL existing likes (handles duplicates)
+  SELECT COUNT(*) INTO existing_count
   FROM saved_itineraries
   WHERE user_id = user_uuid
     AND itinerary_id = itinerary_uuid
     AND type = 'like';
 
-  IF existing_like_id IS NOT NULL THEN
-    -- Unlike: Delete the existing like
-    DELETE FROM saved_itineraries WHERE id = existing_like_id;
+  IF existing_count > 0 THEN
+    -- Unlike: Delete ALL matching likes (clears duplicates in one shot)
+    DELETE FROM saved_itineraries
+    WHERE user_id = user_uuid
+      AND itinerary_id = itinerary_uuid
+      AND type = 'like';
 
-    -- Decrement count
+    -- Sync like_count from actual data instead of decrementing
+    SELECT COUNT(*) INTO current_like_count
+    FROM saved_itineraries
+    WHERE itinerary_id = itinerary_uuid AND type = 'like';
+
     UPDATE itinerary_metrics
-    SET like_count = GREATEST(0, like_count - 1), updated_at = NOW()
-    WHERE itinerary_id = itinerary_uuid;
-
-    -- Get updated count
-    SELECT COALESCE(like_count, 0) INTO current_like_count
-    FROM itinerary_metrics
+    SET like_count = current_like_count, updated_at = NOW()
     WHERE itinerary_id = itinerary_uuid;
 
     RETURN QUERY SELECT FALSE, current_like_count;
@@ -129,14 +166,13 @@ BEGIN
     VALUES (user_uuid, itinerary_uuid, 'like', NOW())
     ON CONFLICT (user_id, itinerary_id, type) DO NOTHING;
 
-    -- Increment count
-    UPDATE itinerary_metrics
-    SET like_count = like_count + 1, updated_at = NOW()
-    WHERE itinerary_id = itinerary_uuid;
+    -- Sync like_count from actual data instead of incrementing
+    SELECT COUNT(*) INTO current_like_count
+    FROM saved_itineraries
+    WHERE itinerary_id = itinerary_uuid AND type = 'like';
 
-    -- Get updated count
-    SELECT COALESCE(like_count, 0) INTO current_like_count
-    FROM itinerary_metrics
+    UPDATE itinerary_metrics
+    SET like_count = current_like_count, updated_at = NOW()
     WHERE itinerary_id = itinerary_uuid;
 
     RETURN QUERY SELECT TRUE, current_like_count;
@@ -144,9 +180,9 @@ BEGIN
 EXCEPTION
   WHEN unique_violation THEN
     -- Race condition - return current state
-    SELECT COALESCE(like_count, 0) INTO current_like_count
-    FROM itinerary_metrics
-    WHERE itinerary_id = itinerary_uuid;
+    SELECT COUNT(*) INTO current_like_count
+    FROM saved_itineraries
+    WHERE itinerary_id = itinerary_uuid AND type = 'like';
     RETURN QUERY SELECT TRUE, COALESCE(current_like_count, 0);
   WHEN OTHERS THEN
     RAISE NOTICE 'Error in toggle_like: %', SQLERRM;

@@ -212,99 +212,26 @@ export function DiscoveryFeed() {
         throw error
       }
 
-      // Update local state based on result
-      console.log("[Like Debug] Processing result - data type:", typeof data, "data:", JSON.stringify(data))
+      // Parse the result (handle both array and single object responses)
+      const result = Array.isArray(data) && data.length > 0
+        ? data[0]
+        : (data && typeof data === 'object' && !Array.isArray(data))
+          ? (data as { is_liked: boolean; new_like_count: number })
+          : null
 
-      if (data && Array.isArray(data) && data.length > 0) {
-        const result = data[0]
-        console.log("[Like Debug] Result from RPC:", result)
+      console.log("[Like Debug] Parsed result:", result)
 
-        // Check for state mismatch: user wanted to like but we ended up unliking a stale record
-        // In this case, call toggle again to actually add the like
-        if (!wasLiked && !result.is_liked) {
-          console.log("[Like Debug] State mismatch detected - stale like removed, calling toggle again to like")
-          // Recursively call toggle to add the actual like
-          const { data: retryData, error: retryError } = await supabase.rpc('toggle_like', {
-            user_uuid: user.id,
-            itinerary_uuid: itemId
-          })
-
-          if (!retryError && retryData && retryData.length > 0) {
-            const retryResult = retryData[0]
-            console.log("[Like Debug] Retry result:", retryResult)
-            if (retryResult.is_liked) {
-              newLiked.add(itemId)
-              await recordInteraction(user.id, itemId, "like")
-            }
-            // Update count from retry
-            setDiscoveryItems(prev => prev.map(item => {
-              if (item.id === itemId) {
-                const currentMetrics = Array.isArray(item.metrics) && item.metrics.length > 0
-                  ? item.metrics[0]
-                  : { like_count: 0, comment_count: 0, save_count: 0, view_count: 0 }
-                const updatedMetrics = { ...currentMetrics, like_count: retryResult.new_like_count }
-                return { ...item, metrics: [updatedMetrics] }
-              }
-              return item
-            }))
-          }
-        } else if (result.is_liked) {
-          console.log("[Like Debug] Adding to liked items")
-          newLiked.add(itemId)
-          // Record interaction for analytics
-          await recordInteraction(user.id, itemId, "like")
-          // Update the like count in discoveryItems
-          setDiscoveryItems(prev => prev.map(item => {
-            if (item.id === itemId) {
-              const currentMetrics = Array.isArray(item.metrics) && item.metrics.length > 0
-                ? item.metrics[0]
-                : { like_count: 0, comment_count: 0, save_count: 0, view_count: 0 }
-              const updatedMetrics = { ...currentMetrics, like_count: result.new_like_count }
-              return { ...item, metrics: [updatedMetrics] }
-            }
-            return item
-          }))
-        } else {
-          console.log("[Like Debug] Removing from liked items")
-          newLiked.delete(itemId)
-          // Update the like count in discoveryItems
-          setDiscoveryItems(prev => prev.map(item => {
-            if (item.id === itemId) {
-              const currentMetrics = Array.isArray(item.metrics) && item.metrics.length > 0
-                ? item.metrics[0]
-                : { like_count: 0, comment_count: 0, save_count: 0, view_count: 0 }
-              const updatedMetrics = { ...currentMetrics, like_count: result.new_like_count }
-              return { ...item, metrics: [updatedMetrics] }
-            }
-            return item
-          }))
-        }
-      } else if (data && typeof data === 'object' && !Array.isArray(data)) {
-        // Handle case where data is returned as single object instead of array
-        console.log("[Like Debug] Data is single object:", data)
-        const result = data as { is_liked: boolean; new_like_count: number }
-
-        // Check for state mismatch
-        if (!wasLiked && !result.is_liked) {
-          console.log("[Like Debug] State mismatch (single obj) - calling toggle again")
-          const { data: retryData } = await supabase.rpc('toggle_like', {
-            user_uuid: user.id,
-            itinerary_uuid: itemId
-          })
-          if (retryData) {
-            const retryResult = Array.isArray(retryData) ? retryData[0] : retryData
-            if (retryResult?.is_liked) {
-              newLiked.add(itemId)
-              await recordInteraction(user.id, itemId, "like")
-            }
-          }
-        } else if (result.is_liked) {
+      if (result) {
+        if (result.is_liked) {
+          console.log("[Like Debug] Liked! Adding to liked items")
           newLiked.add(itemId)
           await recordInteraction(user.id, itemId, "like")
         } else {
+          console.log("[Like Debug] Unliked! Removing from liked items")
           newLiked.delete(itemId)
         }
 
+        // Update the like count in discoveryItems from server response
         setDiscoveryItems(prev => prev.map(item => {
           if (item.id === itemId) {
             const currentMetrics = Array.isArray(item.metrics) && item.metrics.length > 0
@@ -317,7 +244,7 @@ export function DiscoveryFeed() {
         }))
       } else {
         // Fallback: toggle based on previous state
-        console.log("[Like Debug] Using fallback toggle - data was:", data)
+        console.log("[Like Debug] No result from RPC, using fallback toggle")
         if (wasLiked) {
           newLiked.delete(itemId)
         } else {

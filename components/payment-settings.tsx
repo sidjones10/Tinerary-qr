@@ -2,12 +2,16 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useState } from "react"
 import { useToast } from "@/components/ui/use-toast"
-import { Edit, Plus, Trash2 } from "lucide-react"
+import { Edit, Plus, Trash2, Shield } from "lucide-react"
+import { useConsent } from "@/providers/consent-provider"
 
 export function PaymentSettings() {
   const { toast } = useToast()
+  const { accountType, canUsePayments } = useConsent()
+  const isMinor = accountType === "minor"
 
   const [paymentMethods, setPaymentMethods] = useState([
     {
@@ -67,6 +71,29 @@ export function PaymentSettings() {
       title: "Edit address",
       description: "This feature is coming soon.",
     })
+  }
+
+  // If user is a minor without parental consent, show restricted view
+  if (isMinor && !canUsePayments) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Payment Methods</CardTitle>
+            <CardDescription>Manage your payment methods and billing information</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Alert className="bg-amber-50 border-amber-200">
+              <Shield className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800">
+                <strong>Minor Account Restriction:</strong> As a user under 18, you need parental consent to access payment features.
+                Please ask your parent or guardian to update your consent settings in your profile.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (

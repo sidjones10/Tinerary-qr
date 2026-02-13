@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Heart, Share2 } from "lucide-react"
+import { Heart, Share2, Shield } from "lucide-react"
 import { processBooking } from "@/app/actions/promotion-actions"
 
 import { Button } from "@/components/ui/button"
@@ -9,8 +9,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/components/ui/use-toast"
 import { DatePicker } from "@/components/date-picker"
+import { useMinorRestriction, MinorRestrictionDialog } from "@/components/minor-restriction-dialog"
 
 interface PromotionBookingPanelProps {
   promotion: any
@@ -27,8 +29,13 @@ export function PromotionBookingPanel({ promotion, userId }: PromotionBookingPan
   const [email, setEmail] = useState("")
   const [isBooking, setIsBooking] = useState(false)
   const { toast } = useToast()
+  const { isMinor, canUsePayments, checkPaymentAccess, showDialog, restrictionType, closeDialog } = useMinorRestriction()
 
   const handleBookNow = async () => {
+    // Check for minor restrictions before proceeding with booking
+    if (!checkPaymentAccess()) {
+      return
+    }
     if (!selectedDate) {
       toast({
         title: "Date required",
@@ -206,7 +213,24 @@ export function PromotionBookingPanel({ promotion, userId }: PromotionBookingPan
           <p className="mb-1">No payment required to book</p>
           <p>Free cancellation up to 24 hours before the experience</p>
         </div>
+
+        {/* Minor restriction notice */}
+        {isMinor && !canUsePayments && (
+          <Alert className="mt-4 bg-amber-50 border-amber-200">
+            <Shield className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-800 text-xs">
+              Minor accounts require parental consent for bookings.
+            </AlertDescription>
+          </Alert>
+        )}
       </CardContent>
+
+      {/* Minor restriction dialog */}
+      <MinorRestrictionDialog
+        isOpen={showDialog}
+        onClose={closeDialog}
+        restrictionType={restrictionType}
+      />
     </Card>
   )
 }

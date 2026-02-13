@@ -8,8 +8,7 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient()
 
     // Get public itineraries with good engagement (mid-tier performers)
-    // We want itineraries that have some likes but aren't the absolute top
-    // This gives guests a good representation of the platform
+    // Join with itinerary_metrics to get like_count and view_count
     const { data: itineraries, error } = await supabase
       .from("itineraries")
       .select(`
@@ -22,8 +21,6 @@ export async function GET(request: NextRequest) {
         image_url,
         theme,
         font,
-        like_count,
-        view_count,
         user_id,
         created_at,
         profiles:user_id (
@@ -38,21 +35,40 @@ export async function GET(request: NextRequest) {
           location,
           start_time,
           description
+        ),
+        itinerary_metrics (
+          like_count,
+          view_count,
+          comment_count,
+          save_count
         )
       `)
       .eq("is_public", true)
-      .gte("like_count", 1) // Has at least 1 like
-      .order("like_count", { ascending: false })
-      .limit(20) // Get more than needed to pick mid-tier
+      .order("created_at", { ascending: false })
+      .limit(30) // Get more to filter by engagement
 
     if (error) {
       console.error("Error fetching featured itineraries:", error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    // Sort by like_count from metrics and filter for engaged content
+    let sortedItineraries = (itineraries || [])
+      .map((itinerary: any) => {
+        const metrics = Array.isArray(itinerary.itinerary_metrics)
+          ? itinerary.itinerary_metrics[0]
+          : itinerary.itinerary_metrics
+        return {
+          ...itinerary,
+          like_count: metrics?.like_count || 0,
+          view_count: metrics?.view_count || 0,
+        }
+      })
+      .filter((itinerary: any) => itinerary.like_count >= 1)
+      .sort((a: any, b: any) => b.like_count - a.like_count)
+
     // Select mid-tier performers (skip top 5, take next 5-10)
-    // If we don't have enough, just take what we have
-    let featuredItineraries = itineraries || []
+    let featuredItineraries = sortedItineraries
 
     if (featuredItineraries.length > 10) {
       // Skip top 5 (too popular), take next 5
@@ -68,7 +84,7 @@ export async function GET(request: NextRequest) {
 
     // If we still don't have 5, supplement with recent public itineraries
     if (featuredItineraries.length < 5) {
-      const existingIds = featuredItineraries.map(i => i.id)
+      const existingIds = featuredItineraries.map((i: any) => i.id)
 
       const { data: recentItineraries, error: recentError } = await supabase
         .from("itineraries")
@@ -82,8 +98,6 @@ export async function GET(request: NextRequest) {
           image_url,
           theme,
           font,
-          like_count,
-          view_count,
           user_id,
           created_at,
           profiles:user_id (
@@ -98,6 +112,10 @@ export async function GET(request: NextRequest) {
             location,
             start_time,
             description
+          ),
+          itinerary_metrics (
+            like_count,
+            view_count
           )
         `)
         .eq("is_public", true)
@@ -106,7 +124,17 @@ export async function GET(request: NextRequest) {
         .limit(5 - featuredItineraries.length)
 
       if (!recentError && recentItineraries) {
-        featuredItineraries = [...featuredItineraries, ...recentItineraries]
+        const formattedRecent = recentItineraries.map((itinerary: any) => {
+          const metrics = Array.isArray(itinerary.itinerary_metrics)
+            ? itinerary.itinerary_metrics[0]
+            : itinerary.itinerary_metrics
+          return {
+            ...itinerary,
+            like_count: metrics?.like_count || 0,
+            view_count: metrics?.view_count || 0,
+          }
+        })
+        featuredItineraries = [...featuredItineraries, ...formattedRecent]
       }
     }
 

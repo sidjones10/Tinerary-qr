@@ -4,7 +4,7 @@
 -- Create user_behavior table if it doesn't exist
 CREATE TABLE IF NOT EXISTS user_behavior (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL UNIQUE,
   viewed_itineraries UUID[] DEFAULT '{}',
   saved_itineraries UUID[] DEFAULT '{}',
   liked_itineraries UUID[] DEFAULT '{}',
@@ -12,9 +12,25 @@ CREATE TABLE IF NOT EXISTS user_behavior (
   preferred_categories TEXT[] DEFAULT '{}',
   last_active_at TIMESTAMPTZ DEFAULT NOW(),
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(user_id)
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Add foreign key to profiles if not exists (profiles is more reliable than auth.users)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'user_behavior_user_id_fkey'
+  ) THEN
+    -- Try to add foreign key to profiles table
+    BEGIN
+      ALTER TABLE user_behavior
+      ADD CONSTRAINT user_behavior_user_id_fkey
+      FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
+    EXCEPTION WHEN OTHERS THEN
+      RAISE NOTICE 'Could not add foreign key constraint: %', SQLERRM;
+    END;
+  END IF;
+END $$;
 
 -- Create index for faster lookups
 CREATE INDEX IF NOT EXISTS idx_user_behavior_user_id ON user_behavior(user_id);
@@ -56,10 +72,10 @@ CREATE TRIGGER on_profile_created_behavior
   FOR EACH ROW
   EXECUTE FUNCTION create_user_behavior_on_signup();
 
--- Backfill for existing users
+-- Backfill for existing users (use profiles table, not auth.users)
 INSERT INTO user_behavior (user_id)
-SELECT id FROM auth.users
-WHERE id NOT IN (SELECT user_id FROM user_behavior)
+SELECT id FROM profiles
+WHERE id NOT IN (SELECT user_id FROM user_behavior WHERE user_id IS NOT NULL)
 ON CONFLICT (user_id) DO NOTHING;
 
 -- Grant necessary permissions

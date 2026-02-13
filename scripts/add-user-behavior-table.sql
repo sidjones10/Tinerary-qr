@@ -1,6 +1,9 @@
 -- Add user_behavior table for discovery algorithm analytics
 -- Run this in Supabase SQL Editor
 
+-- Drop existing constraint if it references auth.users
+ALTER TABLE IF EXISTS user_behavior DROP CONSTRAINT IF EXISTS user_behavior_user_id_fkey;
+
 -- Create user_behavior table if it doesn't exist
 CREATE TABLE IF NOT EXISTS user_behavior (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -15,21 +18,20 @@ CREATE TABLE IF NOT EXISTS user_behavior (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Add foreign key to profiles if not exists (profiles is more reliable than auth.users)
+-- Add foreign key to profiles (profiles is more reliable than auth.users)
 DO $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'user_behavior_user_id_fkey'
-  ) THEN
-    -- Try to add foreign key to profiles table
-    BEGIN
-      ALTER TABLE user_behavior
-      ADD CONSTRAINT user_behavior_user_id_fkey
-      FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
-    EXCEPTION WHEN OTHERS THEN
-      RAISE NOTICE 'Could not add foreign key constraint: %', SQLERRM;
-    END;
-  END IF;
+  -- Try to add foreign key to profiles table
+  BEGIN
+    ALTER TABLE user_behavior
+    ADD CONSTRAINT user_behavior_user_id_fkey
+    FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
+    RAISE NOTICE 'Added foreign key constraint to profiles';
+  EXCEPTION WHEN duplicate_object THEN
+    RAISE NOTICE 'Foreign key constraint already exists';
+  WHEN OTHERS THEN
+    RAISE NOTICE 'Could not add foreign key constraint: %', SQLERRM;
+  END;
 END $$;
 
 -- Create index for faster lookups

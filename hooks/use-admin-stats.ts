@@ -267,39 +267,43 @@ function formatRelativeTime(dateString: string): string {
 }
 
 // Hook to fetch all users for the users page
-export function useAdminUsers(page = 1, limit = 20, search = "") {
+export function useAdminUsers(page = 1, limit = 20, search = "", refreshKey = 0) {
   const [users, setUsers] = useState<any[]>([])
   const [total, setTotal] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    async function fetchUsers() {
-      setIsLoading(true)
-      const supabase = createClient()
+  const refetch = () => {
+    fetchUsers()
+  }
 
-      let query = supabase
-        .from("profiles")
-        .select("*", { count: "exact" })
-        .order("created_at", { ascending: false })
-        .range((page - 1) * limit, page * limit - 1)
+  async function fetchUsers() {
+    setIsLoading(true)
+    const supabase = createClient()
 
-      if (search) {
-        query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,username.ilike.%${search}%`)
-      }
+    let query = supabase
+      .from("profiles")
+      .select("*", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range((page - 1) * limit, page * limit - 1)
 
-      const { data, count, error } = await query
-
-      if (!error) {
-        setUsers(data || [])
-        setTotal(count || 0)
-      }
-      setIsLoading(false)
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,username.ilike.%${search}%`)
     }
 
-    fetchUsers()
-  }, [page, limit, search])
+    const { data, count, error } = await query
 
-  return { users, total, isLoading }
+    if (!error) {
+      setUsers(data || [])
+      setTotal(count || 0)
+    }
+    setIsLoading(false)
+  }
+
+  useEffect(() => {
+    fetchUsers()
+  }, [page, limit, search, refreshKey])
+
+  return { users, total, isLoading, refetch }
 }
 
 // Hook to fetch all itineraries for the itineraries page

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { getTrendingItineraries, recordInteraction } from "@/lib/feed-service"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/providers/auth-provider"
+import { notifyNewLike } from "@/lib/notification-service"
 import { useToast } from "@/components/ui/use-toast"
 import { ShareDialog } from "@/components/share-dialog"
 import { InlineComments } from "@/components/inline-comments"
@@ -226,6 +227,26 @@ export function DiscoveryFeed() {
           console.log("[Like Debug] Liked! Adding to liked items")
           newLiked.add(itemId)
           await recordInteraction(user.id, itemId, "like")
+
+          // Send notification to itinerary owner (async, don't block)
+          const likedItem = discoveryItems.find(item => item.id === itemId)
+          if (likedItem && likedItem.user_id !== user.id) {
+            // Get current user's profile info
+            const { data: userProfile } = await supabase
+              .from("profiles")
+              .select("name, avatar_url")
+              .eq("id", user.id)
+              .single()
+
+            notifyNewLike(
+              likedItem.user_id,
+              userProfile?.name || "Someone",
+              userProfile?.avatar_url || null,
+              itemId,
+              likedItem.title,
+              user.id
+            ).catch(err => console.error("Failed to send like notification:", err))
+          }
         } else {
           console.log("[Like Debug] Unliked! Removing from liked items")
           newLiked.delete(itemId)

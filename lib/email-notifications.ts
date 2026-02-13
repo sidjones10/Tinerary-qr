@@ -388,3 +388,225 @@ export async function sendPasswordResetEmail(email: string, resetToken: string) 
     return { success: false, error: error.message }
   }
 }
+
+/**
+ * Send countdown reminder email
+ */
+export async function sendCountdownReminderEmail(params: {
+  email: string
+  name?: string
+  itineraryTitle: string
+  itineraryId: string
+  timeRemaining: string
+  eventDate: string
+  location?: string
+  eventType?: "event" | "trip"
+}) {
+  try {
+    const { email, name, itineraryTitle, itineraryId, timeRemaining, eventDate, location, eventType = "event" } = params
+    const eventUrl = `${APP_URL}/event/${itineraryId}`
+    const emoji = eventType === "trip" ? "✈️" : "🎉"
+
+    const resend = getResendClient()
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: `${emoji} ${timeRemaining} until ${itineraryTitle}!`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #F97316 0%, #EC4899 100%); padding: 40px 20px; text-align: center; border-radius: 12px; color: white; }
+            .content { padding: 30px 20px; background: #f9fafb; border-radius: 12px; margin-top: 20px; }
+            .countdown-box { background: white; padding: 25px; border-radius: 12px; text-align: center; margin: 20px 0; border: 2px solid #F97316; }
+            .countdown-number { font-size: 48px; font-weight: bold; color: #F97316; }
+            .event-details { background: white; padding: 15px; border-radius: 8px; margin: 15px 0; }
+            .button { display: inline-block; background: #F97316; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; margin-top: 20px; font-weight: 600; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>${emoji} Get Ready!</h1>
+            </div>
+            <div class="content">
+              <p>Hi ${name || "there"}!</p>
+
+              <div class="countdown-box">
+                <div class="countdown-number">${timeRemaining}</div>
+                <p style="margin: 0; color: #6b7280;">until your ${eventType} begins!</p>
+              </div>
+
+              <h2 style="margin-bottom: 10px;">${itineraryTitle}</h2>
+
+              <div class="event-details">
+                <p style="margin: 5px 0;"><strong>📅 When:</strong> ${new Date(eventDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                ${location ? `<p style="margin: 5px 0;"><strong>📍 Where:</strong> ${location}</p>` : ''}
+              </div>
+
+              <p>Make sure you're all set and ready to go!</p>
+
+              <center>
+                <a href="${eventUrl}" class="button">View ${eventType === "trip" ? "Trip" : "Event"} Details</a>
+              </center>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    })
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error sending countdown reminder email:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Send event started notification email
+ */
+export async function sendEventStartedEmail(params: {
+  email: string
+  name?: string
+  itineraryTitle: string
+  itineraryId: string
+  location?: string
+  eventType?: "event" | "trip"
+}) {
+  try {
+    const { email, name, itineraryTitle, itineraryId, location, eventType = "event" } = params
+    const eventUrl = `${APP_URL}/event/${itineraryId}`
+    const emoji = eventType === "trip" ? "✈️" : "🎉"
+
+    const resend = getResendClient()
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: `${emoji} ${itineraryTitle} is happening NOW!`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #10B981 0%, #3B82F6 100%); padding: 40px 20px; text-align: center; border-radius: 12px; color: white; }
+            .content { padding: 30px 20px; background: #f9fafb; border-radius: 12px; margin-top: 20px; text-align: center; }
+            .started-badge { display: inline-block; background: #10B981; color: white; padding: 8px 20px; border-radius: 20px; font-weight: 600; margin: 15px 0; }
+            .button { display: inline-block; background: #3B82F6; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; margin-top: 20px; font-weight: 600; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>${emoji} It's Time!</h1>
+            </div>
+            <div class="content">
+              <p>Hi ${name || "there"}!</p>
+
+              <div class="started-badge">🟢 HAPPENING NOW</div>
+
+              <h2>${itineraryTitle}</h2>
+              ${location ? `<p style="color: #6b7280;">📍 ${location}</p>` : ''}
+
+              <p>Your ${eventType} has started! Have an amazing time! 🎊</p>
+
+              <a href="${eventUrl}" class="button">View ${eventType === "trip" ? "Trip" : "Event"}</a>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    })
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error sending event started email:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Send account deletion warning email
+ */
+export async function sendAccountDeletionWarningEmail(params: {
+  email: string
+  name?: string
+  username?: string
+  deletionDate: string
+  daysRemaining: number
+}) {
+  try {
+    const { email, name, username, deletionDate, daysRemaining } = params
+    const reactivateUrl = `${APP_URL}/settings/account`
+
+    const resend = getResendClient()
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: `⚠️ Your Tinerary account will be deleted in ${daysRemaining} days`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: #DC2626; padding: 40px 20px; text-align: center; border-radius: 12px; color: white; }
+            .content { padding: 30px 20px; background: #f9fafb; border-radius: 12px; margin-top: 20px; }
+            .warning-box { background: #FEE2E2; border: 2px solid #DC2626; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; }
+            .countdown { font-size: 36px; font-weight: bold; color: #DC2626; }
+            .button { display: inline-block; background: #10B981; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; margin-top: 20px; font-weight: 600; }
+            .data-list { background: white; padding: 15px; border-radius: 8px; margin: 15px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>⚠️ Account Deletion Warning</h1>
+            </div>
+            <div class="content">
+              <p>Hi ${name || username || "there"},</p>
+
+              <div class="warning-box">
+                <div class="countdown">${daysRemaining} days</div>
+                <p style="margin: 5px 0 0 0;">until your account is permanently deleted</p>
+              </div>
+
+              <p>Your Tinerary account is scheduled for deletion on <strong>${new Date(deletionDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</strong>.</p>
+
+              <div class="data-list">
+                <p style="margin: 0 0 10px 0;"><strong>What will be deleted:</strong></p>
+                <ul style="margin: 0; padding-left: 20px;">
+                  <li>All your itineraries and trips</li>
+                  <li>Photos and media uploads</li>
+                  <li>Comments and interactions</li>
+                  <li>Follower connections</li>
+                  <li>All account data</li>
+                </ul>
+              </div>
+
+              <p><strong>Want to keep your account?</strong> Simply log in to cancel the deletion request.</p>
+
+              <center>
+                <a href="${reactivateUrl}" class="button">Keep My Account</a>
+              </center>
+
+              <p style="color: #6b7280; font-size: 14px; margin-top: 25px;">If you requested this deletion, no action is needed. Your account will be permanently removed on the scheduled date.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    })
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error sending account deletion warning email:", error)
+    return { success: false, error: error.message }
+  }
+}

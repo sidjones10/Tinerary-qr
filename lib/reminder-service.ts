@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/client"
 import { createNotification, NotificationType } from "@/lib/notification-service"
-import { sendCountdownReminderEmail, sendEventStartedEmail } from "@/lib/email-service"
+import { sendCountdownReminderEmail, sendEventStartedEmail } from "@/lib/email-notifications"
 
 // Reminder intervals in milliseconds
 export const REMINDER_INTERVALS = {

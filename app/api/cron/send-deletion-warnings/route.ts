@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/utils/supabase/server"
-import { sendAccountDeletionWarningEmail } from "@/lib/email-service"
+import { sendAccountDeletionWarningEmail } from "@/lib/email-notifications"
 
 /**
  * API Endpoint: Send Account Deletion Warnings

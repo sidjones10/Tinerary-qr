@@ -114,7 +114,7 @@ export function EventCard({ event }: EventCardProps) {
                 </div>
               )}
             </div>
-            <span className="text-sm font-medium text-[#FF9B7D] hover:text-[#FF8A6A]">View Details</span>
+            <span className="text-sm font-medium text-[#D4623E] hover:text-[#C05535]">View Details</span>
           </div>
         </div>
       </div>

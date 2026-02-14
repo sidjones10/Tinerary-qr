@@ -174,6 +174,7 @@ export function TripPhotoGallery() {
               size="icon"
               className="absolute top-2 right-2 h-8 w-8 rounded-full bg-black/50 text-white hover:bg-black/70"
               onClick={closePhotoDialog}
+              aria-label="Close photo"
             >
               <X className="h-4 w-4" />
             </Button>

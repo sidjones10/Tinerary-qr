@@ -172,7 +172,7 @@ export function ShareDialog({ itineraryId, title, description, trigger, userId }
               <Label htmlFor="link">Share Link</Label>
               <div className="flex gap-2">
                 <Input id="link" value={shareUrl} readOnly className="flex-1" />
-                <Button variant="outline" size="icon" onClick={copyToClipboard}>
+                <Button variant="outline" size="icon" onClick={copyToClipboard} aria-label={copied ? "Copied" : "Copy link"}>
                   {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                 </Button>
               </div>

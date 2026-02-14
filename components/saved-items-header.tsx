@@ -36,12 +36,13 @@ export function SavedItemsHeader() {
                   setSearchQuery("")
                   setShowSearch(false)
                 }}
+                aria-label="Close search"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
           ) : (
-            <Button variant="outline" size="icon" onClick={() => setShowSearch(true)}>
+            <Button variant="outline" size="icon" onClick={() => setShowSearch(true)} aria-label="Search saved items">
               <Search className="h-4 w-4" />
             </Button>
           )}

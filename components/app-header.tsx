@@ -152,7 +152,7 @@ export function AppHeader() {
                   Search
                 </Button>
               </form>
-              <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setShowSearch(false)}>
+              <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setShowSearch(false)} aria-label="Close search">
                 <X className="h-5 w-5" />
               </Button>
             </>

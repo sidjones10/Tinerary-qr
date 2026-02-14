@@ -254,10 +254,11 @@ export default function ForYouPage() {
                 size="icon"
                 className="text-gray-500"
                 onClick={() => router.push("/notifications")}
+                aria-label="Notifications"
               >
                 <Bell className="h-5 w-5" />
               </Button>
-              <Button variant="ghost" size="icon" className="text-gray-500" onClick={() => router.push("/search")}>
+              <Button variant="ghost" size="icon" className="text-gray-500" onClick={() => router.push("/search")} aria-label="Search">
                 <Search className="h-5 w-5" />
               </Button>
             </div>

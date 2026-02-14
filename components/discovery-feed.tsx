@@ -285,46 +285,78 @@ export function DiscoveryFeed() {
     }
   }
 
-  // Handle save action
+  // Handle save action using toggle_save RPC function
   const handleSave = async (itemId: string) => {
-    if (!user?.id) return
-
-    const newSaved = new Set(savedItems)
-    const wasSaved = savedItems.has(itemId)
-
-    if (wasSaved) {
-      newSaved.delete(itemId)
-      // Remove save from database
-      try {
-        const supabase = createClient()
-        await supabase
-          .from("saved_itineraries")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("itinerary_id", itemId)
-          .eq("type", "save")
-      } catch (error) {
-        console.warn("Could not remove save from database:", error)
-      }
-    } else {
-      newSaved.add(itemId)
-      // Record interaction and save to database
-      await recordInteraction(user.id, itemId, "save")
-
-      // Save to saved_itineraries table with type = 'save'
-      try {
-        const supabase = createClient()
-        await supabase.from("saved_itineraries").insert({
-          user_id: user.id,
-          itinerary_id: itemId,
-          type: "save",
-          created_at: new Date().toISOString(),
-        })
-      } catch (error) {
-        console.warn("Could not save to database:", error)
-      }
+    if (!user?.id) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to save itineraries",
+        variant: "destructive",
+      })
+      return
     }
-    setSavedItems(newSaved)
+
+    try {
+      const supabase = createClient()
+      const newSaved = new Set(savedItems)
+      const wasSaved = savedItems.has(itemId)
+
+      // Use toggle_save RPC function which handles RLS properly
+      const { data, error } = await supabase.rpc('toggle_save', {
+        user_uuid: user.id,
+        itinerary_uuid: itemId
+      })
+
+      if (error) {
+        console.error("Error toggling save:", error)
+        // Fallback to direct insert/delete
+        if (wasSaved) {
+          await supabase
+            .from("saved_itineraries")
+            .delete()
+            .eq("user_id", user.id)
+            .eq("itinerary_id", itemId)
+            .eq("type", "save")
+          newSaved.delete(itemId)
+        } else {
+          await supabase.from("saved_itineraries").insert({
+            user_id: user.id,
+            itinerary_id: itemId,
+            type: "save",
+          })
+          newSaved.add(itemId)
+          await recordInteraction(user.id, itemId, "save")
+        }
+      } else {
+        // Parse the result
+        const result = Array.isArray(data) && data.length > 0
+          ? data[0]
+          : (data && typeof data === 'object' && !Array.isArray(data))
+            ? (data as { is_saved: boolean; new_save_count: number })
+            : null
+
+        if (result) {
+          if (result.is_saved) {
+            newSaved.add(itemId)
+            await recordInteraction(user.id, itemId, "save")
+          } else {
+            newSaved.delete(itemId)
+          }
+        } else {
+          // Fallback toggle
+          if (wasSaved) {
+            newSaved.delete(itemId)
+          } else {
+            newSaved.add(itemId)
+            await recordInteraction(user.id, itemId, "save")
+          }
+        }
+      }
+
+      setSavedItems(newSaved)
+    } catch (error) {
+      console.error("Error in handleSave:", error)
+    }
   }
 
   // Pull-to-refresh handlers
@@ -729,6 +761,7 @@ export function DiscoveryFeed() {
                   <Button
                     variant="outline"
                     size="icon"
+                    aria-label={likedItems.has(item.id) ? "Unlike" : "Like"}
                     onClick={(e) => {
                       e.stopPropagation()
                       e.preventDefault()
@@ -749,6 +782,7 @@ export function DiscoveryFeed() {
                   <Button
                     variant="outline"
                     size="icon"
+                    aria-label="Comments"
                     onClick={() => setCommentsOpenFor(item.id)}
                     className="h-12 w-12 rounded-full bg-black/30 backdrop-blur-sm border-white/20 text-white hover:bg-black/50 transition-all hover:scale-110"
                   >
@@ -760,6 +794,7 @@ export function DiscoveryFeed() {
                   <Button
                     variant="outline"
                     size="icon"
+                    aria-label={savedItems.has(item.id) ? "Unsave" : "Save"}
                     onClick={() => handleSave(item.id)}
                     className={`h-12 w-12 rounded-full backdrop-blur-sm border-white/20 transition-all ${
                       savedItems.has(item.id)
@@ -781,6 +816,7 @@ export function DiscoveryFeed() {
                       <Button
                         variant="outline"
                         size="icon"
+                        aria-label="Share"
                         className="h-12 w-12 rounded-full bg-black/30 backdrop-blur-sm border-white/20 text-white hover:bg-black/50 transition-all hover:scale-110"
                       >
                         <Share2 className="h-5 w-5" />

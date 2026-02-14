@@ -162,7 +162,7 @@ export default function DiscoverPage() {
       <header className="bg-white shadow-sm py-4 sticky top-0 z-40">
         <div className="container mx-auto px-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" asChild>
+            <Button variant="ghost" size="icon" asChild aria-label="Go back">
               <Link href="/">
                 <ArrowLeft className="h-5 w-5" />
               </Link>

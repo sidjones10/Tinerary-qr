@@ -45,6 +45,7 @@ export function ExpenseSplitter() {
                 size="icon"
                 className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-destructive"
                 onClick={() => removeExpense(expense.id)}
+                aria-label="Remove expense"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>

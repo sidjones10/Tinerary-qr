@@ -103,7 +103,7 @@ export function ProfileDrafts({ drafts, loading, onCreateNew, onRefresh }: Profi
                       </p>
                     </div>
                     <div className="flex space-x-2">
-                      <Button variant="ghost" size="icon" onClick={() => router.push(`/create?draftId=${draft.id}`)}>
+                      <Button variant="ghost" size="icon" onClick={() => router.push(`/create?draftId=${draft.id}`)} aria-label="Edit draft">
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button
@@ -111,6 +111,7 @@ export function ProfileDrafts({ drafts, loading, onCreateNew, onRefresh }: Profi
                         size="icon"
                         onClick={() => handleDeleteDraft(draft.id || "")}
                         disabled={deletingDraftId === draft.id}
+                        aria-label="Delete draft"
                       >
                         {deletingDraftId === draft.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />

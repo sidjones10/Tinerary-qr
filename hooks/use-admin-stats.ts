@@ -270,6 +270,9 @@ function formatRelativeTime(dateString: string): string {
 export function useAdminUsers(page = 1, limit = 20, search = "", refreshKey = 0) {
   const [users, setUsers] = useState<any[]>([])
   const [total, setTotal] = useState(0)
+  const [adminCount, setAdminCount] = useState(0)
+  const [minorCount, setMinorCount] = useState(0)
+  const [suspendedCount, setSuspendedCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
 
   const refetch = () => {
@@ -296,6 +299,27 @@ export function useAdminUsers(page = 1, limit = 20, search = "", refreshKey = 0)
       setUsers(data || [])
       setTotal(count || 0)
     }
+
+    // Fetch total counts for admins, minors, and suspended (across all users, not just current page)
+    const { count: totalAdmins } = await supabase
+      .from("profiles")
+      .select("*", { count: "exact", head: true })
+      .eq("is_admin", true)
+
+    const { count: totalMinors } = await supabase
+      .from("profiles")
+      .select("*", { count: "exact", head: true })
+      .eq("account_type", "minor")
+
+    const { count: totalSuspended } = await supabase
+      .from("profiles")
+      .select("*", { count: "exact", head: true })
+      .eq("is_suspended", true)
+
+    setAdminCount(totalAdmins || 0)
+    setMinorCount(totalMinors || 0)
+    setSuspendedCount(totalSuspended || 0)
+
     setIsLoading(false)
   }
 
@@ -303,7 +327,7 @@ export function useAdminUsers(page = 1, limit = 20, search = "", refreshKey = 0)
     fetchUsers()
   }, [page, limit, search, refreshKey])
 
-  return { users, total, isLoading, refetch }
+  return { users, total, adminCount, minorCount, suspendedCount, isLoading, refetch }
 }
 
 // Hook to fetch all itineraries for the itineraries page

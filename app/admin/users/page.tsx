@@ -74,7 +74,7 @@ export default function AdminUsersPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const limit = 20
-  const { users, total, isLoading, refetch } = useAdminUsers(page, limit, debouncedSearch, refreshKey)
+  const { users, total, adminCount, minorCount, suspendedCount, isLoading, refetch } = useAdminUsers(page, limit, debouncedSearch, refreshKey)
 
   // Debounce search
   useEffect(() => {
@@ -325,21 +325,21 @@ export default function AdminUsersPage() {
             <Shield className="h-3.5 w-3.5" />
             Admins
           </div>
-          <p className="text-xl font-bold text-[#2c2420]">{users.filter(u => u.is_admin).length}</p>
+          <p className="text-xl font-bold text-[#2c2420]">{adminCount}</p>
         </div>
         <div className="bg-white/70 backdrop-blur rounded-xl border border-[#2c2420]/5 p-4">
           <div className="flex items-center gap-2 text-amber-600 text-xs mb-1">
             <AlertTriangle className="h-3.5 w-3.5" />
             Minor Accounts
           </div>
-          <p className="text-xl font-bold text-[#2c2420]">{users.filter(u => u.account_type === "minor").length}</p>
+          <p className="text-xl font-bold text-[#2c2420]">{minorCount}</p>
         </div>
         <div className="bg-white/70 backdrop-blur rounded-xl border border-[#2c2420]/5 p-4">
           <div className="flex items-center gap-2 text-red-600 text-xs mb-1">
             <Ban className="h-3.5 w-3.5" />
             Suspended
           </div>
-          <p className="text-xl font-bold text-[#2c2420]">{users.filter(u => u.is_suspended).length}</p>
+          <p className="text-xl font-bold text-[#2c2420]">{suspendedCount}</p>
         </div>
       </div>
 
@@ -428,7 +428,7 @@ export default function AdminUsersPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
                           <DropdownMenuItem asChild>
-                            <Link href={`/profile/${user.id}`}>
+                            <Link href={`/user/${user.id}`}>
                               <User className="h-4 w-4 mr-2" />
                               View Profile
                             </Link>

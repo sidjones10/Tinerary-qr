@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client"
 import { notifyNewFollower } from "@/lib/notification-service"
+import { sendNewFollowerEmail } from "@/lib/email-notifications"
 
 export interface FollowUser {
   id: string
@@ -54,6 +55,7 @@ export async function followUser(
         .single()
 
       if (followerProfile) {
+        // Send in-app notification
         await notifyNewFollower(
           targetUserId,
           followerProfile.name || "Someone",
@@ -61,6 +63,23 @@ export async function followUser(
           followerProfile.avatar_url,
           userId
         )
+
+        // Send email notification (async, don't block)
+        const { data: targetProfile } = await supabase
+          .from("profiles")
+          .select("email, name, email_notifications")
+          .eq("id", targetUserId)
+          .single()
+
+        if (targetProfile?.email && targetProfile?.email_notifications !== false) {
+          sendNewFollowerEmail(
+            targetProfile.email,
+            targetProfile.name || "there",
+            followerProfile.name || "Someone",
+            followerProfile.username || userId,
+            followerProfile.avatar_url
+          ).catch(err => console.error("Failed to send follower email:", err))
+        }
       }
     } catch (notifyError) {
       // Don't fail the follow if notification fails

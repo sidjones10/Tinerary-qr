@@ -262,18 +262,30 @@ export default function EmailAuthForm() {
         // We'll update it after creation
         setTimeout(async () => {
           try {
+            const now = new Date().toISOString()
+
+            // Update profile with consent data
             await supabase
               .from("profiles")
               .update({
                 date_of_birth: dateOfBirth,
                 account_type: accountType,
-                tos_accepted_at: new Date().toISOString(),
+                tos_accepted_at: now,
                 tos_version: "1.0.0",
-                privacy_policy_accepted_at: new Date().toISOString(),
+                privacy_policy_accepted_at: now,
                 privacy_policy_version: "1.0.0",
                 data_processing_consent: true,
               })
               .eq("id", data.user.id)
+
+            // Record consent in audit log (consent_records table)
+            const consentRecords = [
+              { user_id: data.user.id, consent_type: "tos", consent_version: "1.0.0", consent_given: true },
+              { user_id: data.user.id, consent_type: "privacy_policy", consent_version: "1.0.0", consent_given: true },
+              { user_id: data.user.id, consent_type: "data_processing", consent_version: "1.0.0", consent_given: true },
+            ]
+
+            await supabase.from("consent_records").insert(consentRecords)
           } catch (updateErr) {
             // Columns might not exist yet - that's ok, we'll handle gracefully
             console.log("Profile update note:", updateErr)

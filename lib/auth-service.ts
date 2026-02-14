@@ -184,57 +184,65 @@ export async function ensureProfileExists(userId: string, email: string): Promis
         // Check if profile exists
         const { data: existingProfile } = await supabase.from("profiles").select("id").eq("id", userId).single()
 
-    if (!existingProfile) {
-      // Create profile if it doesn't exist
-      await supabase.from("profiles").insert({
-        id: userId,
-        email: email,
-        name: email.split("@")[0],
-        username: email.split("@")[0],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
+        if (!existingProfile) {
+          // Create profile if it doesn't exist
+          await supabase.from("profiles").insert({
+            id: userId,
+            email: email,
+            name: email.split("@")[0],
+            username: email.split("@")[0],
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
 
-      // Initialize preferences if they don't exist
-      const { data: existingPreferences } = await supabase
-        .from("user_preferences")
-        .select("id")
-        .eq("user_id", userId)
-        .single()
+          // Initialize preferences if they don't exist
+          try {
+            const { data: existingPreferences } = await supabase
+              .from("user_preferences")
+              .select("id")
+              .eq("user_id", userId)
+              .single()
 
-      if (!existingPreferences) {
-        await supabase.from("user_preferences").insert({
-          user_id: userId,
-          preferred_destinations: [],
-          preferred_activities: [],
-          preferred_categories: [],
-          travel_style: "balanced",
-          budget_preference: "moderate",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-      }
+            if (!existingPreferences) {
+              await supabase.from("user_preferences").insert({
+                user_id: userId,
+                preferred_destinations: [],
+                preferred_activities: [],
+                preferred_categories: [],
+                travel_style: "balanced",
+                budget_preference: "moderate",
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              })
+            }
+          } catch {
+            // Table may not exist, ignore
+          }
 
-      // Initialize behavior tracking if it doesn't exist
-      const { data: existingBehavior } = await supabase
-        .from("user_behavior")
-        .select("id")
-        .eq("user_id", userId)
-        .single()
+          // Initialize behavior tracking if it doesn't exist
+          try {
+            const { data: existingBehavior } = await supabase
+              .from("user_behavior")
+              .select("id")
+              .eq("user_id", userId)
+              .single()
 
-      if (!existingBehavior) {
-        await supabase.from("user_behavior").insert({
-          user_id: userId,
-          viewed_itineraries: [],
-          saved_itineraries: [],
-          liked_itineraries: [],
-          search_history: [],
-          last_active_at: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-      }
-    }
+            if (!existingBehavior) {
+              await supabase.from("user_behavior").insert({
+                user_id: userId,
+                viewed_itineraries: [],
+                saved_itineraries: [],
+                liked_itineraries: [],
+                search_history: [],
+                last_active_at: new Date().toISOString(),
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              })
+            }
+          } catch {
+            // Table may not exist, ignore
+          }
+        }
       })(),
       timeoutPromise,
     ])

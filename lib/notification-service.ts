@@ -232,6 +232,33 @@ export async function notifyNewFollower(
 }
 
 /**
+ * Send notification for new like on user's itinerary
+ */
+export async function notifyNewLike(
+  itineraryOwnerId: string,
+  likerName: string,
+  likerAvatar: string | null,
+  itineraryId: string,
+  itineraryTitle: string,
+  likerId: string
+) {
+  // Don't notify if the user is liking their own itinerary
+  if (itineraryOwnerId === likerId) {
+    return { success: true, skipped: true }
+  }
+
+  return createNotification({
+    userId: itineraryOwnerId,
+    type: "like",
+    title: `❤️ ${likerName} liked your itinerary`,
+    message: `"${itineraryTitle}" is getting love!`,
+    linkUrl: `/event/${itineraryId}`,
+    imageUrl: likerAvatar || undefined,
+    metadata: { itineraryId, itineraryTitle, likerId },
+  })
+}
+
+/**
  * View milestone thresholds
  */
 export const VIEW_MILESTONES = [500, 1000, 5000] as const

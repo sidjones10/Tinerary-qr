@@ -63,6 +63,23 @@ export function NotificationBell() {
         return "🎉"
       case "affiliate_conversion":
         return "💰"
+      case "like":
+        return "❤️"
+      case "follower":
+        return "👤"
+      case "new_comment":
+      case "comment_reply":
+        return "💬"
+      case "first_post":
+        return "🎊"
+      case "view_milestone":
+        return "🔥"
+      case "system_message":
+        return "⏰"
+      case "share":
+        return "🔗"
+      case "invitation":
+        return "✉️"
       default:
         return "📢"
     }

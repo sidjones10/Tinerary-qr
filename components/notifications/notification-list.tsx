@@ -90,11 +90,11 @@ export function NotificationList({ userId }: { userId: string }) {
                 </div>
                 <div className="flex space-x-1">
                   {!notification.read && (
-                    <Button variant="ghost" size="icon" onClick={() => handleMarkAsRead(notification.id)}>
+                    <Button variant="ghost" size="icon" onClick={() => handleMarkAsRead(notification.id)} aria-label="Mark as read">
                       <Check className="h-4 w-4" />
                     </Button>
                   )}
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(notification.id)}>
+                  <Button variant="ghost" size="icon" onClick={() => handleDelete(notification.id)} aria-label="Delete notification">
                     <Trash className="h-4 w-4" />
                   </Button>
                 </div>

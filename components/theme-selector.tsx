@@ -69,6 +69,7 @@ export function ThemeSelector({ value, onChange, showLabel = true }: ThemeSelect
                   setOpen(false)
                 }}
                 title={theme.name}
+                aria-label={`Select ${theme.name} theme`}
               >
                 <span className={theme.color}>{theme.icon}</span>
               </Button>

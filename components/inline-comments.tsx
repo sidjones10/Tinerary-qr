@@ -133,7 +133,7 @@ export function InlineComments({ itineraryId, open, onOpenChange, initialComment
               <SheetTitle className="text-lg font-semibold">
                 Comments {comments.length > 0 && `(${comments.length})`}
               </SheetTitle>
-              <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
+              <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} aria-label="Close comments">
                 <X className="h-5 w-5" />
               </Button>
             </div>
@@ -193,6 +193,7 @@ export function InlineComments({ itineraryId, open, onOpenChange, initialComment
                             size="icon"
                             className="h-6 w-6 flex-shrink-0"
                             onClick={() => handleDeleteComment(comment.id)}
+                            aria-label="Delete comment"
                           >
                             <Trash2 className="h-3 w-3 text-gray-400 hover:text-red-500" />
                           </Button>
@@ -230,6 +231,7 @@ export function InlineComments({ itineraryId, open, onOpenChange, initialComment
                   onClick={handlePostComment}
                   disabled={posting || !newComment.trim() || !user}
                   size="icon"
+                  aria-label="Post comment"
                   className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600"
                 >
                   {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}

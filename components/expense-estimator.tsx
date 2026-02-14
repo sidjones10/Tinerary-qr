@@ -191,11 +191,11 @@ export function ExpenseEstimator() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Number of Travelers</label>
               <div className="flex items-center">
-                <Button variant="outline" size="icon" onClick={decreaseTravelers} disabled={travelers <= 1}>
+                <Button variant="outline" size="icon" onClick={decreaseTravelers} disabled={travelers <= 1} aria-label="Decrease travelers">
                   <Minus className="h-4 w-4" />
                 </Button>
                 <span className="mx-4 w-6 text-center">{travelers}</span>
-                <Button variant="outline" size="icon" onClick={increaseTravelers}>
+                <Button variant="outline" size="icon" onClick={increaseTravelers} aria-label="Increase travelers">
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -204,11 +204,11 @@ export function ExpenseEstimator() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Number of Days</label>
               <div className="flex items-center">
-                <Button variant="outline" size="icon" onClick={decreaseDays} disabled={days <= 1}>
+                <Button variant="outline" size="icon" onClick={decreaseDays} disabled={days <= 1} aria-label="Decrease days">
                   <Minus className="h-4 w-4" />
                 </Button>
                 <span className="mx-4 w-6 text-center">{days}</span>
-                <Button variant="outline" size="icon" onClick={increaseDays}>
+                <Button variant="outline" size="icon" onClick={increaseDays} aria-label="Increase days">
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>

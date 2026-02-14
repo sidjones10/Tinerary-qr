@@ -224,6 +224,7 @@ export function PhotoGallery({ itineraryId, photos: initialPhotos, isOwner, onPh
                   size="icon"
                   className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white"
                   onClick={() => setIsLightboxOpen(false)}
+                  aria-label="Close lightbox"
                 >
                   <X className="h-4 w-4" />
                 </Button>

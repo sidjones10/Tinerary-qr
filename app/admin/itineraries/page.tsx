@@ -80,7 +80,7 @@ export default function AdminItinerariesPage() {
     <div className="p-4 lg:p-8 max-w-[1400px] mx-auto">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon" asChild>
+        <Button variant="ghost" size="icon" asChild aria-label="Go back">
           <Link href="/admin">
             <ArrowLeft className="h-5 w-5" />
           </Link>

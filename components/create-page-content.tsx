@@ -1002,6 +1002,7 @@ export default function CreatePageContent() {
                           size="icon"
                           className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-destructive"
                           onClick={() => removeActivity(activity.id)}
+                          aria-label="Remove activity"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -1247,6 +1248,7 @@ export default function CreatePageContent() {
                                 size="sm"
                                 className="h-8 w-8 p-0 text-muted-foreground"
                                 onClick={() => removePackingItem(item.id)}
+                                aria-label="Remove packing item"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>

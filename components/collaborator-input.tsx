@@ -114,6 +114,7 @@ export function CollaboratorInput() {
                       size="icon"
                       className="h-8 w-8 text-muted-foreground hover:text-destructive"
                       onClick={() => removeCollaborator(collaborator.email)}
+                      aria-label="Remove collaborator"
                     >
                       <X className="h-4 w-4" />
                     </Button>

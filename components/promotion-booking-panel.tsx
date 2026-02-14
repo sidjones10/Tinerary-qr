@@ -139,6 +139,7 @@ export function PromotionBookingPanel({ promotion, userId }: PromotionBookingPan
             size="icon"
             className={liked ? "text-red-500" : "text-muted-foreground"}
             onClick={() => setLiked(!liked)}
+            aria-label={liked ? "Unlike" : "Like"}
           >
             <Heart className={`h-5 w-5 ${liked ? "fill-current" : ""}`} />
           </Button>

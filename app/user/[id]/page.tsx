@@ -198,7 +198,7 @@ export default function UnifiedProfilePage() {
       <div className="min-h-screen bg-gradient-to-b from-orange-50 via-pink-50 to-white">
         <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-orange-100">
           <div className="flex items-center justify-between px-4 h-14">
-            <Button variant="ghost" size="icon" onClick={() => router.back()} className="hover:bg-orange-100">
+            <Button variant="ghost" size="icon" aria-label="Go back" onClick={() => router.back()} className="hover:bg-orange-100">
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <Skeleton className="h-5 w-32" />
@@ -222,7 +222,7 @@ export default function UnifiedProfilePage() {
       <div className="min-h-screen bg-gradient-to-b from-orange-50 via-pink-50 to-white">
         <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-orange-100">
           <div className="flex items-center justify-between px-4 h-14">
-            <Button variant="ghost" size="icon" onClick={() => router.back()} className="hover:bg-orange-100">
+            <Button variant="ghost" size="icon" aria-label="Go back" onClick={() => router.back()} className="hover:bg-orange-100">
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <span className="font-semibold text-gray-800">Profile</span>
@@ -250,13 +250,13 @@ export default function UnifiedProfilePage() {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-orange-100">
         <div className="flex items-center justify-between px-4 h-14">
-          <Button variant="ghost" size="icon" onClick={() => router.back()} className="hover:bg-orange-100 rounded-full">
+          <Button variant="ghost" size="icon" aria-label="Go back" onClick={() => router.back()} className="hover:bg-orange-100 rounded-full">
             <ArrowLeft className="h-5 w-5 text-gray-700" />
           </Button>
           <span className="font-semibold text-gray-800">{profile.username ? `@${profile.username}` : displayName}</span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="hover:bg-orange-100 rounded-full">
+              <Button variant="ghost" size="icon" aria-label="More options" className="hover:bg-orange-100 rounded-full">
                 <MoreHorizontal className="h-5 w-5 text-gray-700" />
               </Button>
             </DropdownMenuTrigger>
@@ -369,6 +369,7 @@ export default function UnifiedProfilePage() {
                 variant="outline"
                 size="icon"
                 onClick={handleShare}
+                aria-label="Share profile"
                 className="rounded-full h-11 w-11 border-orange-200 hover:bg-orange-50 hover:border-orange-300"
               >
                 <Share2 className="h-4 w-4" />
@@ -392,6 +393,7 @@ export default function UnifiedProfilePage() {
                 variant="outline"
                 size="icon"
                 onClick={handleShare}
+                aria-label="Share profile"
                 className="rounded-full h-11 w-11 border-orange-200 hover:bg-orange-50 hover:border-orange-300"
               >
                 <Share2 className="h-4 w-4" />

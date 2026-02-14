@@ -729,6 +729,7 @@ export function DiscoveryFeed() {
                   <Button
                     variant="outline"
                     size="icon"
+                    aria-label={likedItems.has(item.id) ? "Unlike" : "Like"}
                     onClick={(e) => {
                       e.stopPropagation()
                       e.preventDefault()
@@ -749,6 +750,7 @@ export function DiscoveryFeed() {
                   <Button
                     variant="outline"
                     size="icon"
+                    aria-label="Comments"
                     onClick={() => setCommentsOpenFor(item.id)}
                     className="h-12 w-12 rounded-full bg-black/30 backdrop-blur-sm border-white/20 text-white hover:bg-black/50 transition-all hover:scale-110"
                   >
@@ -760,6 +762,7 @@ export function DiscoveryFeed() {
                   <Button
                     variant="outline"
                     size="icon"
+                    aria-label={savedItems.has(item.id) ? "Unsave" : "Save"}
                     onClick={() => handleSave(item.id)}
                     className={`h-12 w-12 rounded-full backdrop-blur-sm border-white/20 transition-all ${
                       savedItems.has(item.id)
@@ -781,6 +784,7 @@ export function DiscoveryFeed() {
                       <Button
                         variant="outline"
                         size="icon"
+                        aria-label="Share"
                         className="h-12 w-12 rounded-full bg-black/30 backdrop-blur-sm border-white/20 text-white hover:bg-black/50 transition-all hover:scale-110"
                       >
                         <Share2 className="h-5 w-5" />

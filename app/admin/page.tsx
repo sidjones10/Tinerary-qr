@@ -74,7 +74,7 @@ export default function AdminDashboard() {
       <div className="lg:hidden flex items-center justify-between mb-6">
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="bg-white/70">
+            <Button variant="outline" size="icon" className="bg-white/70" aria-label="Open menu">
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>

@@ -531,6 +531,88 @@ export async function sendEventStartedEmail(params: {
 }
 
 /**
+ * Send "What's New" marketing email to users
+ */
+export async function sendWhatsNewEmail(params: {
+  email: string
+  name?: string
+}) {
+  try {
+    const { email, name } = params
+
+    const resend = getResendClient()
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: "See what's new on Tinerary!",
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #F97316 0%, #EC4899 100%); padding: 40px 20px; text-align: center; border-radius: 12px; color: white; }
+            .content { padding: 30px 20px; background: #f9fafb; border-radius: 12px; margin-top: 20px; }
+            .feature-box { background: white; padding: 20px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #F97316; }
+            .button { display: inline-block; background: #F97316; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; margin-top: 20px; font-weight: 600; }
+            .footer { text-align: center; color: #6b7280; margin-top: 30px; font-size: 14px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>What's New on Tinerary</h1>
+            </div>
+            <div class="content">
+              <p>Hi ${name || "there"}!</p>
+
+              <p>We've been busy making Tinerary even better for you. Here's what's new:</p>
+
+              <div class="feature-box">
+                <h3 style="margin-top: 0;">Enhanced Event Planning</h3>
+                <p style="margin-bottom: 0;">Create beautiful itineraries with interactive maps, photo galleries, and detailed schedules.</p>
+              </div>
+
+              <div class="feature-box">
+                <h3 style="margin-top: 0;">Smart Reminders</h3>
+                <p style="margin-bottom: 0;">Never miss an event with countdown reminders at 5 days, 2 days, 1 day, and 2 hours before your events.</p>
+              </div>
+
+              <div class="feature-box">
+                <h3 style="margin-top: 0;">Social Features</h3>
+                <p style="margin-bottom: 0;">Follow friends, share events, and collaborate on trip planning together.</p>
+              </div>
+
+              <div class="feature-box">
+                <h3 style="margin-top: 0;">Expense Tracking</h3>
+                <p style="margin-bottom: 0;">Keep track of costs and split expenses with your travel companions.</p>
+              </div>
+
+              <p>Come check out what's waiting for you!</p>
+
+              <center>
+                <a href="${APP_URL}/" class="button">Explore Tinerary</a>
+              </center>
+            </div>
+            <div class="footer">
+              <p>Happy planning!<br>The Tinerary Team</p>
+              <p style="font-size: 12px; color: #9ca3af;">You received this email because you signed up for Tinerary.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    })
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error sending what's new email:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
  * Send account deletion warning email
  */
 export async function sendAccountDeletionWarningEmail(params: {

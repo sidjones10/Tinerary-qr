@@ -30,6 +30,10 @@ interface Itinerary {
     username: string | null
     avatar_url: string | null
   } | null
+  itinerary_metrics: {
+    like_count: number
+    view_count: number
+  }[] | null
 }
 
 const GUEST_VIEW_LIMIT = 5
@@ -77,7 +81,7 @@ export default function DiscoverPage() {
         setIsLoading(true)
         const supabase = createClient()
 
-        const { data, error } = await supabase
+        const { data: rawData, error } = await supabase
           .from("itineraries")
           .select(`
             id,
@@ -88,8 +92,10 @@ export default function DiscoverPage() {
             end_date,
             image_url,
             theme,
-            like_count,
-            view_count,
+            itinerary_metrics (
+              like_count,
+              view_count
+            ),
             profiles:user_id (
               id,
               name,
@@ -98,11 +104,22 @@ export default function DiscoverPage() {
             )
           `)
           .eq("is_public", true)
-          .order("like_count", { ascending: false })
+          .order("created_at", { ascending: false })
           .limit(20)
 
         if (error) throw error
-        setItineraries(data || [])
+
+        // Map metrics from the join into flat fields for the UI
+        const mapped = (rawData || []).map((item: any) => ({
+          ...item,
+          like_count: item.itinerary_metrics?.[0]?.like_count || 0,
+          view_count: item.itinerary_metrics?.[0]?.view_count || 0,
+        }))
+
+        // Sort by like_count descending
+        mapped.sort((a: any, b: any) => b.like_count - a.like_count)
+
+        setItineraries(mapped)
       } catch (err) {
         console.error("Error fetching itineraries:", err)
       } finally {

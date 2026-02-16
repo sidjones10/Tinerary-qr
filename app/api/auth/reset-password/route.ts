@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   try {
     // Rate limit by IP
     const ip = getClientIp(request)
-    const rl = rateLimit(`reset:${ip}`, RESET_RATE_LIMIT)
+    const rl = await rateLimit(`reset:${ip}`, RESET_RATE_LIMIT)
     if (!rl.allowed) {
       return NextResponse.json(
         {

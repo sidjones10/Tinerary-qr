@@ -710,6 +710,90 @@ export async function sendWhatsNewEmail(params: {
 }
 
 /**
+ * Send sign-in alert email with "That wasn't me" revoke link
+ */
+export async function sendSignInAlertEmail(params: {
+  email: string
+  name?: string
+  ipAddress?: string
+  userAgent?: string
+  deviceInfo?: string
+  revokeToken: string
+  signInTime: string
+}) {
+  try {
+    const { email, name, ipAddress, userAgent, deviceInfo, revokeToken, signInTime } = params
+    const revokeUrl = `${APP_URL}/api/auth/revoke-sessions?token=${revokeToken}`
+    const formattedTime = new Date(signInTime).toLocaleString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short",
+    })
+
+    // Parse a friendly device name from the user agent
+    let deviceDisplay = deviceInfo || "Unknown device"
+    if (!deviceInfo && userAgent) {
+      if (userAgent.includes("iPhone")) deviceDisplay = "iPhone"
+      else if (userAgent.includes("iPad")) deviceDisplay = "iPad"
+      else if (userAgent.includes("Android")) deviceDisplay = "Android device"
+      else if (userAgent.includes("Mac")) deviceDisplay = "Mac"
+      else if (userAgent.includes("Windows")) deviceDisplay = "Windows PC"
+      else if (userAgent.includes("Linux")) deviceDisplay = "Linux computer"
+      else deviceDisplay = "Web browser"
+    }
+
+    const resend = getResendClient()
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: "New sign-in to your Tinerary account",
+      html: postcardEmail(`
+        <div class="masthead" style="background:#3D3229;">
+          <div class="stamp">Security Alert</div>
+          <h1>New Sign-In Detected</h1>
+          <p class="subtitle">Your account was just accessed</p>
+        </div>
+        <div class="body-content">
+          <p>Hi ${name || "there"},</p>
+          <p>We noticed a new sign-in to your Tinerary account. Here are the details:</p>
+
+          <div class="info-card" style="background:#FFFDF9; border: 1px solid #D6C9B6; border-left: 3px solid #1A7B7E;">
+            <div class="detail-row">
+              <span class="detail-label">When:</span> ${formattedTime}
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Device:</span> ${deviceDisplay}
+            </div>
+            ${ipAddress ? `<div class="detail-row"><span class="detail-label">IP Address:</span> ${ipAddress}</div>` : ""}
+          </div>
+
+          <p>If this was you, no action is needed.</p>
+
+          <div class="info-card info-card-alert">
+            <strong>Wasn't you?</strong><br>
+            If you didn't sign in, someone else may have access to your account. Click below to immediately sign out all devices and secure your account.
+          </div>
+
+          <p style="text-align:center;margin:28px 0;">
+            <a href="${revokeUrl}" class="cta-btn" style="background:#C75B3A;">That Wasn't Me &mdash; Sign Out All Devices</a>
+          </p>
+
+          <p style="color:#9B8E7E;font-size:13px;">After signing out all devices, we recommend changing your password right away.</p>
+        </div>
+      `),
+    })
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error sending sign-in alert email:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
  * Send account deletion warning email
  */
 export async function sendAccountDeletionWarningEmail(params: {

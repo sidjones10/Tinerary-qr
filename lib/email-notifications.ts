@@ -16,6 +16,182 @@ function getResendClient(): Resend {
 const FROM_EMAIL = "Tinerary <noreply@tinerary-app.com>"
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary-app.com"
 
+// ─── Shared postcard-style email shell ────────────────────────────────
+// Warm cream + terracotta + teal palette inspired by vintage travel postcards.
+// Uses Google Fonts @import for the editorial serif "Playfair Display".
+// Every email wraps its unique body content with postcardEmail().
+
+function postcardEmail(body: string, footerNote?: string): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+        body {
+          margin: 0;
+          padding: 0;
+          background-color: #F5EDE3;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          color: #3D3229;
+          -webkit-font-smoothing: antialiased;
+        }
+        .outer-wrap {
+          max-width: 640px;
+          margin: 30px auto;
+          padding: 0 16px;
+        }
+        /* ── postcard frame ── */
+        .postcard {
+          background: #FFFDF9;
+          border: 2px solid #D6C9B6;
+          border-radius: 4px;
+          box-shadow: 0 4px 24px rgba(61,50,41,0.08);
+          overflow: hidden;
+        }
+        /* ── masthead ── */
+        .masthead {
+          background: #C75B3A;
+          padding: 32px 36px 28px;
+          text-align: center;
+        }
+        .masthead h1 {
+          margin: 0;
+          font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+          font-weight: 700;
+          font-size: 30px;
+          color: #FFFDF9;
+          letter-spacing: 0.5px;
+        }
+        .masthead .subtitle {
+          margin: 6px 0 0;
+          font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+          font-style: italic;
+          font-size: 15px;
+          color: rgba(255,253,249,0.85);
+        }
+        /* ── stamp decoration ── */
+        .stamp {
+          display: inline-block;
+          border: 2px dashed rgba(255,253,249,0.5);
+          border-radius: 2px;
+          padding: 6px 14px;
+          margin-bottom: 12px;
+          font-family: 'Playfair Display', Georgia, serif;
+          font-size: 12px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 2px;
+          color: rgba(255,253,249,0.8);
+        }
+        /* ── body content ── */
+        .body-content {
+          padding: 32px 36px;
+          font-size: 15px;
+          line-height: 1.7;
+          color: #3D3229;
+        }
+        .body-content h2 {
+          font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+          font-weight: 700;
+          font-size: 22px;
+          color: #C75B3A;
+          margin: 0 0 12px;
+        }
+        .body-content h3 {
+          font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+          font-weight: 700;
+          font-size: 18px;
+          color: #1A7B7E;
+          margin: 0 0 6px;
+        }
+        .body-content p {
+          margin: 0 0 14px;
+        }
+        .body-content a {
+          color: #1A7B7E;
+        }
+        /* ── divider ── */
+        .divider {
+          border: none;
+          border-top: 1px solid #D6C9B6;
+          margin: 24px 0;
+        }
+        /* ── CTA button ── */
+        .cta-btn {
+          display: inline-block;
+          background: #1A7B7E;
+          color: #FFFDF9 !important;
+          padding: 13px 34px;
+          text-decoration: none;
+          border-radius: 4px;
+          font-weight: 600;
+          font-size: 15px;
+          letter-spacing: 0.3px;
+        }
+        .cta-btn-warm {
+          background: #C75B3A;
+        }
+        /* ── info card ── */
+        .info-card {
+          background: #FAF3E8;
+          border-left: 3px solid #1A7B7E;
+          padding: 16px 20px;
+          border-radius: 0 4px 4px 0;
+          margin: 18px 0;
+        }
+        .info-card-warm {
+          border-left-color: #C75B3A;
+        }
+        .info-card-alert {
+          background: #FEF0EC;
+          border-left-color: #C75B3A;
+        }
+        /* ── detail row ── */
+        .detail-row {
+          margin: 8px 0;
+          font-size: 15px;
+        }
+        .detail-label {
+          font-weight: 600;
+          color: #1A7B7E;
+        }
+        /* ── postmark / footer ── */
+        .postmark {
+          border-top: 1px solid #D6C9B6;
+          padding: 24px 36px;
+          text-align: center;
+          font-size: 13px;
+          color: #9B8E7E;
+        }
+        .postmark .brand {
+          font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+          font-style: italic;
+          font-size: 16px;
+          color: #C75B3A;
+          margin-bottom: 6px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="outer-wrap">
+        <div class="postcard">
+          ${body}
+          <div class="postmark">
+            <div class="brand">Tinerary</div>
+            <p style="margin: 4px 0 0;">Stories worth planning, moments worth sharing.</p>
+            ${footerNote ? `<p style="margin: 10px 0 0; font-size: 12px; color: #B8A99A;">${footerNote}</p>` : ''}
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+}
+
 /**
  * Send welcome email to new users
  */
@@ -25,48 +201,38 @@ export async function sendWelcomeEmail(email: string, name: string) {
     await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
-      subject: "Welcome to Tinerary! 🎉",
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #F97316 0%, #EC4899 100%); padding: 40px 20px; text-align: center; border-radius: 12px; }
-            .header h1 { color: white; margin: 0; font-size: 32px; }
-            .content { padding: 30px 20px; background: #f9fafb; border-radius: 12px; margin-top: 20px; }
-            .button { display: inline-block; background: #F97316; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; margin-top: 20px; }
-            .footer { text-align: center; color: #6b7280; margin-top: 30px; font-size: 14px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>Welcome to Tinerary!</h1>
-            </div>
-            <div class="content">
-              <h2>Hi ${name}! 👋</h2>
-              <p>Thanks for joining Tinerary - your new home for planning amazing trips and events!</p>
-              <p><strong>Here's what you can do:</strong></p>
-              <ul>
-                <li>🗓️ Create and share events & trips</li>
-                <li>📸 Upload photos to your adventures</li>
-                <li>🗺️ Add interactive maps to your events</li>
-                <li>👥 Follow friends and see what they're planning</li>
-                <li>📅 Export events to your calendar</li>
-                <li>💰 Track expenses and split costs</li>
-              </ul>
-              <a href="${APP_URL}/" class="button">Start Exploring</a>
-            </div>
-            <div class="footer">
-              <p>Happy travels! ✈️<br>The Tinerary Team</p>
-            </div>
+      subject: "Welcome aboard, traveler!",
+      html: postcardEmail(`
+        <div class="masthead">
+          <div class="stamp">Welcome Aboard</div>
+          <h1>Your journey starts here</h1>
+          <p class="subtitle">A new chapter in travel planning</p>
+        </div>
+        <div class="body-content">
+          <h2>Hi ${name}!</h2>
+          <p>We're thrilled you've joined Tinerary &mdash; a place where every trip becomes a story and every event deserves to feel like an adventure.</p>
+          <p>Here's what awaits you:</p>
+
+          <div class="info-card">
+            <strong>Plan &amp; Share</strong><br>
+            Create stunning itineraries with maps, photos, and schedules &mdash; then share them with a single link.
           </div>
-        </body>
-        </html>
-      `,
+          <div class="info-card">
+            <strong>Travel Together</strong><br>
+            Follow friends, see what they're planning, and collaborate on trips in real time.
+          </div>
+          <div class="info-card">
+            <strong>Never Miss a Beat</strong><br>
+            Smart countdown reminders, calendar exports, and expense tracking keep everything on course.
+          </div>
+
+          <hr class="divider">
+          <p style="text-align:center;">Ready to plan your first adventure?</p>
+          <p style="text-align:center;">
+            <a href="${APP_URL}/" class="cta-btn">Start Exploring</a>
+          </p>
+        </div>
+      `, 'Happy travels from the Tinerary crew.'),
     })
     return { success: true }
   } catch (error: any) {
@@ -94,55 +260,32 @@ export async function sendEventInviteEmail(
     await resend.emails.send({
       from: FROM_EMAIL,
       to: recipientEmail,
-      subject: `You're invited: ${eventTitle}`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%); padding: 40px 20px; text-align: center; border-radius: 12px; color: white; }
-            .content { padding: 30px 20px; background: #f9fafb; border-radius: 12px; margin-top: 20px; }
-            .event-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
-            .detail-row { display: flex; margin: 10px 0; }
-            .detail-label { font-weight: 600; width: 100px; }
-            .button { display: inline-block; background: #8B5CF6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; margin-top: 20px; }
-            .footer { text-align: center; color: #6b7280; margin-top: 30px; font-size: 14px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>🎉 You're Invited!</h1>
-            </div>
-            <div class="content">
-              <p>Hi ${recipientName}!</p>
-              <p><strong>${inviterName}</strong> has invited you to:</p>
+      subject: `You're invited to ${eventTitle}`,
+      html: postcardEmail(`
+        <div class="masthead">
+          <div class="stamp">You're Invited</div>
+          <h1>${eventTitle}</h1>
+          <p class="subtitle">A personal invitation from ${inviterName}</p>
+        </div>
+        <div class="body-content">
+          <p>Hi ${recipientName},</p>
+          <p><strong>${inviterName}</strong> has saved you a spot. Here are the details:</p>
 
-              <div class="event-details">
-                <h2>${eventTitle}</h2>
-                <div class="detail-row">
-                  <span class="detail-label">📅 When:</span>
-                  <span>${eventDate}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">📍 Where:</span>
-                  <span>${eventLocation}</span>
-                </div>
-              </div>
-
-              <p>Click below to view full details and RSVP:</p>
-              <a href="${eventUrl}" class="button">View Event</a>
+          <div class="info-card" style="background:#FFFDF9; border: 1px solid #D6C9B6; border-left: 3px solid #1A7B7E;">
+            <div class="detail-row">
+              <span class="detail-label">When:</span> ${eventDate}
             </div>
-            <div class="footer">
-              <p>See you there! 🎊</p>
+            <div class="detail-row">
+              <span class="detail-label">Where:</span> ${eventLocation}
             </div>
           </div>
-        </body>
-        </html>
-      `,
+
+          <hr class="divider">
+          <p style="text-align:center;">
+            <a href="${eventUrl}" class="cta-btn">View Event &amp; RSVP</a>
+          </p>
+        </div>
+      `, 'See you there!'),
     })
     return { success: true }
   } catch (error: any) {
@@ -171,42 +314,34 @@ export async function sendEventReminderEmail(
     await resend.emails.send({
       from: FROM_EMAIL,
       to: recipientEmail,
-      subject: `Reminder: ${eventTitle} is ${timeText}!`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #F97316 0%, #F59E0B 100%); padding: 40px 20px; text-align: center; border-radius: 12px; color: white; }
-            .content { padding: 30px 20px; background: #f9fafb; border-radius: 12px; margin-top: 20px; }
-            .reminder-box { background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0; border-radius: 4px; }
-            .button { display: inline-block; background: #F97316; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; margin-top: 20px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>⏰ Event Reminder</h1>
+      subject: `Reminder: ${eventTitle} is ${timeText}`,
+      html: postcardEmail(`
+        <div class="masthead">
+          <div class="stamp">Gentle Reminder</div>
+          <h1>${eventTitle}</h1>
+          <p class="subtitle">is coming up ${timeText}</p>
+        </div>
+        <div class="body-content">
+          <p>Hi ${recipientName},</p>
+          <p>Just a friendly nudge &mdash; your upcoming plans are right around the corner.</p>
+
+          <div class="info-card info-card-warm">
+            <div class="detail-row">
+              <span class="detail-label">When:</span> ${eventDate}
             </div>
-            <div class="content">
-              <p>Hi ${recipientName}!</p>
-
-              <div class="reminder-box">
-                <strong>${eventTitle}</strong> is coming up ${timeText}!
-              </div>
-
-              <p><strong>📅 When:</strong> ${eventDate}</p>
-              <p><strong>📍 Where:</strong> ${eventLocation}</p>
-
-              <a href="${eventUrl}" class="button">View Event Details</a>
+            <div class="detail-row">
+              <span class="detail-label">Where:</span> ${eventLocation}
             </div>
           </div>
-        </body>
-        </html>
-      `,
+
+          <p>Make sure everything's packed, planned, and ready to go!</p>
+
+          <hr class="divider">
+          <p style="text-align:center;">
+            <a href="${eventUrl}" class="cta-btn cta-btn-warm">View Event Details</a>
+          </p>
+        </div>
+      `),
     })
     return { success: true }
   } catch (error: any) {
@@ -228,45 +363,32 @@ export async function sendNewFollowerEmail(
   try {
     const profileUrl = `${APP_URL}/user/${followerUsername}`
 
+    const avatarHtml = followerAvatarUrl
+      ? `<img src="${followerAvatarUrl}" alt="${followerName}" style="width:72px;height:72px;border-radius:50%;border:3px solid #D6C9B6;margin:16px auto;display:block;">`
+      : `<div style="width:72px;height:72px;border-radius:50%;background:#FAF3E8;border:3px solid #D6C9B6;margin:16px auto;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',Georgia,serif;font-size:28px;color:#C75B3A;font-weight:700;">${(followerName || '?')[0].toUpperCase()}</div>`
+
     const resend = getResendClient()
     await resend.emails.send({
       from: FROM_EMAIL,
       to: recipientEmail,
-      subject: `${followerName} started following you on Tinerary`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%); padding: 40px 20px; text-align: center; border-radius: 12px; color: white; }
-            .content { padding: 30px 20px; background: #f9fafb; border-radius: 12px; margin-top: 20px; text-align: center; }
-            .avatar { width: 80px; height: 80px; border-radius: 50%; margin: 20px auto; }
-            .button { display: inline-block; background: #EC4899; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; margin-top: 20px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>👥 New Follower!</h1>
-            </div>
-            <div class="content">
-              <p>Hi ${recipientName}!</p>
-              ${
-                followerAvatarUrl
-                  ? `<img src="${followerAvatarUrl}" alt="${followerName}" class="avatar">`
-                  : '<div style="width: 80px; height: 80px; border-radius: 50%; background: #E5E7EB; margin: 20px auto; display: flex; align-items: center; justify-content: center; font-size: 32px;">👤</div>'
-              }
-              <h2>${followerName} (@${followerUsername})</h2>
-              <p>started following you on Tinerary!</p>
-              <a href="${profileUrl}" class="button">View Profile</a>
-            </div>
-          </div>
-        </body>
-        </html>
-      `,
+      subject: `${followerName} is now following your travels`,
+      html: postcardEmail(`
+        <div class="masthead">
+          <div class="stamp">New Follower</div>
+          <h1>Someone new is along for the ride</h1>
+        </div>
+        <div class="body-content" style="text-align:center;">
+          <p style="text-align:left;">Hi ${recipientName},</p>
+
+          ${avatarHtml}
+          <h2 style="margin-bottom:4px;">${followerName}</h2>
+          <p style="margin-top:0;color:#9B8E7E;">@${followerUsername}</p>
+          <p>just started following your adventures on Tinerary.</p>
+
+          <hr class="divider">
+          <a href="${profileUrl}" class="cta-btn">View Their Profile</a>
+        </div>
+      `),
     })
     return { success: true }
   } catch (error: any) {
@@ -293,40 +415,27 @@ export async function sendNewCommentEmail(
     await resend.emails.send({
       from: FROM_EMAIL,
       to: recipientEmail,
-      subject: `${commenterName} commented on ${eventTitle}`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%); padding: 40px 20px; text-align: center; border-radius: 12px; color: white; }
-            .content { padding: 30px 20px; background: #f9fafb; border-radius: 12px; margin-top: 20px; }
-            .comment-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3B82F6; }
-            .button { display: inline-block; background: #3B82F6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; margin-top: 20px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>💬 New Comment</h1>
-            </div>
-            <div class="content">
-              <p>Hi ${recipientName}!</p>
-              <p><strong>${commenterName}</strong> commented on <strong>${eventTitle}</strong>:</p>
+      subject: `${commenterName} left a note on ${eventTitle}`,
+      html: postcardEmail(`
+        <div class="masthead" style="background:#1A7B7E;">
+          <div class="stamp">New Comment</div>
+          <h1>${eventTitle}</h1>
+          <p class="subtitle">A note from ${commenterName}</p>
+        </div>
+        <div class="body-content">
+          <p>Hi ${recipientName},</p>
+          <p><strong>${commenterName}</strong> commented on your event:</p>
 
-              <div class="comment-box">
-                "${commentText}"
-              </div>
-
-              <a href="${eventUrl}" class="button">View Event</a>
-            </div>
+          <div class="info-card" style="font-style:italic;">
+            &ldquo;${commentText}&rdquo;
           </div>
-        </body>
-        </html>
-      `,
+
+          <hr class="divider">
+          <p style="text-align:center;">
+            <a href="${eventUrl}" class="cta-btn">View Conversation</a>
+          </p>
+        </div>
+      `),
     })
     return { success: true }
   } catch (error: any) {
@@ -347,40 +456,24 @@ export async function sendPasswordResetEmail(email: string, resetToken: string) 
       from: FROM_EMAIL,
       to: email,
       subject: "Reset your Tinerary password",
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: #1F2937; padding: 40px 20px; text-align: center; border-radius: 12px; color: white; }
-            .content { padding: 30px 20px; background: #f9fafb; border-radius: 12px; margin-top: 20px; }
-            .warning-box { background: #FEE2E2; border: 1px solid #DC2626; padding: 15px; margin: 20px 0; border-radius: 4px; color: #991B1B; }
-            .button { display: inline-block; background: #1F2937; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; margin-top: 20px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>🔐 Password Reset</h1>
-            </div>
-            <div class="content">
-              <p>We received a request to reset your Tinerary password.</p>
-              <p>Click the button below to set a new password:</p>
+      html: postcardEmail(`
+        <div class="masthead" style="background:#3D3229;">
+          <div class="stamp">Password Reset</div>
+          <h1>Let's get you back in</h1>
+        </div>
+        <div class="body-content">
+          <p>We received a request to reset your Tinerary password. Click below to choose a new one:</p>
 
-              <a href="${resetUrl}" class="button">Reset Password</a>
+          <p style="text-align:center;margin:28px 0;">
+            <a href="${resetUrl}" class="cta-btn" style="background:#3D3229;">Reset Password</a>
+          </p>
 
-              <div class="warning-box">
-                <strong>⚠️ This link expires in 1 hour.</strong><br>
-                If you didn't request this, please ignore this email.
-              </div>
-            </div>
+          <div class="info-card info-card-alert">
+            <strong>This link expires in 1 hour.</strong><br>
+            If you didn't request this, you can safely ignore this email &mdash; your password won't change.
           </div>
-        </body>
-        </html>
-      `,
+        </div>
+      `),
     })
     return { success: true }
   } catch (error: any) {
@@ -405,59 +498,44 @@ export async function sendCountdownReminderEmail(params: {
   try {
     const { email, name, itineraryTitle, itineraryId, timeRemaining, eventDate, location, eventType = "event" } = params
     const eventUrl = `${APP_URL}/event/${itineraryId}`
-    const emoji = eventType === "trip" ? "✈️" : "🎉"
+    const typeLabel = eventType === "trip" ? "trip" : "event"
 
     const resend = getResendClient()
     await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
-      subject: `${emoji} ${timeRemaining} until ${itineraryTitle}!`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #F97316 0%, #EC4899 100%); padding: 40px 20px; text-align: center; border-radius: 12px; color: white; }
-            .content { padding: 30px 20px; background: #f9fafb; border-radius: 12px; margin-top: 20px; }
-            .countdown-box { background: white; padding: 25px; border-radius: 12px; text-align: center; margin: 20px 0; border: 2px solid #F97316; }
-            .countdown-number { font-size: 48px; font-weight: bold; color: #F97316; }
-            .event-details { background: white; padding: 15px; border-radius: 8px; margin: 15px 0; }
-            .button { display: inline-block; background: #F97316; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; margin-top: 20px; font-weight: 600; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>${emoji} Get Ready!</h1>
-            </div>
-            <div class="content">
-              <p>Hi ${name || "there"}!</p>
+      subject: `${timeRemaining} until ${itineraryTitle}!`,
+      html: postcardEmail(`
+        <div class="masthead">
+          <div class="stamp">Countdown</div>
+          <h1>${itineraryTitle}</h1>
+          <p class="subtitle">is just around the corner</p>
+        </div>
+        <div class="body-content">
+          <p>Hi ${name || "there"},</p>
 
-              <div class="countdown-box">
-                <div class="countdown-number">${timeRemaining}</div>
-                <p style="margin: 0; color: #6b7280;">until your ${eventType} begins!</p>
-              </div>
-
-              <h2 style="margin-bottom: 10px;">${itineraryTitle}</h2>
-
-              <div class="event-details">
-                <p style="margin: 5px 0;"><strong>📅 When:</strong> ${new Date(eventDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                ${location ? `<p style="margin: 5px 0;"><strong>📍 Where:</strong> ${location}</p>` : ''}
-              </div>
-
-              <p>Make sure you're all set and ready to go!</p>
-
-              <center>
-                <a href="${eventUrl}" class="button">View ${eventType === "trip" ? "Trip" : "Event"} Details</a>
-              </center>
+          <div style="text-align:center;margin:24px 0;">
+            <div style="display:inline-block;background:#FAF3E8;border:2px solid #C75B3A;border-radius:4px;padding:20px 36px;">
+              <div style="font-family:'Playfair Display',Georgia,serif;font-size:42px;font-weight:700;color:#C75B3A;line-height:1;">${timeRemaining}</div>
+              <div style="font-size:13px;color:#9B8E7E;margin-top:6px;text-transform:uppercase;letter-spacing:1px;">until your ${typeLabel}</div>
             </div>
           </div>
-        </body>
-        </html>
-      `,
+
+          <div class="info-card">
+            <div class="detail-row">
+              <span class="detail-label">When:</span> ${new Date(eventDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </div>
+            ${location ? `<div class="detail-row"><span class="detail-label">Where:</span> ${location}</div>` : ''}
+          </div>
+
+          <p>Make sure everything's sorted &mdash; the adventure is almost here!</p>
+
+          <hr class="divider">
+          <p style="text-align:center;">
+            <a href="${eventUrl}" class="cta-btn cta-btn-warm">View ${eventType === "trip" ? "Trip" : "Event"} Details</a>
+          </p>
+        </div>
+      `),
     })
     return { success: true }
   } catch (error: any) {
@@ -480,48 +558,34 @@ export async function sendEventStartedEmail(params: {
   try {
     const { email, name, itineraryTitle, itineraryId, location, eventType = "event" } = params
     const eventUrl = `${APP_URL}/event/${itineraryId}`
-    const emoji = eventType === "trip" ? "✈️" : "🎉"
 
     const resend = getResendClient()
     await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
-      subject: `${emoji} ${itineraryTitle} is happening NOW!`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #10B981 0%, #3B82F6 100%); padding: 40px 20px; text-align: center; border-radius: 12px; color: white; }
-            .content { padding: 30px 20px; background: #f9fafb; border-radius: 12px; margin-top: 20px; text-align: center; }
-            .started-badge { display: inline-block; background: #10B981; color: white; padding: 8px 20px; border-radius: 20px; font-weight: 600; margin: 15px 0; }
-            .button { display: inline-block; background: #3B82F6; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; margin-top: 20px; font-weight: 600; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>${emoji} It's Time!</h1>
-            </div>
-            <div class="content">
-              <p>Hi ${name || "there"}!</p>
+      subject: `${itineraryTitle} is happening now!`,
+      html: postcardEmail(`
+        <div class="masthead" style="background:#1A7B7E;">
+          <div class="stamp">Right Now</div>
+          <h1>${itineraryTitle}</h1>
+          <p class="subtitle">is officially underway</p>
+        </div>
+        <div class="body-content" style="text-align:center;">
+          <p style="text-align:left;">Hi ${name || "there"},</p>
 
-              <div class="started-badge">🟢 HAPPENING NOW</div>
-
-              <h2>${itineraryTitle}</h2>
-              ${location ? `<p style="color: #6b7280;">📍 ${location}</p>` : ''}
-
-              <p>Your ${eventType} has started! Have an amazing time! 🎊</p>
-
-              <a href="${eventUrl}" class="button">View ${eventType === "trip" ? "Trip" : "Event"}</a>
-            </div>
+          <div style="display:inline-block;background:#E8F5F0;border:2px solid #1A7B7E;border-radius:4px;padding:10px 24px;margin:16px 0;">
+            <span style="font-family:'Playfair Display',Georgia,serif;font-weight:700;font-size:15px;color:#1A7B7E;letter-spacing:1px;text-transform:uppercase;">Happening Now</span>
           </div>
-        </body>
-        </html>
-      `,
+
+          <h2 style="color:#1A7B7E;">${itineraryTitle}</h2>
+          ${location ? `<p style="color:#9B8E7E;">at ${location}</p>` : ''}
+
+          <p>Your ${eventType} has begun &mdash; enjoy every moment!</p>
+
+          <hr class="divider">
+          <a href="${eventUrl}" class="cta-btn">View ${eventType === "trip" ? "Trip" : "Event"}</a>
+        </div>
+      `),
     })
     return { success: true }
   } catch (error: any) {
@@ -544,66 +608,44 @@ export async function sendWhatsNewEmail(params: {
     await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
-      subject: "See what's new on Tinerary!",
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #F97316 0%, #EC4899 100%); padding: 40px 20px; text-align: center; border-radius: 12px; color: white; }
-            .content { padding: 30px 20px; background: #f9fafb; border-radius: 12px; margin-top: 20px; }
-            .feature-box { background: white; padding: 20px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #F97316; }
-            .button { display: inline-block; background: #F97316; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; margin-top: 20px; font-weight: 600; }
-            .footer { text-align: center; color: #6b7280; margin-top: 30px; font-size: 14px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>What's New on Tinerary</h1>
-            </div>
-            <div class="content">
-              <p>Hi ${name || "there"}!</p>
+      subject: "Postcards from the team: what's new on Tinerary",
+      html: postcardEmail(`
+        <div class="masthead">
+          <div class="stamp">Dispatches</div>
+          <h1>What's New on Tinerary</h1>
+          <p class="subtitle">Fresh features for your next adventure</p>
+        </div>
+        <div class="body-content">
+          <p>Hi ${name || "there"},</p>
+          <p>We've been busy behind the scenes making Tinerary even better for planning your next getaway. Here's the latest:</p>
 
-              <p>We've been busy making Tinerary even better for you. Here's what's new:</p>
-
-              <div class="feature-box">
-                <h3 style="margin-top: 0;">Enhanced Event Planning</h3>
-                <p style="margin-bottom: 0;">Create beautiful itineraries with interactive maps, photo galleries, and detailed schedules.</p>
-              </div>
-
-              <div class="feature-box">
-                <h3 style="margin-top: 0;">Smart Reminders</h3>
-                <p style="margin-bottom: 0;">Never miss an event with countdown reminders at 5 days, 2 days, 1 day, and 2 hours before your events.</p>
-              </div>
-
-              <div class="feature-box">
-                <h3 style="margin-top: 0;">Social Features</h3>
-                <p style="margin-bottom: 0;">Follow friends, share events, and collaborate on trip planning together.</p>
-              </div>
-
-              <div class="feature-box">
-                <h3 style="margin-top: 0;">Expense Tracking</h3>
-                <p style="margin-bottom: 0;">Keep track of costs and split expenses with your travel companions.</p>
-              </div>
-
-              <p>Come check out what's waiting for you!</p>
-
-              <center>
-                <a href="${APP_URL}/" class="button">Explore Tinerary</a>
-              </center>
-            </div>
-            <div class="footer">
-              <p>Happy planning!<br>The Tinerary Team</p>
-              <p style="font-size: 12px; color: #9ca3af;">You received this email because you signed up for Tinerary.</p>
-            </div>
+          <div class="info-card">
+            <h3 style="margin-top:0;">Enhanced Event Planning</h3>
+            <p style="margin-bottom:0;">Create beautiful itineraries with interactive maps, photo galleries, and detailed day-by-day schedules.</p>
           </div>
-        </body>
-        </html>
-      `,
+
+          <div class="info-card info-card-warm">
+            <h3 style="margin-top:0;">Smart Reminders</h3>
+            <p style="margin-bottom:0;">Countdown reminders at 5 days, 2 days, 1 day, and 2 hours before departure so you're never caught off guard.</p>
+          </div>
+
+          <div class="info-card">
+            <h3 style="margin-top:0;">Travel Together</h3>
+            <p style="margin-bottom:0;">Follow friends, share events, and collaborate on trip planning in real time.</p>
+          </div>
+
+          <div class="info-card info-card-warm">
+            <h3 style="margin-top:0;">Expense Tracking</h3>
+            <p style="margin-bottom:0;">Log costs on the go and split expenses with your travel companions &mdash; no awkward math required.</p>
+          </div>
+
+          <hr class="divider">
+          <p style="text-align:center;font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:17px;color:#C75B3A;">Your next adventure is just a tap away.</p>
+          <p style="text-align:center;">
+            <a href="${APP_URL}/" class="cta-btn">Explore Tinerary</a>
+          </p>
+        </div>
+      `, 'You received this because you signed up for Tinerary.'),
     })
     return { success: true }
   } catch (error: any) {
@@ -630,61 +672,45 @@ export async function sendAccountDeletionWarningEmail(params: {
     await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
-      subject: `⚠️ Your Tinerary account will be deleted in ${daysRemaining} days`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: #DC2626; padding: 40px 20px; text-align: center; border-radius: 12px; color: white; }
-            .content { padding: 30px 20px; background: #f9fafb; border-radius: 12px; margin-top: 20px; }
-            .warning-box { background: #FEE2E2; border: 2px solid #DC2626; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; }
-            .countdown { font-size: 36px; font-weight: bold; color: #DC2626; }
-            .button { display: inline-block; background: #10B981; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; margin-top: 20px; font-weight: 600; }
-            .data-list { background: white; padding: 15px; border-radius: 8px; margin: 15px 0; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>⚠️ Account Deletion Warning</h1>
-            </div>
-            <div class="content">
-              <p>Hi ${name || username || "there"},</p>
+      subject: `Your Tinerary account will be deleted in ${daysRemaining} days`,
+      html: postcardEmail(`
+        <div class="masthead" style="background:#3D3229;">
+          <div class="stamp">Important Notice</div>
+          <h1>Account Deletion Scheduled</h1>
+        </div>
+        <div class="body-content">
+          <p>Hi ${name || username || "there"},</p>
 
-              <div class="warning-box">
-                <div class="countdown">${daysRemaining} days</div>
-                <p style="margin: 5px 0 0 0;">until your account is permanently deleted</p>
-              </div>
-
-              <p>Your Tinerary account is scheduled for deletion on <strong>${new Date(deletionDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</strong>.</p>
-
-              <div class="data-list">
-                <p style="margin: 0 0 10px 0;"><strong>What will be deleted:</strong></p>
-                <ul style="margin: 0; padding-left: 20px;">
-                  <li>All your itineraries and trips</li>
-                  <li>Photos and media uploads</li>
-                  <li>Comments and interactions</li>
-                  <li>Follower connections</li>
-                  <li>All account data</li>
-                </ul>
-              </div>
-
-              <p><strong>Want to keep your account?</strong> Simply log in to cancel the deletion request.</p>
-
-              <center>
-                <a href="${reactivateUrl}" class="button">Keep My Account</a>
-              </center>
-
-              <p style="color: #6b7280; font-size: 14px; margin-top: 25px;">If you requested this deletion, no action is needed. Your account will be permanently removed on the scheduled date.</p>
+          <div style="text-align:center;margin:24px 0;">
+            <div style="display:inline-block;background:#FEF0EC;border:2px solid #C75B3A;border-radius:4px;padding:20px 36px;">
+              <div style="font-family:'Playfair Display',Georgia,serif;font-size:42px;font-weight:700;color:#C75B3A;line-height:1;">${daysRemaining} days</div>
+              <div style="font-size:13px;color:#9B8E7E;margin-top:6px;">until permanent deletion</div>
             </div>
           </div>
-        </body>
-        </html>
-      `,
+
+          <p>Your account is scheduled for deletion on <strong>${new Date(deletionDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</strong>.</p>
+
+          <div class="info-card info-card-alert">
+            <p style="margin:0 0 10px;"><strong>What will be removed:</strong></p>
+            <ul style="margin:0;padding-left:20px;line-height:1.8;">
+              <li>All itineraries and trip plans</li>
+              <li>Photos and media uploads</li>
+              <li>Comments and interactions</li>
+              <li>Follower connections</li>
+              <li>All account data</li>
+            </ul>
+          </div>
+
+          <p><strong>Changed your mind?</strong> Simply log in to cancel the deletion.</p>
+
+          <hr class="divider">
+          <p style="text-align:center;">
+            <a href="${reactivateUrl}" class="cta-btn" style="background:#1A7B7E;">Keep My Account</a>
+          </p>
+
+          <p style="color:#9B8E7E;font-size:13px;margin-top:24px;">If you intended to delete your account, no action is needed. Your data will be permanently removed on the date above.</p>
+        </div>
+      `),
     })
     return { success: true }
   } catch (error: any) {

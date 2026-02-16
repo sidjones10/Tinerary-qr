@@ -1,9 +1,31 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/utils/supabase/server"
 import { getSiteUrl } from "@/lib/env-validation"
+import { rateLimit, getClientIp } from "@/lib/rate-limit"
+
+// 3 password reset requests per IP per 15 minutes
+const RESET_RATE_LIMIT = { maxRequests: 3, windowSeconds: 15 * 60 }
 
 export async function POST(request: Request) {
   try {
+    // Rate limit by IP
+    const ip = getClientIp(request)
+    const rl = rateLimit(`reset:${ip}`, RESET_RATE_LIMIT)
+    if (!rl.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Too many password reset requests. Please try again later.",
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+          },
+        },
+      )
+    }
+
     const { email } = await request.json()
 
     if (!email) {

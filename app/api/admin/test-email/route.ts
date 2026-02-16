@@ -17,12 +17,19 @@ export async function POST(request: Request) {
       )
     }
 
-    // Get user's profile to check admin status (optional)
+    // Get user's profile to check admin status
     const { data: profile } = await supabase
       .from("profiles")
       .select("email, is_admin")
       .eq("id", user.id)
       .single()
+
+    if (!profile?.is_admin) {
+      return NextResponse.json(
+        { success: false, error: "Admin access required" },
+        { status: 403 }
+      )
+    }
 
     const { email: targetEmail, type = "welcome" } = await request.json()
     const recipientEmail = targetEmail || user.email
@@ -30,7 +37,6 @@ export async function POST(request: Request) {
     // Check environment configuration
     const diagnostics = {
       hasResendApiKey: !!process.env.RESEND_API_KEY,
-      resendApiKeyPrefix: process.env.RESEND_API_KEY?.substring(0, 10) + "...",
       appUrl: APP_URL,
       recipientEmail,
       emailType: type,
@@ -189,7 +195,6 @@ export async function POST(request: Request) {
       success: false,
       error: errorDetails,
       fix,
-      rawError: error,
     }, { status: 500 })
   }
 }

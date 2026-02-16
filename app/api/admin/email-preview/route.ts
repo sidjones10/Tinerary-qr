@@ -286,6 +286,25 @@ const templates: Record<string, { subject: string; html: string }> = {
 }
 
 export async function GET(request: NextRequest) {
+  // Require authentication and admin role
+  const { createClient } = await import("@/utils/supabase/server")
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    return NextResponse.json({ error: "Authentication required" }, { status: 401 })
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile?.is_admin) {
+    return NextResponse.json({ error: "Admin access required" }, { status: 403 })
+  }
+
   const template = request.nextUrl.searchParams.get("template")
 
   // If no template specified, return the list

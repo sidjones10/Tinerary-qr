@@ -32,11 +32,11 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}))
     const { dryRun = false, limit } = body
 
-    // Fetch all users with email notifications enabled
+    // Fetch all users with marketing consent enabled
     let query = supabase
       .from("profiles")
-      .select("id, email, name, username, email_notifications")
-      .eq("email_notifications", true)
+      .select("id, email, name, username, marketing_consent")
+      .eq("marketing_consent", true)
       .not("email", "is", null)
 
     if (limit) {
@@ -129,6 +129,6 @@ export async function GET() {
       dryRun: "Set to true to preview which users would receive emails without actually sending",
       limit: "Limit the number of users to email (useful for testing)",
     },
-    note: "Requires admin authentication. Only sends to users with email_notifications enabled.",
+    note: "Requires admin authentication. Only sends to users with marketing_consent enabled.",
   })
 }

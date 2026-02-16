@@ -161,11 +161,11 @@ async function main() {
 
     console.log('✅ Connected to Supabase\n');
 
-    // Fetch all users with email notifications enabled
+    // Fetch all users with marketing consent enabled
     let query = supabase
       .from('profiles')
-      .select('id, email, name, username, email_notifications')
-      .eq('email_notifications', true)
+      .select('id, email, name, username, marketing_consent')
+      .eq('marketing_consent', true)
       .not('email', 'is', null);
 
     if (limit) {
@@ -180,11 +180,11 @@ async function main() {
     }
 
     if (!users || users.length === 0) {
-      console.log('ℹ️  No users to send emails to (no users with email_notifications enabled)');
+      console.log('ℹ️  No users to send emails to (no users with marketing_consent enabled)');
       process.exit(0);
     }
 
-    console.log(`📋 Found ${users.length} users with email notifications enabled\n`);
+    console.log(`📋 Found ${users.length} users with marketing consent enabled\n`);
 
     if (dryRun) {
       console.log('🔍 DRY RUN - Users who would receive emails:\n');

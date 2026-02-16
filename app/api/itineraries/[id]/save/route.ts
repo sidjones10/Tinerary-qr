@@ -61,6 +61,12 @@ export async function POST(
       .eq("itinerary_id", itineraryId)
       .single()
 
+    // Track interaction for analytics (non-blocking)
+    supabase
+      .from("user_interactions")
+      .insert({ user_id: user.id, itinerary_id: itineraryId, interaction_type: "save" })
+      .then(({ error }) => { if (error) console.error("Failed to track save interaction:", error) })
+
     return NextResponse.json({
       success: true,
       saves: metrics?.save_count || 1,

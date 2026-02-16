@@ -62,6 +62,12 @@ export async function POST(
       .eq("itinerary_id", itineraryId)
       .single()
 
+    // Track interaction for analytics (non-blocking)
+    supabase
+      .from("user_interactions")
+      .insert({ user_id: user.id, itinerary_id: itineraryId, interaction_type: "like" })
+      .then(({ error }) => { if (error) console.error("Failed to track like interaction:", error) })
+
     // Send notification to itinerary owner (async)
     try {
       const { data: itinerary } = await supabase

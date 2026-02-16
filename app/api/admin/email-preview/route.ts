@@ -165,45 +165,98 @@ const templates: Record<string, { subject: string; html: string }> = {
   newFollower: {
     subject: `${SAMPLE.followerName} just joined your travel crew!`,
     html: postcardEmail(`
-      <div class="masthead" style="background: linear-gradient(135deg, #D4792C 0%, #E09A5C 100%);">
-        <div class="stamp">New Travel Buddy</div>
-        <h1>You've got a new follower!</h1>
+      <!-- Logo banner -->
+      <div style="background:#F8F3EF;padding:28px 36px;text-align:center;">
+        <img src="${APP_URL}/email/tinerary-logo.png" alt="Tinerary" style="width:180px;height:auto;" width="180">
       </div>
-      <div class="body-content" style="text-align:center;">
-        <p style="text-align:left;">Hi ${SAMPLE.name},</p>
-        <div style="width:72px;height:72px;border-radius:50%;background:#F8F3EF;border:3px solid #E8DDD4;margin:16px auto;display:flex;align-items:center;justify-content:center;font-family:'Nohemi','Nunito Sans',sans-serif;font-size:28px;color:#D4792C;font-weight:700;">J</div>
-        <h2 style="margin-bottom:4px;">${SAMPLE.followerName}</h2>
-        <p style="margin-top:0;color:#9B8E7E;">@${SAMPLE.followerUsername}</p>
-        <div style="display:inline-block;background:#FEF0E6;border-radius:20px;padding:8px 24px;margin:8px 0 16px;">
-          <span style="color:#D4792C;font-weight:600;font-size:14px;">is now following your adventures</span>
+
+      <!-- Divider -->
+      <div style="border-top:3px solid #2c2420;margin:0;"></div>
+
+      <!-- Hero block -->
+      <div style="background:#D4792C;padding:48px 36px;text-align:center;">
+        <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:rgba(252,250,248,0.7);margin-bottom:16px;">New Travel Buddy</div>
+        <h1 style="margin:0;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:40px;color:#FCFAF8;line-height:1.1;">You've Got a New Follower!</h1>
+      </div>
+
+      <!-- Profile block -->
+      <div style="background:#2c2420;padding:40px 36px;text-align:center;">
+        <div style="width:80px;height:80px;border-radius:50%;background:#F8F3EF;border:3px solid #D4792C;margin:0 auto 16px;line-height:80px;font-family:'Nohemi','Nunito Sans',sans-serif;font-size:32px;color:#D4792C;font-weight:700;text-align:center;">J</div>
+        <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:26px;color:#FCFAF8;margin-bottom:4px;">${SAMPLE.followerName}</div>
+        <div style="font-family:'Nunito Sans',sans-serif;font-size:15px;color:#D4792C;">@${SAMPLE.followerUsername}</div>
+      </div>
+
+      <!-- Divider -->
+      <div style="border-top:3px solid #2c2420;margin:0;"></div>
+
+      <!-- Message block -->
+      <div style="background:#F8F3EF;padding:32px 36px;text-align:center;">
+        <div style="display:inline-block;background:#D4792C;border-radius:20px;padding:8px 28px;">
+          <span style="font-family:'Nunito Sans',sans-serif;color:#FCFAF8;font-weight:600;font-size:14px;">is now following your adventures</span>
         </div>
-        <hr class="divider">
-        <a href="${APP_URL}/user/${SAMPLE.followerUsername}" class="cta-btn">Say Hello</a>
       </div>
+
+      <!-- Divider -->
+      <div style="border-top:3px solid #2c2420;margin:0;"></div>
+
+      <!-- CTA block -->
+      <div style="background:#D4792C;padding:40px 36px;text-align:center;">
+        <p style="margin:0 0 24px;font-family:'Nunito Sans',sans-serif;font-size:17px;font-weight:600;color:#FCFAF8;line-height:1.5;">Check out their profile and say hello</p>
+        <a href="${APP_URL}/user/${SAMPLE.followerUsername}" style="display:inline-block;background:#FCFAF8;color:#D4792C;padding:16px 48px;text-decoration:none;border-radius:28px;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.5px;">Say Hello</a>
+      </div>
+
+      <!-- Divider -->
+      <div style="border-top:3px solid #2c2420;margin:0;"></div>
     `),
   },
 
   newComment: {
     subject: `${SAMPLE.followerName} commented on ${SAMPLE.eventTitle}`,
     html: postcardEmail(`
-      <div class="masthead" style="background: linear-gradient(135deg, #D4792C 0%, #E09A5C 100%);">
-        <div class="stamp">New Comment</div>
-        <h1>${SAMPLE.eventTitle}</h1>
-        <p class="subtitle">${SAMPLE.followerName} has something to say!</p>
+      <!-- Logo banner -->
+      <div style="background:#F8F3EF;padding:28px 36px;text-align:center;">
+        <img src="${APP_URL}/email/tinerary-logo.png" alt="Tinerary" style="width:180px;height:auto;" width="180">
       </div>
-      <div class="body-content">
-        <p>Hi ${SAMPLE.name},</p>
-        <p><strong>${SAMPLE.followerName}</strong> dropped a comment on your event:</p>
-        <div style="background:#FEF6EE;border-radius:12px;padding:20px 24px;margin:20px 0;position:relative;">
-          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:32px;color:#D4792C;line-height:1;margin-bottom:4px;">&ldquo;</div>
-          <div style="font-style:italic;font-size:16px;color:#1A1A1A;line-height:1.6;padding:0 8px;">${SAMPLE.commentText}</div>
-          <div style="text-align:right;font-size:14px;color:#9B8E7E;margin-top:8px;">&mdash; ${SAMPLE.followerName}</div>
+
+      <!-- Divider -->
+      <div style="border-top:3px solid #2c2420;margin:0;"></div>
+
+      <!-- Hero block -->
+      <div style="background:#D4792C;padding:48px 36px;text-align:center;">
+        <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:rgba(252,250,248,0.7);margin-bottom:16px;">New Comment</div>
+        <h1 style="margin:0;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:36px;color:#FCFAF8;line-height:1.1;">${SAMPLE.eventTitle}</h1>
+      </div>
+
+      <!-- Comment block -->
+      <div style="background:#2c2420;padding:40px 36px;text-align:center;">
+        <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:3px;color:#D4792C;margin-bottom:20px;">${SAMPLE.followerName} says</div>
+        <div style="background:rgba(252,250,248,0.08);border-radius:12px;padding:28px 24px;margin:0 auto;max-width:460px;">
+          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:36px;color:#D4792C;line-height:1;margin-bottom:8px;">&ldquo;</div>
+          <div style="font-family:'Nunito Sans',sans-serif;font-style:italic;font-size:17px;color:#FCFAF8;line-height:1.7;padding:0 8px;">${SAMPLE.commentText}</div>
+          <div style="text-align:right;font-family:'Nunito Sans',sans-serif;font-size:14px;color:rgba(252,250,248,0.5);margin-top:12px;">&mdash; ${SAMPLE.followerName}</div>
         </div>
-        <hr class="divider">
-        <p style="text-align:center;">
-          <a href="${APP_URL}/event/${SAMPLE.eventId}" class="cta-btn" style="background:#D4792C;">Join the Conversation</a>
-        </p>
       </div>
+
+      <!-- Divider -->
+      <div style="border-top:3px solid #2c2420;margin:0;"></div>
+
+      <!-- Event context block -->
+      <div style="background:#F8F3EF;padding:28px 36px;text-align:center;">
+        <div style="font-family:'Nunito Sans',sans-serif;font-size:14px;color:#5C4F42;margin-bottom:4px;">On your event</div>
+        <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:20px;color:#2c2420;">${SAMPLE.eventTitle}</div>
+      </div>
+
+      <!-- Divider -->
+      <div style="border-top:3px solid #2c2420;margin:0;"></div>
+
+      <!-- CTA block -->
+      <div style="background:#D4792C;padding:40px 36px;text-align:center;">
+        <p style="margin:0 0 24px;font-family:'Nunito Sans',sans-serif;font-size:17px;font-weight:600;color:#FCFAF8;line-height:1.5;">Don't leave them hanging</p>
+        <a href="${APP_URL}/event/${SAMPLE.eventId}" style="display:inline-block;background:#FCFAF8;color:#D4792C;padding:16px 48px;text-decoration:none;border-radius:28px;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.5px;">Join the Conversation</a>
+      </div>
+
+      <!-- Divider -->
+      <div style="border-top:3px solid #2c2420;margin:0;"></div>
     `),
   },
 

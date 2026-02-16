@@ -6,6 +6,8 @@ import {
   Users,
   Map,
   Eye,
+  Heart,
+  Share2,
   Activity,
   TrendingUp,
   ArrowUpRight,
@@ -116,7 +118,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-4">
         <StatCard
           title="Total Users"
           value={formatNumber(stats?.totalUsers || 0)}
@@ -139,11 +141,27 @@ export default function AdminDashboard() {
           variant="cream"
         />
         <StatCard
+          title="Total Likes"
+          value={formatNumber(stats?.totalLikes || 0)}
+          icon={Heart}
+          trend={{ value: 0, label: "all time" }}
+          variant="sage"
+        />
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-8">
+        <StatCard
+          title="Total Shares"
+          value={formatNumber(stats?.totalShares || 0)}
+          icon={Share2}
+          trend={{ value: 0, label: "all time" }}
+          variant="peach"
+        />
+        <StatCard
           title="Interactions"
           value={formatNumber(stats?.totalSearches || 0)}
           icon={Activity}
           trend={{ value: 0, label: "this period" }}
-          variant="sage"
+          variant="coral"
         />
       </div>
 
@@ -272,8 +290,21 @@ export default function AdminDashboard() {
                   <p className="text-xs text-[#2c2420]/40 mt-0.5">by {item.creator}</p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-sm font-semibold text-[#2c2420]">{formatNumber(item.views)}</p>
-                  <p className="text-xs text-[#2c2420]/40">{item.saves} saves</p>
+                  <div className="flex items-center gap-2 text-xs text-[#2c2420]/60">
+                    <span className="flex items-center gap-0.5" title="Views">
+                      <Eye className="h-3 w-3" />
+                      {formatNumber(item.views)}
+                    </span>
+                    <span className="flex items-center gap-0.5" title="Likes">
+                      <Heart className="h-3 w-3" />
+                      {item.likes}
+                    </span>
+                    <span className="flex items-center gap-0.5" title="Shares">
+                      <Share2 className="h-3 w-3" />
+                      {item.shares}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#2c2420]/40 mt-0.5">{item.saves} saves</p>
                 </div>
               </Link>
             ))}

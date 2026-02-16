@@ -14,7 +14,10 @@ export function NotificationSettings() {
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
 
-  // In-app / push notification preferences (stored in user_preferences)
+  // Profile-level consent settings (stored in profiles table)
+  const [marketingConsent, setMarketingConsent] = useState(false)
+  const [browsingEmailsConsent, setBrowsingEmailsConsent] = useState(true)
+
   const [notifications, setNotifications] = useState({
     push: true,
     email: true,
@@ -38,8 +41,8 @@ export function NotificationSettings() {
       try {
         const supabase = createClient()
 
-        // Load notification preferences from user_preferences
-        const { data: prefs, error: prefsError } = await supabase
+        // Load notification preferences from user_preferences table
+        const { data: prefsData, error: prefsError } = await supabase
           .from("user_preferences")
           .select("notification_preferences")
           .eq("user_id", user.id)
@@ -49,27 +52,28 @@ export function NotificationSettings() {
           console.error("Error loading preferences:", prefsError)
         }
 
-        if (prefs?.notification_preferences) {
+        if (prefsData?.notification_preferences) {
           setNotifications((prev) => ({
             ...prev,
-            ...prefs.notification_preferences,
+            ...prefsData.notification_preferences,
           }))
         }
 
-        // Load marketing & activity digest consent from profiles
-        const { data: profile, error: profileError } = await supabase
+        // Load profile consent settings (marketing_consent, browsing_emails_consent)
+        const { data: profileData, error: profileError } = await supabase
           .from("profiles")
-          .select("marketing_consent, activity_digest_consent")
+          .select("marketing_consent, browsing_emails_consent")
           .eq("id", user.id)
           .single()
 
-        if (profileError && profileError.code !== "PGRST116") {
+        if (profileError) {
           console.error("Error loading profile consent:", profileError)
+          return
         }
 
-        if (profile) {
-          setMarketingConsent(profile.marketing_consent ?? false)
-          setActivityDigestConsent(profile.activity_digest_consent ?? true)
+        if (profileData) {
+          setMarketingConsent(profileData.marketing_consent ?? false)
+          setBrowsingEmailsConsent(profileData.browsing_emails_consent ?? true)
         }
       } catch (error) {
         console.error("Error loading preferences:", error)
@@ -101,7 +105,21 @@ export function NotificationSettings() {
     try {
       const supabase = createClient()
 
-      // 1. Save in-app notification preferences to user_preferences
+      // Update profile consent settings (marketing_consent, browsing_emails_consent)
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          marketing_consent: marketingConsent,
+          browsing_emails_consent: browsingEmailsConsent,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id)
+
+      if (profileError) {
+        throw profileError
+      }
+
+      // Try to update existing notification preferences
       const { error: updateError } = await supabase
         .from("user_preferences")
         .update({
@@ -260,23 +278,48 @@ export function NotificationSettings() {
         </div>
 
         <div className="space-y-4 pt-4 border-t">
-          <h3 className="text-sm font-medium text-muted-foreground">Marketing Emails</h3>
-          <p className="text-xs text-muted-foreground -mt-2">Promotional content from Tinerary. You can opt in or out at any time.</p>
+          <h3 className="text-sm font-medium text-muted-foreground">Email Preferences</h3>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Marketing & Promotions</p>
-                <p className="text-sm text-muted-foreground">Special deals, feature updates, newsletters, and travel inspiration</p>
+                <p className="font-medium">Marketing Emails</p>
+                <p className="text-sm text-muted-foreground">Receive emails about new features, travel tips, and special offers</p>
+              </div>
+              <Switch checked={marketingConsent} onCheckedChange={setMarketingConsent} />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Browsing Activity Emails</p>
+                <p className="text-sm text-muted-foreground">Personalized recommendations based on itineraries you&apos;ve viewed</p>
+              </div>
+              <Switch checked={browsingEmailsConsent} onCheckedChange={setBrowsingEmailsConsent} />
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4 pt-4 border-t">
+          <h3 className="text-sm font-medium text-muted-foreground">Marketing Notifications</h3>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Special Deals</p>
+                <p className="text-sm text-muted-foreground">In-app notifications about special deals and promotions</p>
               </div>
               <Switch checked={marketingConsent} onCheckedChange={() => setMarketingConsent(!marketingConsent)} />
             </div>
           </div>
         </div>
 
-        <div className="space-y-4 pt-4 border-t">
-          <h3 className="text-sm font-medium text-muted-foreground">Activity Digest</h3>
-          <p className="text-xs text-muted-foreground -mt-2">Personalised emails based on your browsing and activity on Tinerary.</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Product Updates</p>
+                <p className="text-sm text-muted-foreground">In-app notices about new features and improvements</p>
+              </div>
+              <Switch checked={notifications.productUpdates} onCheckedChange={() => handleToggle("productUpdates")} />
+            </div>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">

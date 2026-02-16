@@ -377,10 +377,10 @@ export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps)
                   />
                   <div className="flex-1">
                     <Label htmlFor="marketing" className="font-medium cursor-pointer">
-                      Marketing Emails
+                      Marketing Communications
                     </Label>
                     <p className="text-sm text-muted-foreground mt-1">
-                      I&apos;d like to receive travel tips, feature updates, and special offers from Tinerary. You can unsubscribe anytime from Notification Settings.
+                      I would like to receive emails about new features, travel tips, and special offers from Tinerary. You can unsubscribe at any time in your notification settings.
                     </p>
                   </div>
                 </div>

@@ -488,6 +488,21 @@ export default function EventPage() {
     }
   }, [id, user])
 
+  // Track view when event loads successfully
+  useEffect(() => {
+    if (!event || !id) return
+    const supabase = createClient()
+    // Increment view count in metrics (non-blocking)
+    supabase.rpc("increment_view_count", { itinerary_id: id }).catch(() => {})
+    // Track in user_interactions for analytics (non-blocking)
+    if (user?.id) {
+      supabase
+        .from("user_interactions")
+        .insert({ user_id: user.id, itinerary_id: id, interaction_type: "view" })
+        .then(({ error }) => { if (error) console.error("Failed to track view:", error) })
+    }
+  }, [event?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">

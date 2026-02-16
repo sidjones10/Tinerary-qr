@@ -18,6 +18,44 @@ export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary-app.
 
 // ─── Shared email shell ───────────────────────────────────────────────
 // Clean modern layout with Nohemi headings and warm cream + orange + black brand palette.
+// ─── Email logging ─────────────────────────────────────────────────
+// Logs every outbound email to the email_logs table for the admin
+// communications dashboard. Uses dynamic import to avoid circular deps.
+
+async function logEmail(params: {
+  recipientEmail: string
+  emailType: string
+  subject: string
+  status: "sent" | "failed"
+  errorMessage?: string
+  userId?: string
+  metadata?: Record<string, unknown>
+}) {
+  try {
+    const { createClient } = await import("@supabase/supabase-js")
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!supabaseUrl || !serviceKey) return
+
+    const admin = createClient(supabaseUrl, serviceKey)
+    await admin.from("email_logs").insert({
+      recipient_email: params.recipientEmail,
+      email_type: params.emailType,
+      subject: params.subject,
+      status: params.status,
+      error_message: params.errorMessage || null,
+      user_id: params.userId || null,
+      metadata: params.metadata || {},
+    })
+  } catch (err) {
+    // Never let logging failures break email delivery
+    console.error("Failed to log email:", err)
+  }
+}
+
+// ─── Shared postcard-style email shell ────────────────────────────────
+// Warm cream + orange + black palette matching the Tinerary brand logo.
+// Uses Google Fonts @import for the editorial serif "Playfair Display".
 // Every email wraps its unique body content with postcardEmail().
 
 export function postcardEmail(body: string, footerNote?: string): string {
@@ -199,10 +237,13 @@ export function postcardEmail(body: string, footerNote?: string): string {
 export async function sendWelcomeEmail(email: string, name: string) {
   try {
     const resend = getResendClient()
+    const subject = "Welcome aboard, traveler!"
     await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
       subject: "Welcome to Tinerary — the world is waiting for you",
+      subject,
+      subject: "You're in! Let the adventures begin",
       html: postcardEmail(`
         <!-- Logo header -->
         <div style="background:#F8F3EF;padding:36px 36px 20px;text-align:center;">
@@ -254,9 +295,11 @@ export async function sendWelcomeEmail(email: string, name: string) {
         </div>
       `, 'Happy travels from the Tinerary crew.'),
     })
+    await logEmail({ recipientEmail: email, emailType: "welcome", subject, status: "sent" })
     return { success: true }
   } catch (error: any) {
     console.error("Error sending welcome email:", error)
+    await logEmail({ recipientEmail: email, emailType: "welcome", subject: "Welcome aboard, traveler!", status: "failed", errorMessage: error.message })
     return { success: false, error: error.message }
   }
 }
@@ -276,10 +319,12 @@ export async function sendEventInviteEmail(
   try {
     const eventUrl = `${APP_URL}/event/${eventId}`
 
+    const subject = `You're invited to ${eventTitle}`
     const resend = getResendClient()
     await resend.emails.send({
       from: FROM_EMAIL,
       to: recipientEmail,
+      subject,
       subject: `You're invited: ${eventTitle}`,
       html: postcardEmail(`
         <div class="masthead">
@@ -315,9 +360,11 @@ export async function sendEventInviteEmail(
         </div>
       `, 'See you there!'),
     })
+    await logEmail({ recipientEmail, emailType: "event_invite", subject, status: "sent", metadata: { eventId } })
     return { success: true }
   } catch (error: any) {
     console.error("Error sending event invite email:", error)
+    await logEmail({ recipientEmail, emailType: "event_invite", subject: `You're invited to ${eventTitle}`, status: "failed", errorMessage: error.message })
     return { success: false, error: error.message }
   }
 }
@@ -338,10 +385,12 @@ export async function sendEventReminderEmail(
     const eventUrl = `${APP_URL}/event/${eventId}`
     const timeText = hoursUntil < 24 ? `in ${hoursUntil} hours` : `tomorrow`
 
+    const subject = `Reminder: ${eventTitle} is ${timeText}`
     const resend = getResendClient()
     await resend.emails.send({
       from: FROM_EMAIL,
       to: recipientEmail,
+      subject,
       subject: `Heads up! ${eventTitle} is ${timeText}`,
       html: postcardEmail(`
         <div class="masthead">
@@ -378,9 +427,11 @@ export async function sendEventReminderEmail(
         </div>
       `),
     })
+    await logEmail({ recipientEmail, emailType: "event_reminder", subject, status: "sent", metadata: { eventId } })
     return { success: true }
   } catch (error: any) {
     console.error("Error sending reminder email:", error)
+    await logEmail({ recipientEmail, emailType: "event_reminder", subject: `Reminder: ${eventTitle}`, status: "failed", errorMessage: error.message })
     return { success: false, error: error.message }
   }
 }
@@ -402,10 +453,12 @@ export async function sendNewFollowerEmail(
       ? `<img src="${followerAvatarUrl}" alt="${followerName}" style="width:72px;height:72px;border-radius:50%;border:3px solid #E8DDD4;margin:16px auto;display:block;">`
       : `<div style="width:72px;height:72px;border-radius:50%;background:#F8F3EF;border:3px solid #E8DDD4;margin:16px auto;display:flex;align-items:center;justify-content:center;font-family:'Nohemi','Nunito Sans',sans-serif;font-size:28px;color:#D4792C;font-weight:700;">${(followerName || '?')[0].toUpperCase()}</div>`
 
+    const subject = `${followerName} is now following your travels`
     const resend = getResendClient()
     await resend.emails.send({
       from: FROM_EMAIL,
       to: recipientEmail,
+      subject,
       subject: `${followerName} just joined your travel crew!`,
       html: postcardEmail(`
         <div class="masthead" style="background: linear-gradient(135deg, #D4792C 0%, #E09A5C 100%);">
@@ -428,9 +481,11 @@ export async function sendNewFollowerEmail(
         </div>
       `),
     })
+    await logEmail({ recipientEmail, emailType: "new_follower", subject, status: "sent" })
     return { success: true }
   } catch (error: any) {
     console.error("Error sending new follower email:", error)
+    await logEmail({ recipientEmail, emailType: "new_follower", subject: `${followerName} is now following your travels`, status: "failed", errorMessage: error.message })
     return { success: false, error: error.message }
   }
 }
@@ -449,10 +504,12 @@ export async function sendNewCommentEmail(
   try {
     const eventUrl = `${APP_URL}/event/${eventId}`
 
+    const subject = `${commenterName} left a note on ${eventTitle}`
     const resend = getResendClient()
     await resend.emails.send({
       from: FROM_EMAIL,
       to: recipientEmail,
+      subject,
       subject: `${commenterName} commented on ${eventTitle}`,
       html: postcardEmail(`
         <div class="masthead" style="background: linear-gradient(135deg, #D4792C 0%, #E09A5C 100%);">
@@ -477,9 +534,11 @@ export async function sendNewCommentEmail(
         </div>
       `),
     })
+    await logEmail({ recipientEmail, emailType: "new_comment", subject, status: "sent", metadata: { eventId } })
     return { success: true }
   } catch (error: any) {
     console.error("Error sending comment notification email:", error)
+    await logEmail({ recipientEmail, emailType: "new_comment", subject: `${commenterName} left a note on ${eventTitle}`, status: "failed", errorMessage: error.message })
     return { success: false, error: error.message }
   }
 }
@@ -491,11 +550,12 @@ export async function sendPasswordResetEmail(email: string, resetToken: string) 
   try {
     const resetUrl = `${APP_URL}/auth/reset-password?token=${resetToken}`
 
+    const subject = "Reset your Tinerary password"
     const resend = getResendClient()
     await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
-      subject: "Reset your Tinerary password",
+      subject,
       html: postcardEmail(`
         <div class="masthead" style="background:#1A1A1A;">
           <div class="stamp">Password Reset</div>
@@ -515,9 +575,11 @@ export async function sendPasswordResetEmail(email: string, resetToken: string) 
         </div>
       `),
     })
+    await logEmail({ recipientEmail: email, emailType: "password_reset", subject, status: "sent" })
     return { success: true }
   } catch (error: any) {
     console.error("Error sending password reset email:", error)
+    await logEmail({ recipientEmail: email, emailType: "password_reset", subject: "Reset your Tinerary password", status: "failed", errorMessage: error.message })
     return { success: false, error: error.message }
   }
 }
@@ -540,11 +602,12 @@ export async function sendCountdownReminderEmail(params: {
     const eventUrl = `${APP_URL}/event/${itineraryId}`
     const typeLabel = eventType === "trip" ? "trip" : "event"
 
+    const subject = `${timeRemaining} until ${itineraryTitle}!`
     const resend = getResendClient()
     await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
-      subject: `${timeRemaining} until ${itineraryTitle}!`,
+      subject,
       html: postcardEmail(`
         <div class="masthead" style="background: linear-gradient(135deg, #D4792C 0%, #E09A5C 100%);">
           <div class="stamp">Countdown</div>
@@ -577,9 +640,11 @@ export async function sendCountdownReminderEmail(params: {
         </div>
       `),
     })
+    await logEmail({ recipientEmail: email, emailType: "countdown_reminder", subject, status: "sent", metadata: { itineraryId } })
     return { success: true }
   } catch (error: any) {
     console.error("Error sending countdown reminder email:", error)
+    await logEmail({ recipientEmail: email, emailType: "countdown_reminder", subject: `${timeRemaining} until ${itineraryTitle}!`, status: "failed", errorMessage: error.message })
     return { success: false, error: error.message }
   }
 }
@@ -599,10 +664,12 @@ export async function sendEventStartedEmail(params: {
     const { email, name, itineraryTitle, itineraryId, location, eventType = "event" } = params
     const eventUrl = `${APP_URL}/event/${itineraryId}`
 
+    const subject = `${itineraryTitle} is happening now!`
     const resend = getResendClient()
     await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
+      subject,
       subject: `It's go time! ${itineraryTitle} is live`,
       html: postcardEmail(`
         <div class="masthead" style="background: linear-gradient(135deg, #D4792C 0%, #E09A5C 100%);">
@@ -629,9 +696,11 @@ export async function sendEventStartedEmail(params: {
         </div>
       `),
     })
+    await logEmail({ recipientEmail: email, emailType: "event_started", subject, status: "sent", metadata: { itineraryId } })
     return { success: true }
   } catch (error: any) {
     console.error("Error sending event started email:", error)
+    await logEmail({ recipientEmail: email, emailType: "event_started", subject: `${itineraryTitle} is happening now!`, status: "failed", errorMessage: error.message })
     return { success: false, error: error.message }
   }
 }
@@ -646,10 +715,12 @@ export async function sendWhatsNewEmail(params: {
   try {
     const { email, name } = params
 
+    const subject = "Postcards from the team: what's new on Tinerary"
     const resend = getResendClient()
     await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
+      subject,
       subject: "Fresh off the press: what's new on Tinerary",
       html: postcardEmail(`
         <div class="masthead" style="background:#1A1A1A;">
@@ -744,9 +815,98 @@ export async function sendWhatsNewEmail(params: {
         </div>
       `, 'You received this because you signed up for Tinerary.'),
     })
+    await logEmail({ recipientEmail: email, emailType: "whats_new", subject, status: "sent" })
     return { success: true }
   } catch (error: any) {
     console.error("Error sending what's new email:", error)
+    await logEmail({ recipientEmail: email, emailType: "whats_new", subject: "Postcards from the team: what's new on Tinerary", status: "failed", errorMessage: error.message })
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Send sign-in alert email with "That wasn't me" revoke link
+ */
+export async function sendSignInAlertEmail(params: {
+  email: string
+  name?: string
+  ipAddress?: string
+  userAgent?: string
+  deviceInfo?: string
+  revokeToken: string
+  signInTime: string
+}) {
+  try {
+    const { email, name, ipAddress, userAgent, deviceInfo, revokeToken, signInTime } = params
+    const revokeUrl = `${APP_URL}/api/auth/revoke-sessions?token=${revokeToken}`
+    const formattedTime = new Date(signInTime).toLocaleString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short",
+    })
+
+    // Parse a friendly device name from the user agent
+    let deviceDisplay = deviceInfo || "Unknown device"
+    if (!deviceInfo && userAgent) {
+      if (userAgent.includes("iPhone")) deviceDisplay = "iPhone"
+      else if (userAgent.includes("iPad")) deviceDisplay = "iPad"
+      else if (userAgent.includes("Android")) deviceDisplay = "Android device"
+      else if (userAgent.includes("Mac")) deviceDisplay = "Mac"
+      else if (userAgent.includes("Windows")) deviceDisplay = "Windows PC"
+      else if (userAgent.includes("Linux")) deviceDisplay = "Linux computer"
+      else deviceDisplay = "Web browser"
+    }
+
+    const subject = "New sign-in to your Tinerary account"
+    const resend = getResendClient()
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject,
+      html: postcardEmail(`
+        <div class="masthead" style="background:#3D3229;">
+          <div class="stamp">Security Alert</div>
+          <h1>New Sign-In Detected</h1>
+          <p class="subtitle">Your account was just accessed</p>
+        </div>
+        <div class="body-content">
+          <p>Hi ${name || "there"},</p>
+          <p>We noticed a new sign-in to your Tinerary account. Here are the details:</p>
+
+          <div class="info-card" style="background:#FFFDF9; border: 1px solid #D6C9B6; border-left: 3px solid #1A7B7E;">
+            <div class="detail-row">
+              <span class="detail-label">When:</span> ${formattedTime}
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Device:</span> ${deviceDisplay}
+            </div>
+            ${ipAddress ? `<div class="detail-row"><span class="detail-label">IP Address:</span> ${ipAddress}</div>` : ""}
+          </div>
+
+          <p>If this was you, no action is needed.</p>
+
+          <div class="info-card info-card-alert">
+            <strong>Wasn't you?</strong><br>
+            If you didn't sign in, someone else may have access to your account. Click below to immediately sign out all devices and secure your account.
+          </div>
+
+          <p style="text-align:center;margin:28px 0;">
+            <a href="${revokeUrl}" class="cta-btn" style="background:#C75B3A;">That Wasn't Me &mdash; Sign Out All Devices</a>
+          </p>
+
+          <p style="color:#9B8E7E;font-size:13px;">After signing out all devices, we recommend changing your password right away.</p>
+        </div>
+      `),
+    })
+    await logEmail({ recipientEmail: email, emailType: "signin_alert", subject, status: "sent" })
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error sending sign-in alert email:", error)
+    await logEmail({ recipientEmail: email, emailType: "signin_alert", subject: "New sign-in to your Tinerary account", status: "failed", errorMessage: error.message })
     return { success: false, error: error.message }
   }
 }
@@ -765,11 +925,12 @@ export async function sendAccountDeletionWarningEmail(params: {
     const { email, name, username, deletionDate, daysRemaining } = params
     const reactivateUrl = `${APP_URL}/settings/account`
 
+    const subject = `Your Tinerary account will be deleted in ${daysRemaining} days`
     const resend = getResendClient()
     await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
-      subject: `Your Tinerary account will be deleted in ${daysRemaining} days`,
+      subject,
       html: postcardEmail(`
         <div class="masthead" style="background:#1A1A1A;">
           <div class="stamp">Important Notice</div>
@@ -809,9 +970,11 @@ export async function sendAccountDeletionWarningEmail(params: {
         </div>
       `),
     })
+    await logEmail({ recipientEmail: email, emailType: "account_deletion_warning", subject, status: "sent" })
     return { success: true }
   } catch (error: any) {
     console.error("Error sending account deletion warning email:", error)
+    await logEmail({ recipientEmail: email, emailType: "account_deletion_warning", subject: `Account deletion in ${daysRemaining} days`, status: "failed", errorMessage: error.message })
     return { success: false, error: error.message }
   }
 }

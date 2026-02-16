@@ -2,9 +2,31 @@ import { NextResponse } from "next/server"
 import { createClient } from "@/utils/supabase/server"
 import { getSiteUrl } from "@/lib/env-validation"
 import { sendWelcomeEmail } from "@/lib/email-notifications"
+import { rateLimit, getClientIp } from "@/lib/rate-limit"
+
+// 5 sign-up attempts per IP per 15 minutes
+const SIGNUP_RATE_LIMIT = { maxRequests: 5, windowSeconds: 15 * 60 }
 
 export async function POST(request: Request) {
   try {
+    // Rate limit by IP
+    const ip = getClientIp(request)
+    const rl = await rateLimit(`signup:${ip}`, SIGNUP_RATE_LIMIT)
+    if (!rl.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Too many sign-up attempts. Please try again later.",
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+          },
+        },
+      )
+    }
+
     const { email, password, username } = await request.json()
 
     // Validate input
@@ -30,12 +52,22 @@ export async function POST(request: Request) {
       )
     }
 
-    // Validate password length
-    if (password.length < 6) {
+    // Validate password strength
+    if (password.length < 8) {
       return NextResponse.json(
         {
           success: false,
-          message: "Password must be at least 6 characters long",
+          message: "Password must be at least 8 characters long",
+        },
+        { status: 400 },
+      )
+    }
+
+    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Password must contain at least one uppercase letter, one lowercase letter, and one number",
         },
         { status: 400 },
       )

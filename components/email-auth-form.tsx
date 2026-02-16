@@ -214,10 +214,19 @@ export default function EmailAuthForm() {
       return
     }
 
-    if (formData.password.length < 6) {
+    if (formData.password.length < 8) {
       toast({
         title: "Password Too Short",
-        description: "Password must be at least 6 characters long",
+        description: "Password must be at least 8 characters long",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!/[A-Z]/.test(formData.password) || !/[a-z]/.test(formData.password) || !/[0-9]/.test(formData.password)) {
+      toast({
+        title: "Weak Password",
+        description: "Password must contain at least one uppercase letter, one lowercase letter, and one number",
         variant: "destructive",
       })
       return
@@ -544,7 +553,7 @@ export default function EmailAuthForm() {
                       id="signup-password"
                       name="password"
                       type={showPassword ? "text" : "password"}
-                      placeholder="Create a password (min 6 characters)"
+                      placeholder="Min 8 chars, uppercase, lowercase, number"
                       value={formData.password}
                       onChange={handleInputChange}
                       required

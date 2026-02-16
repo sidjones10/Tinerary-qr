@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { DeleteAccountDialog } from "@/components/delete-account-dialog"
+import { MfaSettings } from "@/components/mfa-settings"
 import { createClient } from "@/lib/supabase/client"
 
 export function AccountSettings() {
@@ -163,6 +164,8 @@ export function AccountSettings() {
           </form>
         </CardContent>
       </Card>
+
+      <MfaSettings />
 
       <Card className="border-destructive">
         <CardHeader>

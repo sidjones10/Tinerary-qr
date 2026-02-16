@@ -102,6 +102,7 @@
     "sonner": "^1.7.1",
     "sql.js": "^1.13.0",
     "sqlite3": "^5.1.7",
+    "svix": "^1.85.0",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "twilio": "^5.5.0",

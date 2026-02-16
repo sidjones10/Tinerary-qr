@@ -13,6 +13,10 @@ import {
   Send,
   TrendingUp,
   AlertCircle,
+  Eye,
+  MousePointerClick,
+  Ban,
+  Inbox,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -24,7 +28,13 @@ interface EmailLog {
   email_type: string
   subject: string
   status: string
+  resend_id: string | null
   error_message: string | null
+  delivered_at: string | null
+  opened_at: string | null
+  clicked_at: string | null
+  bounced_at: string | null
+  complained_at: string | null
   metadata: Record<string, unknown>
   created_at: string
 }
@@ -32,8 +42,11 @@ interface EmailLog {
 interface EmailStats {
   total: number
   sent: number
+  delivered: number
+  opened: number
+  bounced: number
   failed: number
-  byType: Record<string, { sent: number; failed: number }>
+  byType: Record<string, { sent: number; delivered: number; failed: number }>
   last24h: number
   last7d: number
 }
@@ -66,18 +79,26 @@ const emailTypeColors: Record<string, string> = {
   account_deletion_warning: "bg-red-100 text-red-700",
 }
 
+const statusConfig: Record<string, { label: string; className: string; icon: typeof CheckCircle }> = {
+  sent: { label: "Sent", className: "bg-blue-100 text-blue-700", icon: Send },
+  delivered: { label: "Delivered", className: "bg-green-100 text-green-700", icon: Inbox },
+  delayed: { label: "Delayed", className: "bg-amber-100 text-amber-700", icon: Clock },
+  bounced: { label: "Bounced", className: "bg-red-100 text-red-700", icon: Ban },
+  complained: { label: "Spam", className: "bg-red-100 text-red-700", icon: AlertCircle },
+  failed: { label: "Failed", className: "bg-red-100 text-red-700", icon: XCircle },
+}
+
 export default function AdminCommunicationsPage() {
   const [logs, setLogs] = useState<EmailLog[]>([])
   const [stats, setStats] = useState<EmailStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [filter, setFilter] = useState<"all" | "sent" | "failed">("all")
+  const [filter, setFilter] = useState<string>("all")
   const [typeFilter, setTypeFilter] = useState<string>("all")
 
   const fetchLogs = useCallback(async () => {
     setIsLoading(true)
     const supabase = createClient()
 
-    // Fetch logs
     let query = supabase
       .from("email_logs")
       .select("*")
@@ -106,7 +127,7 @@ export default function AdminCommunicationsPage() {
     // Compute stats from all data (unfiltered)
     const { data: allData } = await supabase
       .from("email_logs")
-      .select("status, email_type, created_at")
+      .select("status, email_type, created_at, opened_at")
       .order("created_at", { ascending: false })
       .limit(5000)
 
@@ -115,26 +136,34 @@ export default function AdminCommunicationsPage() {
       const h24 = new Date(now.getTime() - 24 * 60 * 60 * 1000)
       const d7 = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
 
-      const byType: Record<string, { sent: number; failed: number }> = {}
+      const byType: Record<string, { sent: number; delivered: number; failed: number }> = {}
       let sent = 0
+      let delivered = 0
+      let opened = 0
+      let bounced = 0
       let failed = 0
       let last24h = 0
       let last7d = 0
 
       for (const row of allData) {
-        if (row.status === "sent") sent++
+        if (row.status === "delivered") delivered++
+        else if (row.status === "sent" || row.status === "delayed") sent++
+        else if (row.status === "bounced") bounced++
         else failed++
+
+        if (row.opened_at) opened++
 
         const created = new Date(row.created_at)
         if (created >= h24) last24h++
         if (created >= d7) last7d++
 
-        if (!byType[row.email_type]) byType[row.email_type] = { sent: 0, failed: 0 }
-        if (row.status === "sent") byType[row.email_type].sent++
+        if (!byType[row.email_type]) byType[row.email_type] = { sent: 0, delivered: 0, failed: 0 }
+        if (row.status === "delivered") byType[row.email_type].delivered++
+        else if (row.status === "sent" || row.status === "delayed") byType[row.email_type].sent++
         else byType[row.email_type].failed++
       }
 
-      setStats({ total: allData.length, sent, failed, byType, last24h, last7d })
+      setStats({ total: allData.length, sent, delivered, opened, bounced, failed, byType, last24h, last7d })
     }
 
     setIsLoading(false)
@@ -159,7 +188,15 @@ export default function AdminCommunicationsPage() {
     return date.toLocaleDateString()
   }
 
-  const successRate = stats && stats.total > 0 ? ((stats.sent / stats.total) * 100).toFixed(1) : "0"
+  const deliveryRate =
+    stats && stats.total > 0
+      ? (((stats.delivered + stats.sent) / stats.total) * 100).toFixed(1)
+      : "0"
+
+  const openRate =
+    stats && (stats.delivered + stats.sent) > 0
+      ? ((stats.opened / (stats.delivered + stats.sent)) * 100).toFixed(1)
+      : "0"
 
   return (
     <div className="p-4 lg:p-8 max-w-[1400px] mx-auto">
@@ -173,7 +210,7 @@ export default function AdminCommunicationsPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-[#2c2420]">Communications</h1>
-            <p className="text-sm text-[#2c2420]/50">Track all outbound email activity</p>
+            <p className="text-sm text-[#2c2420]/50">Track all outbound email activity and delivery</p>
           </div>
         </div>
         <Button variant="outline" size="sm" onClick={fetchLogs}>
@@ -184,38 +221,48 @@ export default function AdminCommunicationsPage() {
 
       {/* Stats cards */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-white/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-4">
             <div className="flex items-center gap-2 text-[#2c2420]/50 mb-1">
               <Send className="h-4 w-4" />
-              <span className="text-xs font-medium">Total Sent</span>
+              <span className="text-xs font-medium">Total Emails</span>
             </div>
-            <p className="text-2xl font-bold text-[#2c2420]">{stats.sent.toLocaleString()}</p>
-            <p className="text-xs text-[#2c2420]/40 mt-1">{stats.total.toLocaleString()} total</p>
+            <p className="text-2xl font-bold text-[#2c2420]">{stats.total.toLocaleString()}</p>
+            <p className="text-xs text-[#2c2420]/40 mt-1">
+              {stats.last24h} today &middot; {stats.last7d} this week
+            </p>
+          </div>
+          <div className="bg-white/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-4">
+            <div className="flex items-center gap-2 text-green-600/70 mb-1">
+              <Inbox className="h-4 w-4" />
+              <span className="text-xs font-medium">Delivered</span>
+            </div>
+            <p className="text-2xl font-bold text-[#2c2420]">{stats.delivered.toLocaleString()}</p>
+            <p className="text-xs text-[#2c2420]/40 mt-1">{deliveryRate}% delivery rate</p>
+          </div>
+          <div className="bg-white/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-4">
+            <div className="flex items-center gap-2 text-blue-600/70 mb-1">
+              <Eye className="h-4 w-4" />
+              <span className="text-xs font-medium">Opened</span>
+            </div>
+            <p className="text-2xl font-bold text-[#2c2420]">{stats.opened.toLocaleString()}</p>
+            <p className="text-xs text-[#2c2420]/40 mt-1">{openRate}% open rate</p>
+          </div>
+          <div className="bg-white/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-4">
+            <div className="flex items-center gap-2 text-red-500/70 mb-1">
+              <Ban className="h-4 w-4" />
+              <span className="text-xs font-medium">Bounced</span>
+            </div>
+            <p className="text-2xl font-bold text-[#2c2420]">{stats.bounced.toLocaleString()}</p>
+            <p className="text-xs text-[#2c2420]/40 mt-1">{stats.failed} failed to send</p>
           </div>
           <div className="bg-white/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-4">
             <div className="flex items-center gap-2 text-[#2c2420]/50 mb-1">
               <TrendingUp className="h-4 w-4" />
               <span className="text-xs font-medium">Success Rate</span>
             </div>
-            <p className="text-2xl font-bold text-[#2c2420]">{successRate}%</p>
-            <p className="text-xs text-[#2c2420]/40 mt-1">{stats.failed} failed</p>
-          </div>
-          <div className="bg-white/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-4">
-            <div className="flex items-center gap-2 text-[#2c2420]/50 mb-1">
-              <Clock className="h-4 w-4" />
-              <span className="text-xs font-medium">Last 24 hours</span>
-            </div>
-            <p className="text-2xl font-bold text-[#2c2420]">{stats.last24h.toLocaleString()}</p>
-            <p className="text-xs text-[#2c2420]/40 mt-1">emails sent</p>
-          </div>
-          <div className="bg-white/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-4">
-            <div className="flex items-center gap-2 text-[#2c2420]/50 mb-1">
-              <Mail className="h-4 w-4" />
-              <span className="text-xs font-medium">Last 7 days</span>
-            </div>
-            <p className="text-2xl font-bold text-[#2c2420]">{stats.last7d.toLocaleString()}</p>
-            <p className="text-xs text-[#2c2420]/40 mt-1">emails sent</p>
+            <p className="text-2xl font-bold text-[#2c2420]">{deliveryRate}%</p>
+            <p className="text-xs text-[#2c2420]/40 mt-1">delivered or in transit</p>
           </div>
         </div>
       )}
@@ -226,18 +273,21 @@ export default function AdminCommunicationsPage() {
           <h3 className="text-sm font-semibold text-[#2c2420] mb-3">Breakdown by Type</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {Object.entries(stats.byType)
-              .sort(([, a], [, b]) => (b.sent + b.failed) - (a.sent + a.failed))
+              .sort(([, a], [, b]) => (b.sent + b.delivered + b.failed) - (a.sent + a.delivered + a.failed))
               .map(([type, counts]) => (
                 <div key={type} className="flex items-center justify-between p-2 rounded-lg bg-white/50">
-                  <div className="flex items-center gap-2">
-                    <Badge className={emailTypeColors[type] || "bg-gray-100 text-gray-700"} variant="secondary">
-                      {emailTypeLabels[type] || type}
-                    </Badge>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-sm font-semibold text-[#2c2420]">{counts.sent}</span>
+                  <Badge className={emailTypeColors[type] || "bg-gray-100 text-gray-700"} variant="secondary">
+                    {emailTypeLabels[type] || type}
+                  </Badge>
+                  <div className="text-right text-xs">
+                    {counts.delivered > 0 && (
+                      <span className="text-green-600 font-semibold">{counts.delivered} delivered</span>
+                    )}
+                    {counts.sent > 0 && (
+                      <span className="text-blue-600 font-semibold ml-1">{counts.sent} sent</span>
+                    )}
                     {counts.failed > 0 && (
-                      <span className="text-xs text-red-500 ml-1">({counts.failed} failed)</span>
+                      <span className="text-red-500 ml-1">({counts.failed} failed)</span>
                     )}
                   </div>
                 </div>
@@ -248,22 +298,30 @@ export default function AdminCommunicationsPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-6">
-        <div className="flex gap-2">
-          {(["all", "sent", "failed"] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-                filter === f
-                  ? "bg-[#2c2420] text-white"
-                  : "bg-white/60 text-[#2c2420]/60 hover:bg-white hover:text-[#2c2420]"
-              }`}
-            >
-              {f === "sent" && <CheckCircle className="h-4 w-4 inline mr-2" />}
-              {f === "failed" && <XCircle className="h-4 w-4 inline mr-2" />}
-              {f.charAt(0).toUpperCase() + f.slice(1)}
-            </button>
-          ))}
+        <div className="flex gap-2 flex-wrap">
+          {(["all", "sent", "delivered", "bounced", "failed"] as const).map((f) => {
+            const icons: Record<string, typeof CheckCircle> = {
+              sent: Send,
+              delivered: Inbox,
+              bounced: Ban,
+              failed: XCircle,
+            }
+            const Icon = icons[f]
+            return (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                  filter === f
+                    ? "bg-[#2c2420] text-white"
+                    : "bg-white/60 text-[#2c2420]/60 hover:bg-white hover:text-[#2c2420]"
+                }`}
+              >
+                {Icon && <Icon className="h-4 w-4 inline mr-2" />}
+                {f.charAt(0).toUpperCase() + f.slice(1)}
+              </button>
+            )
+          })}
         </div>
         <select
           value={typeFilter}
@@ -289,59 +347,109 @@ export default function AdminCommunicationsPage() {
           <p className="text-sm text-[#2c2420]/50">
             {filter === "failed"
               ? "No failed emails — that's great!"
+              : filter === "bounced"
+              ? "No bounced emails — that's great!"
               : "Email logs will appear here as emails are sent."}
           </p>
         </div>
       ) : (
         <div className="space-y-2">
-          {logs.map((log) => (
-            <div
-              key={log.id}
-              className={`bg-white/70 backdrop-blur rounded-2xl border transition-all p-4 ${
-                log.status === "failed" ? "border-red-200" : "border-[#2c2420]/5"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                    <Badge className={emailTypeColors[log.email_type] || "bg-gray-100 text-gray-700"} variant="secondary">
-                      {emailTypeLabels[log.email_type] || log.email_type}
-                    </Badge>
-                    {log.status === "sent" ? (
-                      <Badge className="bg-green-100 text-green-700" variant="secondary">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Sent
+          {logs.map((log) => {
+            const cfg = statusConfig[log.status] || statusConfig.failed
+            const StatusIcon = cfg.icon
+            return (
+              <div
+                key={log.id}
+                className={`bg-white/70 backdrop-blur rounded-2xl border transition-all p-4 ${
+                  log.status === "bounced" || log.status === "failed" || log.status === "complained"
+                    ? "border-red-200"
+                    : log.status === "delivered"
+                    ? "border-green-200"
+                    : "border-[#2c2420]/5"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                      <Badge className={emailTypeColors[log.email_type] || "bg-gray-100 text-gray-700"} variant="secondary">
+                        {emailTypeLabels[log.email_type] || log.email_type}
                       </Badge>
-                    ) : (
-                      <Badge className="bg-red-100 text-red-700" variant="secondary">
-                        <XCircle className="h-3 w-3 mr-1" />
-                        Failed
+                      <Badge className={cfg.className} variant="secondary">
+                        <StatusIcon className="h-3 w-3 mr-1" />
+                        {cfg.label}
                       </Badge>
+                      {log.opened_at && (
+                        <Badge className="bg-blue-50 text-blue-600" variant="secondary">
+                          <Eye className="h-3 w-3 mr-1" />
+                          Opened
+                        </Badge>
+                      )}
+                      {log.clicked_at && (
+                        <Badge className="bg-violet-50 text-violet-600" variant="secondary">
+                          <MousePointerClick className="h-3 w-3 mr-1" />
+                          Clicked
+                        </Badge>
+                      )}
+                      <span className="text-xs text-[#2c2420]/40 flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {formatTime(log.created_at)}
+                      </span>
+                    </div>
+                    <p className="text-sm font-medium text-[#2c2420] truncate">{log.subject}</p>
+                    <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                      <p className="text-xs text-[#2c2420]/50">
+                        To: {log.recipient_email}
+                      </p>
+                      {log.delivered_at && (
+                        <span className="text-xs text-green-600">
+                          Delivered {formatTime(log.delivered_at)}
+                        </span>
+                      )}
+                      {log.opened_at && (
+                        <span className="text-xs text-blue-600">
+                          Opened {formatTime(log.opened_at)}
+                        </span>
+                      )}
+                    </div>
+                    {log.error_message && (
+                      <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                        {log.error_message}
+                      </p>
                     )}
-                    <span className="text-xs text-[#2c2420]/40 flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {formatTime(log.created_at)}
-                    </span>
                   </div>
-                  <p className="text-sm font-medium text-[#2c2420] truncate">{log.subject}</p>
-                  <p className="text-xs text-[#2c2420]/50 mt-0.5">
-                    To: {log.recipient_email}
-                  </p>
-                  {log.error_message && (
-                    <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3 flex-shrink-0" />
-                      {log.error_message}
-                    </p>
-                  )}
+                  <span className="text-xs text-[#2c2420]/30 whitespace-nowrap">
+                    {new Date(log.created_at).toLocaleString()}
+                  </span>
                 </div>
-                <span className="text-xs text-[#2c2420]/30 whitespace-nowrap">
-                  {new Date(log.created_at).toLocaleString()}
-                </span>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
+
+      {/* Webhook info */}
+      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <div className="flex gap-3">
+          <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-blue-800">
+            <strong>Resend Webhooks:</strong> Delivery, open, and bounce tracking is powered by Resend
+            webhooks. Configure your webhook URL in the{" "}
+            <span className="font-mono text-xs bg-blue-100 px-1 py-0.5 rounded">
+              Resend Dashboard &rarr; Webhooks
+            </span>{" "}
+            pointing to{" "}
+            <code className="bg-blue-100 px-1 py-0.5 rounded text-xs">
+              /api/webhooks/resend
+            </code>{" "}
+            and set{" "}
+            <code className="bg-blue-100 px-1 py-0.5 rounded text-xs">
+              RESEND_WEBHOOK_SECRET
+            </code>{" "}
+            in your environment.
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

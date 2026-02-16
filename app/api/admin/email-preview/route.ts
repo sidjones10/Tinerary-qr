@@ -28,11 +28,6 @@ const templates: Record<string, { subject: string; html: string }> = {
         <img src="${APP_URL}/email/tinerary-logo.png" alt="Tinerary" style="width:220px;height:auto;" width="220">
       </div>
 
-      <!-- Hero travel image -->
-      <div style="padding:0;">
-        <img src="${APP_URL}/email/welcome-hero.jpg" alt="Your next adventure awaits" style="display:block;width:100%;height:auto;" width="600">
-      </div>
-
       <!-- Welcome heading -->
       <div style="padding:40px 36px 0;text-align:center;">
         <h1 style="font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:36px;color:#D4792C;margin:0 0 10px;line-height:1.2;">Welcome to Tinerary</h1>
@@ -42,6 +37,11 @@ const templates: Record<string, { subject: string; html: string }> = {
       <!-- Body -->
       <div class="body-content" style="padding-top:0;">
         <p style="font-size:16px;line-height:1.7;text-align:center;">Hi ${SAMPLE.name}, we're so glad you're here. Tinerary is your home for planning trips, sharing adventures, and making every journey unforgettable.</p>
+
+        <!-- Hero travel image -->
+        <div style="text-align:center;margin:24px 0;">
+          <img src="${APP_URL}/email/welcome-hero.jpg" alt="Your next adventure awaits" style="display:inline-block;width:80%;max-width:480px;height:auto;border-radius:12px;" width="480">
+        </div>
 
         <hr class="divider">
 

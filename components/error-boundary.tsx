@@ -5,6 +5,7 @@ import { AlertTriangle, RefreshCw, Home } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
+import { logReactError } from "@/lib/error-logger"
 
 interface Props {
   children: ReactNode
@@ -54,8 +55,8 @@ export class ErrorBoundary extends Component<Props, State> {
       this.props.onError(error, errorInfo)
     }
 
-    // TODO: Send to error tracking service (Sentry, LogRocket, etc.)
-    // logErrorToService(error, errorInfo)
+    // Log to error_logs table for admin error tracking
+    logReactError(error, { componentStack: errorInfo.componentStack || "" })
   }
 
   handleReset = () => {

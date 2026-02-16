@@ -12,6 +12,9 @@ export const metadata: Metadata = {
   title: "Tinerary",
   description: "Create and share your travel itineraries",
   generator: 'v0.app',
+  icons: {
+    icon: '/icon.svg',
+  },
   viewport: {
     width: 'device-width',
     initialScale: 1,

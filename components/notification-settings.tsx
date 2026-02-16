@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect } from "react"
 import { useToast } from "@/components/ui/use-toast"
-import { Loader2 } from "lucide-react"
+import { Loader2, Lock } from "lucide-react"
 import { useAuth } from "@/providers/auth-provider"
 import { createClient } from "@/lib/supabase/client"
 
@@ -167,6 +167,42 @@ export function NotificationSettings() {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">
+          <div className="flex items-center gap-1.5">
+            <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+            <h3 className="text-sm font-medium text-muted-foreground">Security (Always On)</h3>
+          </div>
+          <p className="text-xs text-muted-foreground -mt-2">
+            These settings are required for account security and cannot be turned off.
+          </p>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Sign-in alerts</p>
+                <p className="text-sm text-muted-foreground">Get an email every time someone signs in to your account</p>
+              </div>
+              <Switch checked disabled />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Email confirmation</p>
+                <p className="text-sm text-muted-foreground">Verify your email address to keep your account secure</p>
+              </div>
+              <Switch checked disabled />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Phone number verification</p>
+                <p className="text-sm text-muted-foreground">Keep a verified phone number on your account for recovery</p>
+              </div>
+              <Switch checked disabled />
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4 pt-4 border-t">
           <h3 className="text-sm font-medium text-muted-foreground">Notification Channels</h3>
 
           <div className="space-y-3">

@@ -1,9 +1,31 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/utils/supabase/server"
 import { sendSignInAlertEmail } from "@/lib/email-notifications"
+import { rateLimit, getClientIp } from "@/lib/rate-limit"
+
+// 5 sign-in attempts per IP per 15 minutes
+const SIGNIN_RATE_LIMIT = { maxRequests: 5, windowSeconds: 15 * 60 }
 
 export async function POST(request: Request) {
   try {
+    // Rate limit by IP
+    const ip = getClientIp(request)
+    const rl = await rateLimit(`signin:${ip}`, SIGNIN_RATE_LIMIT)
+    if (!rl.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Too many sign-in attempts. Please try again later.",
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+          },
+        },
+      )
+    }
+
     const { email, password } = await request.json()
 
     if (!email || !password) {

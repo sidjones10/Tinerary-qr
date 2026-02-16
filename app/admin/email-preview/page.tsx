@@ -29,6 +29,7 @@ export default function EmailPreviewPage() {
   const [templates, setTemplates] = useState<TemplateInfo[]>([])
   const [selected, setSelected] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [htmlContent, setHtmlContent] = useState<string>("")
 
   useEffect(() => {
     fetch("/api/admin/email-preview")
@@ -41,6 +42,14 @@ export default function EmailPreviewPage() {
       })
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (!selected) return
+    setHtmlContent("")
+    fetch(`/api/admin/email-preview?template=${selected}`)
+      .then((r) => r.text())
+      .then(setHtmlContent)
+  }, [selected])
 
   const selectedTemplate = templates.find((t) => t.id === selected)
 
@@ -114,7 +123,7 @@ export default function EmailPreviewPage() {
           </div>
           <iframe
             key={selected}
-            src={`/api/admin/email-preview?template=${selected}`}
+            srcDoc={htmlContent}
             title={`Preview: ${selected}`}
             className="w-full border-0"
             style={{ height: "80vh" }}

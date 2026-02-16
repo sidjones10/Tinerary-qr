@@ -329,37 +329,58 @@ export async function sendEventInviteEmail(
       subject,
       subject: `You're invited: ${eventTitle}`,
       html: postcardEmail(`
-        <div class="masthead">
-          <div class="stamp">You're Invited</div>
-          <h1>${eventTitle}</h1>
-          <p class="subtitle">${inviterName} wants you there!</p>
+        <!-- Logo banner -->
+        <div style="background:#F8F3EF;padding:28px 36px;text-align:center;">
+          <img src="${APP_URL}/email/tinerary-logo.png" alt="Tinerary" style="width:180px;height:auto;" width="180">
         </div>
-        <div class="body-content">
-          <p>Hi ${recipientName},</p>
-          <p>Great news &mdash; <strong>${inviterName}</strong> has saved you a spot and your presence is officially requested!</p>
 
-          <div style="background:#FCFAF8;border:2px solid #E8DDD4;border-radius:8px;padding:20px 24px;margin:20px 0;text-align:center;">
-            <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#9B8E7E;margin-bottom:10px;">Admit One</div>
-            <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:22px;font-weight:700;color:#D4792C;margin-bottom:14px;">${eventTitle}</div>
-            <table width="100%" cellpadding="0" cellspacing="0">
-              <tr>
-                <td style="text-align:center;padding:8px 0;border-top:1px solid #E8DDD4;">
-                  <span class="detail-label">When:</span> ${eventDate}
-                </td>
-              </tr>
-              <tr>
-                <td style="text-align:center;padding:8px 0;border-top:1px solid #E8DDD4;">
-                  <span class="detail-label">Where:</span> ${eventLocation}
-                </td>
-              </tr>
-            </table>
-          </div>
+        <!-- Divider -->
+        <div style="border-top:3px solid #2c2420;margin:0;"></div>
 
-          <hr class="divider">
-          <p style="text-align:center;">
-            <a href="${eventUrl}" class="cta-btn">View Event &amp; RSVP</a>
-          </p>
+        <!-- Hero block -->
+        <div style="background:#D4792C;padding:48px 36px;text-align:center;">
+          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:rgba(252,250,248,0.7);margin-bottom:16px;">Guess What</div>
+          <h1 style="margin:0;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:40px;color:#FCFAF8;line-height:1.1;">You're Invited!</h1>
         </div>
+
+        <!-- Event details block -->
+        <div style="background:#2c2420;padding:36px;text-align:center;">
+          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:3px;color:#D4792C;margin-bottom:16px;">The Event</div>
+          <h2 style="margin:0 0 20px;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:28px;color:#FCFAF8;line-height:1.2;">${eventTitle}</h2>
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="width:50%;padding:12px 8px;text-align:center;border:2px solid rgba(252,250,248,0.15);border-radius:12px 0 0 12px;">
+                <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#D4792C;margin-bottom:6px;">When</div>
+                <div style="font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;color:#FCFAF8;">${eventDate}</div>
+              </td>
+              <td style="width:50%;padding:12px 8px;text-align:center;border:2px solid rgba(252,250,248,0.15);border-left:none;border-radius:0 12px 12px 0;">
+                <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#D4792C;margin-bottom:6px;">Where</div>
+                <div style="font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;color:#FCFAF8;">${eventLocation}</div>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Divider -->
+        <div style="border-top:3px solid #2c2420;margin:0;"></div>
+
+        <!-- Invited by block -->
+        <div style="background:#F8F3EF;padding:32px 36px;text-align:center;">
+          <div style="font-family:'Nunito Sans',sans-serif;font-size:15px;color:#5C4F42;margin-bottom:4px;">Invited by</div>
+          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:22px;color:#2c2420;">${inviterName}</div>
+        </div>
+
+        <!-- Divider -->
+        <div style="border-top:3px solid #2c2420;margin:0;"></div>
+
+        <!-- CTA block -->
+        <div style="background:#D4792C;padding:40px 36px;text-align:center;">
+          <p style="margin:0 0 24px;font-family:'Nunito Sans',sans-serif;font-size:17px;font-weight:600;color:#FCFAF8;line-height:1.5;">Click the link to be part of the itinerary</p>
+          <a href="${eventUrl}" style="display:inline-block;background:#FCFAF8;color:#D4792C;padding:16px 48px;text-decoration:none;border-radius:28px;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.5px;">View Event &amp; RSVP</a>
+        </div>
+
+        <!-- Divider -->
+        <div style="border-top:3px solid #2c2420;margin:0;"></div>
       `, 'See you there!'),
     })
     await logEmail({ recipientEmail, emailType: "event_invite", subject, status: "sent", resendId: resendData?.id, metadata: { eventId } })

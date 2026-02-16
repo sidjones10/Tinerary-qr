@@ -5,38 +5,46 @@
 -- Also add upsert logic so metrics rows are created if missing.
 
 -- ============================================================================
--- 1. Fix increment_view_count - add SECURITY DEFINER and upsert
+-- 0. Drop existing RPC functions so we can recreate with SECURITY DEFINER
+--    (Trigger functions don't need DROP since their signatures are unchanged)
 -- ============================================================================
-CREATE OR REPLACE FUNCTION increment_view_count(p_itinerary_id UUID)
+DROP FUNCTION IF EXISTS increment_view_count(UUID);
+DROP FUNCTION IF EXISTS increment_save_count(UUID);
+DROP FUNCTION IF EXISTS increment_share_count(UUID);
+
+-- ============================================================================
+-- 1. Recreate increment_view_count with SECURITY DEFINER and upsert
+-- ============================================================================
+CREATE OR REPLACE FUNCTION increment_view_count(itinerary_id UUID)
 RETURNS void AS $$
 BEGIN
   -- Create metrics row if it doesn't exist
   INSERT INTO itinerary_metrics (itinerary_id, view_count)
-  VALUES (p_itinerary_id, 0)
+  VALUES ($1, 0)
   ON CONFLICT (itinerary_id) DO NOTHING;
 
   -- Increment view count
   UPDATE itinerary_metrics
   SET view_count = view_count + 1, updated_at = NOW()
-  WHERE itinerary_id = p_itinerary_id;
+  WHERE itinerary_metrics.itinerary_id = $1;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================================================
--- 2. Fix increment_save_count - add SECURITY DEFINER and upsert
+-- 2. Recreate increment_save_count with SECURITY DEFINER and upsert
 -- ============================================================================
-CREATE OR REPLACE FUNCTION increment_save_count(p_itinerary_id UUID)
+CREATE OR REPLACE FUNCTION increment_save_count(itinerary_id UUID)
 RETURNS void AS $$
 BEGIN
   -- Create metrics row if it doesn't exist
   INSERT INTO itinerary_metrics (itinerary_id, save_count)
-  VALUES (p_itinerary_id, 0)
+  VALUES ($1, 0)
   ON CONFLICT (itinerary_id) DO NOTHING;
 
   -- Increment save count
   UPDATE itinerary_metrics
   SET save_count = save_count + 1, updated_at = NOW()
-  WHERE itinerary_id = p_itinerary_id;
+  WHERE itinerary_metrics.itinerary_id = $1;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -79,20 +87,20 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================================================
--- 5. Fix increment_share_count - add SECURITY DEFINER and upsert
+-- 5. Recreate increment_share_count with SECURITY DEFINER and upsert
 -- ============================================================================
-CREATE OR REPLACE FUNCTION increment_share_count(p_itinerary_id UUID)
+CREATE OR REPLACE FUNCTION increment_share_count(itinerary_id UUID)
 RETURNS void AS $$
 BEGIN
   -- Create metrics row if it doesn't exist
   INSERT INTO itinerary_metrics (itinerary_id, share_count)
-  VALUES (p_itinerary_id, 0)
+  VALUES ($1, 0)
   ON CONFLICT (itinerary_id) DO NOTHING;
 
   -- Increment share count
   UPDATE itinerary_metrics
   SET share_count = share_count + 1, updated_at = NOW()
-  WHERE itinerary_id = p_itinerary_id;
+  WHERE itinerary_metrics.itinerary_id = $1;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

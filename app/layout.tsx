@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/providers/auth-provider"
 import { ConsentProvider } from "@/providers/consent-provider"
 import { OnboardingWrapper } from "@/components/onboarding-wrapper"
+import { GlobalErrorHandler } from "@/components/global-error-handler"
 
 export const metadata: Metadata = {
   title: "Tinerary",
@@ -35,11 +36,13 @@ export default function RootLayout({
       <body className="font-sans" suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
           <AuthProvider>
-            <ConsentProvider>
-              <OnboardingWrapper>
-                {children}
-              </OnboardingWrapper>
-            </ConsentProvider>
+            <GlobalErrorHandler>
+              <ConsentProvider>
+                <OnboardingWrapper>
+                  {children}
+                </OnboardingWrapper>
+              </ConsentProvider>
+            </GlobalErrorHandler>
             <Toaster />
           </AuthProvider>
         </ThemeProvider>

@@ -99,11 +99,32 @@ export default function AdminAnalyticsPage() {
       const startDate = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000)
       const previousStartDate = new Date(startDate.getTime() - daysAgo * 24 * 60 * 60 * 1000)
 
-      // Fetch user interactions for daily activity
-      const { data: interactions } = await supabase
+      // Fetch likes and saves from saved_itineraries (source of truth)
+      const { data: savedItems } = await supabase
+        .from("saved_itineraries")
+        .select("type, created_at")
+        .gte("created_at", startDate.toISOString())
+
+      // Fetch comments from comments table (source of truth)
+      const { data: commentItems } = await supabase
+        .from("comments")
+        .select("created_at")
+        .gte("created_at", startDate.toISOString())
+
+      // Fetch view interactions from user_interactions (best available source for views)
+      const { data: viewInteractions } = await supabase
         .from("user_interactions")
         .select("interaction_type, created_at")
+        .eq("interaction_type", "view")
         .gte("created_at", startDate.toISOString())
+
+      // Combine all activity into a unified list for hourly/weekday processing
+      type ActivityItem = { type: string; created_at: string }
+      const allActivity: ActivityItem[] = [
+        ...(savedItems || []).map((i) => ({ type: i.type, created_at: i.created_at })),
+        ...(commentItems || []).map((i) => ({ type: "comment", created_at: i.created_at })),
+        ...(viewInteractions || []).map((i) => ({ type: "view", created_at: i.created_at })),
+      ]
 
       // Process daily activity
       const dailyMap: { [key: string]: { views: number; likes: number; comments: number; saves: number } } = {}
@@ -113,13 +134,13 @@ export default function AdminAnalyticsPage() {
         dailyMap[key] = { views: 0, likes: 0, comments: 0, saves: 0 }
       }
 
-      interactions?.forEach((i) => {
+      allActivity.forEach((i) => {
         const key = i.created_at.split("T")[0]
         if (dailyMap[key]) {
-          if (i.interaction_type === "view") dailyMap[key].views++
-          if (i.interaction_type === "like") dailyMap[key].likes++
-          if (i.interaction_type === "comment") dailyMap[key].comments++
-          if (i.interaction_type === "save") dailyMap[key].saves++
+          if (i.type === "view") dailyMap[key].views++
+          if (i.type === "like") dailyMap[key].likes++
+          if (i.type === "comment") dailyMap[key].comments++
+          if (i.type === "save") dailyMap[key].saves++
         }
       })
 
@@ -134,7 +155,7 @@ export default function AdminAnalyticsPage() {
       const hourlyMap: { [key: number]: number } = {}
       for (let i = 0; i < 24; i++) hourlyMap[i] = 0
 
-      interactions?.forEach((i) => {
+      allActivity.forEach((i) => {
         const hour = new Date(i.created_at).getHours()
         hourlyMap[hour]++
       })
@@ -149,9 +170,9 @@ export default function AdminAnalyticsPage() {
       const weekdayMap: { [key: number]: { views: number; creates: number } } = {}
       for (let i = 0; i < 7; i++) weekdayMap[i] = { views: 0, creates: 0 }
 
-      interactions?.forEach((i) => {
+      allActivity.forEach((i) => {
         const day = new Date(i.created_at).getDay()
-        if (i.interaction_type === "view") weekdayMap[day].views++
+        if (i.type === "view") weekdayMap[day].views++
       })
 
       // Get itinerary creation by weekday

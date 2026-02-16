@@ -14,6 +14,10 @@ export function NotificationSettings() {
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
 
+  // Profile-level consent settings (stored in profiles table)
+  const [marketingConsent, setMarketingConsent] = useState(false)
+  const [browsingEmailsConsent, setBrowsingEmailsConsent] = useState(true)
+
   const [notifications, setNotifications] = useState({
     push: true,
     email: true,
@@ -35,22 +39,40 @@ export function NotificationSettings() {
 
       try {
         const supabase = createClient()
-        const { data, error } = await supabase
+
+        // Load notification preferences from user_preferences table
+        const { data: prefsData, error: prefsError } = await supabase
           .from("user_preferences")
           .select("notification_preferences")
           .eq("user_id", user.id)
           .single()
 
-        if (error && error.code !== "PGRST116") {
-          console.error("Error loading preferences:", error)
+        if (prefsError && prefsError.code !== "PGRST116") {
+          console.error("Error loading preferences:", prefsError)
+        }
+
+        if (prefsData?.notification_preferences) {
+          setNotifications((prev) => ({
+            ...prev,
+            ...prefsData.notification_preferences,
+          }))
+        }
+
+        // Load profile consent settings (marketing_consent, browsing_emails_consent)
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("marketing_consent, browsing_emails_consent")
+          .eq("id", user.id)
+          .single()
+
+        if (profileError) {
+          console.error("Error loading profile consent:", profileError)
           return
         }
 
-        if (data?.notification_preferences) {
-          setNotifications((prev) => ({
-            ...prev,
-            ...data.notification_preferences,
-          }))
+        if (profileData) {
+          setMarketingConsent(profileData.marketing_consent ?? false)
+          setBrowsingEmailsConsent(profileData.browsing_emails_consent ?? true)
         }
       } catch (error) {
         console.error("Error loading preferences:", error)
@@ -82,7 +104,21 @@ export function NotificationSettings() {
     try {
       const supabase = createClient()
 
-      // Try to update existing preferences
+      // Update profile consent settings (marketing_consent, browsing_emails_consent)
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          marketing_consent: marketingConsent,
+          browsing_emails_consent: browsingEmailsConsent,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id)
+
+      if (profileError) {
+        throw profileError
+      }
+
+      // Try to update existing notification preferences
       const { error: updateError } = await supabase
         .from("user_preferences")
         .update({
@@ -224,13 +260,35 @@ export function NotificationSettings() {
         </div>
 
         <div className="space-y-4 pt-4 border-t">
+          <h3 className="text-sm font-medium text-muted-foreground">Email Preferences</h3>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Marketing Emails</p>
+                <p className="text-sm text-muted-foreground">Receive emails about new features, travel tips, and special offers</p>
+              </div>
+              <Switch checked={marketingConsent} onCheckedChange={setMarketingConsent} />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Browsing Activity Emails</p>
+                <p className="text-sm text-muted-foreground">Personalized recommendations based on itineraries you&apos;ve viewed</p>
+              </div>
+              <Switch checked={browsingEmailsConsent} onCheckedChange={setBrowsingEmailsConsent} />
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4 pt-4 border-t">
           <h3 className="text-sm font-medium text-muted-foreground">Marketing Notifications</h3>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium">Special Deals</p>
-                <p className="text-sm text-muted-foreground">Notifications about special deals and promotions</p>
+                <p className="text-sm text-muted-foreground">In-app notifications about special deals and promotions</p>
               </div>
               <Switch checked={notifications.specialDeals} onCheckedChange={() => handleToggle("specialDeals")} />
             </div>
@@ -238,7 +296,7 @@ export function NotificationSettings() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium">Product Updates</p>
-                <p className="text-sm text-muted-foreground">Notices about new features and improvements</p>
+                <p className="text-sm text-muted-foreground">In-app notices about new features and improvements</p>
               </div>
               <Switch checked={notifications.productUpdates} onCheckedChange={() => handleToggle("productUpdates")} />
             </div>

@@ -67,6 +67,7 @@ export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps)
   const [tosAccepted, setTosAccepted] = useState(false)
   const [privacyAccepted, setPrivacyAccepted] = useState(false)
   const [dataProcessingAccepted, setDataProcessingAccepted] = useState(false)
+  const [marketingAccepted, setMarketingAccepted] = useState(false)
 
   // Parental consent state (for minors)
   const [parentalEmail, setParentalEmail] = useState("")
@@ -154,6 +155,7 @@ export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps)
           privacy_policy_accepted_at: new Date().toISOString(),
           privacy_policy_version: PRIVACY_POLICY_VERSION,
           data_processing_consent: true,
+          marketing_consent: marketingAccepted,
           parental_consent: withParentalConsent,
           parental_consent_at: withParentalConsent ? new Date().toISOString() : null,
           parental_email: parentalEmail || null,
@@ -169,6 +171,7 @@ export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps)
         { user_id: userId, consent_type: "tos", consent_version: TOS_VERSION, consent_given: true },
         { user_id: userId, consent_type: "privacy_policy", consent_version: PRIVACY_POLICY_VERSION, consent_given: true },
         { user_id: userId, consent_type: "data_processing", consent_version: "1.0.0", consent_given: true },
+        { user_id: userId, consent_type: "marketing", consent_version: "1.0.0", consent_given: marketingAccepted },
       ]
 
       if (withParentalConsent) {
@@ -361,6 +364,23 @@ export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps)
                     </Label>
                     <p className="text-sm text-muted-foreground mt-1">
                       I consent to the processing of my personal data as described in the Privacy Policy for the purposes of providing and improving the Service.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors bg-orange-50/50">
+                  <Checkbox
+                    id="marketing"
+                    checked={marketingAccepted}
+                    onCheckedChange={(checked) => setMarketingAccepted(checked === true)}
+                    className="mt-1"
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="marketing" className="font-medium cursor-pointer">
+                      Marketing Communications
+                    </Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      I would like to receive emails about new features, travel tips, and special offers from Tinerary. You can unsubscribe at any time in your notification settings.
                     </p>
                   </div>
                 </div>

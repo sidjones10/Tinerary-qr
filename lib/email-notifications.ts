@@ -25,6 +25,7 @@ async function logEmail(params: {
   emailType: string
   subject: string
   status: "sent" | "failed"
+  resendId?: string
   errorMessage?: string
   userId?: string
   metadata?: Record<string, unknown>
@@ -41,6 +42,7 @@ async function logEmail(params: {
       email_type: params.emailType,
       subject: params.subject,
       status: params.status,
+      resend_id: params.resendId || null,
       error_message: params.errorMessage || null,
       user_id: params.userId || null,
       metadata: params.metadata || {},
@@ -248,7 +250,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
   try {
     const resend = getResendClient()
     const subject = "Welcome aboard, traveler!"
-    await resend.emails.send({
+    const { data: resendData } = await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
       subject,
@@ -300,7 +302,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
         </div>
       `, 'Happy travels from the Tinerary crew.'),
     })
-    await logEmail({ recipientEmail: email, emailType: "welcome", subject, status: "sent" })
+    await logEmail({ recipientEmail: email, emailType: "welcome", subject, status: "sent", resendId: resendData?.id })
     return { success: true }
   } catch (error: any) {
     console.error("Error sending welcome email:", error)
@@ -326,7 +328,7 @@ export async function sendEventInviteEmail(
 
     const subject = `You're invited to ${eventTitle}`
     const resend = getResendClient()
-    await resend.emails.send({
+    const { data: resendData } = await resend.emails.send({
       from: FROM_EMAIL,
       to: recipientEmail,
       subject,
@@ -365,7 +367,7 @@ export async function sendEventInviteEmail(
         </div>
       `, 'See you there!'),
     })
-    await logEmail({ recipientEmail, emailType: "event_invite", subject, status: "sent", metadata: { eventId } })
+    await logEmail({ recipientEmail, emailType: "event_invite", subject, status: "sent", resendId: resendData?.id, metadata: { eventId } })
     return { success: true }
   } catch (error: any) {
     console.error("Error sending event invite email:", error)
@@ -392,7 +394,7 @@ export async function sendEventReminderEmail(
 
     const subject = `Reminder: ${eventTitle} is ${timeText}`
     const resend = getResendClient()
-    await resend.emails.send({
+    const { data: resendData } = await resend.emails.send({
       from: FROM_EMAIL,
       to: recipientEmail,
       subject,
@@ -432,7 +434,7 @@ export async function sendEventReminderEmail(
         </div>
       `),
     })
-    await logEmail({ recipientEmail, emailType: "event_reminder", subject, status: "sent", metadata: { eventId } })
+    await logEmail({ recipientEmail, emailType: "event_reminder", subject, status: "sent", resendId: resendData?.id, metadata: { eventId } })
     return { success: true }
   } catch (error: any) {
     console.error("Error sending reminder email:", error)
@@ -460,7 +462,7 @@ export async function sendNewFollowerEmail(
 
     const subject = `${followerName} is now following your travels`
     const resend = getResendClient()
-    await resend.emails.send({
+    const { data: resendData } = await resend.emails.send({
       from: FROM_EMAIL,
       to: recipientEmail,
       subject,
@@ -486,7 +488,7 @@ export async function sendNewFollowerEmail(
         </div>
       `),
     })
-    await logEmail({ recipientEmail, emailType: "new_follower", subject, status: "sent" })
+    await logEmail({ recipientEmail, emailType: "new_follower", subject, status: "sent", resendId: resendData?.id })
     return { success: true }
   } catch (error: any) {
     console.error("Error sending new follower email:", error)
@@ -511,7 +513,7 @@ export async function sendNewCommentEmail(
 
     const subject = `${commenterName} left a note on ${eventTitle}`
     const resend = getResendClient()
-    await resend.emails.send({
+    const { data: resendData } = await resend.emails.send({
       from: FROM_EMAIL,
       to: recipientEmail,
       subject,
@@ -539,7 +541,7 @@ export async function sendNewCommentEmail(
         </div>
       `),
     })
-    await logEmail({ recipientEmail, emailType: "new_comment", subject, status: "sent", metadata: { eventId } })
+    await logEmail({ recipientEmail, emailType: "new_comment", subject, status: "sent", resendId: resendData?.id, metadata: { eventId } })
     return { success: true }
   } catch (error: any) {
     console.error("Error sending comment notification email:", error)
@@ -557,7 +559,7 @@ export async function sendPasswordResetEmail(email: string, resetToken: string) 
 
     const subject = "Reset your Tinerary password"
     const resend = getResendClient()
-    await resend.emails.send({
+    const { data: resendData } = await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
       subject,
@@ -580,7 +582,7 @@ export async function sendPasswordResetEmail(email: string, resetToken: string) 
         </div>
       `),
     })
-    await logEmail({ recipientEmail: email, emailType: "password_reset", subject, status: "sent" })
+    await logEmail({ recipientEmail: email, emailType: "password_reset", subject, status: "sent", resendId: resendData?.id })
     return { success: true }
   } catch (error: any) {
     console.error("Error sending password reset email:", error)
@@ -609,7 +611,7 @@ export async function sendCountdownReminderEmail(params: {
 
     const subject = `${timeRemaining} until ${itineraryTitle}!`
     const resend = getResendClient()
-    await resend.emails.send({
+    const { data: resendData } = await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
       subject,
@@ -645,7 +647,7 @@ export async function sendCountdownReminderEmail(params: {
         </div>
       `),
     })
-    await logEmail({ recipientEmail: email, emailType: "countdown_reminder", subject, status: "sent", metadata: { itineraryId } })
+    await logEmail({ recipientEmail: email, emailType: "countdown_reminder", subject, status: "sent", resendId: resendData?.id, metadata: { itineraryId } })
     return { success: true }
   } catch (error: any) {
     console.error("Error sending countdown reminder email:", error)
@@ -671,7 +673,7 @@ export async function sendEventStartedEmail(params: {
 
     const subject = `${itineraryTitle} is happening now!`
     const resend = getResendClient()
-    await resend.emails.send({
+    const { data: resendData } = await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
       subject,
@@ -701,7 +703,7 @@ export async function sendEventStartedEmail(params: {
         </div>
       `),
     })
-    await logEmail({ recipientEmail: email, emailType: "event_started", subject, status: "sent", metadata: { itineraryId } })
+    await logEmail({ recipientEmail: email, emailType: "event_started", subject, status: "sent", resendId: resendData?.id, metadata: { itineraryId } })
     return { success: true }
   } catch (error: any) {
     console.error("Error sending event started email:", error)
@@ -722,7 +724,7 @@ export async function sendWhatsNewEmail(params: {
 
     const subject = "Postcards from the team: what's new on Tinerary"
     const resend = getResendClient()
-    await resend.emails.send({
+    const { data: resendData } = await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
       subject,
@@ -820,7 +822,7 @@ export async function sendWhatsNewEmail(params: {
         </div>
       `, 'You received this because you signed up for Tinerary.'),
     })
-    await logEmail({ recipientEmail: email, emailType: "whats_new", subject, status: "sent" })
+    await logEmail({ recipientEmail: email, emailType: "whats_new", subject, status: "sent", resendId: resendData?.id })
     return { success: true }
   } catch (error: any) {
     console.error("Error sending what's new email:", error)
@@ -868,7 +870,7 @@ export async function sendSignInAlertEmail(params: {
 
     const subject = "New sign-in to your Tinerary account"
     const resend = getResendClient()
-    await resend.emails.send({
+    const { data: resendData } = await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
       subject,
@@ -907,7 +909,7 @@ export async function sendSignInAlertEmail(params: {
         </div>
       `),
     })
-    await logEmail({ recipientEmail: email, emailType: "signin_alert", subject, status: "sent" })
+    await logEmail({ recipientEmail: email, emailType: "signin_alert", subject, status: "sent", resendId: resendData?.id })
     return { success: true }
   } catch (error: any) {
     console.error("Error sending sign-in alert email:", error)
@@ -932,7 +934,7 @@ export async function sendAccountDeletionWarningEmail(params: {
 
     const subject = `Your Tinerary account will be deleted in ${daysRemaining} days`
     const resend = getResendClient()
-    await resend.emails.send({
+    const { data: resendData } = await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
       subject,
@@ -975,7 +977,7 @@ export async function sendAccountDeletionWarningEmail(params: {
         </div>
       `),
     })
-    await logEmail({ recipientEmail: email, emailType: "account_deletion_warning", subject, status: "sent" })
+    await logEmail({ recipientEmail: email, emailType: "account_deletion_warning", subject, status: "sent", resendId: resendData?.id })
     return { success: true }
   } catch (error: any) {
     console.error("Error sending account deletion warning email:", error)

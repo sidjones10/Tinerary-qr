@@ -287,6 +287,9 @@ importers:
       sqlite3:
         specifier: ^5.1.7
         version: 5.1.7
+      svix:
+        specifier: ^1.85.0
+        version: 1.85.0
       tailwind-merge:
         specifier: ^2.5.5
         version: 2.5.5
@@ -5763,6 +5766,9 @@ packages:
 
   svix@1.84.1:
     resolution: {integrity: sha512-K8DPPSZaW/XqXiz1kEyzSHYgmGLnhB43nQCMeKjWGCUpLIpAMMM8kx3rVVOSm6Bo6EHyK1RQLPT4R06skM/MlQ==}
+
+  svix@1.85.0:
+    resolution: {integrity: sha512-4OxNw++bnNay8SoBwESgzfjMnYmurS1qBX+luhzvljr6EAPn/hqqmkdCR1pbgIe1K1+BzKZEHjAKz9OYrKJYwQ==}
 
   tailwind-merge@2.5.5:
     resolution: {integrity: sha512-0LXunzzAZzo0tEPxV3I297ffKZPlKDrjj7NXphC8V5ak9yHC5zRmxnOe2m/Rd/7ivsOMJe3JZ2JVocoDdQTRBA==}
@@ -12437,6 +12443,11 @@ snapshots:
   supports-preserve-symlinks-flag@1.0.0: {}
 
   svix@1.84.1:
+    dependencies:
+      standardwebhooks: 1.0.0
+      uuid: 10.0.0
+
+  svix@1.85.0:
     dependencies:
       standardwebhooks: 1.0.0
       uuid: 10.0.0

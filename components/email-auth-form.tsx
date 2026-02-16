@@ -67,6 +67,7 @@ export default function EmailAuthForm() {
   // Consent checkboxes
   const [tosAccepted, setTosAccepted] = useState(false)
   const [privacyAccepted, setPrivacyAccepted] = useState(false)
+  const [marketingAccepted, setMarketingAccepted] = useState(false)
 
   const [authResult, setAuthResult] = useState<{
     success: boolean
@@ -275,6 +276,7 @@ export default function EmailAuthForm() {
                 privacy_policy_accepted_at: now,
                 privacy_policy_version: "1.0.0",
                 data_processing_consent: true,
+                marketing_consent: marketingAccepted,
               })
               .eq("id", data.user.id)
 
@@ -283,6 +285,7 @@ export default function EmailAuthForm() {
               { user_id: data.user.id, consent_type: "tos", consent_version: "1.0.0", consent_given: true },
               { user_id: data.user.id, consent_type: "privacy_policy", consent_version: "1.0.0", consent_given: true },
               { user_id: data.user.id, consent_type: "data_processing", consent_version: "1.0.0", consent_given: true },
+              { user_id: data.user.id, consent_type: "marketing", consent_version: "1.0.0", consent_given: marketingAccepted },
             ]
 
             await supabase.from("consent_records").insert(consentRecords)
@@ -600,6 +603,17 @@ export default function EmailAuthForm() {
                         Privacy Policy
                       </Link>{" "}
                       and consent to data processing *
+                    </Label>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Checkbox
+                      id="marketing"
+                      checked={marketingAccepted}
+                      onCheckedChange={(checked) => setMarketingAccepted(checked === true)}
+                      className="mt-0.5"
+                    />
+                    <Label htmlFor="marketing" className="text-sm font-normal cursor-pointer">
+                      Send me travel tips, feature updates, and special offers
                     </Label>
                   </div>
                 </div>

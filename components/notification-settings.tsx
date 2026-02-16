@@ -14,6 +14,7 @@ export function NotificationSettings() {
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
 
+  // In-app / push notification preferences (stored in user_preferences)
   const [notifications, setNotifications] = useState({
     push: true,
     email: true,
@@ -24,10 +25,11 @@ export function NotificationSettings() {
     newFollowers: true,
     likesComments: true,
     mentions: true,
-    specialDeals: false,
-    productUpdates: true,
-    newsletter: false,
   })
+
+  // Email consent flags (stored on profiles table)
+  const [marketingConsent, setMarketingConsent] = useState(false)
+  const [activityDigestConsent, setActivityDigestConsent] = useState(true)
 
   useEffect(() => {
     const loadPreferences = async () => {
@@ -35,22 +37,39 @@ export function NotificationSettings() {
 
       try {
         const supabase = createClient()
-        const { data, error } = await supabase
+
+        // Load notification preferences from user_preferences
+        const { data: prefs, error: prefsError } = await supabase
           .from("user_preferences")
           .select("notification_preferences")
           .eq("user_id", user.id)
           .single()
 
-        if (error && error.code !== "PGRST116") {
-          console.error("Error loading preferences:", error)
-          return
+        if (prefsError && prefsError.code !== "PGRST116") {
+          console.error("Error loading preferences:", prefsError)
         }
 
-        if (data?.notification_preferences) {
+        if (prefs?.notification_preferences) {
           setNotifications((prev) => ({
             ...prev,
-            ...data.notification_preferences,
+            ...prefs.notification_preferences,
           }))
+        }
+
+        // Load marketing & activity digest consent from profiles
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("marketing_consent, activity_digest_consent")
+          .eq("id", user.id)
+          .single()
+
+        if (profileError && profileError.code !== "PGRST116") {
+          console.error("Error loading profile consent:", profileError)
+        }
+
+        if (profile) {
+          setMarketingConsent(profile.marketing_consent ?? false)
+          setActivityDigestConsent(profile.activity_digest_consent ?? true)
         }
       } catch (error) {
         console.error("Error loading preferences:", error)
@@ -82,7 +101,7 @@ export function NotificationSettings() {
     try {
       const supabase = createClient()
 
-      // Try to update existing preferences
+      // 1. Save in-app notification preferences to user_preferences
       const { error: updateError } = await supabase
         .from("user_preferences")
         .update({
@@ -106,6 +125,23 @@ export function NotificationSettings() {
       } else if (updateError) {
         throw updateError
       }
+
+      // 2. Save marketing & activity digest consent to profiles
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          marketing_consent: marketingConsent,
+          activity_digest_consent: activityDigestConsent,
+        })
+        .eq("id", user.id)
+
+      if (profileError) throw profileError
+
+      // 3. Record consent changes in audit log
+      await supabase.from("consent_records").insert([
+        { user_id: user.id, consent_type: "marketing", consent_version: "1.0.0", consent_given: marketingConsent },
+        { user_id: user.id, consent_type: "activity_digest", consent_version: "1.0.0", consent_given: activityDigestConsent },
+      ])
 
       toast({
         title: "Preferences saved",
@@ -224,31 +260,31 @@ export function NotificationSettings() {
         </div>
 
         <div className="space-y-4 pt-4 border-t">
-          <h3 className="text-sm font-medium text-muted-foreground">Marketing Notifications</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">Marketing Emails</h3>
+          <p className="text-xs text-muted-foreground -mt-2">Promotional content from Tinerary. You can opt in or out at any time.</p>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Special Deals</p>
-                <p className="text-sm text-muted-foreground">Notifications about special deals and promotions</p>
+                <p className="font-medium">Marketing & Promotions</p>
+                <p className="text-sm text-muted-foreground">Special deals, feature updates, newsletters, and travel inspiration</p>
               </div>
-              <Switch checked={notifications.specialDeals} onCheckedChange={() => handleToggle("specialDeals")} />
+              <Switch checked={marketingConsent} onCheckedChange={() => setMarketingConsent(!marketingConsent)} />
             </div>
+          </div>
+        </div>
 
+        <div className="space-y-4 pt-4 border-t">
+          <h3 className="text-sm font-medium text-muted-foreground">Activity Digest</h3>
+          <p className="text-xs text-muted-foreground -mt-2">Personalised emails based on your browsing and activity on Tinerary.</p>
+
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Product Updates</p>
-                <p className="text-sm text-muted-foreground">Notices about new features and improvements</p>
+                <p className="font-medium">Personalised Recommendations</p>
+                <p className="text-sm text-muted-foreground">Emails about itineraries and destinations based on what you&apos;ve been looking at</p>
               </div>
-              <Switch checked={notifications.productUpdates} onCheckedChange={() => handleToggle("productUpdates")} />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Newsletter</p>
-                <p className="text-sm text-muted-foreground">Monthly newsletter with travel tips and inspiration</p>
-              </div>
-              <Switch checked={notifications.newsletter} onCheckedChange={() => handleToggle("newsletter")} />
+              <Switch checked={activityDigestConsent} onCheckedChange={() => setActivityDigestConsent(!activityDigestConsent)} />
             </div>
           </div>
         </div>

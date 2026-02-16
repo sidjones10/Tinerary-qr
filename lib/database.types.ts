@@ -26,6 +26,7 @@ export interface Database {
           parental_consent: boolean | null
           location_tracking_consent: boolean | null
           marketing_consent: boolean | null
+          activity_digest_consent: boolean | null
           data_processing_consent: boolean | null
           email_notifications: boolean
           created_at: string
@@ -53,6 +54,7 @@ export interface Database {
           parental_consent?: boolean | null
           location_tracking_consent?: boolean | null
           marketing_consent?: boolean | null
+          activity_digest_consent?: boolean | null
           data_processing_consent?: boolean | null
           email_notifications?: boolean
           created_at?: string
@@ -80,6 +82,7 @@ export interface Database {
           parental_consent?: boolean | null
           location_tracking_consent?: boolean | null
           marketing_consent?: boolean | null
+          activity_digest_consent?: boolean | null
           data_processing_consent?: boolean | null
           email_notifications?: boolean
           created_at?: string

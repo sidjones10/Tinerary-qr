@@ -23,39 +23,43 @@ const templates: Record<string, { subject: string; html: string }> = {
   welcome: {
     subject: "You're in! Let the adventures begin",
     html: postcardEmail(`
-      <div class="masthead">
+      <div class="masthead" style="padding:40px 36px 36px;">
         <div class="stamp">Welcome Aboard</div>
-        <h1>Your journey starts here</h1>
-        <p class="subtitle">Pack your bags, ${SAMPLE.name} &mdash; this is going to be good</p>
+        <h1 style="font-size:34px;line-height:1.15;">Hi ${SAMPLE.name}!<br><span style="font-style:italic;font-weight:400;">So glad you're here.</span></h1>
       </div>
       <div class="body-content">
-        <p style="font-size:18px;text-align:center;font-family:'Playfair Display',Georgia,serif;color:#C75B3A;margin-bottom:20px;">Welcome to the crew, ${SAMPLE.name}!</p>
-        <p>Tinerary is where trips become stories and every event feels like an adventure. Here's your boarding pass to the good stuff:</p>
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">
-          <tr><td style="padding:12px 0;">
-            <div class="info-card" style="margin:0;">
-              <strong style="color:#1A7B7E;font-size:16px;">Plan &amp; Share</strong><br>
-              Create stunning itineraries with maps, photos, and schedules &mdash; then share with a single link.
+        <p style="font-size:16px;line-height:1.7;">We built Tinerary because we believe every trip deserves to feel like a story &mdash; and every event should be easy to plan, fun to share, and impossible to forget. Welcome to the crew.</p>
+        <div style="margin:28px 0;">
+          <div style="border:2px solid #3D3229;border-radius:16px;overflow:hidden;margin-bottom:16px;">
+            <div style="background:#1A7B7E;padding:14px 20px;">
+              <span style="color:#FFFDF9;font-weight:700;font-size:16px;">Plan &amp; Share</span>
             </div>
-          </td></tr>
-          <tr><td style="padding:12px 0;">
-            <div class="info-card info-card-warm" style="margin:0;">
-              <strong style="color:#C75B3A;font-size:16px;">Travel Together</strong><br>
-              Follow friends, see what they're planning, and collaborate on trips in real time.
+            <div style="padding:16px 20px;">
+              <p style="margin:0;font-size:15px;line-height:1.6;color:#3D3229;">Create stunning itineraries with maps, photos, and schedules &mdash; then share with a single link.</p>
             </div>
-          </td></tr>
-          <tr><td style="padding:12px 0;">
-            <div class="info-card" style="margin:0;">
-              <strong style="color:#1A7B7E;font-size:16px;">Stay On Track</strong><br>
-              Smart countdown reminders, calendar exports, and expense splitting keep everything on course.
+          </div>
+          <div style="border:2px solid #3D3229;border-radius:16px;overflow:hidden;margin-bottom:16px;">
+            <div style="background:#C75B3A;padding:14px 20px;">
+              <span style="color:#FFFDF9;font-weight:700;font-size:16px;">Travel Together</span>
             </div>
-          </td></tr>
-        </table>
-        <hr class="divider">
-        <p style="text-align:center;font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:17px;color:#1A7B7E;margin-bottom:16px;">Your first adventure is just a tap away.</p>
-        <p style="text-align:center;">
+            <div style="padding:16px 20px;">
+              <p style="margin:0;font-size:15px;line-height:1.6;color:#3D3229;">Follow friends, see what they're planning, and collaborate on trips in real time.</p>
+            </div>
+          </div>
+          <div style="border:2px solid #3D3229;border-radius:16px;overflow:hidden;">
+            <div style="background:#3D3229;padding:14px 20px;">
+              <span style="color:#FFFDF9;font-weight:700;font-size:16px;">Stay On Track</span>
+            </div>
+            <div style="padding:16px 20px;">
+              <p style="margin:0;font-size:15px;line-height:1.6;color:#3D3229;">Smart countdown reminders, calendar exports, and expense splitting keep everything on course.</p>
+            </div>
+          </div>
+        </div>
+        <div style="background:#FAF3E8;border:2px solid #3D3229;border-radius:16px;padding:28px;text-align:center;margin:28px 0;">
+          <div style="font-family:'Playfair Display',Georgia,serif;font-size:20px;font-weight:700;color:#3D3229;margin-bottom:6px;">Ready to plan your first adventure?</div>
+          <p style="margin:0 0 18px;font-size:15px;color:#5C4F42;font-style:italic;">Your next story starts here.</p>
           <a href="${APP_URL}/" class="cta-btn">Start Exploring</a>
-        </p>
+        </div>
       </div>
     `, "Happy travels from the Tinerary crew."),
   },
@@ -242,41 +246,68 @@ const templates: Record<string, { subject: string; html: string }> = {
   whatsNew: {
     subject: "Fresh off the press: what's new on Tinerary",
     html: postcardEmail(`
-      <div class="masthead" style="background: linear-gradient(135deg, #C75B3A 0%, #D4764E 50%, #1A7B7E 100%);">
-        <div class="stamp">Fresh Off The Press</div>
-        <h1>What's New on Tinerary</h1>
-        <p class="subtitle">New goodies for your next adventure</p>
+      <div class="masthead" style="background:#3D3229;">
+        <h1 style="font-size:36px;line-height:1.1;">Your Tinerary<br><span style="font-style:italic;font-weight:400;">in Motion</span></h1>
+        <p class="subtitle">What's new &amp; what's next for your travels</p>
       </div>
       <div class="body-content">
         <p>Hi ${SAMPLE.name},</p>
-        <p>We've been cooking up some exciting stuff behind the scenes. Here's what just dropped:</p>
-        <div style="margin:24px 0;">
-          <div style="background:#FAF3E8;border-radius:12px;padding:20px 24px;margin-bottom:16px;border:1px solid #E8DDD0;">
-            <div style="display:inline-block;background:#1A7B7E;color:#FFFDF9;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">New</div>
-            <h3 style="margin-top:8px;">Enhanced Event Planning</h3>
-            <p style="margin-bottom:0;color:#5C4F42;">Create beautiful itineraries with interactive maps, photo galleries, and detailed day-by-day schedules.</p>
+        <p>Here's your latest dispatch from Tinerary HQ &mdash; new features, improvements, and a few things we think you'll love.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
+          <tr>
+            <td style="width:50%;padding-right:8px;vertical-align:top;">
+              <div style="border:2px solid #3D3229;border-radius:16px;padding:24px;text-align:center;">
+                <div style="font-family:'Playfair Display',Georgia,serif;font-size:32px;font-weight:700;color:#C75B3A;line-height:1;">4</div>
+                <div style="font-size:15px;font-weight:700;color:#3D3229;margin:12px 0 8px;">New features this month</div>
+                <div style="display:inline-block;background:#3D3229;border-radius:8px;padding:4px 10px;">
+                  <span style="color:#FFFDF9;font-size:12px;font-weight:700;">Just shipped</span>
+                </div>
+              </div>
+            </td>
+            <td style="width:50%;padding-left:8px;vertical-align:top;">
+              <div style="border:2px solid #3D3229;border-radius:16px;padding:24px;text-align:center;">
+                <div style="font-family:'Playfair Display',Georgia,serif;font-size:32px;font-weight:700;color:#1A7B7E;line-height:1;">3x</div>
+                <div style="font-size:15px;font-weight:700;color:#3D3229;margin:12px 0 8px;">Faster trip planning</div>
+                <div style="display:inline-block;background:#3D3229;border-radius:8px;padding:4px 10px;">
+                  <span style="color:#FFFDF9;font-size:12px;font-weight:700;">&#8593; Improved</span>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </table>
+        <div style="margin:28px 0;">
+          <div style="border:2px solid #3D3229;border-radius:16px;overflow:hidden;margin-bottom:16px;">
+            <div style="background:#1A7B7E;padding:12px 20px;"><span style="color:#FFFDF9;font-weight:700;font-size:14px;letter-spacing:0.5px;">Enhanced Event Planning</span></div>
+            <div style="padding:16px 20px;"><p style="margin:0;color:#3D3229;font-size:15px;line-height:1.6;">Create beautiful itineraries with interactive maps, photo galleries, and detailed day-by-day schedules.</p></div>
           </div>
-          <div style="background:#FAF3E8;border-radius:12px;padding:20px 24px;margin-bottom:16px;border:1px solid #E8DDD0;">
-            <div style="display:inline-block;background:#C75B3A;color:#FFFDF9;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Upgraded</div>
-            <h3 style="margin-top:8px;">Smart Reminders</h3>
-            <p style="margin-bottom:0;color:#5C4F42;">Countdown reminders at 5 days, 2 days, 1 day, and 2 hours before departure so you're never caught off guard.</p>
+          <div style="border:2px solid #3D3229;border-radius:16px;overflow:hidden;margin-bottom:16px;">
+            <div style="background:#C75B3A;padding:12px 20px;"><span style="color:#FFFDF9;font-weight:700;font-size:14px;letter-spacing:0.5px;">Smart Reminders</span></div>
+            <div style="padding:16px 20px;"><p style="margin:0;color:#3D3229;font-size:15px;line-height:1.6;">Countdown reminders at 5 days, 2 days, 1 day, and 2 hours before departure so you're never caught off guard.</p></div>
           </div>
-          <div style="background:#FAF3E8;border-radius:12px;padding:20px 24px;margin-bottom:16px;border:1px solid #E8DDD0;">
-            <div style="display:inline-block;background:#1A7B7E;color:#FFFDF9;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Social</div>
-            <h3 style="margin-top:8px;">Travel Together</h3>
-            <p style="margin-bottom:0;color:#5C4F42;">Follow friends, share events, and collaborate on trip planning in real time.</p>
+          <div style="border:2px solid #3D3229;border-radius:16px;overflow:hidden;margin-bottom:16px;">
+            <div style="background:#1A7B7E;padding:12px 20px;"><span style="color:#FFFDF9;font-weight:700;font-size:14px;letter-spacing:0.5px;">Travel Together</span></div>
+            <div style="padding:16px 20px;"><p style="margin:0;color:#3D3229;font-size:15px;line-height:1.6;">Follow friends, share events, and collaborate on trip planning in real time.</p></div>
           </div>
-          <div style="background:#FAF3E8;border-radius:12px;padding:20px 24px;border:1px solid #E8DDD0;">
-            <div style="display:inline-block;background:#C75B3A;color:#FFFDF9;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Fan Favorite</div>
-            <h3 style="margin-top:8px;">Expense Tracking</h3>
-            <p style="margin-bottom:0;color:#5C4F42;">Log costs on the go and split expenses with your travel companions &mdash; no awkward math required.</p>
+          <div style="border:2px solid #3D3229;border-radius:16px;overflow:hidden;">
+            <div style="background:#C75B3A;padding:12px 20px;"><span style="color:#FFFDF9;font-weight:700;font-size:14px;letter-spacing:0.5px;">Expense Tracking</span></div>
+            <div style="padding:16px 20px;"><p style="margin:0;color:#3D3229;font-size:15px;line-height:1.6;">Log costs on the go and split expenses with your travel companions &mdash; no awkward math required.</p></div>
           </div>
         </div>
-        <hr class="divider">
-        <p style="text-align:center;font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:17px;color:#C75B3A;">Your next adventure is just a tap away.</p>
-        <p style="text-align:center;">
+        <div style="border:2px solid #3D3229;border-radius:16px;overflow:hidden;margin:28px 0;">
+          <div style="padding:16px 20px 0 20px;">
+            <div style="display:inline-block;background:#3D3229;border-radius:8px;padding:5px 12px;">
+              <span style="color:#FFFDF9;font-size:14px;font-weight:700;">&#10003; Travel tip</span>
+            </div>
+          </div>
+          <div style="padding:12px 20px 20px;">
+            <p style="margin:0;font-size:15px;line-height:1.6;">Share your itinerary link with friends before a trip &mdash; they can RSVP, add suggestions, and follow along without needing an account.</p>
+          </div>
+        </div>
+        <div style="background:#FAF3E8;border:2px solid #3D3229;border-radius:16px;padding:24px;text-align:center;margin:28px 0;">
+          <div style="font-family:'Playfair Display',Georgia,serif;font-size:20px;font-weight:700;color:#3D3229;margin-bottom:8px;">Spread the wanderlust</div>
+          <p style="margin:0 0 16px;font-size:15px;color:#5C4F42;">Know someone planning a trip? Share Tinerary and plan together.</p>
           <a href="${APP_URL}/" class="cta-btn">Explore Tinerary</a>
-        </p>
+        </div>
       </div>
     `, "You received this because you signed up for Tinerary."),
   },

@@ -28,10 +28,11 @@ export function NotificationSettings() {
     newFollowers: true,
     likesComments: true,
     mentions: true,
-    specialDeals: false,
-    productUpdates: true,
-    newsletter: false,
   })
+
+  // Email consent flags (stored on profiles table)
+  const [marketingConsent, setMarketingConsent] = useState(false)
+  const [activityDigestConsent, setActivityDigestConsent] = useState(true)
 
   useEffect(() => {
     const loadPreferences = async () => {
@@ -142,6 +143,23 @@ export function NotificationSettings() {
       } else if (updateError) {
         throw updateError
       }
+
+      // 2. Save marketing & activity digest consent to profiles
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          marketing_consent: marketingConsent,
+          activity_digest_consent: activityDigestConsent,
+        })
+        .eq("id", user.id)
+
+      if (profileError) throw profileError
+
+      // 3. Record consent changes in audit log
+      await supabase.from("consent_records").insert([
+        { user_id: user.id, consent_type: "marketing", consent_version: "1.0.0", consent_given: marketingConsent },
+        { user_id: user.id, consent_type: "activity_digest", consent_version: "1.0.0", consent_given: activityDigestConsent },
+      ])
 
       toast({
         title: "Preferences saved",
@@ -290,8 +308,10 @@ export function NotificationSettings() {
                 <p className="font-medium">Special Deals</p>
                 <p className="text-sm text-muted-foreground">In-app notifications about special deals and promotions</p>
               </div>
-              <Switch checked={notifications.specialDeals} onCheckedChange={() => handleToggle("specialDeals")} />
+              <Switch checked={marketingConsent} onCheckedChange={() => setMarketingConsent(!marketingConsent)} />
             </div>
+          </div>
+        </div>
 
             <div className="flex items-center justify-between">
               <div>
@@ -301,12 +321,13 @@ export function NotificationSettings() {
               <Switch checked={notifications.productUpdates} onCheckedChange={() => handleToggle("productUpdates")} />
             </div>
 
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Newsletter</p>
-                <p className="text-sm text-muted-foreground">Monthly newsletter with travel tips and inspiration</p>
+                <p className="font-medium">Personalised Recommendations</p>
+                <p className="text-sm text-muted-foreground">Emails about itineraries and destinations based on what you&apos;ve been looking at</p>
               </div>
-              <Switch checked={notifications.newsletter} onCheckedChange={() => handleToggle("newsletter")} />
+              <Switch checked={activityDigestConsent} onCheckedChange={() => setActivityDigestConsent(!activityDigestConsent)} />
             </div>
           </div>
         </div>

@@ -14,14 +14,14 @@ function getResendClient(): Resend {
 }
 
 const FROM_EMAIL = "Tinerary <noreply@tinerary-app.com>"
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary-app.com"
+export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary-app.com"
 
 // ─── Shared postcard-style email shell ────────────────────────────────
 // Warm cream + terracotta + teal palette inspired by vintage travel postcards.
 // Uses Google Fonts @import for the editorial serif "Playfair Display".
 // Every email wraps its unique body content with postcardEmail().
 
-function postcardEmail(body: string, footerNote?: string): string {
+export function postcardEmail(body: string, footerNote?: string): string {
   return `
     <!DOCTYPE html>
     <html>

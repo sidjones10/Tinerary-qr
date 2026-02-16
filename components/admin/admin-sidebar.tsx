@@ -13,6 +13,7 @@ import {
   BarChart3,
   Bell,
   FileText,
+  Mail,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/providers/auth-provider"
@@ -25,6 +26,7 @@ const navItems = [
   { href: "/admin/itineraries", label: "Itineraries", icon: Map },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/errors", label: "Errors", icon: FileText },
+  { href: "/admin/email-preview", label: "Email Preview", icon: Mail },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ]
 

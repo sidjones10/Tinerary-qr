@@ -17,7 +17,7 @@ const FROM_EMAIL = "Tinerary <noreply@tinerary-app.com>"
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary-app.com"
 
 // ─── Shared postcard-style email shell ────────────────────────────────
-// Warm cream + terracotta + teal palette inspired by vintage travel postcards.
+// Warm cream + orange + black palette matching the Tinerary brand logo.
 // Uses Google Fonts @import for the editorial serif "Playfair Display".
 // Every email wraps its unique body content with postcardEmail().
 
@@ -36,7 +36,7 @@ export function postcardEmail(body: string, footerNote?: string): string {
           padding: 0;
           background-color: #F5EDE3;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #3D3229;
+          color: #1A1A1A;
           -webkit-font-smoothing: antialiased;
         }
         .outer-wrap {
@@ -49,9 +49,9 @@ export function postcardEmail(body: string, footerNote?: string): string {
           height: 8px;
           background: repeating-linear-gradient(
             90deg,
-            #C75B3A 0px, #C75B3A 20px,
+            #D4792C 0px, #D4792C 20px,
             #FFFDF9 20px, #FFFDF9 28px,
-            #1A7B7E 28px, #1A7B7E 48px,
+            #D4792C 28px, #D4792C 48px,
             #FFFDF9 48px, #FFFDF9 56px
           );
         }
@@ -65,7 +65,7 @@ export function postcardEmail(body: string, footerNote?: string): string {
         }
         /* ── masthead ── */
         .masthead {
-          background: #C75B3A;
+          background: #D4792C;
           padding: 32px 36px 28px;
           text-align: center;
         }
@@ -103,27 +103,27 @@ export function postcardEmail(body: string, footerNote?: string): string {
           padding: 32px 36px;
           font-size: 15px;
           line-height: 1.7;
-          color: #3D3229;
+          color: #1A1A1A;
         }
         .body-content h2 {
           font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
           font-weight: 700;
           font-size: 22px;
-          color: #C75B3A;
+          color: #D4792C;
           margin: 0 0 12px;
         }
         .body-content h3 {
           font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
           font-weight: 700;
           font-size: 18px;
-          color: #1A7B7E;
+          color: #D4792C;
           margin: 0 0 6px;
         }
         .body-content p {
           margin: 0 0 14px;
         }
         .body-content a {
-          color: #1A7B7E;
+          color: #D4792C;
         }
         /* ── fun divider ── */
         .divider {
@@ -135,7 +135,7 @@ export function postcardEmail(body: string, footerNote?: string): string {
         /* ── CTA button ── */
         .cta-btn {
           display: inline-block;
-          background: #1A7B7E;
+          background: #D4792C;
           color: #FFFDF9 !important;
           padding: 14px 36px;
           text-decoration: none;
@@ -145,22 +145,22 @@ export function postcardEmail(body: string, footerNote?: string): string {
           letter-spacing: 0.3px;
         }
         .cta-btn-warm {
-          background: #C75B3A;
+          background: #D4792C;
         }
         /* ── info card ── */
         .info-card {
           background: #FAF3E8;
-          border-left: 4px solid #1A7B7E;
+          border-left: 4px solid #D4792C;
           padding: 16px 20px;
           border-radius: 0 8px 8px 0;
           margin: 18px 0;
         }
         .info-card-warm {
-          border-left-color: #C75B3A;
+          border-left-color: #D4792C;
         }
         .info-card-alert {
           background: #FEF0EC;
-          border-left-color: #C75B3A;
+          border-left-color: #D4792C;
         }
         /* ── detail row ── */
         .detail-row {
@@ -169,7 +169,7 @@ export function postcardEmail(body: string, footerNote?: string): string {
         }
         .detail-label {
           font-weight: 600;
-          color: #1A7B7E;
+          color: #D4792C;
         }
         /* ── postmark / footer ── */
         .postmark {
@@ -183,7 +183,7 @@ export function postcardEmail(body: string, footerNote?: string): string {
           font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
           font-style: italic;
           font-size: 18px;
-          color: #C75B3A;
+          color: #D4792C;
           margin-bottom: 6px;
         }
       </style>
@@ -226,37 +226,37 @@ export async function sendWelcomeEmail(email: string, name: string) {
 
           <!-- Showcase feature cards with colored headers -->
           <div style="margin:28px 0;">
-            <div style="border:2px solid #3D3229;border-radius:16px;overflow:hidden;margin-bottom:16px;">
-              <div style="background:#1A7B7E;padding:14px 20px;">
+            <div style="border:2px solid #1A1A1A;border-radius:16px;overflow:hidden;margin-bottom:16px;">
+              <div style="background:#D4792C;padding:14px 20px;">
                 <span style="color:#FFFDF9;font-weight:700;font-size:16px;">Plan &amp; Share</span>
               </div>
               <div style="padding:16px 20px;">
-                <p style="margin:0;font-size:15px;line-height:1.6;color:#3D3229;">Create stunning itineraries with maps, photos, and schedules &mdash; then share with a single link.</p>
+                <p style="margin:0;font-size:15px;line-height:1.6;color:#1A1A1A;">Create stunning itineraries with maps, photos, and schedules &mdash; then share with a single link.</p>
               </div>
             </div>
 
-            <div style="border:2px solid #3D3229;border-radius:16px;overflow:hidden;margin-bottom:16px;">
-              <div style="background:#C75B3A;padding:14px 20px;">
+            <div style="border:2px solid #1A1A1A;border-radius:16px;overflow:hidden;margin-bottom:16px;">
+              <div style="background:#D4792C;padding:14px 20px;">
                 <span style="color:#FFFDF9;font-weight:700;font-size:16px;">Travel Together</span>
               </div>
               <div style="padding:16px 20px;">
-                <p style="margin:0;font-size:15px;line-height:1.6;color:#3D3229;">Follow friends, see what they're planning, and collaborate on trips in real time.</p>
+                <p style="margin:0;font-size:15px;line-height:1.6;color:#1A1A1A;">Follow friends, see what they're planning, and collaborate on trips in real time.</p>
               </div>
             </div>
 
-            <div style="border:2px solid #3D3229;border-radius:16px;overflow:hidden;">
-              <div style="background:#3D3229;padding:14px 20px;">
+            <div style="border:2px solid #1A1A1A;border-radius:16px;overflow:hidden;">
+              <div style="background:#1A1A1A;padding:14px 20px;">
                 <span style="color:#FFFDF9;font-weight:700;font-size:16px;">Stay On Track</span>
               </div>
               <div style="padding:16px 20px;">
-                <p style="margin:0;font-size:15px;line-height:1.6;color:#3D3229;">Smart countdown reminders, calendar exports, and expense splitting keep everything on course.</p>
+                <p style="margin:0;font-size:15px;line-height:1.6;color:#1A1A1A;">Smart countdown reminders, calendar exports, and expense splitting keep everything on course.</p>
               </div>
             </div>
           </div>
 
           <!-- Welcome CTA card -->
-          <div style="background:#FAF3E8;border:2px solid #3D3229;border-radius:16px;padding:28px;text-align:center;margin:28px 0;">
-            <div style="font-family:'Playfair Display',Georgia,serif;font-size:20px;font-weight:700;color:#3D3229;margin-bottom:6px;">Ready to plan your first adventure?</div>
+          <div style="background:#FAF3E8;border:2px solid #1A1A1A;border-radius:16px;padding:28px;text-align:center;margin:28px 0;">
+            <div style="font-family:'Playfair Display',Georgia,serif;font-size:20px;font-weight:700;color:#1A1A1A;margin-bottom:6px;">Ready to plan your first adventure?</div>
             <p style="margin:0 0 18px;font-size:15px;color:#5C4F42;font-style:italic;">Your next story starts here.</p>
             <a href="${APP_URL}/" class="cta-btn">Start Exploring</a>
           </div>
@@ -302,7 +302,7 @@ export async function sendEventInviteEmail(
 
           <div style="background:#FFFDF9;border:2px dashed #D6C9B6;border-radius:8px;padding:20px 24px;margin:20px 0;text-align:center;">
             <div style="font-family:'Playfair Display',Georgia,serif;font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#9B8E7E;margin-bottom:10px;">Admit One</div>
-            <div style="font-family:'Playfair Display',Georgia,serif;font-size:22px;font-weight:700;color:#C75B3A;margin-bottom:14px;">${eventTitle}</div>
+            <div style="font-family:'Playfair Display',Georgia,serif;font-size:22px;font-weight:700;color:#D4792C;margin-bottom:14px;">${eventTitle}</div>
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td style="text-align:center;padding:8px 0;border-top:1px solid #D6C9B6;">
@@ -363,8 +363,8 @@ export async function sendEventReminderEmail(
           <p>Friendly nudge &mdash; the fun is almost here!</p>
 
           <div style="text-align:center;margin:22px 0;">
-            <div style="display:inline-block;background:#FAF3E8;border:2px solid #C75B3A;border-radius:8px;padding:16px 32px;">
-              <div style="font-family:'Playfair Display',Georgia,serif;font-size:28px;font-weight:700;color:#C75B3A;line-height:1;">${timeText}</div>
+            <div style="display:inline-block;background:#FAF3E8;border:2px solid #D4792C;border-radius:8px;padding:16px 32px;">
+              <div style="font-family:'Playfair Display',Georgia,serif;font-size:28px;font-weight:700;color:#D4792C;line-height:1;">${timeText}</div>
               <div style="font-size:12px;color:#9B8E7E;margin-top:4px;text-transform:uppercase;letter-spacing:1px;">and counting</div>
             </div>
           </div>
@@ -409,7 +409,7 @@ export async function sendNewFollowerEmail(
 
     const avatarHtml = followerAvatarUrl
       ? `<img src="${followerAvatarUrl}" alt="${followerName}" style="width:72px;height:72px;border-radius:50%;border:3px solid #D6C9B6;margin:16px auto;display:block;">`
-      : `<div style="width:72px;height:72px;border-radius:50%;background:#FAF3E8;border:3px solid #D6C9B6;margin:16px auto;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',Georgia,serif;font-size:28px;color:#C75B3A;font-weight:700;">${(followerName || '?')[0].toUpperCase()}</div>`
+      : `<div style="width:72px;height:72px;border-radius:50%;background:#FAF3E8;border:3px solid #D6C9B6;margin:16px auto;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',Georgia,serif;font-size:28px;color:#D4792C;font-weight:700;">${(followerName || '?')[0].toUpperCase()}</div>`
 
     const resend = getResendClient()
     await resend.emails.send({
@@ -417,7 +417,7 @@ export async function sendNewFollowerEmail(
       to: recipientEmail,
       subject: `${followerName} just joined your travel crew!`,
       html: postcardEmail(`
-        <div class="masthead" style="background: linear-gradient(135deg, #C75B3A 0%, #D4764E 100%);">
+        <div class="masthead" style="background: linear-gradient(135deg, #D4792C 0%, #E09A5C 100%);">
           <div class="stamp">New Travel Buddy</div>
           <h1>You've got a new follower!</h1>
         </div>
@@ -428,8 +428,8 @@ export async function sendNewFollowerEmail(
           <h2 style="margin-bottom:4px;">${followerName}</h2>
           <p style="margin-top:0;color:#9B8E7E;">@${followerUsername}</p>
 
-          <div style="display:inline-block;background:#E8F5F0;border-radius:20px;padding:8px 24px;margin:8px 0 16px;">
-            <span style="color:#1A7B7E;font-weight:600;font-size:14px;">is now following your adventures</span>
+          <div style="display:inline-block;background:#FEF0E6;border-radius:20px;padding:8px 24px;margin:8px 0 16px;">
+            <span style="color:#D4792C;font-weight:600;font-size:14px;">is now following your adventures</span>
           </div>
 
           <hr class="divider">
@@ -464,7 +464,7 @@ export async function sendNewCommentEmail(
       to: recipientEmail,
       subject: `${commenterName} commented on ${eventTitle}`,
       html: postcardEmail(`
-        <div class="masthead" style="background: linear-gradient(135deg, #1A7B7E 0%, #238E91 100%);">
+        <div class="masthead" style="background: linear-gradient(135deg, #D4792C 0%, #E09A5C 100%);">
           <div class="stamp">New Comment</div>
           <h1>${eventTitle}</h1>
           <p class="subtitle">${commenterName} has something to say!</p>
@@ -473,15 +473,15 @@ export async function sendNewCommentEmail(
           <p>Hi ${recipientName},</p>
           <p><strong>${commenterName}</strong> dropped a comment on your event:</p>
 
-          <div style="background:#F5FAFA;border-radius:12px;padding:20px 24px;margin:20px 0;position:relative;">
-            <div style="font-family:'Playfair Display',Georgia,serif;font-size:32px;color:#1A7B7E;line-height:1;margin-bottom:4px;">&ldquo;</div>
-            <div style="font-style:italic;font-size:16px;color:#3D3229;line-height:1.6;padding:0 8px;">${commentText}</div>
+          <div style="background:#FEF6EE;border-radius:12px;padding:20px 24px;margin:20px 0;position:relative;">
+            <div style="font-family:'Playfair Display',Georgia,serif;font-size:32px;color:#D4792C;line-height:1;margin-bottom:4px;">&ldquo;</div>
+            <div style="font-style:italic;font-size:16px;color:#1A1A1A;line-height:1.6;padding:0 8px;">${commentText}</div>
             <div style="text-align:right;font-size:14px;color:#9B8E7E;margin-top:8px;">&mdash; ${commenterName}</div>
           </div>
 
           <hr class="divider">
           <p style="text-align:center;">
-            <a href="${eventUrl}" class="cta-btn" style="background:#1A7B7E;">Join the Conversation</a>
+            <a href="${eventUrl}" class="cta-btn" style="background:#D4792C;">Join the Conversation</a>
           </p>
         </div>
       `),
@@ -506,7 +506,7 @@ export async function sendPasswordResetEmail(email: string, resetToken: string) 
       to: email,
       subject: "Reset your Tinerary password",
       html: postcardEmail(`
-        <div class="masthead" style="background:#3D3229;">
+        <div class="masthead" style="background:#1A1A1A;">
           <div class="stamp">Password Reset</div>
           <h1>No worries, let's fix this</h1>
         </div>
@@ -514,7 +514,7 @@ export async function sendPasswordResetEmail(email: string, resetToken: string) 
           <p>We got your request to reset your password. It happens to the best of us! Click below to pick a new one:</p>
 
           <p style="text-align:center;margin:28px 0;">
-            <a href="${resetUrl}" class="cta-btn" style="background:#3D3229;border-radius:28px;">Reset Password</a>
+            <a href="${resetUrl}" class="cta-btn" style="background:#1A1A1A;border-radius:28px;">Reset Password</a>
           </p>
 
           <div class="info-card info-card-alert" style="border-radius:0 8px 8px 0;">
@@ -555,7 +555,7 @@ export async function sendCountdownReminderEmail(params: {
       to: email,
       subject: `${timeRemaining} until ${itineraryTitle}!`,
       html: postcardEmail(`
-        <div class="masthead" style="background: linear-gradient(135deg, #C75B3A 0%, #D4764E 100%);">
+        <div class="masthead" style="background: linear-gradient(135deg, #D4792C 0%, #E09A5C 100%);">
           <div class="stamp">Countdown</div>
           <h1>${itineraryTitle}</h1>
           <p class="subtitle">The countdown is on!</p>
@@ -564,20 +564,20 @@ export async function sendCountdownReminderEmail(params: {
           <p>Hi ${name || "there"},</p>
 
           <div style="text-align:center;margin:28px 0;">
-            <div style="display:inline-block;background:#FAF3E8;border:3px solid #C75B3A;border-radius:12px;padding:24px 40px;">
-              <div style="font-family:'Playfair Display',Georgia,serif;font-size:48px;font-weight:700;color:#C75B3A;line-height:1;">${timeRemaining}</div>
+            <div style="display:inline-block;background:#FAF3E8;border:3px solid #D4792C;border-radius:12px;padding:24px 40px;">
+              <div style="font-family:'Playfair Display',Georgia,serif;font-size:48px;font-weight:700;color:#D4792C;line-height:1;">${timeRemaining}</div>
               <div style="font-size:12px;color:#9B8E7E;margin-top:8px;text-transform:uppercase;letter-spacing:2px;">until your ${typeLabel}</div>
             </div>
           </div>
 
-          <div class="info-card" style="border-radius:8px;border-left:4px solid #1A7B7E;">
+          <div class="info-card" style="border-radius:8px;border-left:4px solid #D4792C;">
             <div class="detail-row">
               <span class="detail-label">When:</span> ${new Date(eventDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </div>
             ${location ? `<div class="detail-row"><span class="detail-label">Where:</span> ${location}</div>` : ''}
           </div>
 
-          <p style="text-align:center;font-family:'Playfair Display',Georgia,serif;font-style:italic;color:#1A7B7E;">The adventure is almost here &mdash; make sure you're ready!</p>
+          <p style="text-align:center;font-family:'Playfair Display',Georgia,serif;font-style:italic;color:#D4792C;">The adventure is almost here &mdash; make sure you're ready!</p>
 
           <hr class="divider">
           <p style="text-align:center;">
@@ -614,7 +614,7 @@ export async function sendEventStartedEmail(params: {
       to: email,
       subject: `It's go time! ${itineraryTitle} is live`,
       html: postcardEmail(`
-        <div class="masthead" style="background: linear-gradient(135deg, #1A7B7E 0%, #238E91 100%);">
+        <div class="masthead" style="background: linear-gradient(135deg, #D4792C 0%, #E09A5C 100%);">
           <div class="stamp">It's Go Time</div>
           <h1>${itineraryTitle}</h1>
           <p class="subtitle">is officially underway!</p>
@@ -623,12 +623,12 @@ export async function sendEventStartedEmail(params: {
           <p style="text-align:left;">Hi ${name || "there"},</p>
 
           <div style="margin:20px 0;">
-            <div style="display:inline-block;background:#E8F5F0;border:3px solid #1A7B7E;border-radius:12px;padding:16px 32px;">
-              <div style="font-family:'Playfair Display',Georgia,serif;font-weight:700;font-size:24px;color:#1A7B7E;letter-spacing:1px;text-transform:uppercase;">Happening Now</div>
+            <div style="display:inline-block;background:#FEF0E6;border:3px solid #D4792C;border-radius:12px;padding:16px 32px;">
+              <div style="font-family:'Playfair Display',Georgia,serif;font-weight:700;font-size:24px;color:#D4792C;letter-spacing:1px;text-transform:uppercase;">Happening Now</div>
             </div>
           </div>
 
-          <h2 style="color:#1A7B7E;font-size:24px;">${itineraryTitle}</h2>
+          <h2 style="color:#D4792C;font-size:24px;">${itineraryTitle}</h2>
           ${location ? `<p style="color:#9B8E7E;font-style:italic;">at ${location}</p>` : ''}
 
           <p style="font-size:16px;">Your ${eventType} has begun &mdash; soak it all in!</p>
@@ -661,7 +661,7 @@ export async function sendWhatsNewEmail(params: {
       to: email,
       subject: "Fresh off the press: what's new on Tinerary",
       html: postcardEmail(`
-        <div class="masthead" style="background:#3D3229;">
+        <div class="masthead" style="background:#1A1A1A;">
           <h1 style="font-size:36px;line-height:1.1;">Your Tinerary<br><span style="font-style:italic;font-weight:400;">in Motion</span></h1>
           <p class="subtitle">What's new &amp; what's next for your travels</p>
         </div>
@@ -673,19 +673,19 @@ export async function sendWhatsNewEmail(params: {
           <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
             <tr>
               <td style="width:50%;padding-right:8px;vertical-align:top;">
-                <div style="border:2px solid #3D3229;border-radius:16px;padding:24px;text-align:center;">
-                  <div style="font-family:'Playfair Display',Georgia,serif;font-size:32px;font-weight:700;color:#C75B3A;line-height:1;">4</div>
-                  <div style="font-size:15px;font-weight:700;color:#3D3229;margin:12px 0 8px;">New features this month</div>
-                  <div style="display:inline-block;background:#3D3229;border-radius:8px;padding:4px 10px;">
+                <div style="border:2px solid #1A1A1A;border-radius:16px;padding:24px;text-align:center;">
+                  <div style="font-family:'Playfair Display',Georgia,serif;font-size:32px;font-weight:700;color:#D4792C;line-height:1;">4</div>
+                  <div style="font-size:15px;font-weight:700;color:#1A1A1A;margin:12px 0 8px;">New features this month</div>
+                  <div style="display:inline-block;background:#1A1A1A;border-radius:8px;padding:4px 10px;">
                     <span style="color:#FFFDF9;font-size:12px;font-weight:700;">Just shipped</span>
                   </div>
                 </div>
               </td>
               <td style="width:50%;padding-left:8px;vertical-align:top;">
-                <div style="border:2px solid #3D3229;border-radius:16px;padding:24px;text-align:center;">
-                  <div style="font-family:'Playfair Display',Georgia,serif;font-size:32px;font-weight:700;color:#1A7B7E;line-height:1;">3x</div>
-                  <div style="font-size:15px;font-weight:700;color:#3D3229;margin:12px 0 8px;">Faster trip planning</div>
-                  <div style="display:inline-block;background:#3D3229;border-radius:8px;padding:4px 10px;">
+                <div style="border:2px solid #1A1A1A;border-radius:16px;padding:24px;text-align:center;">
+                  <div style="font-family:'Playfair Display',Georgia,serif;font-size:32px;font-weight:700;color:#D4792C;line-height:1;">3x</div>
+                  <div style="font-size:15px;font-weight:700;color:#1A1A1A;margin:12px 0 8px;">Faster trip planning</div>
+                  <div style="display:inline-block;background:#1A1A1A;border-radius:8px;padding:4px 10px;">
                     <span style="color:#FFFDF9;font-size:12px;font-weight:700;">&#8593; Improved</span>
                   </div>
                 </div>
@@ -695,47 +695,47 @@ export async function sendWhatsNewEmail(params: {
 
           <!-- Feature cards with dark header bar -->
           <div style="margin:28px 0;">
-            <div style="border:2px solid #3D3229;border-radius:16px;overflow:hidden;margin-bottom:16px;">
-              <div style="background:#1A7B7E;padding:12px 20px;">
+            <div style="border:2px solid #1A1A1A;border-radius:16px;overflow:hidden;margin-bottom:16px;">
+              <div style="background:#D4792C;padding:12px 20px;">
                 <span style="color:#FFFDF9;font-weight:700;font-size:14px;letter-spacing:0.5px;">Enhanced Event Planning</span>
               </div>
               <div style="padding:16px 20px;">
-                <p style="margin:0;color:#3D3229;font-size:15px;line-height:1.6;">Create beautiful itineraries with interactive maps, photo galleries, and detailed day-by-day schedules.</p>
+                <p style="margin:0;color:#1A1A1A;font-size:15px;line-height:1.6;">Create beautiful itineraries with interactive maps, photo galleries, and detailed day-by-day schedules.</p>
               </div>
             </div>
 
-            <div style="border:2px solid #3D3229;border-radius:16px;overflow:hidden;margin-bottom:16px;">
-              <div style="background:#C75B3A;padding:12px 20px;">
+            <div style="border:2px solid #1A1A1A;border-radius:16px;overflow:hidden;margin-bottom:16px;">
+              <div style="background:#D4792C;padding:12px 20px;">
                 <span style="color:#FFFDF9;font-weight:700;font-size:14px;letter-spacing:0.5px;">Smart Reminders</span>
               </div>
               <div style="padding:16px 20px;">
-                <p style="margin:0;color:#3D3229;font-size:15px;line-height:1.6;">Countdown reminders at 5 days, 2 days, 1 day, and 2 hours before departure so you're never caught off guard.</p>
+                <p style="margin:0;color:#1A1A1A;font-size:15px;line-height:1.6;">Countdown reminders at 5 days, 2 days, 1 day, and 2 hours before departure so you're never caught off guard.</p>
               </div>
             </div>
 
-            <div style="border:2px solid #3D3229;border-radius:16px;overflow:hidden;margin-bottom:16px;">
-              <div style="background:#1A7B7E;padding:12px 20px;">
+            <div style="border:2px solid #1A1A1A;border-radius:16px;overflow:hidden;margin-bottom:16px;">
+              <div style="background:#D4792C;padding:12px 20px;">
                 <span style="color:#FFFDF9;font-weight:700;font-size:14px;letter-spacing:0.5px;">Travel Together</span>
               </div>
               <div style="padding:16px 20px;">
-                <p style="margin:0;color:#3D3229;font-size:15px;line-height:1.6;">Follow friends, share events, and collaborate on trip planning in real time.</p>
+                <p style="margin:0;color:#1A1A1A;font-size:15px;line-height:1.6;">Follow friends, share events, and collaborate on trip planning in real time.</p>
               </div>
             </div>
 
-            <div style="border:2px solid #3D3229;border-radius:16px;overflow:hidden;">
-              <div style="background:#C75B3A;padding:12px 20px;">
+            <div style="border:2px solid #1A1A1A;border-radius:16px;overflow:hidden;">
+              <div style="background:#D4792C;padding:12px 20px;">
                 <span style="color:#FFFDF9;font-weight:700;font-size:14px;letter-spacing:0.5px;">Expense Tracking</span>
               </div>
               <div style="padding:16px 20px;">
-                <p style="margin:0;color:#3D3229;font-size:15px;line-height:1.6;">Log costs on the go and split expenses with your travel companions &mdash; no awkward math required.</p>
+                <p style="margin:0;color:#1A1A1A;font-size:15px;line-height:1.6;">Log costs on the go and split expenses with your travel companions &mdash; no awkward math required.</p>
               </div>
             </div>
           </div>
 
           <!-- Travel tip card -->
-          <div style="border:2px solid #3D3229;border-radius:16px;overflow:hidden;margin:28px 0;">
+          <div style="border:2px solid #1A1A1A;border-radius:16px;overflow:hidden;margin:28px 0;">
             <div style="padding:16px 20px 0 20px;">
-              <div style="display:inline-block;background:#3D3229;border-radius:8px;padding:5px 12px;">
+              <div style="display:inline-block;background:#1A1A1A;border-radius:8px;padding:5px 12px;">
                 <span style="color:#FFFDF9;font-size:14px;font-weight:700;">&#10003; Travel tip</span>
               </div>
             </div>
@@ -745,8 +745,8 @@ export async function sendWhatsNewEmail(params: {
           </div>
 
           <!-- Referral-style CTA card -->
-          <div style="background:#FAF3E8;border:2px solid #3D3229;border-radius:16px;padding:24px;text-align:center;margin:28px 0;">
-            <div style="font-family:'Playfair Display',Georgia,serif;font-size:20px;font-weight:700;color:#3D3229;margin-bottom:8px;">Spread the wanderlust</div>
+          <div style="background:#FAF3E8;border:2px solid #1A1A1A;border-radius:16px;padding:24px;text-align:center;margin:28px 0;">
+            <div style="font-family:'Playfair Display',Georgia,serif;font-size:20px;font-weight:700;color:#1A1A1A;margin-bottom:8px;">Spread the wanderlust</div>
             <p style="margin:0 0 16px;font-size:15px;color:#5C4F42;">Know someone planning a trip? Share Tinerary and plan together.</p>
             <a href="${APP_URL}/" class="cta-btn">Explore Tinerary</a>
           </div>
@@ -780,7 +780,7 @@ export async function sendAccountDeletionWarningEmail(params: {
       to: email,
       subject: `Your Tinerary account will be deleted in ${daysRemaining} days`,
       html: postcardEmail(`
-        <div class="masthead" style="background:#3D3229;">
+        <div class="masthead" style="background:#1A1A1A;">
           <div class="stamp">Important Notice</div>
           <h1>We'd hate to see you go</h1>
         </div>
@@ -788,8 +788,8 @@ export async function sendAccountDeletionWarningEmail(params: {
           <p>Hi ${name || username || "there"},</p>
 
           <div style="text-align:center;margin:24px 0;">
-            <div style="display:inline-block;background:#FEF0EC;border:2px solid #C75B3A;border-radius:8px;padding:20px 36px;">
-              <div style="font-family:'Playfair Display',Georgia,serif;font-size:42px;font-weight:700;color:#C75B3A;line-height:1;">${daysRemaining} days</div>
+            <div style="display:inline-block;background:#FEF0EC;border:2px solid #D4792C;border-radius:8px;padding:20px 36px;">
+              <div style="font-family:'Playfair Display',Georgia,serif;font-size:42px;font-weight:700;color:#D4792C;line-height:1;">${daysRemaining} days</div>
               <div style="font-size:13px;color:#9B8E7E;margin-top:6px;">until permanent deletion</div>
             </div>
           </div>
@@ -811,7 +811,7 @@ export async function sendAccountDeletionWarningEmail(params: {
 
           <hr class="divider">
           <p style="text-align:center;">
-            <a href="${reactivateUrl}" class="cta-btn" style="background:#1A7B7E;">Keep My Account</a>
+            <a href="${reactivateUrl}" class="cta-btn" style="background:#D4792C;">Keep My Account</a>
           </p>
 
           <p style="color:#9B8E7E;font-size:13px;margin-top:24px;">If you intended to delete your account, no action is needed. Your data will be permanently removed on the date above.</p>

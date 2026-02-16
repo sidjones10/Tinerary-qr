@@ -211,11 +211,13 @@ export function InlineComments({ itineraryId, open, onOpenChange, initialComment
             <div className="flex gap-3 items-end">
               <Avatar className="h-8 w-8 flex-shrink-0">
                 <AvatarImage src={user?.user_metadata?.avatar_url} alt="You" />
-                <AvatarFallback>{user?.user_metadata?.name?.[0] || user?.email?.[0] || "Y"}</AvatarFallback>
+                <AvatarFallback>
+                  {(user?.user_metadata?.name as string)?.[0] || user?.email?.[0] || "?"}
+                </AvatarFallback>
               </Avatar>
               <div className="flex-1 flex gap-2">
                 <Input
-                  placeholder="Add a comment..."
+                  placeholder={user ? "Add a comment..." : "Sign in to comment..."}
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   onKeyDown={(e) => {

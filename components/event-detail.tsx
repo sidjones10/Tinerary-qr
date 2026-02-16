@@ -121,7 +121,7 @@ export function EventDetail({ event }: EventDetailProps) {
   const [checkingAccess, setCheckingAccess] = useState(true)
   const [coverImage, setCoverImage] = useState(event.image_url as string | undefined)
   const [showCoverPrompt, setShowCoverPrompt] = useState(false)
-  const isOwner = user && user.id === event.user_id
+  const isOwner = !!(user && user.id === event.user_id)
 
   // Check if we should show the post-event cover update prompt
   useEffect(() => {

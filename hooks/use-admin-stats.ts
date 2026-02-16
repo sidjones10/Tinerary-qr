@@ -8,6 +8,8 @@ export interface AdminStats {
   totalUsers: number
   totalItineraries: number
   totalViews: number
+  totalLikes: number
+  totalShares: number
   totalSearches: number
   userGrowth: { month: string; users: number }[]
   recentUsers: {
@@ -22,7 +24,9 @@ export interface AdminStats {
     id: string
     title: string
     views: number
+    likes: number
     saves: number
+    shares: number
     creator: string
     creatorId: string
   }[]
@@ -96,12 +100,14 @@ export function useAdminStats(timeRange: "7d" | "30d" | "90d" = "30d") {
           ? Math.round(((currentPeriodItineraries || 0) - previousPeriodItineraries) / previousPeriodItineraries * 100)
           : 0
 
-        // Fetch total views from metrics
+        // Fetch total views, likes, and shares from metrics
         const { data: metricsData } = await supabase
           .from("itinerary_metrics")
-          .select("view_count")
+          .select("view_count, like_count, share_count")
 
         const totalViews = metricsData?.reduce((sum, m) => sum + (m.view_count || 0), 0) || 0
+        const totalLikes = metricsData?.reduce((sum, m) => sum + (m.like_count || 0), 0) || 0
+        const totalShares = metricsData?.reduce((sum, m) => sum + (m.share_count || 0), 0) || 0
 
         // Fetch user interactions count (as proxy for searches/activity)
         const { count: totalSearches } = await supabase
@@ -158,7 +164,7 @@ export function useAdminStats(timeRange: "7d" | "30d" | "90d" = "30d") {
             title,
             user_id,
             profiles!itineraries_user_id_fkey (name, username),
-            itinerary_metrics (view_count, save_count)
+            itinerary_metrics (view_count, save_count, like_count, share_count)
           `)
           .eq("is_public", true)
           .order("created_at", { ascending: false })
@@ -170,7 +176,9 @@ export function useAdminStats(timeRange: "7d" | "30d" | "90d" = "30d") {
             id: item.id,
             title: item.title,
             views: item.itinerary_metrics?.[0]?.view_count || 0,
+            likes: item.itinerary_metrics?.[0]?.like_count || 0,
             saves: item.itinerary_metrics?.[0]?.save_count || 0,
+            shares: item.itinerary_metrics?.[0]?.share_count || 0,
             creator: item.profiles?.name || item.profiles?.username || "Unknown",
             creatorId: item.user_id,
           }))
@@ -181,6 +189,8 @@ export function useAdminStats(timeRange: "7d" | "30d" | "90d" = "30d") {
           totalUsers: totalUsers || 0,
           totalItineraries: totalItineraries || 0,
           totalViews,
+          totalLikes,
+          totalShares,
           totalSearches: totalSearches || 0,
           userGrowth,
           recentUsers,
@@ -346,7 +356,7 @@ export function useAdminItineraries(page = 1, limit = 20, search = "") {
         .select(`
           *,
           profiles!itineraries_user_id_fkey (name, username, email),
-          itinerary_metrics (view_count, save_count, like_count)
+          itinerary_metrics (view_count, save_count, like_count, share_count)
         `, { count: "exact" })
         .order("created_at", { ascending: false })
         .range((page - 1) * limit, page * limit - 1)

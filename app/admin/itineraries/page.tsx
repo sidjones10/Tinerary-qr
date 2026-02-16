@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { ArrowLeft, Search, Loader2, MoreVertical, Eye, Heart, Bookmark, Globe, Lock, Trash2, ExternalLink } from "lucide-react"
+import { ArrowLeft, Search, Loader2, MoreVertical, Eye, Heart, Bookmark, Share2, Globe, Lock, Trash2, ExternalLink } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -155,17 +155,21 @@ export default function AdminItinerariesPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3 text-xs text-[#2c2420]/60">
-                          <span className="flex items-center gap-1">
+                          <span className="flex items-center gap-1" title="Views">
                             <Eye className="h-3 w-3" />
                             {metrics.view_count || 0}
                           </span>
-                          <span className="flex items-center gap-1">
+                          <span className="flex items-center gap-1" title="Likes">
                             <Heart className="h-3 w-3" />
                             {metrics.like_count || 0}
                           </span>
-                          <span className="flex items-center gap-1">
+                          <span className="flex items-center gap-1" title="Saves">
                             <Bookmark className="h-3 w-3" />
                             {metrics.save_count || 0}
+                          </span>
+                          <span className="flex items-center gap-1" title="Shares">
+                            <Share2 className="h-3 w-3" />
+                            {metrics.share_count || 0}
                           </span>
                         </div>
                       </TableCell>

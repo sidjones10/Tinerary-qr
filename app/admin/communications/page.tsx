@@ -95,6 +95,51 @@ export default function AdminCommunicationsPage() {
   const [filter, setFilter] = useState<string>("all")
   const [typeFilter, setTypeFilter] = useState<string>("all")
 
+  // Bulk welcome email state
+  const [welcomePreview, setWelcomePreview] = useState<{ total: number; users: { email: string; name: string }[] } | null>(null)
+  const [welcomeLoading, setWelcomeLoading] = useState(false)
+  const [welcomeResult, setWelcomeResult] = useState<{ sent: number; failed: number } | null>(null)
+  const [welcomeSending, setWelcomeSending] = useState(false)
+
+  const previewWelcomeEmails = async () => {
+    setWelcomeLoading(true)
+    setWelcomeResult(null)
+    try {
+      const res = await fetch("/api/admin/send-bulk-welcome", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dryRun: true }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setWelcomePreview({ total: data.stats.total || data.stats.wouldSend, users: data.users || [] })
+      }
+    } catch (err) {
+      console.error("Preview failed:", err)
+    }
+    setWelcomeLoading(false)
+  }
+
+  const sendWelcomeEmails = async () => {
+    setWelcomeSending(true)
+    try {
+      const res = await fetch("/api/admin/send-bulk-welcome", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setWelcomeResult({ sent: data.stats.sent, failed: data.stats.failed })
+        setWelcomePreview(null)
+        fetchLogs()
+      }
+    } catch (err) {
+      console.error("Send failed:", err)
+    }
+    setWelcomeSending(false)
+  }
+
   const fetchLogs = useCallback(async () => {
     setIsLoading(true)
     const supabase = createClient()
@@ -217,6 +262,95 @@ export default function AdminCommunicationsPage() {
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>
+      </div>
+
+      {/* Bulk Welcome Email Panel */}
+      <div className="bg-white/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-5 mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3 className="text-sm font-semibold text-[#2c2420] flex items-center gap-2">
+              <Mail className="h-4 w-4 text-[#D4792C]" />
+              Send Welcome Email to All Users
+            </h3>
+            <p className="text-xs text-[#2c2420]/50 mt-0.5">
+              Send the welcome email to every current user who hasn&apos;t received one yet.
+            </p>
+          </div>
+          {!welcomePreview && !welcomeResult && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={previewWelcomeEmails}
+              disabled={welcomeLoading}
+            >
+              {welcomeLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Eye className="h-4 w-4 mr-2" />
+              )}
+              Preview Recipients
+            </Button>
+          )}
+        </div>
+
+        {welcomePreview && (
+          <div className="mt-3">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
+              <p className="text-sm text-amber-800">
+                <strong>{welcomePreview.total} users</strong> will receive the welcome email.
+                {welcomePreview.users.length > 0 && (
+                  <span className="block mt-1 text-xs text-amber-600">
+                    Including: {welcomePreview.users.slice(0, 5).map(u => u.name || u.email).join(", ")}
+                    {welcomePreview.users.length > 5 && ` and ${welcomePreview.users.length - 5} more...`}
+                  </span>
+                )}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={sendWelcomeEmails}
+                disabled={welcomeSending}
+                className="bg-[#D4792C] hover:bg-[#c06a20] text-white"
+              >
+                {welcomeSending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Send className="h-4 w-4 mr-2" />
+                )}
+                {welcomeSending ? "Sending..." : `Send to ${welcomePreview.total} Users`}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setWelcomePreview(null)}
+                disabled={welcomeSending}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {welcomeResult && (
+          <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
+            <p className="text-sm text-green-800 flex items-center gap-2">
+              <CheckCircle className="h-4 w-4" />
+              <strong>{welcomeResult.sent} welcome emails sent</strong>
+              {welcomeResult.failed > 0 && (
+                <span className="text-red-600">({welcomeResult.failed} failed)</span>
+              )}
+            </p>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setWelcomeResult(null)}
+              className="text-xs"
+            >
+              Dismiss
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Stats cards */}

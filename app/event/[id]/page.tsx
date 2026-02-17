@@ -2,12 +2,17 @@
 
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
+import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/providers/auth-provider"
-import { Loader2 } from "lucide-react"
+import { Loader2, MapPin, Calendar, Heart, Eye, ArrowLeft, Clock } from "lucide-react"
 import { EventDetail } from "@/components/event-detail"
 import { EventNotFound } from "@/components/event-not-found"
 import { EventPrivate } from "@/components/event-private"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ThemeIcon } from "@/components/theme-selector"
 
 // Add these helper functions at the top of the file, after the imports:
 const formatDate = (dateString: string) => {
@@ -530,5 +535,188 @@ export default function EventPage() {
     )
   }
 
+  // Guest view: mirror the discover page card style
+  if (!user) {
+    return <GuestEventView event={event} />
+  }
+
   return <EventDetail event={event} />
+}
+
+// ── Guest-facing itinerary view (mirrors discover page) ──────────────
+function GuestEventView({ event }: { event: any }) {
+  const fmtDate = (d: string | null) => {
+    if (!d) return ""
+    try {
+      return new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+    } catch { return d }
+  }
+
+  const days: any[] = event.days || []
+  const description: string = event.description || ""
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header – same as discover page */}
+      <header className="bg-white shadow-sm py-4 sticky top-0 z-40">
+        <div className="container mx-auto px-4 flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" asChild aria-label="Go back">
+              <Link href="/discover?guest=true">
+                <ArrowLeft className="h-5 w-5" />
+              </Link>
+            </Button>
+            <h1 className="text-xl font-bold">Discover Itineraries</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" asChild>
+              <Link href="/auth">Sign In</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/auth?tab=signup">Sign Up</Link>
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main card – styled like a discover card, but full-width detail */}
+      <main className="container mx-auto px-4 py-8 max-w-2xl">
+        <Card className="overflow-hidden">
+          {/* Hero image */}
+          <div className="relative h-64 md:h-80">
+            {event.image_url ? (
+              <img
+                src={event.image_url}
+                alt={event.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-orange-400 via-pink-400 to-purple-500 flex items-center justify-center">
+                <span className="text-3xl font-bold text-white text-center px-6">
+                  {event.title}
+                </span>
+              </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 p-6">
+              <div className="flex items-center gap-2 mb-2">
+                <ThemeIcon theme={event.theme || "default"} className="h-5 w-5 text-white" />
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold text-white">{event.title}</h2>
+            </div>
+          </div>
+
+          {/* Content area */}
+          <div className="p-6">
+            {/* Host */}
+            {event.organizer && (
+              <div className="flex items-center gap-3 mb-4">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={event.organizer.avatar || undefined} />
+                  <AvatarFallback className="text-sm">
+                    {event.organizer.name?.[0] || "?"}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <span className="text-sm font-medium">{event.organizer.name || "Anonymous"}</span>
+                  {event.organizer.username && (
+                    <span className="text-xs text-muted-foreground ml-1">{event.organizer.username}</span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Details row */}
+            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
+              {event.location && (
+                <span className="flex items-center gap-1">
+                  <MapPin className="h-4 w-4" />
+                  {event.location}
+                </span>
+              )}
+              {event.date && (
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-4 w-4" />
+                  {event.date}
+                </span>
+              )}
+            </div>
+
+            {/* Stats */}
+            <div className="flex items-center gap-4 text-sm text-muted-foreground pb-4 mb-4 border-b">
+              <span className="flex items-center gap-1">
+                <Heart className="h-4 w-4" />
+                {event.like_count || 0}
+              </span>
+              <span className="flex items-center gap-1">
+                <Eye className="h-4 w-4" />
+                {event.view_count || 0}
+              </span>
+            </div>
+
+            {/* Description */}
+            {description && (
+              <p className="text-sm text-gray-700 leading-relaxed mb-6">{description}</p>
+            )}
+
+            {/* Activities preview */}
+            {days.length > 0 && (
+              <div className="space-y-4 mb-6">
+                <h3 className="text-sm font-semibold text-gray-900">Itinerary</h3>
+                {days.map((day: any, dayIdx: number) => (
+                  <div key={dayIdx}>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">
+                      Day {day.day}{day.date ? ` - ${typeof day.date === "string" && day.date.length > 10 ? fmtDate(day.date) : day.date}` : ""}
+                    </p>
+                    <div className="space-y-2">
+                      {(day.activities || []).map((act: any) => (
+                        <div
+                          key={act.id}
+                          className="flex items-start gap-3 rounded-lg bg-gray-50 p-3"
+                        >
+                          <Clock className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium">{act.title}</p>
+                            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-0.5">
+                              {act.time && <span>{act.time}</span>}
+                              {act.location && <span>- {act.location}</span>}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* CTA */}
+            <div className="rounded-lg bg-blue-50 border border-blue-100 p-4 text-center">
+              <p className="text-sm text-blue-800 mb-3">
+                Sign up for free to like, save, and create your own itineraries!
+              </p>
+              <div className="flex justify-center gap-3">
+                <Button variant="outline" asChild>
+                  <Link href="/auth">Sign In</Link>
+                </Button>
+                <Button asChild>
+                  <Link href="/auth?tab=signup">Sign Up Free</Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Back to discover */}
+        <div className="text-center mt-6">
+          <Button variant="ghost" asChild>
+            <Link href="/discover?guest=true">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Discover
+            </Link>
+          </Button>
+        </div>
+      </main>
+    </div>
+  )
 }

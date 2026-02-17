@@ -126,28 +126,29 @@ export default function EmailAuthForm() {
     setAuthResult(null)
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
+      const res = await fetch("/api/auth/signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email, password: formData.password }),
       })
 
-      if (error) {
-        throw error
+      const result = await res.json()
+
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || "Sign in failed")
       }
 
-      if (data.user) {
-        setAuthResult({
-          success: true,
-          message: "Successfully signed in! Redirecting...",
-        })
+      setAuthResult({
+        success: true,
+        message: "Successfully signed in! Redirecting...",
+      })
 
-        setTimeout(() => {
-          if (typeof window !== "undefined") {
-            const redirectTo = new URLSearchParams(window.location.search).get("redirectTo") || "/dashboard"
-            window.location.href = redirectTo
-          }
-        }, 1500)
-      }
+      setTimeout(() => {
+        if (typeof window !== "undefined") {
+          const redirectTo = new URLSearchParams(window.location.search).get("redirectTo") || "/dashboard"
+          window.location.href = redirectTo
+        }
+      }, 1500)
     } catch (error: any) {
       console.error("Sign in error:", error)
       toast({

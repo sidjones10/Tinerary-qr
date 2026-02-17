@@ -136,27 +136,26 @@ export async function signUpWithProfile(data: SignUpData): Promise<SignUpResult>
  */
 export async function signInWithEmail(email: string, password: string): Promise<SignUpResult> {
   try {
-    const supabase = createClient()
-
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+    const res = await fetch("/api/auth/signin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
     })
 
-    if (authError) {
-      return { success: false, error: authError.message }
-    }
+    const result = await res.json()
 
-    if (!authData.user) {
-      return { success: false, error: "Failed to sign in" }
+    if (!res.ok || !result.success) {
+      return { success: false, error: result.message || "Sign in failed" }
     }
 
     // Ensure profile exists (in case of legacy users)
-    await ensureProfileExists(authData.user.id, email)
+    if (result.user) {
+      await ensureProfileExists(result.user.id, email)
+    }
 
     return {
       success: true,
-      user: authData.user,
+      user: result.user,
     }
   } catch (error) {
     console.error("Sign in error:", error)

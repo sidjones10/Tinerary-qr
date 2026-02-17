@@ -100,7 +100,7 @@ export async function GET(request: Request) {
     if (userEmail) {
       const { error: resetErr } =
         await supabaseAdmin.auth.resetPasswordForEmail(userEmail, {
-          redirectTo: `${appUrl}/auth/reset-password`,
+          redirectTo: `${appUrl}/auth/callback?next=/auth/reset-password`,
         })
       if (resetErr) {
         console.error("Failed to send password reset email:", resetErr)

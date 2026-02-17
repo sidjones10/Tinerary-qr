@@ -67,38 +67,47 @@ export async function POST(request: Request) {
     // Use a service-role client so the insert + select isn't blocked by RLS —
     // the anon-key client doesn't have the new session cookies readable yet
     // within the same request that called signInWithPassword.
-    const adminClient = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    )
-    const { data: loginEvent } = await adminClient
-      .from("login_events")
-      .insert({
-        user_id: data.user.id,
-        ip_address: ipAddress,
-        user_agent: userAgent,
-      })
-      .select("revoke_token, created_at")
-      .single()
+    let loginEvent: { revoke_token: string; created_at: string } | null = null
+    try {
+      const adminClient = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      )
+      const { data: eventData, error: insertError } = await adminClient
+        .from("login_events")
+        .insert({
+          user_id: data.user.id,
+          ip_address: ipAddress,
+          user_agent: userAgent,
+        })
+        .select("revoke_token, created_at")
+        .single()
 
-    // Send sign-in alert email (non-blocking — don't delay the sign-in response)
-    if (loginEvent) {
-      const userName =
-        data.user.user_metadata?.name ||
-        data.user.user_metadata?.full_name ||
-        email.split("@")[0]
-
-      sendSignInAlertEmail({
-        email,
-        name: userName,
-        ipAddress,
-        userAgent,
-        revokeToken: loginEvent.revoke_token,
-        signInTime: loginEvent.created_at,
-      }).catch((err) => {
-        console.error("Failed to send sign-in alert email:", err)
-      })
+      if (insertError) {
+        console.error("Failed to insert login event:", insertError)
+      }
+      loginEvent = eventData
+    } catch (err) {
+      console.error("login_events insert threw:", err)
     }
+
+    // Send sign-in alert email (non-blocking — don't delay the sign-in response).
+    // If the login_events insert failed, still send the alert with a fallback token.
+    const userName =
+      data.user.user_metadata?.name ||
+      data.user.user_metadata?.full_name ||
+      email.split("@")[0]
+
+    sendSignInAlertEmail({
+      email,
+      name: userName,
+      ipAddress,
+      userAgent,
+      revokeToken: loginEvent?.revoke_token ?? "unavailable",
+      signInTime: loginEvent?.created_at ?? new Date().toISOString(),
+    }).catch((err) => {
+      console.error("Failed to send sign-in alert email:", err)
+    })
 
     return NextResponse.json({
       success: true,

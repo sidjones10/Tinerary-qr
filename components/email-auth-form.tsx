@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Mail, Eye, EyeOff, AlertTriangle } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { createClient } from "@/lib/supabase/client"
+import { triggerWelcomeEmail } from "@/app/actions/send-welcome-email"
 
 const currentYear = new Date().getFullYear()
 const years = Array.from({ length: 100 }, (_, i) => currentYear - i)
@@ -268,6 +269,12 @@ export default function EmailAuthForm() {
       }
 
       if (data.user) {
+        // Send welcome email (fire-and-forget so it doesn't block signup)
+        const displayName = formData.username || formData.email.split("@")[0]
+        triggerWelcomeEmail(formData.email, displayName).catch((err) =>
+          console.error("Welcome email error:", err),
+        )
+
         // Update profile with consent data (the trigger creates the profile)
         // We'll update it after creation
         setTimeout(async () => {

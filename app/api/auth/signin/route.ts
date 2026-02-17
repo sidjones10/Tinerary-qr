@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { createClient } from "@/utils/supabase/server"
 import { sendSignInAlertEmail } from "@/lib/email-notifications"
 import { rateLimit, getClientIp } from "@/lib/rate-limit"
@@ -62,8 +63,15 @@ export async function POST(request: Request) {
       "Unknown"
     const userAgent = request.headers.get("user-agent") || "Unknown"
 
-    // Log the sign-in event and get the revoke token
-    const { data: loginEvent } = await supabase
+    // Log the sign-in event and get the revoke token.
+    // Use a service-role client so the insert + select isn't blocked by RLS —
+    // the anon-key client doesn't have the new session cookies readable yet
+    // within the same request that called signInWithPassword.
+    const adminClient = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    )
+    const { data: loginEvent } = await adminClient
       .from("login_events")
       .insert({
         user_id: data.user.id,

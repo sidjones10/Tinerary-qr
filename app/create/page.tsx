@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Calendar, MapPin, Clock, Plus, Lightbulb, Upload, X, Trash2, Users, Mail } from "lucide-react"
+import { ArrowLeft, Calendar, MapPin, Clock, Plus, Lightbulb, Upload, X, Trash2, Users, Mail, Phone } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/providers/auth-provider"
@@ -759,27 +759,32 @@ function CreatePageContent() {
   const addInviteEmail = () => {
     if (!newInviteEmail) return
 
-    // Validate email
+    const input = newInviteEmail.trim()
+
+    // Validate email or phone number
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(newInviteEmail)) {
+    const digitsOnly = input.replace(/[\s\-().]/g, "")
+    const isPhone = input.startsWith("+") || (/^\d+$/.test(digitsOnly) && digitsOnly.length >= 7)
+
+    if (!emailRegex.test(input) && !isPhone) {
       toast({
-        title: "Invalid email",
-        description: "Please enter a valid email address",
+        title: "Invalid contact",
+        description: "Please enter a valid email address or phone number",
         variant: "destructive",
       })
       return
     }
 
-    if (inviteEmails.includes(newInviteEmail)) {
+    if (inviteEmails.includes(input)) {
       toast({
         title: "Already added",
-        description: "This email is already in the invite list",
+        description: "This contact is already in the invite list",
         variant: "destructive",
       })
       return
     }
 
-    setInviteEmails([...inviteEmails, newInviteEmail])
+    setInviteEmails([...inviteEmails, input])
     setNewInviteEmail("")
   }
 
@@ -1313,14 +1318,14 @@ function CreatePageContent() {
                     <h2 className="text-lg font-semibold">Invite People</h2>
                   </div>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Invite collaborators or guests to your {type}. They'll receive a notification or email invitation.
+                    Invite collaborators or guests to your {type}. They'll receive a notification, email, or SMS invitation.
                   </p>
 
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <Input
-                        type="email"
-                        placeholder="Enter email address"
+                        type="text"
+                        placeholder="Email or phone number"
                         value={newInviteEmail}
                         onChange={(e) => setNewInviteEmail(e.target.value)}
                         onKeyPress={(e) => {
@@ -1341,26 +1346,29 @@ function CreatePageContent() {
                       <div className="mt-4">
                         <h3 className="text-sm font-medium mb-2">Invited ({inviteEmails.length})</h3>
                         <div className="space-y-2">
-                          {inviteEmails.map((email, index) => (
+                          {inviteEmails.map((contact, index) => {
+                            const isPhone = contact.startsWith("+") || /^\d[\d\s\-().]{6,}$/.test(contact)
+                            return (
                             <div
                               key={index}
                               className="flex items-center justify-between p-3 bg-purple-50 border border-purple-200 rounded-lg"
                             >
                               <div className="flex items-center gap-2">
-                                <Mail className="h-4 w-4 text-purple-600" />
-                                <span className="text-sm">{email}</span>
+                                {isPhone ? <Phone className="h-4 w-4 text-purple-600" /> : <Mail className="h-4 w-4 text-purple-600" />}
+                                <span className="text-sm">{contact}</span>
                               </div>
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => removeInviteEmail(email)}
+                                onClick={() => removeInviteEmail(contact)}
                                 className="text-red-500 hover:text-red-700 hover:bg-red-50"
                               >
                                 <X className="h-4 w-4" />
                               </Button>
                             </div>
-                          ))}
+                            )
+                          })}
                         </div>
                       </div>
                     )}

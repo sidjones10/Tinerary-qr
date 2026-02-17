@@ -359,13 +359,18 @@ export function EventDetail({ event }: EventDetailProps) {
 
     setIsSendingInvite(true)
 
+    // Detect if input is a phone number or email
+    const input = inviteEmail.trim()
+    const digitsOnly = input.replace(/[\s\-().]/g, "")
+    const isPhoneNumber = input.startsWith("+") || (/^\d+$/.test(digitsOnly) && digitsOnly.length >= 7)
+
     try {
       const response = await fetch("/api/invitations/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           itineraryId: event.id,
-          emails: [inviteEmail],
+          ...(isPhoneNumber ? { phoneNumbers: [input] } : { emails: [input] }),
           itineraryTitle: event.title,
           senderName: user.user_metadata?.name || user.email?.split("@")[0] || "Someone",
         }),
@@ -889,16 +894,16 @@ export function EventDetail({ event }: EventDetailProps) {
             <DialogHeader>
               <DialogTitle>Invite Friends</DialogTitle>
               <DialogDescription>
-                Send an invitation to join &quot;{event.title}&quot; via email
+                Send an invitation to join &quot;{event.title}&quot; via email or phone number
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="email">Email Address</Label>
+                <Label htmlFor="email">Email or Phone Number</Label>
                 <Input
                   id="email"
-                  type="email"
-                  placeholder="friend@example.com"
+                  type="text"
+                  placeholder="friend@example.com or +1 555-123-4567"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   onKeyDown={(e) => {

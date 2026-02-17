@@ -91,23 +91,25 @@ export async function POST(request: Request) {
       console.error("login_events insert threw:", err)
     }
 
-    // Send sign-in alert email (non-blocking — don't delay the sign-in response).
-    // If the login_events insert failed, still send the alert with a fallback token.
+    // Send sign-in alert email — must await so Vercel doesn't kill the
+    // serverless function before the Resend API call completes.
     const userName =
       data.user.user_metadata?.name ||
       data.user.user_metadata?.full_name ||
       email.split("@")[0]
 
-    sendSignInAlertEmail({
-      email,
-      name: userName,
-      ipAddress,
-      userAgent,
-      revokeToken: loginEvent?.revoke_token ?? "unavailable",
-      signInTime: loginEvent?.created_at ?? new Date().toISOString(),
-    }).catch((err) => {
+    try {
+      await sendSignInAlertEmail({
+        email,
+        name: userName,
+        ipAddress,
+        userAgent,
+        revokeToken: loginEvent?.revoke_token ?? "unavailable",
+        signInTime: loginEvent?.created_at ?? new Date().toISOString(),
+      })
+    } catch (err) {
       console.error("Failed to send sign-in alert email:", err)
-    })
+    }
 
     return NextResponse.json({
       success: true,

@@ -55,14 +55,25 @@ export async function GET(request: Request) {
       .update({ revoked: true, revoked_at: new Date().toISOString() })
       .eq("id", loginEvent.id)
 
-    // Sign out the user from ALL sessions using the admin API
-    const { error: signOutError } = await supabaseAdmin.auth.admin.signOut(
-      loginEvent.user_id,
-      "global",
-    )
-
-    if (signOutError) {
-      console.error("Error revoking sessions:", signOutError)
+    // Sign out the user from ALL sessions using the GoTrue admin REST API.
+    // The JS client's auth.admin.signOut() requires a JWT, not a user ID,
+    // so we call the admin endpoint directly.
+    try {
+      const signOutRes = await fetch(
+        `${supabaseUrl}/auth/v1/admin/users/${loginEvent.user_id}/sessions`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${serviceRoleKey}`,
+            apikey: serviceRoleKey,
+          },
+        },
+      )
+      if (!signOutRes.ok) {
+        console.error("Error revoking sessions:", signOutRes.status, await signOutRes.text())
+      }
+    } catch (err) {
+      console.error("Error revoking sessions:", err)
       // Still redirect - the token is already marked revoked
     }
 

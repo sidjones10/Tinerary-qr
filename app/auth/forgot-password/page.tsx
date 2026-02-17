@@ -2,18 +2,26 @@
 
 import type React from "react"
 import { useState } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Mail, ArrowLeft, CheckCircle } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Loader2, Mail, ArrowLeft, CheckCircle, ShieldAlert } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 
 export default function ForgotPasswordPage() {
+  const searchParams = useSearchParams()
+  const revoked = searchParams.get("revoked")
+
   const [email, setEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
+
+  const isRevoked = revoked === "true"
+  const isAlreadyRevoked = revoked === "already"
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -94,10 +102,24 @@ export default function ForgotPasswordPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <Card className="w-full max-w-md">
+        {(isRevoked || isAlreadyRevoked) && (
+          <div className="px-6 pt-6">
+            <Alert variant="destructive">
+              <ShieldAlert className="h-4 w-4" />
+              <AlertDescription>
+                {isRevoked
+                  ? "Your account has been secured. All sessions have been signed out and your password has been reset. Check your email for a password reset link, or enter your email below to request a new one."
+                  : "This session was already revoked. If you still need to reset your password, enter your email below."}
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
         <CardHeader>
-          <CardTitle>Forgot Password</CardTitle>
+          <CardTitle>{isRevoked ? "Reset Your Password" : "Forgot Password"}</CardTitle>
           <CardDescription>
-            Enter your email address and we&apos;ll send you a link to reset your password.
+            {isRevoked
+              ? "Enter your email to receive a new password reset link."
+              : "Enter your email address and we'll send you a link to reset your password."}
           </CardDescription>
         </CardHeader>
         <CardContent>

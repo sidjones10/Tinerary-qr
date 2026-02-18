@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/utils/supabase/server"
+import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 
 const ALLOWED_TYPES: Record<string, string[]> = {
   "image/jpeg": [".jpg", ".jpeg"],
@@ -11,13 +12,28 @@ const ALLOWED_TYPES: Record<string, string[]> = {
 const MAX_SIZE = 2 * 1024 * 1024 // 2 MB
 
 /**
+ * Creates an admin Supabase client using the service role key.
+ * Bypasses RLS – only use after verifying the user's identity.
+ */
+function createAdminClient() {
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  )
+}
+
+/**
  * POST /api/profile/avatar
  * Handles the entire avatar flow server-side:
- *   1. Validates the file
- *   2. Deletes old avatar from storage (if provided)
- *   3. Uploads new avatar to storage
- *   4. Updates profiles table (avatar_url + avatar_path)
- *   5. Updates auth user metadata (avatar_url)
+ *   1. Authenticates via cookie-based client
+ *   2. Validates the file
+ *   3. Deletes old avatar from storage (if provided)
+ *   4. Uploads new avatar to storage
+ *   5. Updates profiles table (avatar_url + avatar_path)
+ *   6. Updates auth user metadata (avatar_url)
+ *
+ * Uses service role client for storage/DB operations to bypass RLS,
+ * same pattern as other API routes in this app.
  *
  * Form data fields:
  *   file    – the image file (required)
@@ -25,6 +41,7 @@ const MAX_SIZE = 2 * 1024 * 1024 // 2 MB
  */
 export async function POST(request: Request) {
   try {
+    // Authenticate the user via cookie-based client
     const supabase = await createClient()
     const {
       data: { user },
@@ -81,9 +98,13 @@ export async function POST(request: Request) {
       )
     }
 
+    // Use admin client (service role) for storage + DB operations
+    // This bypasses RLS – safe because we already verified the user above
+    const admin = createAdminClient()
+
     // ── Delete old avatar if provided ──
-    if (oldPath) {
-      await supabase.storage.from("user-avatars").remove([oldPath])
+    if (oldPath && oldPath.startsWith(`${user.id}/`)) {
+      await admin.storage.from("user-avatars").remove([oldPath])
       // Ignore delete errors – old file may already be gone
     }
 
@@ -92,7 +113,7 @@ export async function POST(request: Request) {
     const timestamp = Date.now()
     const filePath = `${user.id}/${timestamp}${ext}`
 
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { data: uploadData, error: uploadError } = await admin.storage
       .from("user-avatars")
       .upload(filePath, file, {
         cacheControl: "3600",
@@ -110,10 +131,10 @@ export async function POST(request: Request) {
     // ── Get public URL ──
     const {
       data: { publicUrl },
-    } = supabase.storage.from("user-avatars").getPublicUrl(uploadData.path)
+    } = admin.storage.from("user-avatars").getPublicUrl(uploadData.path)
 
     // ── Update profiles table ──
-    const { error: profileError } = await supabase
+    const { error: profileError } = await admin
       .from("profiles")
       .update({
         avatar_url: publicUrl,
@@ -130,9 +151,14 @@ export async function POST(request: Request) {
     }
 
     // ── Update auth user metadata ──
-    await supabase.auth.updateUser({
-      data: { avatar_url: publicUrl },
+    const { error: authError } = await admin.auth.admin.updateUserById(user.id, {
+      user_metadata: { avatar_url: publicUrl },
     })
+
+    if (authError) {
+      // Non-fatal: storage + profile already updated, just log
+      console.error("Auth metadata update failed:", authError.message)
+    }
 
     return NextResponse.json({
       success: true,
@@ -156,6 +182,7 @@ export async function POST(request: Request) {
  */
 export async function DELETE(request: Request) {
   try {
+    // Authenticate the user via cookie-based client
     const supabase = await createClient()
     const {
       data: { user },
@@ -171,13 +198,16 @@ export async function DELETE(request: Request) {
     const body = await request.json()
     const path = body?.path as string | null
 
+    // Use admin client for storage + DB operations
+    const admin = createAdminClient()
+
     // ── Delete from storage ──
-    if (path) {
-      await supabase.storage.from("user-avatars").remove([path])
+    if (path && path.startsWith(`${user.id}/`)) {
+      await admin.storage.from("user-avatars").remove([path])
     }
 
     // ── Clear in profiles table ──
-    const { error: profileError } = await supabase
+    const { error: profileError } = await admin
       .from("profiles")
       .update({
         avatar_url: null,
@@ -194,8 +224,8 @@ export async function DELETE(request: Request) {
     }
 
     // ── Clear auth metadata ──
-    await supabase.auth.updateUser({
-      data: { avatar_url: null },
+    await admin.auth.admin.updateUserById(user.id, {
+      user_metadata: { avatar_url: null },
     })
 
     return NextResponse.json({ success: true })

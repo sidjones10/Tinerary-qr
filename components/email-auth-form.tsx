@@ -269,6 +269,16 @@ export default function EmailAuthForm() {
       }
 
       if (data.user) {
+        // Send welcome email via server-side API
+        fetch("/api/auth/send-welcome", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: formData.email,
+            name: formData.username || formData.email.split("@")[0],
+          }),
+        }).catch(() => {}) // fire-and-forget, don't block signup
+
         const now = new Date().toISOString()
         const userId = data.user.id
 

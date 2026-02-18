@@ -243,9 +243,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
     const { data: resendData } = await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
-      subject: "Welcome to Tinerary — the world is waiting for you",
       subject,
-      subject: "You're in! Let the adventures begin",
       html: postcardEmail(`
         <!-- Logo header -->
         <div style="background:#F8F3EF;padding:36px 36px 20px;text-align:center;">
@@ -327,7 +325,6 @@ export async function sendEventInviteEmail(
       from: FROM_EMAIL,
       to: recipientEmail,
       subject,
-      subject: `You're invited: ${eventTitle}`,
       html: postcardEmail(`
         <!-- Logo banner -->
         <div style="background:#F8F3EF;padding:28px 36px;text-align:center;">
@@ -414,7 +411,6 @@ export async function sendEventReminderEmail(
       from: FROM_EMAIL,
       to: recipientEmail,
       subject,
-      subject: `Heads up! ${eventTitle} is ${timeText}`,
       html: postcardEmail(`
         <div class="masthead">
           <div class="stamp">Heads Up</div>
@@ -482,7 +478,6 @@ export async function sendNewFollowerEmail(
       from: FROM_EMAIL,
       to: recipientEmail,
       subject,
-      subject: `${followerName} just joined your travel crew!`,
       html: postcardEmail(`
         <!-- Logo banner -->
         <div style="background:#F8F3EF;padding:28px 36px;text-align:center;">
@@ -557,7 +552,6 @@ export async function sendNewCommentEmail(
       from: FROM_EMAIL,
       to: recipientEmail,
       subject,
-      subject: `${commenterName} commented on ${eventTitle}`,
       html: postcardEmail(`
         <!-- Logo banner -->
         <div style="background:#F8F3EF;padding:28px 36px;text-align:center;">
@@ -741,7 +735,6 @@ export async function sendEventStartedEmail(params: {
       from: FROM_EMAIL,
       to: email,
       subject,
-      subject: `It's go time! ${itineraryTitle} is live`,
       html: postcardEmail(`
         <div class="masthead" style="background: linear-gradient(135deg, #D4792C 0%, #E09A5C 100%);">
           <div class="stamp">It's Go Time</div>
@@ -792,7 +785,6 @@ export async function sendWhatsNewEmail(params: {
       from: FROM_EMAIL,
       to: email,
       subject,
-      subject: "Fresh off the press: what's new on Tinerary",
       html: postcardEmail(`
         <div class="masthead" style="background:#1A1A1A;">
           <h1 style="font-size:36px;line-height:1.1;">Your Tinerary<br><span style="font-style:italic;font-weight:400;">in Motion</span></h1>

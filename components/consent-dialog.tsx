@@ -54,6 +54,7 @@ function calculateAge(birthDate: Date): number {
 export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps) {
   const [step, setStep] = useState<"age" | "consent" | "parental" | "success">("age")
   const [isLoading, setIsLoading] = useState(false)
+  const [isInitializing, setIsInitializing] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // Age verification state
@@ -76,6 +77,51 @@ export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps)
   // Calculate available days based on selected month and year
   const daysInMonth = getDaysInMonth(birthMonth, birthYear)
   const days = Array.from({ length: daysInMonth }, (_, i) => String(i + 1).padStart(2, "0"))
+
+  // Check if user already has age/consent data from signup to skip completed steps
+  useEffect(() => {
+    const checkExistingData = async () => {
+      try {
+        const supabase = createClient()
+        const { data } = await supabase
+          .from("profiles")
+          .select("date_of_birth, account_type, tos_accepted_at, privacy_policy_accepted_at, parental_consent")
+          .eq("id", userId)
+          .single()
+
+        if (data?.date_of_birth) {
+          const [year, month, day] = data.date_of_birth.split("-")
+          const birthDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+          const age = calculateAge(birthDate)
+
+          setBirthYear(year)
+          setBirthMonth(month)
+          setBirthDay(day)
+          setUserAge(age)
+          setAccountType(age < 18 ? "minor" : "standard")
+
+          if (data.tos_accepted_at && data.privacy_policy_accepted_at) {
+            // Age and consent already collected — skip to parental consent for minors
+            if (age < 18 && !data.parental_consent) {
+              setStep("parental")
+            } else {
+              // Shouldn't normally reach here (provider wouldn't show the dialog)
+              setStep("consent")
+            }
+          } else {
+            // Has DOB but still needs consent — skip only the age step
+            setStep("consent")
+          }
+        }
+      } catch {
+        // On error, fall through to the full flow starting at age step
+      } finally {
+        setIsInitializing(false)
+      }
+    }
+
+    checkExistingData()
+  }, [userId])
 
   // Reset day if it exceeds days in the selected month
   useEffect(() => {
@@ -206,16 +252,24 @@ export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps)
         <div className="bg-gradient-to-r from-orange-500 to-pink-500 p-6 rounded-t-2xl text-white">
           <h1 className="text-2xl font-bold mb-1">Welcome to Tinerary</h1>
           <p className="text-white/90 text-sm">
-            {step === "age" && "Let's verify your age to get started"}
-            {step === "consent" && "Please review and accept our terms"}
-            {step === "parental" && "Parental consent required"}
-            {step === "success" && "You're all set!"}
+            {isInitializing && "Setting things up..."}
+            {!isInitializing && step === "age" && "Let's verify your age to get started"}
+            {!isInitializing && step === "consent" && "Please review and accept our terms"}
+            {!isInitializing && step === "parental" && "Parental consent required"}
+            {!isInitializing && step === "success" && "You're all set!"}
           </p>
         </div>
 
         <div className="p-6">
+          {/* Loading while checking existing data */}
+          {isInitializing && (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          )}
+
           {/* Error Alert */}
-          {error && (
+          {!isInitializing && error && (
             <Alert variant="destructive" className="mb-4">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
@@ -223,7 +277,7 @@ export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps)
           )}
 
           {/* Step 1: Age Verification */}
-          {step === "age" && (
+          {!isInitializing && step === "age" && (
             <div className="space-y-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
@@ -299,7 +353,7 @@ export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps)
           )}
 
           {/* Step 2: Consent */}
-          {step === "consent" && (
+          {!isInitializing && step === "consent" && (
             <div className="space-y-6">
               {accountType === "minor" && (
                 <Alert className="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
@@ -409,7 +463,7 @@ export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps)
           )}
 
           {/* Step 3: Parental Consent (for minors) */}
-          {step === "parental" && (
+          {!isInitializing && step === "parental" && (
             <div className="space-y-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
@@ -497,7 +551,7 @@ export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps)
           )}
 
           {/* Step 4: Success */}
-          {step === "success" && (
+          {!isInitializing && step === "success" && (
             <div className="text-center py-6">
               <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-4">
                 <PartyPopper className="h-8 w-8 text-green-600 dark:text-green-400" />

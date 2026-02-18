@@ -150,6 +150,11 @@ export function ProfileSettings() {
         body: formData,
       })
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null)
+        throw new Error(errorData?.message || `Upload failed with status ${response.status}`)
+      }
+
       const result = await response.json()
 
       if (!result.success) {
@@ -191,6 +196,11 @@ export function ProfileSettings() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path: avatarPath }),
       })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null)
+        throw new Error(errorData?.message || `Delete failed with status ${response.status}`)
+      }
 
       const result = await response.json()
 

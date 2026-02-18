@@ -98,6 +98,9 @@ export async function POST(request: Request) {
       )
     }
 
+    // Convert File to Buffer for Node.js compatibility with Supabase SDK
+    const fileBuffer = Buffer.from(await file.arrayBuffer())
+
     // Use admin client (service role) for storage + DB operations
     // This bypasses RLS – safe because we already verified the user above
     const admin = createAdminClient()
@@ -115,7 +118,7 @@ export async function POST(request: Request) {
 
     const { data: uploadData, error: uploadError } = await admin.storage
       .from("user-avatars")
-      .upload(filePath, file, {
+      .upload(filePath, fileBuffer, {
         cacheControl: "3600",
         upsert: false,
         contentType: mimeType,

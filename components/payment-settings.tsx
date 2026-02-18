@@ -173,7 +173,7 @@ export function PaymentSettings() {
             <h3 className="text-sm font-medium text-muted-foreground">Billing History</h3>
 
             <div className="border rounded-md overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-border">
                 <thead className="bg-muted/50">
                   <tr>
                     <th
@@ -202,7 +202,7 @@ export function PaymentSettings() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-card divide-y divide-gray-200 dark:divide-border">
                   {billingHistory.map((item) => (
                     <tr key={item.id}>
                       <td className="px-4 py-2 whitespace-nowrap text-sm">{item.date}</td>

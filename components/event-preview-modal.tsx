@@ -84,16 +84,16 @@ export function EventPreviewModal({ isOpen, onClose, draft }: EventPreviewModalP
             </TabsList>
 
             <TabsContent value="itinerary" className="space-y-4 mt-4">
-              <div className="p-4 bg-white rounded-lg border">
+              <div className="p-4 bg-white dark:bg-card rounded-lg border">
                 <h3 className="font-medium mb-2">About This Trip</h3>
-                <p className="text-sm text-gray-700">{draft.description}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{draft.description}</p>
               </div>
 
               {Object.entries(activitiesByDay).map(([day, dayActivities]: [string, any]) => (
                 <div key={day} className="space-y-3">
                   <div className="flex items-center">
-                    <div className="flex-shrink-0 h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center mr-3">
-                      <span className="text-sm font-medium text-orange-600">{day}</span>
+                    <div className="flex-shrink-0 h-8 w-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mr-3">
+                      <span className="text-sm font-medium text-orange-600 dark:text-orange-400">{day}</span>
                     </div>
                     <h3 className="text-md font-medium">
                       Day {day} - {formatDate(draft.start_date)}
@@ -101,7 +101,7 @@ export function EventPreviewModal({ isOpen, onClose, draft }: EventPreviewModalP
                   </div>
 
                   {dayActivities.map((activity: any) => (
-                    <div key={activity.id} className="p-4 border rounded-lg bg-white">
+                    <div key={activity.id} className="p-4 border rounded-lg bg-white dark:bg-card">
                       <div className="flex justify-between">
                         <h4 className="font-medium">{activity.title}</h4>
                         <span className="text-sm text-muted-foreground">${activity.cost || 0}</span>
@@ -129,7 +129,7 @@ export function EventPreviewModal({ isOpen, onClose, draft }: EventPreviewModalP
             </TabsContent>
 
             <TabsContent value="people" className="space-y-4 mt-4">
-              <div className="p-4 bg-white rounded-lg border">
+              <div className="p-4 bg-white dark:bg-card rounded-lg border">
                 <h3 className="font-medium mb-3">Trip Squad</h3>
                 <div className="space-y-3">
                   {draft.collaborators?.map((collaborator: any) => (
@@ -165,7 +165,7 @@ export function EventPreviewModal({ isOpen, onClose, draft }: EventPreviewModalP
             </TabsContent>
 
             <TabsContent value="expenses" className="space-y-4 mt-4">
-              <div className="p-4 bg-white rounded-lg border">
+              <div className="p-4 bg-white dark:bg-card rounded-lg border">
                 <h3 className="font-medium mb-2">Trip Expenses</h3>
                 <div className="space-y-3">
                   {draft.expenses?.map((expense: any) => (
@@ -188,7 +188,7 @@ export function EventPreviewModal({ isOpen, onClose, draft }: EventPreviewModalP
             </TabsContent>
 
             <TabsContent value="packing" className="space-y-4 mt-4">
-              <div className="p-4 bg-white rounded-lg border">
+              <div className="p-4 bg-white dark:bg-card rounded-lg border">
                 <h3 className="font-medium mb-2">Packing List</h3>
                 <div className="space-y-3">
                   {["Clothing", "Toiletries", "Electronics", "Other"].map((category) => {
@@ -214,7 +214,7 @@ export function EventPreviewModal({ isOpen, onClose, draft }: EventPreviewModalP
             </TabsContent>
 
             <TabsContent value="photos" className="space-y-4 mt-4">
-              <div className="p-4 bg-white rounded-lg border">
+              <div className="p-4 bg-white dark:bg-card rounded-lg border">
                 <h3 className="font-medium mb-2">Trip Photos</h3>
                 <div className="grid grid-cols-3 gap-2">
                   {[1, 2, 3, 4, 5, 6].map((_, i) => (

@@ -97,11 +97,11 @@ export function AppHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/40 supports-[backdrop-filter]:bg-white/20">
+    <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/40 dark:bg-black/40 supports-[backdrop-filter]:bg-white/20 dark:supports-[backdrop-filter]:bg-black/20">
       <div className="container flex h-14 items-center">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <span className="font-bold text-xl text-gray-800">Tinerary</span>
+            <span className="font-bold text-xl text-gray-800 dark:text-orange-100">Tinerary</span>
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
             <Link href="/" className="transition-colors hover:text-foreground/80">
@@ -121,7 +121,7 @@ export function AppHeader() {
 
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="mr-2 md:hidden bg-white/50">
+            <Button variant="outline" size="icon" className="mr-2 md:hidden bg-white/50 dark:bg-white/10">
               <Menu className="h-5 w-5" />
               <span className="sr-only">Toggle menu</span>
             </Button>
@@ -132,7 +132,7 @@ export function AppHeader() {
         </Sheet>
 
         <Link href="/" className="mr-6 flex items-center md:hidden">
-          <span className="font-bold text-xl text-gray-800">Tinerary</span>
+          <span className="font-bold text-xl text-gray-800 dark:text-orange-100">Tinerary</span>
         </Link>
 
         <div className={cn("flex items-center ml-auto", showSearch ? "w-full md:w-auto justify-between" : "")}>
@@ -143,7 +143,7 @@ export function AppHeader() {
                 <Input
                   type="search"
                   placeholder="Search events, places..."
-                  className="w-full pl-8 md:w-[300px] rounded-full bg-white/70"
+                  className="w-full pl-8 md:w-[300px] rounded-full bg-white/70 dark:bg-white/10 dark:text-foreground"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   autoFocus

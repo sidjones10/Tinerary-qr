@@ -27,25 +27,25 @@
   }
 
   .dark {
-    --background: 20 14.3% 4.1%;
-    --foreground: 0 0% 95%;
-    --card: 24 9.8% 10%;
-    --card-foreground: 0 0% 95%;
-    --popover: 0 0% 9%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 346.8 77.2% 49.8%;
-    --primary-foreground: 355.7 100% 97.3%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 15%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 12 6.5% 15.1%;
-    --accent-foreground: 0 0% 98%;
+    --background: 24 10% 6%;
+    --foreground: 34 20% 90%;
+    --card: 24 8% 10%;
+    --card-foreground: 34 20% 90%;
+    --popover: 24 8% 10%;
+    --popover-foreground: 34 20% 90%;
+    --primary: 28 80% 52%;
+    --primary-foreground: 34 100% 97%;
+    --secondary: 24 6% 16%;
+    --secondary-foreground: 34 20% 90%;
+    --muted: 24 6% 16%;
+    --muted-foreground: 24 10% 55%;
+    --accent: 24 8% 18%;
+    --accent-foreground: 34 20% 90%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 85.7% 97.3%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 346.8 77.2% 49.8%;
+    --border: 24 8% 18%;
+    --input: 24 8% 18%;
+    --ring: 28 80% 52%;
   }
 }
 
@@ -103,6 +103,12 @@
 body {
   background: linear-gradient(to bottom, #ffecd2, #fcb69f 40%, #ffffff 80%);
   min-height: 100vh;
+}
+
+/* Dark mode body gradient - warm dark tones preserving orange feel */
+.dark body,
+html.dark body {
+  background: linear-gradient(to bottom, #1a1008, #1f150c 40%, #111 80%) !important;
 }
 
 /* Button gradients */
@@ -201,9 +207,62 @@ body {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
-/* Dark mode body gradient */
-.dark body {
-  background: linear-gradient(to bottom, hsl(var(--background)), hsl(var(--card)) 40%, hsl(var(--background)) 80%);
+/* Dark mode button gradient overrides */
+.dark .btn-sunset {
+  background: linear-gradient(to right, #c96a20, #b85a30);
+}
+
+.dark .btn-sunset:hover {
+  background: linear-gradient(to right, #d4792c, #c96a20);
+  box-shadow: 0 4px 12px rgba(212, 121, 44, 0.3);
+}
+
+.dark .btn-sunset-light {
+  background: linear-gradient(to right, rgba(212, 121, 44, 0.2), rgba(200, 100, 50, 0.2));
+  color: #f0a060;
+}
+
+.dark .btn-sunset-light:hover {
+  background: linear-gradient(to right, rgba(212, 121, 44, 0.3), rgba(200, 100, 50, 0.3));
+  box-shadow: 0 4px 12px rgba(212, 121, 44, 0.15);
+}
+
+/* Dark mode cute action button */
+.dark .cute-action-btn {
+  background: rgba(30, 24, 18, 0.9);
+}
+
+.dark .cute-action-btn.liked {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(253, 242, 248, 0.1));
+}
+
+.dark .cute-action-btn.saved {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(245, 243, 255, 0.1));
+}
+
+/* Dark mode cute empty icon */
+.dark .cute-empty-icon {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(139, 92, 246, 0.15), rgba(249, 115, 22, 0.15));
+}
+
+/* Dark mode cute search */
+.dark .cute-search-input {
+  background: rgba(24, 18, 12, 0.6);
+  border-color: rgba(212, 121, 44, 0.3);
+  color: hsl(34, 20%, 90%);
+}
+
+.dark .cute-search-input:focus {
+  border-color: #d4792c;
+  box-shadow: 0 0 0 4px rgba(212, 121, 44, 0.15);
+}
+
+/* Dark mode cute section header keeps gradient but warmer */
+.dark .cute-section-header {
+  background: linear-gradient(135deg, #f59e0b, #d4792c, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* Loading skeleton */

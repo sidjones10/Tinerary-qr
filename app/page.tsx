@@ -39,7 +39,7 @@ export default function HomePage() {
   // Landing page for non-authenticated users
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="bg-white shadow-sm py-4">
+      <header className="bg-white dark:bg-card shadow-sm py-4">
         <div className="container mx-auto px-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold">Tinerary</h1>
           <div className="space-x-2">
@@ -59,7 +59,7 @@ export default function HomePage() {
           <p className="text-xl mb-8">Browse itineraries freely. Sign in to create and save your own travel plans.</p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-            <div className="bg-blue-50 p-8 rounded-lg">
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-8 rounded-lg">
               <h3 className="text-2xl font-semibold mb-4">Browse Without Signing Up</h3>
               <p className="mb-6">
                 Explore destinations, view public itineraries, and get inspired for your next trip.
@@ -69,7 +69,7 @@ export default function HomePage() {
               </Button>
             </div>
 
-            <div className="bg-green-50 p-8 rounded-lg">
+            <div className="bg-green-50 dark:bg-green-900/20 p-8 rounded-lg">
               <h3 className="text-2xl font-semibold mb-4">Create Your Own Itineraries</h3>
               <p className="mb-6">Sign up to create, save, and share your personalized travel plans.</p>
               <Button size="lg" asChild>
@@ -80,18 +80,18 @@ export default function HomePage() {
         </div>
       </main>
 
-      <footer className="bg-gray-100 py-8">
+      <footer className="bg-gray-100 dark:bg-card py-8">
         <div className="container mx-auto px-4 text-center">
           <div className="flex justify-center gap-4 mb-4">
-            <Link href="/terms" className="text-sm text-gray-600 hover:text-gray-900 hover:underline">
+            <Link href="/terms" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline">
               Terms of Service
             </Link>
-            <span className="text-gray-400">|</span>
-            <Link href="/privacy" className="text-sm text-gray-600 hover:text-gray-900 hover:underline">
+            <span className="text-gray-400 dark:text-gray-600">|</span>
+            <Link href="/privacy" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline">
               Privacy Policy
             </Link>
           </div>
-          <p className="text-gray-600">&copy; {new Date().getFullYear()} Tinerary. All rights reserved.</p>
+          <p className="text-gray-600 dark:text-gray-400">&copy; {new Date().getFullYear()} Tinerary. All rights reserved.</p>
         </div>
       </footer>
     </div>

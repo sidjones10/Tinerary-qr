@@ -76,7 +76,7 @@ export function DownloadItineraryButton({ eventId, eventTitle }: DownloadItinera
           <div className="p-6 flex flex-col items-center">
             <div className="w-32 h-32 mb-4 relative">
               <div className="absolute inset-0 bg-gradient-to-br from-[#FF9B7D] to-[#FF5F6D] rounded-lg shadow-lg animate-pulse"></div>
-              <div className="absolute inset-2 bg-white rounded-lg flex items-center justify-center">
+              <div className="absolute inset-2 bg-white dark:bg-card rounded-lg flex items-center justify-center">
                 <FileText className="h-16 w-16 text-[#FF9B7D]" />
               </div>
             </div>

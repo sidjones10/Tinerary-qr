@@ -6,8 +6,8 @@ import { ArrowLeft } from "lucide-react"
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm py-4 sticky top-0 z-40">
+    <div className="min-h-screen bg-gray-50 dark:bg-background">
+      <header className="bg-white dark:bg-card shadow-sm py-4 sticky top-0 z-40">
         <div className="container mx-auto px-4 flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild aria-label="Go back">
             <Link href="/">
@@ -19,7 +19,7 @@ export default function PrivacyPolicyPage() {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="bg-white rounded-lg shadow-sm p-8 prose prose-gray max-w-none">
+        <div className="bg-white dark:bg-card rounded-lg shadow-sm p-8 prose prose-gray max-w-none">
           <h1 className="text-3xl font-bold mb-2">TINERARY</h1>
           <h2 className="text-2xl font-semibold mb-4">PRIVACY POLICY</h2>
           <p className="text-muted-foreground mb-8">Effective Date: February 9, 2026</p>
@@ -43,37 +43,37 @@ export default function PrivacyPolicyPage() {
             <h4 className="text-lg font-medium mb-3">2.1 Information You Provide Directly</h4>
             <p className="mb-4">We collect information that you voluntarily provide when you use the Service:</p>
             <div className="overflow-x-auto mb-4">
-              <table className="min-w-full border-collapse border border-gray-200">
+              <table className="min-w-full border-collapse border border-gray-200 dark:border-border">
                 <thead>
-                  <tr className="bg-gray-50">
-                    <th className="border border-gray-200 px-4 py-2 text-left">Data Category</th>
-                    <th className="border border-gray-200 px-4 py-2 text-left">Examples</th>
+                  <tr className="bg-gray-50 dark:bg-background">
+                    <th className="border border-gray-200 dark:border-border px-4 py-2 text-left">Data Category</th>
+                    <th className="border border-gray-200 dark:border-border px-4 py-2 text-left">Examples</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td className="border border-gray-200 px-4 py-2">Account Information</td>
-                    <td className="border border-gray-200 px-4 py-2">Name, email address, phone number, password, display name, avatar/profile photo</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">Account Information</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">Name, email address, phone number, password, display name, avatar/profile photo</td>
                   </tr>
                   <tr>
-                    <td className="border border-gray-200 px-4 py-2">Profile Information</td>
-                    <td className="border border-gray-200 px-4 py-2">Bio, location, travel style preferences, budget preferences, preferred destinations and activities</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">Profile Information</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">Bio, location, travel style preferences, budget preferences, preferred destinations and activities</td>
                   </tr>
                   <tr>
-                    <td className="border border-gray-200 px-4 py-2">Trip & Itinerary Data</td>
-                    <td className="border border-gray-200 px-4 py-2">Trip names, destinations, dates, activities, notes, packing lists, collaborator invitations</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">Trip & Itinerary Data</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">Trip names, destinations, dates, activities, notes, packing lists, collaborator invitations</td>
                   </tr>
                   <tr>
-                    <td className="border border-gray-200 px-4 py-2">Financial Information</td>
-                    <td className="border border-gray-200 px-4 py-2">Expense entries, budget allocations, expense categories. Payment card details are processed by Stripe; we do not store your full card number.</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">Financial Information</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">Expense entries, budget allocations, expense categories. Payment card details are processed by Stripe; we do not store your full card number.</td>
                   </tr>
                   <tr>
-                    <td className="border border-gray-200 px-4 py-2">User-Generated Content</td>
-                    <td className="border border-gray-200 px-4 py-2">Photos, reviews, comments, ratings, and any other content you upload</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">User-Generated Content</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">Photos, reviews, comments, ratings, and any other content you upload</td>
                   </tr>
                   <tr>
-                    <td className="border border-gray-200 px-4 py-2">Communications</td>
-                    <td className="border border-gray-200 px-4 py-2">Messages sent to other users, support inquiries, and feedback</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">Communications</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">Messages sent to other users, support inquiries, and feedback</td>
                   </tr>
                 </tbody>
               </table>
@@ -82,29 +82,29 @@ export default function PrivacyPolicyPage() {
             <h4 className="text-lg font-medium mb-3">2.2 Information Collected Automatically</h4>
             <p className="mb-4">When you access or use the Service, we automatically collect certain information:</p>
             <div className="overflow-x-auto mb-4">
-              <table className="min-w-full border-collapse border border-gray-200">
+              <table className="min-w-full border-collapse border border-gray-200 dark:border-border">
                 <thead>
-                  <tr className="bg-gray-50">
-                    <th className="border border-gray-200 px-4 py-2 text-left">Data Category</th>
-                    <th className="border border-gray-200 px-4 py-2 text-left">Details</th>
+                  <tr className="bg-gray-50 dark:bg-background">
+                    <th className="border border-gray-200 dark:border-border px-4 py-2 text-left">Data Category</th>
+                    <th className="border border-gray-200 dark:border-border px-4 py-2 text-left">Details</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td className="border border-gray-200 px-4 py-2">Device Information</td>
-                    <td className="border border-gray-200 px-4 py-2">Device type, operating system, browser type, unique device identifiers, IP address</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">Device Information</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">Device type, operating system, browser type, unique device identifiers, IP address</td>
                   </tr>
                   <tr>
-                    <td className="border border-gray-200 px-4 py-2">Usage Data</td>
-                    <td className="border border-gray-200 px-4 py-2">Pages visited, features used, itineraries viewed, search queries, interaction patterns</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">Usage Data</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">Pages visited, features used, itineraries viewed, search queries, interaction patterns</td>
                   </tr>
                   <tr>
-                    <td className="border border-gray-200 px-4 py-2">Location Data</td>
-                    <td className="border border-gray-200 px-4 py-2">With your explicit consent, we collect precise GPS location data. You can disable this in your device settings.</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">Location Data</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">With your explicit consent, we collect precise GPS location data. You can disable this in your device settings.</td>
                   </tr>
                   <tr>
-                    <td className="border border-gray-200 px-4 py-2">Cookies & Tracking</td>
-                    <td className="border border-gray-200 px-4 py-2">Cookies, web beacons, and similar technologies. See Section 8 for details.</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">Cookies & Tracking</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">Cookies, web beacons, and similar technologies. See Section 8 for details.</td>
                   </tr>
                 </tbody>
               </table>

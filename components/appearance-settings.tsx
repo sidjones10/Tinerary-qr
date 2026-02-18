@@ -132,7 +132,7 @@ export function AppearanceSettings() {
               }`}
               onClick={() => setTheme("light")}
             >
-              <div className="h-20 w-full bg-white border rounded-md flex items-center justify-center">
+              <div className="h-20 w-full bg-white dark:bg-card border rounded-md flex items-center justify-center">
                 <Sun className="h-8 w-8 text-amber-500" />
               </div>
               <span className="text-sm font-medium">Light</span>

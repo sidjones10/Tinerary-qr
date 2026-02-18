@@ -799,19 +799,19 @@ function CreatePageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-background">
       <div className="container px-4 py-6">
         <div className="max-w-3xl mx-auto">
           <h1 className="text-3xl font-bold text-center mb-8">Create New</h1>
 
           {/* Type Selection */}
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="bg-white dark:bg-card rounded-lg shadow-sm p-6 mb-6">
             <h2 className="text-lg font-semibold mb-2">What are you creating?</h2>
             <p className="text-sm text-muted-foreground mb-4">Choose the type of plan you want to create</p>
 
             <div className="grid grid-cols-2 gap-4">
               <div
-                className={`cursor-pointer rounded-lg border-2 p-4 flex flex-col items-center ${type === "event" ? "border-purple-500 bg-purple-50" : "border-gray-200 hover:border-gray-300"}`}
+                className={`cursor-pointer rounded-lg border-2 p-4 flex flex-col items-center ${type === "event" ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20" : "border-gray-200 dark:border-border hover:border-gray-300"}`}
                 onClick={() => setType("event")}
               >
                 <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mb-3">
@@ -822,7 +822,7 @@ function CreatePageContent() {
               </div>
 
               <div
-                className={`cursor-pointer rounded-lg border-2 p-4 flex flex-col items-center ${type === "trip" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
+                className={`cursor-pointer rounded-lg border-2 p-4 flex flex-col items-center ${type === "trip" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : "border-gray-200 dark:border-border hover:border-gray-300"}`}
                 onClick={() => setType("trip")}
               >
                 <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-3">
@@ -835,34 +835,34 @@ function CreatePageContent() {
           </div>
 
           {/* Tabs */}
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
+          <div className="bg-white dark:bg-card rounded-lg shadow-sm overflow-hidden mb-6">
             <div className="flex border-b">
               <button
-                className={`px-4 py-3 text-sm font-medium flex-1 ${activeTab === "details" ? "text-purple-600 border-b-2 border-purple-600" : "text-gray-600 hover:text-gray-900"}`}
+                className={`px-4 py-3 text-sm font-medium flex-1 ${activeTab === "details" ? "text-purple-600 border-b-2 border-purple-600" : "text-gray-600 dark:text-gray-400 hover:text-gray-900"}`}
                 onClick={() => setActiveTab("details")}
               >
                 Details
               </button>
               <button
-                className={`px-4 py-3 text-sm font-medium flex-1 ${activeTab === "activities" ? "text-purple-600 border-b-2 border-purple-600" : "text-gray-600 hover:text-gray-900"}`}
+                className={`px-4 py-3 text-sm font-medium flex-1 ${activeTab === "activities" ? "text-purple-600 border-b-2 border-purple-600" : "text-gray-600 dark:text-gray-400 hover:text-gray-900"}`}
                 onClick={() => setActiveTab("activities")}
               >
                 {type === "trip" ? "Stops" : "Activities"}
               </button>
               <button
-                className={`px-4 py-3 text-sm font-medium flex-1 ${activeTab === "packing" ? "text-purple-600 border-b-2 border-purple-600" : "text-gray-600 hover:text-gray-900"}`}
+                className={`px-4 py-3 text-sm font-medium flex-1 ${activeTab === "packing" ? "text-purple-600 border-b-2 border-purple-600" : "text-gray-600 dark:text-gray-400 hover:text-gray-900"}`}
                 onClick={() => setActiveTab("packing")}
               >
                 Packing & Expenses
               </button>
               <button
-                className={`px-4 py-3 text-sm font-medium flex-1 ${activeTab === "people" ? "text-purple-600 border-b-2 border-purple-600" : "text-gray-600 hover:text-gray-900"}`}
+                className={`px-4 py-3 text-sm font-medium flex-1 ${activeTab === "people" ? "text-purple-600 border-b-2 border-purple-600" : "text-gray-600 dark:text-gray-400 hover:text-gray-900"}`}
                 onClick={() => setActiveTab("people")}
               >
                 People
               </button>
               <button
-                className={`px-4 py-3 text-sm font-medium flex-1 ${activeTab === "settings" ? "text-purple-600 border-b-2 border-purple-600" : "text-gray-600 hover:text-gray-900"}`}
+                className={`px-4 py-3 text-sm font-medium flex-1 ${activeTab === "settings" ? "text-purple-600 border-b-2 border-purple-600" : "text-gray-600 dark:text-gray-400 hover:text-gray-900"}`}
                 onClick={() => setActiveTab("settings")}
               >
                 Settings
@@ -1024,7 +1024,7 @@ function CreatePageContent() {
                       targetStartDate={startDate}
                       onActivitiesSelected={handleImportedActivities}
                     />
-                    <Button variant="outline" size="sm" onClick={addActivity} className="bg-white">
+                    <Button variant="outline" size="sm" onClick={addActivity} className="bg-white dark:bg-card">
                       <Plus className="h-4 w-4 mr-2" />
                       Add {type === "trip" ? "Stop" : "Activity"}
                     </Button>
@@ -1032,7 +1032,7 @@ function CreatePageContent() {
                 </div>
 
                 {type === "trip" && (
-                  <div className="flex items-center p-2 bg-blue-50 rounded-lg mb-4">
+                  <div className="flex items-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg mb-4">
                     <Lightbulb className="h-5 w-5 text-blue-500 mr-2" />
                     <p className="text-sm text-blue-700">
                       Pro tip: Organize your activities by day to create a clear itinerary
@@ -1041,7 +1041,7 @@ function CreatePageContent() {
                 )}
 
                 {activities.map((activity, index) => (
-                  <div key={index} className="mb-4 border rounded-lg p-4 bg-white">
+                  <div key={index} className="mb-4 border rounded-lg p-4 bg-white dark:bg-card">
                     {type === "trip" && (
                       <div className="mb-3">
                         <label className="block text-sm font-medium mb-1">Day</label>
@@ -1144,7 +1144,7 @@ function CreatePageContent() {
             {activeTab === "packing" && (
               <div className="p-6">
                 {type === "event" && (
-                  <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg mb-6">
+                  <div className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg mb-6">
                     <div className="flex items-center">
                       <Lightbulb className="h-5 w-5 text-orange-500 mr-2" />
                       <span className="text-sm font-medium">Include packing list and expenses for this event?</span>
@@ -1161,7 +1161,7 @@ function CreatePageContent() {
 
                       <div className="space-y-3 mb-4">
                         {packingItems.map((item, index) => (
-                          <div key={index} className="flex items-center gap-3 p-3 border rounded-lg bg-white">
+                          <div key={index} className="flex items-center gap-3 p-3 border rounded-lg bg-white dark:bg-card">
                             <input
                               type="checkbox"
                               id={`item-${index}`}
@@ -1188,7 +1188,7 @@ function CreatePageContent() {
                         ))}
                       </div>
 
-                      <Button variant="outline" size="sm" onClick={addPackingItem} className="bg-white">
+                      <Button variant="outline" size="sm" onClick={addPackingItem} className="bg-white dark:bg-card">
                         <Plus className="h-4 w-4 mr-2" />
                         Add Item
                       </Button>
@@ -1228,7 +1228,7 @@ function CreatePageContent() {
 
                       <div className="space-y-3 mb-4">
                         {expenses.map((expense, index) => (
-                          <div key={index} className="flex items-center gap-3 p-3 border rounded-lg bg-white">
+                          <div key={index} className="flex items-center gap-3 p-3 border rounded-lg bg-white dark:bg-card">
                             <Input
                               placeholder="Category (e.g., Hotel, Food)"
                               value={expense.category}
@@ -1260,7 +1260,7 @@ function CreatePageContent() {
                         ))}
                       </div>
 
-                      <Button variant="outline" size="sm" onClick={addExpense} className="bg-white mb-6">
+                      <Button variant="outline" size="sm" onClick={addExpense} className="bg-white dark:bg-card mb-6">
                         <Plus className="h-4 w-4 mr-2" />
                         Add Expense
                       </Button>
@@ -1268,7 +1268,7 @@ function CreatePageContent() {
                       {/* Expense Splitting Calculator */}
                       <div className="border-t pt-6 mt-6">
                         <h3 className="text-md font-semibold mb-3">Split Expenses</h3>
-                        <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg">
+                        <div className="flex items-center gap-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                           <div className="flex-1">
                             <Label htmlFor="split-count" className="text-sm mb-2 block">
                               Number of people
@@ -1294,7 +1294,7 @@ function CreatePageContent() {
                                   setSplitCount(1)
                                 }
                               }}
-                              className="w-24 bg-white"
+                              className="w-24 bg-white dark:bg-card"
                             />
                           </div>
                           <div className="text-right">
@@ -1351,7 +1351,7 @@ function CreatePageContent() {
                             return (
                             <div
                               key={index}
-                              className="flex items-center justify-between p-3 bg-purple-50 border border-purple-200 rounded-lg"
+                              className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 rounded-lg"
                             >
                               <div className="flex items-center gap-2">
                                 {isPhone ? <Phone className="h-4 w-4 text-purple-600" /> : <Mail className="h-4 w-4 text-purple-600" />}
@@ -1373,7 +1373,7 @@ function CreatePageContent() {
                       </div>
                     )}
 
-                    <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 p-4 rounded-lg">
                       <div className="flex gap-2">
                         <Lightbulb className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
                         <div>
@@ -1462,7 +1462,7 @@ function CreatePageContent() {
 
           {/* Action Buttons */}
           <div className="flex justify-between gap-4 mb-8">
-            <Button variant="outline" className="bg-white" onClick={() => router.back()} disabled={isSubmitting || isSaving}>
+            <Button variant="outline" className="bg-white dark:bg-card" onClick={() => router.back()} disabled={isSubmitting || isSaving}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>

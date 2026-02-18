@@ -335,7 +335,7 @@ export function PackingList({ simplified = false, items, tripId, onItemsChange }
               {packedCount}/{totalCount} items packed
             </span>
           </div>
-          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-2 bg-gray-100 dark:bg-card rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-orange-400 to-pink-500"
               style={{ width: `${progressPercentage}%` }}

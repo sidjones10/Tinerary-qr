@@ -349,7 +349,6 @@ export function FeedPage() {
   return (
     <div
       className="min-h-screen"
-      style={{ background: "linear-gradient(to bottom, #ffecd2, #fcb69f 40%, #ffffff 80%)" }}
     >
       <div className="container mx-auto px-4 py-4">
         <div className="flex justify-between items-center mb-4">
@@ -363,10 +362,10 @@ export function FeedPage() {
         </div>
 
         {/* Feed Tabs */}
-        <div className="bg-white rounded-full p-1 mb-4 inline-flex w-full max-w-md">
+        <div className="bg-white dark:bg-card rounded-full p-1 mb-4 inline-flex w-full max-w-md">
           <button
             className={`flex-1 px-6 py-2 rounded-full text-sm font-medium transition-colors ${
-              feedTab === "forYou" ? "bg-[#FF9B7D] text-white" : "text-gray-500 hover:text-gray-700"
+              feedTab === "forYou" ? "bg-[#FF9B7D] text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             }`}
             onClick={() => setFeedTab("forYou")}
           >
@@ -374,7 +373,7 @@ export function FeedPage() {
           </button>
           <button
             className={`flex-1 px-6 py-2 rounded-full text-sm font-medium transition-colors ${
-              feedTab === "discover" ? "bg-[#FF9B7D] text-white" : "text-gray-500 hover:text-gray-700"
+              feedTab === "discover" ? "bg-[#FF9B7D] text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             }`}
             onClick={() => setFeedTab("discover")}
           >
@@ -398,11 +397,11 @@ export function FeedPage() {
                   {drafts.map((draft) => (
                     <div
                       key={draft.id}
-                      className="relative border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow"
+                      className="relative border rounded-lg p-4 bg-white dark:bg-card shadow-sm hover:shadow-md transition-shadow"
                     >
                       <Badge
                         variant="outline"
-                        className="absolute top-3 right-3 bg-yellow-50 text-yellow-700 border-yellow-200"
+                        className="absolute top-3 right-3 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-700"
                       >
                         Draft
                       </Badge>
@@ -435,7 +434,7 @@ export function FeedPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleDeleteDraft(draft.id)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/30"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -447,10 +446,10 @@ export function FeedPage() {
             )}
 
             {/* Time Tabs - Only show for "For You" tab */}
-            <div className="bg-white rounded-full p-1 mb-8 inline-flex w-full max-w-md">
+            <div className="bg-white dark:bg-card rounded-full p-1 mb-8 inline-flex w-full max-w-md">
               <button
                 className={`flex-1 px-6 py-2 rounded-full text-sm font-medium transition-colors ${
-                  timeTab === "upcoming" ? "bg-[#FF9B7D] text-white" : "text-gray-500 hover:text-gray-700"
+                  timeTab === "upcoming" ? "bg-[#FF9B7D] text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 }`}
                 onClick={() => setTimeTab("upcoming")}
               >
@@ -458,7 +457,7 @@ export function FeedPage() {
               </button>
               <button
                 className={`flex-1 px-6 py-2 rounded-full text-sm font-medium transition-colors ${
-                  timeTab === "past" ? "bg-[#FF9B7D] text-white" : "text-gray-500 hover:text-gray-700"
+                  timeTab === "past" ? "bg-[#FF9B7D] text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 }`}
                 onClick={() => setTimeTab("past")}
               >
@@ -473,11 +472,11 @@ export function FeedPage() {
               </div>
             ) : feedItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Calendar className="h-16 w-16 text-gray-300 mb-4" />
-                <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                <Calendar className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">
                   No {timeTab} trips yet
                 </h3>
-                <p className="text-gray-500 mb-4">
+                <p className="text-gray-500 dark:text-gray-400 mb-4">
                   {timeTab === "upcoming"
                     ? "Create your first trip or get invited to one!"
                     : "Your past adventures will appear here"}

@@ -201,7 +201,7 @@ export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-card rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="bg-gradient-to-r from-orange-500 to-pink-500 p-6 rounded-t-2xl text-white">
           <h1 className="text-2xl font-bold mb-1">Welcome to Tinerary</h1>
@@ -226,8 +226,8 @@ export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps)
           {step === "age" && (
             <div className="space-y-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
-                  <Calendar className="h-5 w-5 text-orange-600" />
+                <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                  <Calendar className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                 </div>
                 <div>
                   <h2 className="font-semibold">Date of Birth</h2>
@@ -285,7 +285,7 @@ export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps)
                 </div>
               </div>
 
-              <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 text-sm text-blue-800">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg p-4 text-sm text-blue-800 dark:text-blue-300">
                 <p className="font-medium mb-1">Why do we ask for your date of birth?</p>
                 <p>
                   Tinerary offers different features based on your age to comply with privacy laws like COPPA and GDPR. Users aged 13-17 have access to planning features with some restrictions on payments and location tracking.
@@ -302,16 +302,16 @@ export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps)
           {step === "consent" && (
             <div className="space-y-6">
               {accountType === "minor" && (
-                <Alert className="bg-amber-50 border-amber-200">
-                  <Shield className="h-4 w-4 text-amber-600" />
-                  <AlertDescription className="text-amber-800">
+                <Alert className="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
+                  <Shield className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  <AlertDescription className="text-amber-800 dark:text-amber-300">
                     <strong>Minor Account:</strong> As a user under 18, you&apos;ll have access to trip planning and collaboration features. Payments and location tracking require parental consent.
                   </AlertDescription>
                 </Alert>
               )}
 
               <div className="space-y-4">
-                <div className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                <div className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                   <Checkbox
                     id="tos"
                     checked={tosAccepted}
@@ -331,7 +331,7 @@ export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps)
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                <div className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                   <Checkbox
                     id="privacy"
                     checked={privacyAccepted}
@@ -351,7 +351,7 @@ export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps)
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                <div className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                   <Checkbox
                     id="data-processing"
                     checked={dataProcessingAccepted}
@@ -368,7 +368,7 @@ export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps)
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors bg-orange-50/50">
+                <div className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-white/5 transition-colors bg-orange-50/50 dark:bg-orange-900/10">
                   <Checkbox
                     id="marketing"
                     checked={marketingAccepted}
@@ -412,8 +412,8 @@ export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps)
           {step === "parental" && (
             <div className="space-y-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                  <Lock className="h-5 w-5 text-amber-600" />
+                <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                  <Lock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div>
                   <h2 className="font-semibold">Parental Consent</h2>
@@ -421,20 +421,20 @@ export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps)
                 </div>
               </div>
 
-              <div className="bg-amber-50 border border-amber-100 rounded-lg p-4 space-y-3">
-                <p className="text-sm text-amber-900">
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-lg p-4 space-y-3">
+                <p className="text-sm text-amber-900 dark:text-amber-200 dark:text-amber-200">
                   <strong>As a minor account holder, you can:</strong>
                 </p>
-                <ul className="text-sm text-amber-800 list-disc pl-4 space-y-1">
+                <ul className="text-sm text-amber-800 dark:text-amber-300 list-disc pl-4 space-y-1">
                   <li>Join and collaborate on shared itineraries</li>
                   <li>Create and plan your own trips</li>
                   <li>Use all planning and organization features</li>
                   <li>Save and like public itineraries</li>
                 </ul>
-                <p className="text-sm text-amber-900 mt-3">
+                <p className="text-sm text-amber-900 dark:text-amber-200 mt-3">
                   <strong>With parental consent, you can also:</strong>
                 </p>
-                <ul className="text-sm text-amber-800 list-disc pl-4 space-y-1">
+                <ul className="text-sm text-amber-800 dark:text-amber-300 list-disc pl-4 space-y-1">
                   <li>Make purchases and process payments</li>
                   <li>Enable location tracking features</li>
                 </ul>
@@ -456,7 +456,7 @@ export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps)
                   </p>
                 </div>
 
-                <div className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                <div className="flex items-start gap-3 p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                   <Checkbox
                     id="parental-ack"
                     checked={parentalConsentAcknowledged}
@@ -499,8 +499,8 @@ export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps)
           {/* Step 4: Success */}
           {step === "success" && (
             <div className="text-center py-6">
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                <PartyPopper className="h-8 w-8 text-green-600" />
+              <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-4">
+                <PartyPopper className="h-8 w-8 text-green-600 dark:text-green-400" />
               </div>
               <h2 className="text-xl font-bold mb-2">You&apos;re all set!</h2>
               <p className="text-muted-foreground mb-4">

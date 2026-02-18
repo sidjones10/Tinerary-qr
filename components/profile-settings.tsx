@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loader2, Pencil, ArrowLeft, Upload, Download } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
-import { compressImage, deleteImage } from "@/lib/storage-service"
+import { compressImage } from "@/lib/storage-service"
 import Link from "next/link"
 import { DeleteAccountDialog } from "@/components/delete-account-dialog"
 import { Separator } from "@/components/ui/separator"
@@ -134,22 +134,18 @@ export function ProfileSettings() {
 
     setUploadingAvatar(true)
     try {
-      const supabase = createClient()
-
-      // Compress the image
+      // Compress the image client-side before sending
       const compressedFile = await compressImage(file, 400, 400, 0.85)
 
-      // Delete old avatar from storage if exists
-      if (avatarPath) {
-        await deleteImage(avatarPath, "user-avatars")
-      }
-
-      // Upload via server-side API route for reliable auth handling
+      // Send to dedicated avatar endpoint that handles everything server-side:
+      // upload to storage, update profiles table, update auth metadata
       const formData = new FormData()
       formData.append("file", compressedFile)
-      formData.append("bucket", "user-avatars")
+      if (avatarPath) {
+        formData.append("oldPath", avatarPath)
+      }
 
-      const response = await fetch("/api/upload", {
+      const response = await fetch("/api/profile/avatar", {
         method: "POST",
         body: formData,
       })
@@ -160,32 +156,8 @@ export function ProfileSettings() {
         throw new Error(result.message || "Failed to upload image")
       }
 
-      const uploadedUrl = result.publicUrl
-      const uploadedPath = result.path
-
-      // Update profile in database
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          avatar_url: uploadedUrl,
-          avatar_path: uploadedPath,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id)
-
-      if (profileError) {
-        throw profileError
-      }
-
-      // Update auth metadata
-      await supabase.auth.updateUser({
-        data: {
-          avatar_url: uploadedUrl,
-        },
-      })
-
-      setAvatarUrl(uploadedUrl || null)
-      setAvatarPath(uploadedPath || null)
+      setAvatarUrl(result.url)
+      setAvatarPath(result.path)
 
       toast({
         title: "Photo updated",
@@ -213,33 +185,18 @@ export function ProfileSettings() {
 
     setUploadingAvatar(true)
     try {
-      const supabase = createClient()
-
-      // Delete from storage if exists
-      if (avatarPath) {
-        await deleteImage(avatarPath, "user-avatars")
-      }
-
-      // Update profile in database
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          avatar_url: null,
-          avatar_path: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id)
-
-      if (profileError) {
-        throw profileError
-      }
-
-      // Update auth metadata
-      await supabase.auth.updateUser({
-        data: {
-          avatar_url: null,
-        },
+      // Use dedicated avatar endpoint to handle everything server-side
+      const response = await fetch("/api/profile/avatar", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: avatarPath }),
       })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.message || "Failed to remove photo")
+      }
 
       setAvatarUrl(null)
       setAvatarPath(null)

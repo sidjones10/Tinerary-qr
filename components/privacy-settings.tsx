@@ -8,9 +8,11 @@ import { Label } from "@/components/ui/label"
 import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { useToast } from "@/components/ui/use-toast"
-import { Loader2, Info } from "lucide-react"
+import { Loader2, Info, Download } from "lucide-react"
 import { useAuth } from "@/providers/auth-provider"
 import { createClient } from "@/lib/supabase/client"
+import { Separator } from "@/components/ui/separator"
+import { DeleteAccountDialog } from "@/components/delete-account-dialog"
 
 export function PrivacySettings() {
   const { t } = useTranslation()
@@ -18,6 +20,7 @@ export function PrivacySettings() {
   const { toast } = useToast()
   const { user } = useAuth()
 
+  const [downloadingData, setDownloadingData] = useState(false)
   const [profilePrivacy, setProfilePrivacy] = useState("public")
   const [privacySettings, setPrivacySettings] = useState({
     shareLocation: false,
@@ -160,6 +163,50 @@ export function PrivacySettings() {
       })
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleDownloadData = async () => {
+    if (!user) return
+
+    setDownloadingData(true)
+    try {
+      const response = await fetch("/api/user/export-data", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to download data")
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      const timestamp = new Date().toISOString().split("T")[0]
+      a.download = `tinerary-data-export-${timestamp}.json`
+      document.body.appendChild(a)
+      a.click()
+
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      toast({
+        title: t("dataPrivacy.dataExported"),
+        description: t("dataPrivacy.dataExportedDesc"),
+      })
+    } catch (error: any) {
+      console.error("Error downloading data:", error)
+      toast({
+        title: t("common.error"),
+        description: error.message || t("dataPrivacy.downloadError", "Failed to download data."),
+        variant: "destructive",
+      })
+    } finally {
+      setDownloadingData(false)
     }
   }
 
@@ -306,6 +353,61 @@ export function PrivacySettings() {
               t("settings.privacy.savePrivacySettings")
             )}
           </Button>
+        </div>
+
+        <Separator className="my-6" />
+
+        {/* Data & Privacy Section */}
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-medium">{t("dataPrivacy.title")}</h3>
+            <p className="text-sm text-muted-foreground">
+              {t("dataPrivacy.description")}
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {/* Download Your Data */}
+            <div className="flex items-start justify-between p-4 border rounded-lg">
+              <div className="space-y-1 flex-1">
+                <h4 className="font-medium">{t("dataPrivacy.downloadData")}</h4>
+                <p className="text-sm text-muted-foreground">
+                  {t("dataPrivacy.downloadDataDesc")}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={handleDownloadData}
+                disabled={downloadingData}
+                className="ml-4 shrink-0"
+              >
+                {downloadingData ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {t("common.downloading")}
+                  </>
+                ) : (
+                  <>
+                    <Download className="mr-2 h-4 w-4" />
+                    {t("dataPrivacy.downloadButton")}
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {/* Delete Account */}
+            <div className="flex items-start justify-between p-4 border border-red-200 rounded-lg bg-red-50/50">
+              <div className="space-y-1 flex-1">
+                <h4 className="font-medium text-red-900">{t("dataPrivacy.deleteAccount")}</h4>
+                <p className="text-sm text-red-700">
+                  {t("dataPrivacy.deleteAccountDesc")}
+                </p>
+              </div>
+              <div className="ml-4 shrink-0">
+                {user && <DeleteAccountDialog userId={user.id} userEmail={user.email} />}
+              </div>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

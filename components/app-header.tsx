@@ -172,7 +172,7 @@ export function AppHeader() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Avatar className="h-8 w-8 cursor-pointer" onClick={handleProfileClick}>
-                    <AvatarImage src="/placeholder.svg?height=32&width=32" alt="@user" />
+                    <AvatarImage src={user?.user_metadata?.avatar_url || undefined} alt="@user" />
                     <AvatarFallback>{user ? user.email?.charAt(0).toUpperCase() || "U" : "U"}</AvatarFallback>
                   </Avatar>
                 </DropdownMenuTrigger>

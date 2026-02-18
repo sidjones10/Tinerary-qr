@@ -252,15 +252,15 @@ export async function sendWelcomeEmail(email: string, name: string) {
           <img src="${APP_URL}/email/tinerary-logo.png" alt="Tinerary" style="width:220px;height:auto;" width="220">
         </div>
 
-        <!-- Hero travel image -->
-        <div style="padding:0;">
-          <img src="${APP_URL}/email/welcome-hero.jpg" alt="Your next adventure awaits" style="display:block;width:100%;height:auto;" width="600">
-        </div>
-
         <!-- Welcome heading -->
         <div style="padding:40px 36px 0;text-align:center;">
           <h1 style="font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:36px;color:#D4792C;margin:0 0 10px;line-height:1.2;">Welcome to Tinerary</h1>
           <p style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:14px;color:#D4792C;letter-spacing:3px;text-transform:uppercase;margin:0 0 28px;font-weight:600;">The world is waiting for you</p>
+        </div>
+
+        <!-- Hero travel image -->
+        <div style="padding:0;">
+          <img src="${APP_URL}/email/welcome-hero.jpg" alt="Your next adventure awaits" style="display:block;width:100%;height:auto;" width="600">
         </div>
 
         <!-- Body -->

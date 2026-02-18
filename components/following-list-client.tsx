@@ -69,7 +69,7 @@ export function FollowingListClient({
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />
-      <main className="flex-1 bg-gradient-to-b from-gray-50 to-white">
+      <main className="flex-1 bg-gradient-to-b from-gray-50 to-white dark:from-background dark:to-background">
         <div className="container px-4 py-6 max-w-3xl mx-auto">
           {/* Header */}
           <div className="mb-6">

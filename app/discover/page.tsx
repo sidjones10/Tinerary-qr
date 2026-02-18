@@ -53,9 +53,9 @@ export default function DiscoverPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm py-4 sticky top-0 z-40">
+      <header className="bg-white dark:bg-card shadow-sm py-4 sticky top-0 z-40">
         <div className="container mx-auto px-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" asChild aria-label="Go back">

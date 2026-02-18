@@ -313,28 +313,28 @@ export default function AdminUsersPage() {
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <div className="bg-white/70 backdrop-blur rounded-xl border border-[#2c2420]/5 p-4">
+        <div className="bg-white/70 dark:bg-card/70 backdrop-blur rounded-xl border border-[#2c2420]/5 p-4">
           <div className="flex items-center gap-2 text-[#2c2420]/60 text-xs mb-1">
             <User className="h-3.5 w-3.5" />
             Total Users
           </div>
           <p className="text-xl font-bold text-[#2c2420]">{total}</p>
         </div>
-        <div className="bg-white/70 backdrop-blur rounded-xl border border-[#2c2420]/5 p-4">
+        <div className="bg-white/70 dark:bg-card/70 backdrop-blur rounded-xl border border-[#2c2420]/5 p-4">
           <div className="flex items-center gap-2 text-purple-600 text-xs mb-1">
             <Shield className="h-3.5 w-3.5" />
             Admins
           </div>
           <p className="text-xl font-bold text-[#2c2420]">{adminCount}</p>
         </div>
-        <div className="bg-white/70 backdrop-blur rounded-xl border border-[#2c2420]/5 p-4">
+        <div className="bg-white/70 dark:bg-card/70 backdrop-blur rounded-xl border border-[#2c2420]/5 p-4">
           <div className="flex items-center gap-2 text-amber-600 text-xs mb-1">
             <AlertTriangle className="h-3.5 w-3.5" />
             Minor Accounts
           </div>
           <p className="text-xl font-bold text-[#2c2420]">{minorCount}</p>
         </div>
-        <div className="bg-white/70 backdrop-blur rounded-xl border border-[#2c2420]/5 p-4">
+        <div className="bg-white/70 dark:bg-card/70 backdrop-blur rounded-xl border border-[#2c2420]/5 p-4">
           <div className="flex items-center gap-2 text-red-600 text-xs mb-1">
             <Ban className="h-3.5 w-3.5" />
             Suspended
@@ -344,7 +344,7 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 overflow-hidden">
+      <div className="bg-white/70 dark:bg-card/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-[#ffb88c]" />

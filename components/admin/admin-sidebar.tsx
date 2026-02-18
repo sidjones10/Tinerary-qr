@@ -44,7 +44,7 @@ export function AdminSidebar() {
   }
 
   return (
-    <aside className="hidden lg:flex flex-col w-[240px] bg-white/60 backdrop-blur-sm border-r border-[#2c2420]/5 p-4">
+    <aside className="hidden lg:flex flex-col w-[240px] bg-white/60 dark:bg-card/60 backdrop-blur-sm border-r border-[#2c2420]/5 p-4">
       {/* Logo */}
       <div className="flex items-center gap-2 px-3 mb-8">
         <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#ffb88c] to-[#ff9a8b] flex items-center justify-center">

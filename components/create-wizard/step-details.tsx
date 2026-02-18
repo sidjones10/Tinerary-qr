@@ -48,7 +48,7 @@ export function StepDetails({ formData, onChange, errors }: StepDetailsProps) {
           <Label htmlFor="description" className="text-base font-semibold">
             Tell us about it
           </Label>
-          <span className={`text-sm ${characterCount > maxChars ? "text-red-500" : "text-gray-500"}`}>
+          <span className={`text-sm ${characterCount > maxChars ? "text-red-500" : "text-gray-500 dark:text-gray-400"}`}>
             {characterCount}/{maxChars}
           </span>
         </div>
@@ -61,7 +61,7 @@ export function StepDetails({ formData, onChange, errors }: StepDetailsProps) {
           maxLength={maxChars}
         />
         {errors?.description && <p className="text-sm text-red-500">{errors.description}</p>}
-        <p className="text-sm text-gray-500">Make it exciting! This is what people will see first.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Make it exciting! This is what people will see first.</p>
       </div>
 
       {/* Cover Image */}
@@ -71,16 +71,16 @@ export function StepDetails({ formData, onChange, errors }: StepDetailsProps) {
         {!imagePreview ? (
           <label
             htmlFor="coverImage"
-            className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors group"
+            className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-300 dark:border-border rounded-xl cursor-pointer bg-gray-50 dark:bg-background hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group"
           >
             <div className="flex flex-col items-center justify-center pt-5 pb-6">
-              <div className="p-4 bg-white rounded-full mb-4 group-hover:scale-110 transition-transform">
+              <div className="p-4 bg-white dark:bg-card rounded-full mb-4 group-hover:scale-110 transition-transform">
                 <Upload className="w-8 h-8 text-gray-400" />
               </div>
-              <p className="mb-2 text-sm text-gray-600">
+              <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">
                 <span className="font-semibold">Click to upload</span> or drag and drop
               </p>
-              <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, GIF up to 10MB</p>
             </div>
             <input id="coverImage" type="file" className="hidden" onChange={handleImageUpload} accept="image/*" />
           </label>
@@ -89,7 +89,7 @@ export function StepDetails({ formData, onChange, errors }: StepDetailsProps) {
             <img
               src={imagePreview}
               alt="Cover preview"
-              className="w-full h-64 object-cover rounded-xl border-2 border-gray-200"
+              className="w-full h-64 object-cover rounded-xl border-2 border-gray-200 dark:border-border"
             />
             <Button
               type="button"
@@ -100,7 +100,7 @@ export function StepDetails({ formData, onChange, errors }: StepDetailsProps) {
             >
               <X className="h-4 w-4" />
             </Button>
-            <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm font-medium">
+            <div className="absolute bottom-3 left-3 bg-white/90 dark:bg-card/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm font-medium">
               <ImageIcon className="inline h-4 w-4 mr-1" />
               Cover Photo
             </div>
@@ -111,7 +111,7 @@ export function StepDetails({ formData, onChange, errors }: StepDetailsProps) {
       {/* Suggested Images */}
       {!imagePreview && (
         <div className="space-y-3">
-          <Label className="text-sm font-medium text-gray-600">Or choose a suggested image:</Label>
+          <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Or choose a suggested image:</Label>
           <div className="grid grid-cols-3 gap-3">
             {[
               "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400",

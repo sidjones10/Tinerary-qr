@@ -55,7 +55,7 @@ export function CustomizeAppearance() {
         <div className="space-y-2">
           <p className="font-medium">Preview</p>
           <div className={`${getPreviewStyle()} rounded-lg p-4 flex justify-center items-center h-24`}>
-            <div className="bg-white rounded-lg p-3 shadow-sm w-40 text-center">
+            <div className="bg-white dark:bg-card rounded-lg p-3 shadow-sm w-40 text-center">
               <p className="font-semibold">Weekend in NYC</p>
               <p className="text-xs text-gray-500">Mar 15-17, 2025</p>
             </div>
@@ -112,7 +112,7 @@ export function CustomizeAppearance() {
                   }`}
                   onClick={() => setSettings({ ...settings, backgroundType: "none" })}
                 >
-                  <div className="h-8 w-8 rounded-full bg-white border border-gray-200 mb-1 flex items-center justify-center">
+                  <div className="h-8 w-8 rounded-full bg-white dark:bg-card border border-gray-200 dark:border-border mb-1 flex items-center justify-center">
                     {settings.backgroundType === "none" && <Check className="h-4 w-4 text-gray-500" />}
                   </div>
                   <span className="text-xs">None</span>

@@ -223,7 +223,7 @@ export function ShareDialog({ itineraryId, title, description, trigger, userId }
               <div className="flex flex-col items-center gap-4">
                 {qrCodeUrl ? (
                   <>
-                    <div className="bg-white p-4 rounded-lg border">
+                    <div className="bg-white dark:bg-white p-4 rounded-lg border">
                       <img src={qrCodeUrl} alt="QR Code" className="w-64 h-64" />
                     </div>
                     <Button variant="outline" onClick={downloadQRCode} className="w-full">

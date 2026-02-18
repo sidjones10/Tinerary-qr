@@ -70,7 +70,7 @@ export default function EmailPreviewPage() {
       <div className="lg:hidden flex items-center justify-between mb-6">
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="bg-white/70" aria-label="Open menu">
+            <Button variant="outline" size="icon" className="bg-white/70 dark:bg-card/70" aria-label="Open menu">
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
@@ -103,7 +103,7 @@ export default function EmailPreviewPage() {
             className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-xl transition-all ${
               selected === t.id
                 ? "bg-[#2c2420] text-white shadow-sm"
-                : "bg-white/60 text-[#2c2420]/60 hover:text-[#2c2420] hover:bg-[#ffb88c]/10 border border-[#2c2420]/5"
+                : "bg-white/60 dark:bg-card/60 text-[#2c2420]/60 hover:text-[#2c2420] hover:bg-[#ffb88c]/10 border border-[#2c2420]/5"
             }`}
           >
             <Mail className="h-3.5 w-3.5" />
@@ -114,7 +114,7 @@ export default function EmailPreviewPage() {
 
       {/* Preview */}
       {selected && selectedTemplate && (
-        <div className="bg-white/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 overflow-hidden">
+        <div className="bg-white/70 dark:bg-card/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 overflow-hidden">
           <div className="px-5 py-4 border-b border-[#2c2420]/5">
             <div className="flex items-center gap-2 text-sm">
               <span className="font-semibold text-[#2c2420]">Subject:</span>

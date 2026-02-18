@@ -13,7 +13,7 @@ export function GradientCard({ children, className }: GradientCardProps) {
       <div className="absolute inset-0 rounded-xl p-[1px]">
         <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-violet-500 via-pink-500 to-orange-400 opacity-20" />
       </div>
-      <div className="relative bg-white rounded-xl overflow-hidden">{children}</div>
+      <div className="relative bg-white dark:bg-card rounded-xl overflow-hidden">{children}</div>
     </div>
   )
 }

@@ -7,6 +7,7 @@ import { AuthProvider } from "@/providers/auth-provider"
 import { ConsentProvider } from "@/providers/consent-provider"
 import { OnboardingWrapper } from "@/components/onboarding-wrapper"
 import { GlobalErrorHandler } from "@/components/global-error-handler"
+import { I18nProvider } from "@/providers/i18n-provider"
 
 export const metadata: Metadata = {
   title: "Tinerary",
@@ -39,14 +40,16 @@ export default function RootLayout({
       <body className="font-sans" suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
           <AuthProvider>
-            <GlobalErrorHandler>
-              <ConsentProvider>
-                <OnboardingWrapper>
-                  {children}
-                </OnboardingWrapper>
-              </ConsentProvider>
-            </GlobalErrorHandler>
-            <Toaster />
+            <I18nProvider>
+              <GlobalErrorHandler>
+                <ConsentProvider>
+                  <OnboardingWrapper>
+                    {children}
+                  </OnboardingWrapper>
+                </ConsentProvider>
+              </GlobalErrorHandler>
+              <Toaster />
+            </I18nProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

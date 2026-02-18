@@ -13,6 +13,7 @@ import { LanguageSettings } from "@/components/language-settings"
 import { HelpSupportSettings } from "@/components/help-support-settings"
 import { Navbar } from "@/components/navbar"
 import { Loader2 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 function SettingsContent() {
   const searchParams = useSearchParams()
@@ -51,13 +52,18 @@ function SettingsLoading() {
   )
 }
 
+function SettingsTitle() {
+  const { t } = useTranslation()
+  return <h1 className="text-3xl font-bold mb-6">{t("settings.title")}</h1>
+}
+
 export default function SettingsPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen">
         <Navbar />
         <div className="container px-4 py-6 md:py-10">
-          <h1 className="text-3xl font-bold mb-6">Settings</h1>
+          <SettingsTitle />
           <Suspense fallback={<SettingsLoading />}>
             <SettingsContent />
           </Suspense>

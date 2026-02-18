@@ -108,28 +108,19 @@ export default function AdminUsersPage() {
     if (!pendingAction || pendingAction.type !== "delete") return
 
     setIsProcessing(true)
-    const supabase = createClient()
 
     try {
-      // Delete user's itineraries first (cascade should handle this but let's be explicit)
-      await supabase.from("itineraries").delete().eq("user_id", pendingAction.userId)
+      const res = await fetch("/api/admin/delete-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: pendingAction.userId }),
+      })
 
-      // Delete user's saved items
-      await supabase.from("saved_itineraries").delete().eq("user_id", pendingAction.userId)
+      const result = await res.json()
 
-      // Delete user's comments
-      await supabase.from("comments").delete().eq("user_id", pendingAction.userId)
-
-      // Delete user's interactions
-      await supabase.from("user_interactions").delete().eq("user_id", pendingAction.userId)
-
-      // Delete user's notifications
-      await supabase.from("notifications").delete().eq("user_id", pendingAction.userId)
-
-      // Delete the profile (this is the main user record)
-      const { error } = await supabase.from("profiles").delete().eq("id", pendingAction.userId)
-
-      if (error) throw error
+      if (!res.ok || !result.success) {
+        throw new Error(result.error || "Failed to delete user")
+      }
 
       toast({
         title: "User Deleted",

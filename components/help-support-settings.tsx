@@ -10,8 +10,7 @@ import { Label } from "@/components/ui/label"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useToast } from "@/components/ui/use-toast"
-import { Loader2, FileText, Users, Video, MapPin, ExternalLink } from "lucide-react"
-import Link from "next/link"
+import { Loader2, FileText, Users, Video, MapPin } from "lucide-react"
 
 export function HelpSupportSettings() {
   const { t } = useTranslation()
@@ -146,18 +145,8 @@ export function HelpSupportSettings() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="space-y-1.5">
-              <CardTitle>{t("settings.help.helpResources")}</CardTitle>
-              <CardDescription>{t("settings.help.helpResourcesDesc")}</CardDescription>
-            </div>
-            <Button variant="outline" size="sm" className="gap-1" asChild>
-              <Link href="/help">
-                {t("common.viewAll")}
-                <ExternalLink className="w-3 h-3" />
-              </Link>
-            </Button>
-          </div>
+          <CardTitle>{t("settings.help.helpResources")}</CardTitle>
+          <CardDescription>{t("settings.help.helpResourcesDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

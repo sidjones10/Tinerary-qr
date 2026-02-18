@@ -52,37 +52,28 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // Delete user's related data first
-    await adminClient.from("itineraries").delete().eq("user_id", userId)
-    await adminClient.from("saved_itineraries").delete().eq("user_id", userId)
-    await adminClient.from("comments").delete().eq("user_id", userId)
-    await adminClient.from("user_interactions").delete().eq("user_id", userId)
-    await adminClient.from("notifications").delete().eq("user_id", userId)
-
-    // Delete the profile
-    const { error: profileError } = await adminClient
-      .from("profiles")
-      .delete()
-      .eq("id", userId)
-
-    if (profileError) {
-      console.error("Error deleting profile:", profileError)
-      return NextResponse.json(
-        { success: false, error: "Failed to delete user profile" },
-        { status: 500 }
-      )
-    }
-
-    // Delete from auth.users - this invalidates all sessions immediately
+    // Delete from auth.users FIRST - this is the critical step that
+    // invalidates all sessions and prevents sign-in. If this fails,
+    // we abort without touching any data so we don't end up in a
+    // broken state (profile deleted but auth user still exists).
     const { error: authError } = await adminClient.auth.admin.deleteUser(userId)
 
     if (authError) {
       console.error("Error deleting auth user:", authError)
       return NextResponse.json(
-        { success: false, error: "Failed to delete auth user: " + authError.message },
+        { success: false, error: "Failed to delete user: " + authError.message },
         { status: 500 }
       )
     }
+
+    // Auth user deleted — now clean up related application data.
+    // These are best-effort; the user can no longer sign in regardless.
+    await adminClient.from("itineraries").delete().eq("user_id", userId)
+    await adminClient.from("saved_itineraries").delete().eq("user_id", userId)
+    await adminClient.from("comments").delete().eq("user_id", userId)
+    await adminClient.from("user_interactions").delete().eq("user_id", userId)
+    await adminClient.from("notifications").delete().eq("user_id", userId)
+    await adminClient.from("profiles").delete().eq("id", userId)
 
     return NextResponse.json({
       success: true,

@@ -56,6 +56,26 @@ export async function POST(request: Request) {
       )
     }
 
+    // Check if the user still has a profile (admin may have deleted it)
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", data.user.id)
+      .single()
+
+    if (!profileData) {
+      // Profile doesn't exist — this user was deleted by admin.
+      // Sign them out so the session doesn't persist.
+      await supabase.auth.signOut()
+      return NextResponse.json(
+        {
+          success: false,
+          message: "This account has been deleted. Please contact support if you believe this is an error.",
+        },
+        { status: 403 },
+      )
+    }
+
     // Extract request metadata for the sign-in alert
     const ipAddress =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||

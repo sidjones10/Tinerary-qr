@@ -24,6 +24,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
+  // Check if the user's profile still exists; sign them out if it was deleted
+  const verifyProfileExists = async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", userId)
+        .single()
+
+      if (!data) {
+        // Profile was deleted (admin deletion) — force sign out
+        console.warn("Profile not found for user, signing out:", userId)
+        await supabase.auth.signOut()
+        setUser(null)
+        setSession(null)
+      }
+    } catch {
+      // Query failed — don't sign out on network errors
+    }
+  }
+
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -31,10 +52,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null)
       setLoading(false) // Set loading false IMMEDIATELY - don't block on profile check
 
-      // Ensure profile exists for existing users (run in background, don't block)
+      // Verify the user's profile still exists (admin may have deleted it)
       if (session?.user) {
-        ensureProfileExists(session.user.id, session.user.email || "").catch((error) => {
-          console.error("Failed to ensure profile exists:", error)
+        verifyProfileExists(session.user.id).catch((error) => {
+          console.error("Failed to verify profile exists:", error)
         })
       }
     }).catch((error) => {
@@ -50,10 +71,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null)
       setLoading(false) // Set loading false IMMEDIATELY
 
-      // Ensure profile exists when user signs in (run in background, don't block)
+      // On sign-in, ensure profile exists (for legacy/new users)
+      // On other events (e.g. TOKEN_REFRESHED), verify profile wasn't deleted
       if (session?.user && _event === "SIGNED_IN") {
         ensureProfileExists(session.user.id, session.user.email || "").catch((error) => {
           console.error("Failed to ensure profile exists:", error)
+        })
+      } else if (session?.user) {
+        verifyProfileExists(session.user.id).catch((error) => {
+          console.error("Failed to verify profile exists:", error)
         })
       }
     })

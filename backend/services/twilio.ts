@@ -92,4 +92,45 @@ export async function sendVerificationSMS(phoneNumber: string, code: string): Pr
   }
 }
 
+/**
+ * Send an SMS invitation to join an itinerary
+ */
+export async function sendInvitationSMS(params: {
+  phoneNumber: string
+  inviterName: string
+  itineraryTitle: string
+  inviteUrl: string
+}): Promise<boolean> {
+  const { phoneNumber, inviterName, itineraryTitle, inviteUrl } = params
+  const formattedPhone = formatPhoneNumber(phoneNumber)
+
+  const message =
+    `${inviterName} invited you to "${itineraryTitle}" on Tinerary! ` +
+    `View the itinerary and RSVP: ${inviteUrl}`
+
+  // For development/testing, log the message and return success
+  if (process.env.NODE_ENV !== "production" || !twilioClient) {
+    console.log(`[DEV MODE] Would send invitation SMS to ${formattedPhone}: ${message}`)
+    return true
+  }
+
+  try {
+    if (!twilioPhoneNumber) {
+      console.error("Twilio phone number not configured")
+      return false
+    }
+
+    await twilioClient.messages.create({
+      body: message,
+      from: twilioPhoneNumber,
+      to: formattedPhone,
+    })
+
+    return true
+  } catch (error) {
+    console.error(`Failed to send invitation SMS to ${formattedPhone}:`, error)
+    return false
+  }
+}
+
 export { twilioClient }

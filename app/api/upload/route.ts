@@ -104,9 +104,10 @@ export async function POST(request: Request) {
     }
 
     // ── Generate safe file path ──
+    // Path must be {userId}/{filename} to satisfy RLS policies
     const ext = allowedExtensions[0]
     const timestamp = Date.now()
-    const safeName = `${user.id}-${timestamp}${ext}`
+    const safeName = `${user.id}/${timestamp}${ext}`
     const filePath = customPath || safeName
 
     // ── Upload to Supabase Storage ──

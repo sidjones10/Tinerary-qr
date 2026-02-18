@@ -4,12 +4,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { useToast } from "@/components/ui/use-toast"
 import { Loader2, Lock } from "lucide-react"
 import { useAuth } from "@/providers/auth-provider"
 import { createClient } from "@/lib/supabase/client"
 
 export function NotificationSettings() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
@@ -89,8 +91,8 @@ export function NotificationSettings() {
   const handleSave = async () => {
     if (!user) {
       toast({
-        title: "Authentication required",
-        description: "Please log in to save preferences.",
+        title: t("auth.authRequired"),
+        description: t("auth.pleaseLogIn"),
         variant: "destructive",
       })
       return
@@ -144,14 +146,14 @@ export function NotificationSettings() {
       ])
 
       toast({
-        title: "Preferences saved",
-        description: "Your notification preferences have been updated.",
+        title: t("settings.notifications.preferencesSaved"),
+        description: t("settings.notifications.preferencesSavedDesc"),
       })
     } catch (error: any) {
       console.error("Error saving preferences:", error)
       toast({
-        title: "Error",
-        description: error.message || "Failed to save notification preferences.",
+        title: t("common.error"),
+        description: error.message || t("common.error"),
         variant: "destructive",
       })
     } finally {
@@ -162,40 +164,40 @@ export function NotificationSettings() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Notification Settings</CardTitle>
-        <CardDescription>Control how and when you receive notifications</CardDescription>
+        <CardTitle>{t("settings.notifications.title")}</CardTitle>
+        <CardDescription>{t("settings.notifications.description")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">
           <div className="flex items-center gap-1.5">
             <Lock className="h-3.5 w-3.5 text-muted-foreground" />
-            <h3 className="text-sm font-medium text-muted-foreground">Security (Always On)</h3>
+            <h3 className="text-sm font-medium text-muted-foreground">{t("settings.notifications.security")}</h3>
           </div>
           <p className="text-xs text-muted-foreground -mt-2">
-            These settings are required for account security and cannot be turned off.
+            {t("settings.notifications.securityDesc")}
           </p>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Sign-in alerts</p>
-                <p className="text-sm text-muted-foreground">Get an email every time someone signs in to your account</p>
+                <p className="font-medium">{t("settings.notifications.signInAlerts")}</p>
+                <p className="text-sm text-muted-foreground">{t("settings.notifications.signInAlertsDesc")}</p>
               </div>
               <Switch checked disabled />
             </div>
 
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Email confirmation</p>
-                <p className="text-sm text-muted-foreground">Verify your email address to keep your account secure</p>
+                <p className="font-medium">{t("settings.notifications.emailConfirmation")}</p>
+                <p className="text-sm text-muted-foreground">{t("settings.notifications.emailConfirmationDesc")}</p>
               </div>
               <Switch checked disabled />
             </div>
 
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Phone number verification</p>
-                <p className="text-sm text-muted-foreground">Keep a verified phone number on your account for recovery</p>
+                <p className="font-medium">{t("settings.notifications.phoneVerification")}</p>
+                <p className="text-sm text-muted-foreground">{t("settings.notifications.phoneVerificationDesc")}</p>
               </div>
               <Switch checked disabled />
             </div>
@@ -203,29 +205,29 @@ export function NotificationSettings() {
         </div>
 
         <div className="space-y-4 pt-4 border-t">
-          <h3 className="text-sm font-medium text-muted-foreground">Notification Channels</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">{t("settings.notifications.channels")}</h3>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Push Notifications</p>
-                <p className="text-sm text-muted-foreground">Receive notifications on your device</p>
+                <p className="font-medium">{t("settings.notifications.pushNotifications")}</p>
+                <p className="text-sm text-muted-foreground">{t("settings.notifications.pushDesc")}</p>
               </div>
               <Switch checked={notifications.push} onCheckedChange={() => handleToggle("push")} />
             </div>
 
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Email Notifications</p>
-                <p className="text-sm text-muted-foreground">Receive notifications via email</p>
+                <p className="font-medium">{t("settings.notifications.emailNotifications")}</p>
+                <p className="text-sm text-muted-foreground">{t("settings.notifications.emailDesc")}</p>
               </div>
               <Switch checked={notifications.email} onCheckedChange={() => handleToggle("email")} />
             </div>
 
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">SMS Notifications</p>
-                <p className="text-sm text-muted-foreground">Receive notifications via text message</p>
+                <p className="font-medium">{t("settings.notifications.smsNotifications")}</p>
+                <p className="text-sm text-muted-foreground">{t("settings.notifications.smsDesc")}</p>
               </div>
               <Switch checked={notifications.sms} onCheckedChange={() => handleToggle("sms")} />
             </div>
@@ -233,29 +235,29 @@ export function NotificationSettings() {
         </div>
 
         <div className="space-y-4 pt-4 border-t">
-          <h3 className="text-sm font-medium text-muted-foreground">Trip & Event Notifications</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">{t("settings.notifications.tripEvent")}</h3>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Trip Reminders</p>
-                <p className="text-sm text-muted-foreground">Reminders about upcoming trips</p>
+                <p className="font-medium">{t("settings.notifications.tripReminders")}</p>
+                <p className="text-sm text-muted-foreground">{t("settings.notifications.tripRemindersDesc")}</p>
               </div>
               <Switch checked={notifications.tripReminders} onCheckedChange={() => handleToggle("tripReminders")} />
             </div>
 
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Activity Alerts</p>
-                <p className="text-sm text-muted-foreground">Alerts about activities during your trip</p>
+                <p className="font-medium">{t("settings.notifications.activityAlerts")}</p>
+                <p className="text-sm text-muted-foreground">{t("settings.notifications.activityAlertsDesc")}</p>
               </div>
               <Switch checked={notifications.activityAlerts} onCheckedChange={() => handleToggle("activityAlerts")} />
             </div>
 
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Itinerary Changes</p>
-                <p className="text-sm text-muted-foreground">Notifications when itineraries are updated</p>
+                <p className="font-medium">{t("settings.notifications.itineraryChanges")}</p>
+                <p className="text-sm text-muted-foreground">{t("settings.notifications.itineraryChangesDesc")}</p>
               </div>
               <Switch
                 checked={notifications.itineraryChanges}
@@ -266,29 +268,29 @@ export function NotificationSettings() {
         </div>
 
         <div className="space-y-4 pt-4 border-t">
-          <h3 className="text-sm font-medium text-muted-foreground">Social Notifications</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">{t("settings.notifications.social")}</h3>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">New Followers</p>
-                <p className="text-sm text-muted-foreground">When someone follows you</p>
+                <p className="font-medium">{t("settings.notifications.newFollowers")}</p>
+                <p className="text-sm text-muted-foreground">{t("settings.notifications.newFollowersDesc")}</p>
               </div>
               <Switch checked={notifications.newFollowers} onCheckedChange={() => handleToggle("newFollowers")} />
             </div>
 
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Likes & Comments</p>
-                <p className="text-sm text-muted-foreground">When someone likes or comments on your itineraries</p>
+                <p className="font-medium">{t("settings.notifications.likesComments")}</p>
+                <p className="text-sm text-muted-foreground">{t("settings.notifications.likesCommentsDesc")}</p>
               </div>
               <Switch checked={notifications.likesComments} onCheckedChange={() => handleToggle("likesComments")} />
             </div>
 
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Mentions</p>
-                <p className="text-sm text-muted-foreground">When someone mentions you</p>
+                <p className="font-medium">{t("settings.notifications.mentions")}</p>
+                <p className="text-sm text-muted-foreground">{t("settings.notifications.mentionsDesc")}</p>
               </div>
               <Switch checked={notifications.mentions} onCheckedChange={() => handleToggle("mentions")} />
             </div>
@@ -296,14 +298,14 @@ export function NotificationSettings() {
         </div>
 
         <div className="space-y-4 pt-4 border-t">
-          <h3 className="text-sm font-medium text-muted-foreground">Marketing Emails</h3>
-          <p className="text-xs text-muted-foreground -mt-2">Promotional content from Tinerary. You can opt in or out at any time.</p>
+          <h3 className="text-sm font-medium text-muted-foreground">{t("settings.notifications.marketing")}</h3>
+          <p className="text-xs text-muted-foreground -mt-2">{t("settings.notifications.marketingDesc")}</p>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Marketing & Promotions</p>
-                <p className="text-sm text-muted-foreground">Special deals, feature updates, newsletters, and travel inspiration</p>
+                <p className="font-medium">{t("settings.notifications.marketingPromotions")}</p>
+                <p className="text-sm text-muted-foreground">{t("settings.notifications.marketingPromotionsDesc")}</p>
               </div>
               <Switch checked={marketingConsent} onCheckedChange={() => setMarketingConsent(!marketingConsent)} />
             </div>
@@ -311,14 +313,14 @@ export function NotificationSettings() {
         </div>
 
         <div className="space-y-4 pt-4 border-t">
-          <h3 className="text-sm font-medium text-muted-foreground">Activity Digest</h3>
-          <p className="text-xs text-muted-foreground -mt-2">Personalised emails based on your browsing and activity on Tinerary.</p>
+          <h3 className="text-sm font-medium text-muted-foreground">{t("settings.notifications.activityDigest")}</h3>
+          <p className="text-xs text-muted-foreground -mt-2">{t("settings.notifications.activityDigestDesc")}</p>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Personalised Recommendations</p>
-                <p className="text-sm text-muted-foreground">Emails about itineraries and destinations based on what you&apos;ve been looking at</p>
+                <p className="font-medium">{t("settings.notifications.personalizedRecs")}</p>
+                <p className="text-sm text-muted-foreground">{t("settings.notifications.personalizedRecsDesc")}</p>
               </div>
               <Switch checked={activityDigestConsent} onCheckedChange={() => setActivityDigestConsent(!activityDigestConsent)} />
             </div>
@@ -330,10 +332,10 @@ export function NotificationSettings() {
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
+                {t("common.saving")}
               </>
             ) : (
-              "Save Preferences"
+              t("settings.notifications.savePreferences")
             )}
           </Button>
         </div>

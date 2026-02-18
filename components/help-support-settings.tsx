@@ -8,10 +8,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useToast } from "@/components/ui/use-toast"
 import { Loader2, FileText, Users, Video, MapPin } from "lucide-react"
 
 export function HelpSupportSettings() {
+  const { t } = useTranslation()
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
 
@@ -40,15 +42,15 @@ export function HelpSupportSettings() {
       // In a real implementation, this would send to a backend API or support system
 
       toast({
-        title: "Request submitted",
-        description: "Your support request has been submitted. We'll get back to you soon.",
+        title: t("settings.help.requestSubmitted"),
+        description: t("settings.help.requestSubmittedDesc"),
       })
 
       setSubject("")
       setMessage("")
     } catch (error: any) {
       toast({
-        title: "Error",
+        title: t("common.error"),
         description: error.message || "Failed to submit your request. Please try again.",
         variant: "destructive",
       })
@@ -59,18 +61,16 @@ export function HelpSupportSettings() {
 
   const faqs = [
     {
-      question: "How do I create a new itinerary?",
-      answer: 'To create a new itinerary, click the "Create New" button on the home page or in the navigation menu.',
+      question: t("settings.help.faq1Question"),
+      answer: t("settings.help.faq1Answer"),
     },
     {
-      question: "How do I invite friends to my itinerary?",
-      answer:
-        'Open your itinerary and go to the "People" tab. Click "Invite More Friends" and enter their email or phone number.',
+      question: t("settings.help.faq2Question"),
+      answer: t("settings.help.faq2Answer"),
     },
     {
-      question: "How do I split expenses with my group?",
-      answer:
-        'In your itinerary, go to the "Expenses" tab. Add expenses and select how you want to split them among your group.',
+      question: t("settings.help.faq3Question"),
+      answer: t("settings.help.faq3Answer"),
     },
   ]
 
@@ -78,12 +78,12 @@ export function HelpSupportSettings() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Help & Support</CardTitle>
-          <CardDescription>Get help and learn more about Itinerary</CardDescription>
+          <CardTitle>{t("settings.help.title")}</CardTitle>
+          <CardDescription>{t("settings.help.description")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-4">
-            <h3 className="text-sm font-medium text-muted-foreground">Frequently Asked Questions</h3>
+            <h3 className="text-sm font-medium text-muted-foreground">{t("settings.help.faq")}</h3>
 
             <div className="space-y-3">
               {faqs.map((faq, index) => (
@@ -96,30 +96,30 @@ export function HelpSupportSettings() {
           </div>
 
           <div className="pt-4 border-t">
-            <h3 className="text-sm font-medium text-muted-foreground mb-4">Contact Support</h3>
+            <h3 className="text-sm font-medium text-muted-foreground mb-4">{t("settings.help.contactSupport")}</h3>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="subject">Subject</Label>
+                <Label htmlFor="subject">{t("settings.help.subject")}</Label>
                 <Select value={subject} onValueChange={setSubject}>
                   <SelectTrigger id="subject">
-                    <SelectValue placeholder="Select a subject" />
+                    <SelectValue placeholder={t("settings.help.selectSubject")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="general-inquiry">General Inquiry</SelectItem>
-                    <SelectItem value="account-issue">Account Issue</SelectItem>
-                    <SelectItem value="payment-problem">Payment Problem</SelectItem>
-                    <SelectItem value="feature-request">Feature Request</SelectItem>
-                    <SelectItem value="bug-report">Bug Report</SelectItem>
+                    <SelectItem value="general-inquiry">{t("settings.help.subjects.general-inquiry")}</SelectItem>
+                    <SelectItem value="account-issue">{t("settings.help.subjects.account-issue")}</SelectItem>
+                    <SelectItem value="payment-problem">{t("settings.help.subjects.payment-problem")}</SelectItem>
+                    <SelectItem value="feature-request">{t("settings.help.subjects.feature-request")}</SelectItem>
+                    <SelectItem value="bug-report">{t("settings.help.subjects.bug-report")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="message">Message</Label>
+                <Label htmlFor="message">{t("settings.help.message")}</Label>
                 <Textarea
                   id="message"
-                  placeholder="Describe your issue or question..."
+                  placeholder={t("settings.help.messagePlaceholder")}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   rows={5}
@@ -131,10 +131,10 @@ export function HelpSupportSettings() {
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Submitting...
+                      {t("common.submitting")}
                     </>
                   ) : (
-                    "Submit Request"
+                    t("settings.help.submitRequest")
                   )}
                 </Button>
               </div>
@@ -145,8 +145,8 @@ export function HelpSupportSettings() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Help Resources</CardTitle>
-          <CardDescription>Explore our help resources to learn more</CardDescription>
+          <CardTitle>{t("settings.help.helpResources")}</CardTitle>
+          <CardDescription>{t("settings.help.helpResourcesDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -155,8 +155,8 @@ export function HelpSupportSettings() {
                 <FileText className="h-5 w-5" />
               </div>
               <div>
-                <h4 className="font-medium">User Guide</h4>
-                <p className="text-sm text-muted-foreground">Learn how to use all features of Itinerary</p>
+                <h4 className="font-medium">{t("settings.help.userGuide")}</h4>
+                <p className="text-sm text-muted-foreground">{t("settings.help.userGuideDesc")}</p>
               </div>
             </div>
 
@@ -165,8 +165,8 @@ export function HelpSupportSettings() {
                 <Users className="h-5 w-5" />
               </div>
               <div>
-                <h4 className="font-medium">Community Forum</h4>
-                <p className="text-sm text-muted-foreground">Connect with other travelers</p>
+                <h4 className="font-medium">{t("settings.help.communityForum")}</h4>
+                <p className="text-sm text-muted-foreground">{t("settings.help.communityForumDesc")}</p>
               </div>
             </div>
 
@@ -175,8 +175,8 @@ export function HelpSupportSettings() {
                 <Video className="h-5 w-5" />
               </div>
               <div>
-                <h4 className="font-medium">Video Tutorials</h4>
-                <p className="text-sm text-muted-foreground">Watch step-by-step guides</p>
+                <h4 className="font-medium">{t("settings.help.videoTutorials")}</h4>
+                <p className="text-sm text-muted-foreground">{t("settings.help.videoTutorialsDesc")}</p>
               </div>
             </div>
 
@@ -185,8 +185,8 @@ export function HelpSupportSettings() {
                 <MapPin className="h-5 w-5" />
               </div>
               <div>
-                <h4 className="font-medium">Travel Tips</h4>
-                <p className="text-sm text-muted-foreground">Expert advice for better trips</p>
+                <h4 className="font-medium">{t("settings.help.travelTips")}</h4>
+                <p className="text-sm text-muted-foreground">{t("settings.help.travelTipsDesc")}</p>
               </div>
             </div>
           </div>

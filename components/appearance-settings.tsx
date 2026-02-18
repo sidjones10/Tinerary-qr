@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { useToast } from "@/components/ui/use-toast"
 import { Loader2, Sun, Moon, Monitor, Grid, List } from "lucide-react"
 import { useTheme } from "next-themes"
@@ -10,6 +11,7 @@ import { useAuth } from "@/providers/auth-provider"
 import { createClient } from "@/lib/supabase/client"
 
 export function AppearanceSettings() {
+  const { t } = useTranslation()
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
   const { theme, setTheme } = useTheme()
@@ -55,8 +57,8 @@ export function AppearanceSettings() {
   const handleSave = async () => {
     if (!user) {
       toast({
-        title: "Authentication required",
-        description: "Please log in to save preferences.",
+        title: t("auth.authRequired"),
+        description: t("auth.pleaseLogIn"),
         variant: "destructive",
       })
       return
@@ -100,14 +102,14 @@ export function AppearanceSettings() {
       }
 
       toast({
-        title: "Preferences saved",
-        description: "Your appearance preferences have been updated.",
+        title: t("settings.appearance.preferencesSaved"),
+        description: t("settings.appearance.preferencesSavedDesc"),
       })
     } catch (error: any) {
       console.error("Error saving appearance preferences:", error)
       toast({
-        title: "Error",
-        description: error.message || "Failed to save preferences.",
+        title: t("common.error"),
+        description: error.message || t("common.error"),
         variant: "destructive",
       })
     } finally {
@@ -118,12 +120,12 @@ export function AppearanceSettings() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Appearance Settings</CardTitle>
-        <CardDescription>Customize how Itinerary looks for you</CardDescription>
+        <CardTitle>{t("settings.appearance.title")}</CardTitle>
+        <CardDescription>{t("settings.appearance.description")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">
-          <h3 className="text-sm font-medium text-muted-foreground">Theme</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">{t("settings.appearance.theme")}</h3>
 
           <div className="grid grid-cols-3 gap-4">
             <div
@@ -135,7 +137,7 @@ export function AppearanceSettings() {
               <div className="h-20 w-full bg-white dark:bg-card border rounded-md flex items-center justify-center">
                 <Sun className="h-8 w-8 text-amber-500" />
               </div>
-              <span className="text-sm font-medium">Light</span>
+              <span className="text-sm font-medium">{t("settings.appearance.light")}</span>
             </div>
 
             <div
@@ -147,7 +149,7 @@ export function AppearanceSettings() {
               <div className="h-20 w-full bg-gray-900 border rounded-md flex items-center justify-center">
                 <Moon className="h-8 w-8 text-blue-400" />
               </div>
-              <span className="text-sm font-medium">Dark</span>
+              <span className="text-sm font-medium">{t("settings.appearance.dark")}</span>
             </div>
 
             <div
@@ -159,13 +161,13 @@ export function AppearanceSettings() {
               <div className="h-20 w-full bg-gradient-to-r from-white to-gray-900 border rounded-md flex items-center justify-center">
                 <Monitor className="h-8 w-8 text-purple-500" />
               </div>
-              <span className="text-sm font-medium">System</span>
+              <span className="text-sm font-medium">{t("settings.appearance.system")}</span>
             </div>
           </div>
         </div>
 
         <div className="space-y-4 pt-4 border-t">
-          <h3 className="text-sm font-medium text-muted-foreground">Color Theme</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">{t("settings.appearance.colorTheme")}</h3>
 
           <div className="flex flex-wrap gap-4">
             <div
@@ -207,7 +209,7 @@ export function AppearanceSettings() {
         </div>
 
         <div className="space-y-4 pt-4 border-t">
-          <h3 className="text-sm font-medium text-muted-foreground">Font Size</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">{t("settings.appearance.fontSize")}</h3>
 
           <div className="flex gap-4">
             <Button
@@ -215,7 +217,7 @@ export function AppearanceSettings() {
               onClick={() => setFontSize("small")}
               className="flex-1"
             >
-              Small
+              {t("settings.appearance.small")}
             </Button>
 
             <Button
@@ -223,7 +225,7 @@ export function AppearanceSettings() {
               onClick={() => setFontSize("medium")}
               className="flex-1"
             >
-              Medium
+              {t("settings.appearance.medium")}
             </Button>
 
             <Button
@@ -231,13 +233,13 @@ export function AppearanceSettings() {
               onClick={() => setFontSize("large")}
               className="flex-1"
             >
-              Large
+              {t("settings.appearance.large")}
             </Button>
           </div>
         </div>
 
         <div className="space-y-4 pt-4 border-t">
-          <h3 className="text-sm font-medium text-muted-foreground">Home Screen Layout</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">{t("settings.appearance.homeLayout")}</h3>
 
           <div className="grid grid-cols-2 gap-4">
             <div
@@ -249,7 +251,7 @@ export function AppearanceSettings() {
               <div className="h-16 w-full flex items-center justify-center">
                 <Grid className="h-8 w-8" />
               </div>
-              <span className="text-sm font-medium">Grid</span>
+              <span className="text-sm font-medium">{t("settings.appearance.grid")}</span>
             </div>
 
             <div
@@ -261,7 +263,7 @@ export function AppearanceSettings() {
               <div className="h-16 w-full flex items-center justify-center">
                 <List className="h-8 w-8" />
               </div>
-              <span className="text-sm font-medium">List</span>
+              <span className="text-sm font-medium">{t("settings.appearance.list")}</span>
             </div>
           </div>
         </div>
@@ -271,10 +273,10 @@ export function AppearanceSettings() {
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
+                {t("common.saving")}
               </>
             ) : (
-              "Save Preferences"
+              t("settings.appearance.savePreferences")
             )}
           </Button>
         </div>

@@ -269,6 +269,16 @@ export default function EmailAuthForm() {
       }
 
       if (data.user) {
+        // Send welcome email via server-side API
+        fetch("/api/auth/send-welcome", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: formData.email,
+            name: formData.username || formData.email.split("@")[0],
+          }),
+        }).catch(() => {}) // fire-and-forget, don't block signup
+
         // Update profile with consent data (the trigger creates the profile)
         // We'll update it after creation
         setTimeout(async () => {

@@ -17,7 +17,8 @@
     "uploading": "Subiendo...",
     "downloading": "Descargando...",
     "submitting": "Enviando...",
-    "updating": "Actualizando..."
+    "updating": "Actualizando...",
+    "viewAll": "Ver Todo"
   },
   "nav": {
     "home": "Inicio",

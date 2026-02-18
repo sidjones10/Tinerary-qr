@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useToast } from "@/components/ui/use-toast"
-import { Loader2, FileText, Users, Video, MapPin } from "lucide-react"
+import { Loader2, FileText, Users, Video, MapPin, ExternalLink } from "lucide-react"
+import Link from "next/link"
 
 export function HelpSupportSettings() {
   const { t } = useTranslation()
@@ -145,13 +146,23 @@ export function HelpSupportSettings() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("settings.help.helpResources")}</CardTitle>
-          <CardDescription>{t("settings.help.helpResourcesDesc")}</CardDescription>
+          <div className="flex items-center justify-between">
+            <div className="space-y-1.5">
+              <CardTitle>{t("settings.help.helpResources")}</CardTitle>
+              <CardDescription>{t("settings.help.helpResourcesDesc")}</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" className="gap-1" asChild>
+              <Link href="/help">
+                {t("common.viewAll")}
+                <ExternalLink className="w-3 h-3" />
+              </Link>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="border rounded-md p-4 flex items-start gap-3">
-              <div className="bg-blue-100 p-2 rounded-md text-blue-600">
+              <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-md text-blue-600 dark:text-blue-400">
                 <FileText className="h-5 w-5" />
               </div>
               <div>
@@ -161,7 +172,7 @@ export function HelpSupportSettings() {
             </div>
 
             <div className="border rounded-md p-4 flex items-start gap-3">
-              <div className="bg-green-100 p-2 rounded-md text-green-600">
+              <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded-md text-green-600 dark:text-green-400">
                 <Users className="h-5 w-5" />
               </div>
               <div>
@@ -171,7 +182,7 @@ export function HelpSupportSettings() {
             </div>
 
             <div className="border rounded-md p-4 flex items-start gap-3">
-              <div className="bg-purple-100 p-2 rounded-md text-purple-600">
+              <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-md text-purple-600 dark:text-purple-400">
                 <Video className="h-5 w-5" />
               </div>
               <div>
@@ -181,7 +192,7 @@ export function HelpSupportSettings() {
             </div>
 
             <div className="border rounded-md p-4 flex items-start gap-3">
-              <div className="bg-amber-100 p-2 rounded-md text-amber-600">
+              <div className="bg-amber-100 dark:bg-amber-900/30 p-2 rounded-md text-amber-600 dark:text-amber-400">
                 <MapPin className="h-5 w-5" />
               </div>
               <div>

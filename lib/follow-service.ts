@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/client"
-import { notifyNewFollower } from "@/lib/notification-service"
+import { notifyNewFollower, getUserNotificationPreferences } from "@/lib/notification-service"
 import { sendNewFollowerEmail } from "@/lib/email-notifications"
 
 export interface FollowUser {
@@ -64,21 +64,24 @@ export async function followUser(
           userId
         )
 
-        // Send email notification (async, don't block)
-        const { data: targetProfile } = await supabase
-          .from("profiles")
-          .select("email, name, email_notifications")
-          .eq("id", targetUserId)
-          .single()
+        // Send email notification if user has email notifications enabled
+        const targetPrefs = await getUserNotificationPreferences(targetUserId)
+        if (targetPrefs.email) {
+          const { data: targetProfile } = await supabase
+            .from("profiles")
+            .select("email, name")
+            .eq("id", targetUserId)
+            .single()
 
-        if (targetProfile?.email && targetProfile?.email_notifications !== false) {
-          sendNewFollowerEmail(
-            targetProfile.email,
-            targetProfile.name || "there",
-            followerProfile.name || "Someone",
-            followerProfile.username || userId,
-            followerProfile.avatar_url
-          ).catch(err => console.error("Failed to send follower email:", err))
+          if (targetProfile?.email) {
+            sendNewFollowerEmail(
+              targetProfile.email,
+              targetProfile.name || "there",
+              followerProfile.name || "Someone",
+              followerProfile.username || userId,
+              followerProfile.avatar_url
+            ).catch(err => console.error("Failed to send follower email:", err))
+          }
         }
       }
     } catch (notifyError) {

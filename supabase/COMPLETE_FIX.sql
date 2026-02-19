@@ -22,9 +22,13 @@ CREATE TABLE drafts (
   end_date DATE,
   type TEXT DEFAULT 'event',
   is_public BOOLEAN DEFAULT true,
-  activities JSONB DEFAULT '[]',
-  packing_items JSONB DEFAULT '[]',
-  expenses JSONB DEFAULT '[]',
+  is_published BOOLEAN DEFAULT false,
+  published_at TIMESTAMP WITH TIME ZONE,
+  content JSONB,
+  activities JSONB DEFAULT '[]'::jsonb,
+  packing_items JSONB DEFAULT '[]'::jsonb,
+  expenses JSONB DEFAULT '[]'::jsonb,
+  cover_image_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

@@ -34,6 +34,7 @@ export function ProfileSettings() {
   const [originalUsername, setOriginalUsername] = useState("")
   const [checkingUsername, setCheckingUsername] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [avatarPath, setAvatarPath] = useState<string | null>(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
 
   useEffect(() => {
@@ -44,7 +45,7 @@ export function ProfileSettings() {
           const supabase = createClient()
           const { data, error } = await supabase
             .from("profiles")
-            .select("name, username, bio, location, website, phone, avatar_url")
+            .select("name, username, bio, location, website, phone, avatar_url, avatar_path")
             .eq("id", user.id)
             .single()
 
@@ -69,6 +70,7 @@ export function ProfileSettings() {
             })
             setOriginalUsername(data.username || "")
             setAvatarUrl(data.avatar_url || null)
+            setAvatarPath(data.avatar_path || null)
           }
         } finally {
           setIsLoading(false)
@@ -155,6 +157,7 @@ export function ProfileSettings() {
       }
 
       setAvatarUrl(result.url)
+      setAvatarPath(result.path)
 
       toast({
         title: t("settings.profile.photoUpdated"),
@@ -185,8 +188,6 @@ export function ProfileSettings() {
       // Use dedicated avatar endpoint to handle everything server-side
       const response = await fetch("/api/profile/avatar", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ avatarUrl }),
       })
 
       if (!response.ok) {
@@ -201,6 +202,7 @@ export function ProfileSettings() {
       }
 
       setAvatarUrl(null)
+      setAvatarPath(null)
 
       toast({
         title: t("settings.profile.photoRemoved"),

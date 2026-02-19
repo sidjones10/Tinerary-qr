@@ -101,20 +101,16 @@ export async function POST(request: Request) {
     const admin = createAdminClient()
 
     // ── Delete old avatar from storage ──
-    // Look up current avatar_url from profiles to derive the storage path
+    // Look up current avatar_path from profiles
     const { data: currentProfile } = await admin
       .from("profiles")
-      .select("avatar_url")
+      .select("avatar_path")
       .eq("id", user.id)
       .single()
 
-    if (currentProfile?.avatar_url) {
-      const match = currentProfile.avatar_url.match(/\/user-avatars\/(.+)$/)
-      const oldStoragePath = match?.[1]
-      if (oldStoragePath && oldStoragePath.startsWith(`${user.id}/`)) {
-        await admin.storage.from("user-avatars").remove([oldStoragePath])
-        // Ignore delete errors – old file may already be gone
-      }
+    if (currentProfile?.avatar_path && currentProfile.avatar_path.startsWith(`${user.id}/`)) {
+      await admin.storage.from("user-avatars").remove([currentProfile.avatar_path])
+      // Ignore delete errors – old file may already be gone
     }
 
     // ── Upload new avatar ──
@@ -147,6 +143,7 @@ export async function POST(request: Request) {
       .from("profiles")
       .update({
         avatar_url: publicUrl,
+        avatar_path: uploadData.path,
         updated_at: new Date().toISOString(),
       })
       .eq("id", user.id)
@@ -186,7 +183,7 @@ export async function POST(request: Request) {
  * DELETE /api/profile/avatar
  * Removes the avatar from storage, profiles table, and auth metadata.
  *
- * Body JSON: { avatarUrl: string }
+ * No body required – avatar_path is looked up from the profiles table.
  */
 export async function DELETE(request: Request) {
   try {
@@ -203,20 +200,18 @@ export async function DELETE(request: Request) {
       )
     }
 
-    const body = await request.json()
-    const url = body?.avatarUrl as string | null
-
     // Use admin client for storage + DB operations
     const admin = createAdminClient()
 
-    // ── Delete from storage ──
-    // Extract storage path from public URL (everything after /user-avatars/)
-    if (url) {
-      const match = url.match(/\/user-avatars\/(.+)$/)
-      const storagePath = match?.[1]
-      if (storagePath && storagePath.startsWith(`${user.id}/`)) {
-        await admin.storage.from("user-avatars").remove([storagePath])
-      }
+    // ── Look up current avatar_path and delete from storage ──
+    const { data: currentProfile } = await admin
+      .from("profiles")
+      .select("avatar_path")
+      .eq("id", user.id)
+      .single()
+
+    if (currentProfile?.avatar_path && currentProfile.avatar_path.startsWith(`${user.id}/`)) {
+      await admin.storage.from("user-avatars").remove([currentProfile.avatar_path])
     }
 
     // ── Clear in profiles table ──
@@ -224,6 +219,7 @@ export async function DELETE(request: Request) {
       .from("profiles")
       .update({
         avatar_url: null,
+        avatar_path: null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", user.id)

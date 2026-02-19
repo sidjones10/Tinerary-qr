@@ -89,38 +89,37 @@ describe("Drafts – Schema Mismatch Issues", () => {
     expect(tableDef).toContain("updated_at")
   })
 
-  it("ISSUE: initial migration is missing is_published column used by draft-actions.ts", () => {
+  it("initial migration includes is_published column used by draft-actions.ts", () => {
     const match = initialMigration.match(
       /CREATE TABLE IF NOT EXISTS drafts[\s\S]*?\);/
     )
     const tableDef = match![0]
-    // is_published is NOT in initial migration but IS used in code
-    expect(tableDef).not.toContain("is_published")
+    expect(tableDef).toContain("is_published")
   })
 
-  it("ISSUE: initial migration is missing description column used by create page", () => {
+  it("initial migration includes description column used by create page", () => {
     const match = initialMigration.match(
       /CREATE TABLE IF NOT EXISTS drafts[\s\S]*?\);/
     )
     const tableDef = match![0]
-    expect(tableDef).not.toContain("description TEXT")
+    expect(tableDef).toContain("description TEXT")
   })
 
-  it("ISSUE: initial migration is missing location column", () => {
+  it("initial migration includes location column", () => {
     const match = initialMigration.match(
       /CREATE TABLE IF NOT EXISTS drafts[\s\S]*?\);/
     )
     const tableDef = match![0]
-    expect(tableDef).not.toContain("location TEXT")
+    expect(tableDef).toContain("location TEXT")
   })
 
-  it("ISSUE: initial migration is missing date columns", () => {
+  it("initial migration includes date columns", () => {
     const match = initialMigration.match(
       /CREATE TABLE IF NOT EXISTS drafts[\s\S]*?\);/
     )
     const tableDef = match![0]
-    expect(tableDef).not.toContain("start_date")
-    expect(tableDef).not.toContain("end_date")
+    expect(tableDef).toContain("start_date")
+    expect(tableDef).toContain("end_date")
   })
 
   it("code queries is_published = false which will fail on initial schema", () => {
@@ -141,24 +140,23 @@ describe("Drafts – Fix Migration Files", () => {
     expect(fs.existsSync(fixPath)).toBe(true)
   })
 
-  it("ISSUE: FIX_DRAFTS_TABLE.sql does not include is_published", () => {
+  it("FIX_DRAFTS_TABLE.sql includes is_published", () => {
     const fixPath = path.join(basePath, "db/FIX_DRAFTS_TABLE.sql")
     if (fs.existsSync(fixPath)) {
       const fixSrc = fs.readFileSync(fixPath, "utf-8")
-      expect(fixSrc).not.toContain("is_published")
+      expect(fixSrc).toContain("is_published")
     }
   })
 
-  it("ISSUE: COMPLETE_FIX.sql drafts section does not include is_published", () => {
+  it("COMPLETE_FIX.sql drafts section includes is_published", () => {
     const completeFix = path.join(basePath, "supabase/COMPLETE_FIX.sql")
     if (fs.existsSync(completeFix)) {
       const fixSrc = fs.readFileSync(completeFix, "utf-8")
-      // Get the drafts section
       const draftsSection = fixSrc.match(
         /CREATE TABLE.*drafts[\s\S]*?\);/
       )
       if (draftsSection) {
-        expect(draftsSection[0]).not.toContain("is_published")
+        expect(draftsSection[0]).toContain("is_published")
       }
     }
   })
@@ -173,33 +171,27 @@ describe("Drafts – publishDraft Column Issues", () => {
     "utf-8"
   )
 
-  it("ISSUE: publishDraft inserts draft_id into itineraries table (column may not exist)", () => {
-    expect(actionsSrc).toContain("draft_id: draftId")
+  it("publishDraft does not insert draft_id into itineraries table", () => {
+    expect(actionsSrc).not.toContain("draft_id: draftId")
   })
 
-  it("ISSUE: publishDraft inserts content into itineraries (column may not exist)", () => {
-    // The itineraries table uses structured columns, not a generic content JSONB
-    expect(actionsSrc).toContain("content: draft.content")
+  it("publishDraft does not insert content into itineraries", () => {
+    expect(actionsSrc).not.toContain("content: draft.content")
   })
 
-  it("ISSUE: publishDraft sets published_at on drafts (column may not exist)", () => {
+  it("publishDraft sets published_at on drafts", () => {
     expect(actionsSrc).toContain("published_at:")
   })
 
-  it("publishDraft only transfers title, description, content – missing other draft fields", () => {
-    // The draft has location, dates, activities, etc. but publishDraft
-    // only copies title, description, content, user_id
+  it("publishDraft transfers location and date fields from draft to itinerary", () => {
     const publishSection = actionsSrc.match(
       /\.from\("itineraries"\)\s*\.insert\(\{[\s\S]*?\}\)/
     )
     expect(publishSection).not.toBeNull()
     const insertBlock = publishSection![0]
-    // These fields are NOT copied from draft to itinerary
-    expect(insertBlock).not.toContain("location:")
-    expect(insertBlock).not.toContain("start_date:")
-    expect(insertBlock).not.toContain("end_date:")
-    expect(insertBlock).not.toContain("activities:")
-    expect(insertBlock).not.toContain("theme:")
+    expect(insertBlock).toContain("location:")
+    expect(insertBlock).toContain("start_date:")
+    expect(insertBlock).toContain("end_date:")
   })
 })
 

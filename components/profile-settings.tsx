@@ -139,9 +139,6 @@ export function ProfileSettings() {
       // upload to storage, update profiles table, update auth metadata
       const formData = new FormData()
       formData.append("file", compressedFile)
-      if (avatarPath) {
-        formData.append("oldPath", avatarPath)
-      }
 
       const response = await fetch("/api/profile/avatar", {
         method: "POST",
@@ -191,8 +188,6 @@ export function ProfileSettings() {
       // Use dedicated avatar endpoint to handle everything server-side
       const response = await fetch("/api/profile/avatar", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: avatarPath }),
       })
 
       if (!response.ok) {

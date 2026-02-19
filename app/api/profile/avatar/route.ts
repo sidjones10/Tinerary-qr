@@ -27,17 +27,13 @@ function createAdminClient() {
  * Handles the entire avatar flow server-side:
  *   1. Authenticates via cookie-based client
  *   2. Validates the file
- *   3. Deletes old avatar from storage (if provided)
+ *   3. Deletes old avatar from storage
  *   4. Uploads new avatar to storage
- *   5. Updates profiles table (avatar_url + avatar_path)
+ *   5. Updates profiles table (avatar_url)
  *   6. Updates auth user metadata (avatar_url)
  *
- * Uses service role client for storage/DB operations to bypass RLS,
- * same pattern as other API routes in this app.
- *
  * Form data fields:
- *   file    – the image file (required)
- *   oldPath – storage path of old avatar to delete (optional)
+ *   file – the image file (required)
  */
 export async function POST(request: Request) {
   try {
@@ -56,7 +52,6 @@ export async function POST(request: Request) {
 
     const formData = await request.formData()
     const file = formData.get("file") as File | null
-    const oldPath = formData.get("oldPath") as string | null
 
     if (!file) {
       return NextResponse.json(
@@ -105,9 +100,16 @@ export async function POST(request: Request) {
     // This bypasses RLS – safe because we already verified the user above
     const admin = createAdminClient()
 
-    // ── Delete old avatar if provided ──
-    if (oldPath && oldPath.startsWith(`${user.id}/`)) {
-      await admin.storage.from("user-avatars").remove([oldPath])
+    // ── Delete old avatar from storage ──
+    // Look up current avatar_path from profiles
+    const { data: currentProfile } = await admin
+      .from("profiles")
+      .select("avatar_path")
+      .eq("id", user.id)
+      .single()
+
+    if (currentProfile?.avatar_path && currentProfile.avatar_path.startsWith(`${user.id}/`)) {
+      await admin.storage.from("user-avatars").remove([currentProfile.avatar_path])
       // Ignore delete errors – old file may already be gone
     }
 
@@ -181,7 +183,7 @@ export async function POST(request: Request) {
  * DELETE /api/profile/avatar
  * Removes the avatar from storage, profiles table, and auth metadata.
  *
- * Body JSON: { path: string }
+ * No body required – avatar_path is looked up from the profiles table.
  */
 export async function DELETE(request: Request) {
   try {
@@ -198,15 +200,18 @@ export async function DELETE(request: Request) {
       )
     }
 
-    const body = await request.json()
-    const path = body?.path as string | null
-
     // Use admin client for storage + DB operations
     const admin = createAdminClient()
 
-    // ── Delete from storage ──
-    if (path && path.startsWith(`${user.id}/`)) {
-      await admin.storage.from("user-avatars").remove([path])
+    // ── Look up current avatar_path and delete from storage ──
+    const { data: currentProfile } = await admin
+      .from("profiles")
+      .select("avatar_path")
+      .eq("id", user.id)
+      .single()
+
+    if (currentProfile?.avatar_path && currentProfile.avatar_path.startsWith(`${user.id}/`)) {
+      await admin.storage.from("user-avatars").remove([currentProfile.avatar_path])
     }
 
     // ── Clear in profiles table ──

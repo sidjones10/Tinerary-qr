@@ -44,6 +44,9 @@ export function MfaSettings() {
 
   // Disable state
   const [isDisabling, setIsDisabling] = useState(false)
+  const [disableOpen, setDisableOpen] = useState(false)
+  const [disableFactorId, setDisableFactorId] = useState<string | null>(null)
+  const [disableCode, setDisableCode] = useState("")
 
   const hasActiveFactor = factors.some((f) => f.status === "verified")
 
@@ -121,14 +124,36 @@ export function MfaSettings() {
     }
   }
 
-  // Disable 2FA
-  const handleDisable = async (factorId: string) => {
+  // Open the disable confirmation dialog
+  const openDisableDialog = (factorId: string) => {
+    setDisableFactorId(factorId)
+    setDisableCode("")
+    setDisableOpen(true)
+  }
+
+  // Disable 2FA: verify the TOTP code first (upgrades session to AAL2), then unenroll
+  const handleDisable = async () => {
+    if (!disableFactorId || disableCode.length !== 6) return
     setIsDisabling(true)
     try {
+      // Step 1: Verify the TOTP code to upgrade the session to AAL2
+      const verifyRes = await fetch("/api/auth/mfa/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ factorId: disableFactorId, code: disableCode }),
+      })
+      const verifyResult = await verifyRes.json()
+      if (!verifyResult.success) {
+        toast({ title: "Invalid code", description: verifyResult.message || "Verification failed. Please try again.", variant: "destructive" })
+        setDisableCode("")
+        return
+      }
+
+      // Step 2: Now unenroll (session is at AAL2)
       const res = await fetch("/api/auth/mfa/unenroll", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ factorId }),
+        body: JSON.stringify({ factorId: disableFactorId }),
       })
       const result = await res.json()
       if (!result.success) {
@@ -136,7 +161,10 @@ export function MfaSettings() {
         return
       }
       toast({ title: "2FA disabled", description: "Two-factor authentication has been removed." })
-      setFactors((prev) => prev.filter((f) => f.id !== factorId))
+      setFactors((prev) => prev.filter((f) => f.id !== disableFactorId))
+      setDisableOpen(false)
+      setDisableFactorId(null)
+      setDisableCode("")
     } catch {
       toast({ title: "Error", description: "Failed to disable 2FA", variant: "destructive" })
     } finally {
@@ -193,10 +221,10 @@ export function MfaSettings() {
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => handleDisable(factor.id)}
+                    onClick={() => openDisableDialog(factor.id)}
                     disabled={isDisabling}
                   >
-                    {isDisabling ? <Loader2 className="h-4 w-4 animate-spin" /> : "Remove"}
+                    Remove
                   </Button>
                 </div>
               ))}
@@ -224,6 +252,70 @@ export function MfaSettings() {
           )}
         </CardContent>
       </Card>
+
+      {/* Disable confirmation dialog */}
+      <Dialog open={disableOpen} onOpenChange={(open) => {
+        if (!isDisabling) {
+          setDisableOpen(open)
+          if (!open) {
+            setDisableFactorId(null)
+            setDisableCode("")
+          }
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Remove two-factor authentication</DialogTitle>
+            <DialogDescription>
+              Enter the 6-digit code from your authenticator app to confirm removal.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="disable-totp-code">Verification code</Label>
+              <Input
+                id="disable-totp-code"
+                placeholder="000000"
+                maxLength={6}
+                value={disableCode}
+                onChange={(e) => setDisableCode(e.target.value.replace(/\D/g, ""))}
+                className="text-center text-lg tracking-widest font-mono"
+                autoComplete="one-time-code"
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setDisableOpen(false)
+                  setDisableFactorId(null)
+                  setDisableCode("")
+                }}
+                disabled={isDisabling}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={handleDisable}
+                disabled={disableCode.length !== 6 || isDisabling}
+              >
+                {isDisabling ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Removing...
+                  </>
+                ) : (
+                  "Remove 2FA"
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Enrollment dialog */}
       <Dialog open={enrollOpen} onOpenChange={setEnrollOpen}>

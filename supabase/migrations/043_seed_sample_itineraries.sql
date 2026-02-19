@@ -253,21 +253,21 @@ VALUES
 -- ============================================================
 -- EXPENSES
 -- ============================================================
-INSERT INTO expenses (itinerary_id, user_id, category, amount, description)
+INSERT INTO expenses (itinerary_id, user_id, title, category, amount, description)
 VALUES
   -- Austin Thrifting
-  ('44444444-4444-4444-4444-444444444444', (SELECT id FROM profiles LIMIT 1), 'Shopping', 85.00, 'Vintage finds and thrift hauls'),
-  ('44444444-4444-4444-4444-444444444444', (SELECT id FROM profiles LIMIT 1), 'Food', 25.00, 'Lunch at Torchy''s Tacos'),
-  ('44444444-4444-4444-4444-444444444444', (SELECT id FROM profiles LIMIT 1), 'Transportation', 15.00, 'Gas and parking'),
+  ('44444444-4444-4444-4444-444444444444', (SELECT id FROM profiles LIMIT 1), 'Thrift Haul', 'Shopping', 85.00, 'Vintage finds and thrift hauls'),
+  ('44444444-4444-4444-4444-444444444444', (SELECT id FROM profiles LIMIT 1), 'Lunch', 'Food', 25.00, 'Lunch at Torchy''s Tacos'),
+  ('44444444-4444-4444-4444-444444444444', (SELECT id FROM profiles LIMIT 1), 'Gas & Parking', 'Transportation', 15.00, 'Gas and parking'),
 
   -- CA Burger Tour
-  ('55555555-5555-5555-5555-555555555555', (SELECT id FROM profiles LIMIT 1), 'Food', 120.00, 'Burgers across California'),
-  ('55555555-5555-5555-5555-555555555555', (SELECT id FROM profiles LIMIT 1), 'Transportation', 200.00, 'Gas for the road trip'),
-  ('55555555-5555-5555-5555-555555555555', (SELECT id FROM profiles LIMIT 1), 'Accommodation', 350.00, 'Hotels along the route'),
+  ('55555555-5555-5555-5555-555555555555', (SELECT id FROM profiles LIMIT 1), 'Burgers', 'Food', 120.00, 'Burgers across California'),
+  ('55555555-5555-5555-5555-555555555555', (SELECT id FROM profiles LIMIT 1), 'Road Trip Gas', 'Transportation', 200.00, 'Gas for the road trip'),
+  ('55555555-5555-5555-5555-555555555555', (SELECT id FROM profiles LIMIT 1), 'Hotels', 'Accommodation', 350.00, 'Hotels along the route'),
 
   -- Long Island
-  ('66666666-6666-6666-6666-666666666666', (SELECT id FROM profiles LIMIT 1), 'Food', 30.00, 'Diner lunch'),
-  ('66666666-6666-6666-6666-666666666666', (SELECT id FROM profiles LIMIT 1), 'Transportation', 40.00, 'Train to Long Island');
+  ('66666666-6666-6666-6666-666666666666', (SELECT id FROM profiles LIMIT 1), 'Diner Lunch', 'Food', 30.00, 'Diner lunch'),
+  ('66666666-6666-6666-6666-666666666666', (SELECT id FROM profiles LIMIT 1), 'Train Tickets', 'Transportation', 40.00, 'Train to Long Island');
 
 -- Success message
 DO $$

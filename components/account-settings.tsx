@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useAuth } from "@/providers/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,6 +16,7 @@ import { MfaSettings } from "@/components/mfa-settings"
 import { createClient } from "@/lib/supabase/client"
 
 export function AccountSettings() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
@@ -71,8 +73,8 @@ export function AccountSettings() {
       }
 
       toast({
-        title: "Password updated",
-        description: "Your password has been updated successfully.",
+        title: t("settings.account.passwordUpdated"),
+        description: t("settings.account.passwordUpdatedDesc"),
       })
 
       setCurrentPassword("")
@@ -80,7 +82,7 @@ export function AccountSettings() {
       setConfirmPassword("")
     } catch (error: any) {
       toast({
-        title: "Error",
+        title: t("common.error"),
         description: error.message || "There was a problem updating your password.",
         variant: "destructive",
       })
@@ -93,22 +95,22 @@ export function AccountSettings() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Account Settings</CardTitle>
-          <CardDescription>Manage your account credentials and security</CardDescription>
+          <CardTitle>{t("settings.account.title")}</CardTitle>
+          <CardDescription>{t("settings.account.description")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
-            <Label>Email Address</Label>
+            <Label>{t("settings.account.emailLabel")}</Label>
             <div className="flex gap-2">
               <Input value={user?.email || ""} disabled className="flex-1" />
             </div>
-            <p className="text-xs text-muted-foreground">Your login email for important notifications.</p>
+            <p className="text-xs text-muted-foreground">{t("settings.account.emailHint")}</p>
           </div>
 
           <form onSubmit={handlePasswordChange} className="space-y-4 pt-4 border-t">
-            <h3 className="font-medium">Change Password</h3>
+            <h3 className="font-medium">{t("settings.account.changePassword")}</h3>
             <div className="space-y-2">
-              <Label htmlFor="currentPassword">Current Password</Label>
+              <Label htmlFor="currentPassword">{t("settings.account.currentPassword")}</Label>
               <Input
                 id="currentPassword"
                 type="password"
@@ -120,7 +122,7 @@ export function AccountSettings() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="newPassword">New Password</Label>
+                <Label htmlFor="newPassword">{t("settings.account.newPassword")}</Label>
                 <Input
                   id="newPassword"
                   type="password"
@@ -131,7 +133,7 @@ export function AccountSettings() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Label htmlFor="confirmPassword">{t("settings.account.confirmPassword")}</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
@@ -144,8 +146,7 @@ export function AccountSettings() {
 
             <div className="bg-amber-50 p-3 rounded-md text-amber-800 text-sm">
               <p>
-                Password requirements: At least 8 characters, including a number, uppercase letter, and special
-                character.
+                {t("settings.account.passwordRequirements")}
               </p>
             </div>
 
@@ -154,10 +155,10 @@ export function AccountSettings() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Updating...
+                    {t("common.updating")}
                   </>
                 ) : (
-                  "Update Password"
+                  t("settings.account.updatePassword")
                 )}
               </Button>
             </div>
@@ -169,15 +170,15 @@ export function AccountSettings() {
 
       <Card className="border-destructive">
         <CardHeader>
-          <CardTitle className="text-destructive">Danger Zone</CardTitle>
-          <CardDescription>Irreversible actions that affect your account</CardDescription>
+          <CardTitle className="text-destructive">{t("settings.account.dangerZone")}</CardTitle>
+          <CardDescription>{t("settings.account.dangerZoneDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div>
-              <h3 className="font-medium mb-1">Delete Account</h3>
+              <h3 className="font-medium mb-1">{t("settings.account.deleteAccount")}</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Permanently delete your account and all associated data. This action cannot be undone.
+                {t("settings.account.deleteAccountDesc")}
               </p>
               <DeleteAccountDialog userId={user?.id || ""} userEmail={user?.email} />
             </div>

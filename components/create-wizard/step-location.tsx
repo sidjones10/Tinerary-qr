@@ -76,7 +76,7 @@ export function StepLocation({ formData, onChange, errors }: StepLocationProps) 
 
       {/* Popular Locations */}
       <div className="space-y-3">
-        <Label className="text-sm font-medium text-gray-600">Quick Select:</Label>
+        <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Quick Select:</Label>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
           {[
             "New York, NY",
@@ -93,7 +93,7 @@ export function StepLocation({ formData, onChange, errors }: StepLocationProps) 
               className={`px-3 py-2 text-sm rounded-lg border-2 transition-all hover:border-orange-300 ${
                 formData.location === loc
                   ? "border-orange-500 bg-orange-50 text-orange-700 font-medium"
-                  : "border-gray-200 hover:bg-gray-50"
+                  : "border-gray-200 dark:border-border hover:bg-gray-50 dark:hover:bg-white/5"
               }`}
             >
               {loc}
@@ -103,7 +103,7 @@ export function StepLocation({ formData, onChange, errors }: StepLocationProps) 
       </div>
 
       {/* Helper text */}
-      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+      <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 rounded-lg p-4">
         <p className="text-sm text-purple-800">
           <strong>Tip:</strong> Be as specific as possible! Include city and state, or even a full address for precise
           location.

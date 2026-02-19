@@ -49,15 +49,15 @@ export function StepBasics({ formData, onChange, errors }: StepBasicsProps) {
             className={`relative flex flex-col items-center justify-center p-6 border-2 rounded-xl cursor-pointer transition-all hover:border-orange-300 ${
               formData.type === "event"
                 ? "border-orange-500 bg-orange-50 ring-2 ring-orange-200"
-                : "border-gray-200 hover:bg-gray-50"
+                : "border-gray-200 dark:border-border hover:bg-gray-50 dark:hover:bg-white/5"
             }`}
           >
             <RadioGroupItem value="event" id="type-event" className="sr-only" />
             <Calendar className={`h-8 w-8 mb-2 ${formData.type === "event" ? "text-orange-500" : "text-gray-400"}`} />
-            <span className={`font-semibold ${formData.type === "event" ? "text-orange-700" : "text-gray-700"}`}>
+            <span className={`font-semibold ${formData.type === "event" ? "text-orange-700" : "text-gray-700 dark:text-gray-200"}`}>
               Event
             </span>
-            <span className="text-xs text-gray-500 mt-1 text-center">Single day activity</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">Single day activity</span>
           </label>
 
           <label
@@ -65,15 +65,15 @@ export function StepBasics({ formData, onChange, errors }: StepBasicsProps) {
             className={`relative flex flex-col items-center justify-center p-6 border-2 rounded-xl cursor-pointer transition-all hover:border-pink-300 ${
               formData.type === "trip"
                 ? "border-pink-500 bg-pink-50 ring-2 ring-pink-200"
-                : "border-gray-200 hover:bg-gray-50"
+                : "border-gray-200 dark:border-border hover:bg-gray-50 dark:hover:bg-white/5"
             }`}
           >
             <RadioGroupItem value="trip" id="type-trip" className="sr-only" />
             <MapPin className={`h-8 w-8 mb-2 ${formData.type === "trip" ? "text-pink-500" : "text-gray-400"}`} />
-            <span className={`font-semibold ${formData.type === "trip" ? "text-pink-700" : "text-gray-700"}`}>
+            <span className={`font-semibold ${formData.type === "trip" ? "text-pink-700" : "text-gray-700 dark:text-gray-200"}`}>
               Trip
             </span>
-            <span className="text-xs text-gray-500 mt-1 text-center">Multi-day journey</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">Multi-day journey</span>
           </label>
         </RadioGroup>
       </div>
@@ -111,7 +111,7 @@ export function StepBasics({ formData, onChange, errors }: StepBasicsProps) {
       </div>
 
       {/* Helper text */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 rounded-lg p-4">
         <p className="text-sm text-blue-800">
           <strong>Tip:</strong> For events, set the same start and end date. For trips, choose a date range.
         </p>

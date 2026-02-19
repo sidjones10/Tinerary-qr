@@ -52,7 +52,7 @@ export default function DashboardPage() {
   // Show loading while checking auth
   if (!mounted || isLoading || (!user && !authChecked)) {
     return (
-      <div className="flex h-screen w-full items-center justify-center" style={{ background: "linear-gradient(to bottom, #ffecd2, #fcb69f 40%, #ffffff 80%)" }}>
+      <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-[#FF6B6B]" />
       </div>
     )
@@ -60,7 +60,7 @@ export default function DashboardPage() {
 
   if (!user) {
     return (
-      <div className="flex h-screen w-full items-center justify-center" style={{ background: "linear-gradient(to bottom, #ffecd2, #fcb69f 40%, #ffffff 80%)" }}>
+      <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-[#FF6B6B]" />
       </div>
     )

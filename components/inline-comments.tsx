@@ -147,7 +147,7 @@ export function InlineComments({ itineraryId, open, onOpenChange, initialComment
               </div>
             ) : comments.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="text-gray-400 mb-2">
+                <div className="text-gray-400 dark:text-gray-600 mb-2">
                   <svg
                     className="w-16 h-16 mx-auto mb-4"
                     fill="none"
@@ -162,8 +162,8 @@ export function InlineComments({ itineraryId, open, onOpenChange, initialComment
                     />
                   </svg>
                 </div>
-                <p className="text-gray-500 font-medium">No comments yet</p>
-                <p className="text-sm text-gray-400 mt-1">Be the first to share your thoughts!</p>
+                <p className="text-gray-500 dark:text-gray-400 font-medium">No comments yet</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Be the first to share your thoughts!</p>
               </div>
             ) : (
               <div className="space-y-4 py-4">
@@ -178,14 +178,14 @@ export function InlineComments({ itineraryId, open, onOpenChange, initialComment
                         <div className="flex-1">
                           <p className="text-sm font-semibold">
                             {comment.user?.name || comment.user?.username || "Anonymous"}
-                            <span className="text-xs text-gray-500 font-normal ml-2">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 font-normal ml-2">
                               {formatTimeAgo(comment.created_at)}
                             </span>
                             {comment.is_edited && (
                               <span className="text-xs text-gray-400 font-normal ml-1">(edited)</span>
                             )}
                           </p>
-                          <p className="text-sm text-gray-700 mt-1 break-words">{comment.content}</p>
+                          <p className="text-sm text-gray-700 dark:text-gray-300 mt-1 break-words">{comment.content}</p>
                         </div>
                         {user?.id === comment.user_id && (
                           <Button
@@ -207,15 +207,17 @@ export function InlineComments({ itineraryId, open, onOpenChange, initialComment
           </ScrollArea>
 
           {/* Comment input */}
-          <div className="border-t px-6 py-4 bg-white">
+          <div className="border-t px-6 py-4 bg-white dark:bg-card">
             <div className="flex gap-3 items-end">
               <Avatar className="h-8 w-8 flex-shrink-0">
                 <AvatarImage src={user?.user_metadata?.avatar_url} alt="You" />
-                <AvatarFallback>{user?.user_metadata?.name?.[0] || user?.email?.[0] || "Y"}</AvatarFallback>
+                <AvatarFallback>
+                  {(user?.user_metadata?.name as string)?.[0] || user?.email?.[0] || "?"}
+                </AvatarFallback>
               </Avatar>
               <div className="flex-1 flex gap-2">
                 <Input
-                  placeholder="Add a comment..."
+                  placeholder={user ? "Add a comment..." : "Sign in to comment..."}
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   onKeyDown={(e) => {
@@ -239,7 +241,7 @@ export function InlineComments({ itineraryId, open, onOpenChange, initialComment
               </div>
             </div>
             {!user && (
-              <p className="text-xs text-gray-500 mt-2 text-center">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
                 Sign in to post comments
               </p>
             )}

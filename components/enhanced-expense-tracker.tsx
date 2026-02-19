@@ -69,7 +69,7 @@ interface Settlement {
 interface EnhancedExpenseTrackerProps {
   itineraryId: string
   participants: Participant[]
-  currentUserId: string
+  currentUserId?: string
 }
 
 export function EnhancedExpenseTracker({
@@ -91,7 +91,7 @@ export function EnhancedExpenseTracker({
     description: "",
     amount: "",
     category: "food",
-    paid_by_user_id: currentUserId,
+    paid_by_user_id: currentUserId || "",
     split_type: "equal" as const,
     date: new Date().toISOString().split("T")[0],
     currency: "USD",

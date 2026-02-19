@@ -1,8 +1,9 @@
 import { createClient } from "@/utils/supabase/server"
-import { redirect, notFound } from "next/navigation"
+import { notFound } from "next/navigation"
 import { FollowingListClient } from "@/components/following-list-client"
 
-export default async function FollowingPage({ params }: { params: { userId: string } }) {
+export default async function FollowingPage({ params }: { params: Promise<{ userId: string }> }) {
+  const { userId } = await params
   const supabase = await createClient()
 
   // Get current user
@@ -14,7 +15,7 @@ export default async function FollowingPage({ params }: { params: { userId: stri
   const { data: profile, error } = await supabase
     .from("profiles")
     .select("id, name, username, avatar_url, following_count")
-    .eq("id", params.userId)
+    .eq("id", userId)
     .single()
 
   if (error || !profile) {
@@ -26,7 +27,7 @@ export default async function FollowingPage({ params }: { params: { userId: stri
 
   // Get following using the RPC function
   const { data: following, error: followingError } = await supabase.rpc("get_following", {
-    p_user_id: params.userId,
+    p_user_id: userId,
     p_limit: 50,
     p_offset: 0,
   })

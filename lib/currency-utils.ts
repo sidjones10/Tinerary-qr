@@ -53,7 +53,7 @@ export function convertCurrency(
 }
 
 /**
- * Format currency amount with symbol
+ * Format currency amount with symbol, with optional locale support
  */
 export function formatCurrency(
   amount: number,
@@ -62,15 +62,17 @@ export function formatCurrency(
     showSymbol?: boolean;
     showCode?: boolean;
     decimals?: number;
+    locale?: string;
   } = {}
 ): string {
   const {
     showSymbol = true,
     showCode = false,
     decimals = currency === 'JPY' ? 0 : 2,
+    locale = 'en-US',
   } = options;
 
-  const formattedAmount = amount.toLocaleString('en-US', {
+  const formattedAmount = amount.toLocaleString(locale, {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
@@ -91,18 +93,19 @@ export function formatDualCurrency(
   toCurrency: Currency,
   options: {
     showBothCodes?: boolean;
+    locale?: string;
   } = {}
 ): string {
-  const { showBothCodes = true } = options;
+  const { showBothCodes = true, locale } = options;
 
   if (fromCurrency === toCurrency) {
-    return formatCurrency(amount, fromCurrency, { showCode: showBothCodes });
+    return formatCurrency(amount, fromCurrency, { showCode: showBothCodes, locale });
   }
 
   const convertedAmount = convertCurrency(amount, fromCurrency, toCurrency);
 
-  const original = formatCurrency(amount, fromCurrency, { showCode: showBothCodes });
-  const converted = formatCurrency(convertedAmount, toCurrency, { showCode: showBothCodes });
+  const original = formatCurrency(amount, fromCurrency, { showCode: showBothCodes, locale });
+  const converted = formatCurrency(convertedAmount, toCurrency, { showCode: showBothCodes, locale });
 
   return `${original} (${converted})`;
 }

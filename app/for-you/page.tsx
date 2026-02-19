@@ -242,7 +242,7 @@ export default function ForYouPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-orange-50 to-pink-50">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white border-b">
+      <div className="sticky top-0 z-10 bg-white dark:bg-card border-b">
         <div className="container px-4 py-3 max-w-full sm:max-w-2xl md:max-w-4xl lg:max-w-6xl mx-auto">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 text-transparent bg-clip-text">

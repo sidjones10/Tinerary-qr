@@ -37,8 +37,8 @@ export function StepPreview({ formData }: StepPreviewProps) {
   return (
     <div className="space-y-6">
       <div className="text-center space-y-2">
-        <h3 className="text-xl font-semibold text-gray-900">Review Your {formData.type === "event" ? "Event" : "Trip"}</h3>
-        <p className="text-gray-600">Make sure everything looks good before publishing!</p>
+        <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Review Your {formData.type === "event" ? "Event" : "Trip"}</h3>
+        <p className="text-gray-600 dark:text-gray-400">Make sure everything looks good before publishing!</p>
       </div>
 
       {/* Preview Card */}
@@ -67,8 +67,8 @@ export function StepPreview({ formData }: StepPreviewProps) {
               <Badge
                 className={
                   formData.type === "trip"
-                    ? "bg-white/90 text-blue-600 mb-4"
-                    : "bg-white/90 text-purple-600 mb-4"
+                    ? "bg-white/90 dark:bg-card/90 text-blue-600 mb-4"
+                    : "bg-white/90 dark:bg-card/90 text-purple-600 mb-4"
                 }
               >
                 {formData.type === "trip" ? "Trip" : "Event"}
@@ -84,8 +84,8 @@ export function StepPreview({ formData }: StepPreviewProps) {
             <div className="flex items-start gap-3">
               <MapPin className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium text-gray-900">Location</p>
-                <p className="text-gray-600">{formData.location}</p>
+                <p className="font-medium text-gray-900 dark:text-gray-100">Location</p>
+                <p className="text-gray-600 dark:text-gray-400">{formData.location}</p>
               </div>
             </div>
           )}
@@ -95,8 +95,8 @@ export function StepPreview({ formData }: StepPreviewProps) {
             <div className="flex items-start gap-3">
               <Calendar className="h-5 w-5 text-purple-500 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium text-gray-900">Date</p>
-                <p className="text-gray-600">{formatDateRange()}</p>
+                <p className="font-medium text-gray-900 dark:text-gray-100">Date</p>
+                <p className="text-gray-600 dark:text-gray-400">{formatDateRange()}</p>
               </div>
             </div>
           )}
@@ -106,11 +106,11 @@ export function StepPreview({ formData }: StepPreviewProps) {
             {formData.isPublic ? (
               <Globe className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
             ) : (
-              <Lock className="h-5 w-5 text-gray-500 flex-shrink-0 mt-0.5" />
+              <Lock className="h-5 w-5 text-gray-500 dark:text-gray-400 flex-shrink-0 mt-0.5" />
             )}
             <div>
-              <p className="font-medium text-gray-900">Privacy</p>
-              <p className="text-gray-600">{formData.isPublic ? "Public - Anyone can see this" : "Private - Only invited people"}</p>
+              <p className="font-medium text-gray-900 dark:text-gray-100">Privacy</p>
+              <p className="text-gray-600 dark:text-gray-400">{formData.isPublic ? "Public - Anyone can see this" : "Private - Only invited people"}</p>
             </div>
           </div>
 
@@ -119,8 +119,8 @@ export function StepPreview({ formData }: StepPreviewProps) {
             <div className="flex items-start gap-3">
               <Users className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium text-gray-900">Invitations</p>
-                <p className="text-gray-600">{formData.inviteEmails.length} people invited</p>
+                <p className="font-medium text-gray-900 dark:text-gray-100">Invitations</p>
+                <p className="text-gray-600 dark:text-gray-400">{formData.inviteEmails.length} people invited</p>
               </div>
             </div>
           )}
@@ -128,24 +128,24 @@ export function StepPreview({ formData }: StepPreviewProps) {
           {/* Description */}
           {formData.description && (
             <div className="pt-4 border-t">
-              <p className="font-medium text-gray-900 mb-2">Description</p>
-              <p className="text-gray-600 leading-relaxed">{formData.description}</p>
+              <p className="font-medium text-gray-900 dark:text-gray-100 mb-2">Description</p>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">{formData.description}</p>
             </div>
           )}
 
           {/* Activities */}
           {formData.activities && formData.activities.length > 0 && (
             <div className="pt-4 border-t">
-              <p className="font-medium text-gray-900 mb-3">Activities ({formData.activities.length})</p>
+              <p className="font-medium text-gray-900 dark:text-gray-100 mb-3">Activities ({formData.activities.length})</p>
               <div className="space-y-2">
                 {formData.activities.slice(0, 3).map((activity, index) => (
-                  <div key={index} className="flex items-center gap-2 text-sm text-gray-600">
+                  <div key={index} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                     <div className="w-2 h-2 rounded-full bg-orange-400" />
                     {activity.title}
                   </div>
                 ))}
                 {formData.activities.length > 3 && (
-                  <p className="text-sm text-gray-500 ml-4">+{formData.activities.length - 3} more</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 ml-4">+{formData.activities.length - 3} more</p>
                 )}
               </div>
             </div>
@@ -155,8 +155,8 @@ export function StepPreview({ formData }: StepPreviewProps) {
 
       {/* Confirmation Message */}
       <div className="bg-gradient-to-r from-orange-50 to-pink-50 border-2 border-orange-200 rounded-lg p-6 text-center">
-        <h4 className="font-semibold text-gray-900 mb-2">Ready to publish?</h4>
-        <p className="text-gray-600 text-sm">
+        <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Ready to publish?</h4>
+        <p className="text-gray-600 dark:text-gray-400 text-sm">
           Once published, your {formData.type} will be {formData.isPublic ? "visible to everyone" : "visible to invited people only"}.
           You can always edit it later.
         </p>

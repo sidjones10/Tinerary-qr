@@ -76,9 +76,9 @@ export function SignupPromptDialog({ isOpen, onClose, reason = "general" }: Sign
 
         <div className="space-y-4 pt-4">
           {/* Benefits list */}
-          <div className="bg-gray-50 rounded-lg p-4">
+          <div className="bg-gray-50 dark:bg-background rounded-lg p-4">
             <h4 className="font-medium text-sm mb-3">What you get with an account:</h4>
-            <ul className="space-y-2 text-sm text-gray-600">
+            <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
               <li className="flex items-center gap-2">
                 <span className="text-green-500">✓</span>
                 Create and share your own itineraries

@@ -243,9 +243,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
     const { data: resendData } = await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
-      subject: "Welcome to Tinerary — the world is waiting for you",
       subject,
-      subject: "You're in! Let the adventures begin",
       html: postcardEmail(`
         <!-- Logo header -->
         <div style="background:#F8F3EF;padding:36px 36px 20px;text-align:center;">
@@ -327,7 +325,6 @@ export async function sendEventInviteEmail(
       from: FROM_EMAIL,
       to: recipientEmail,
       subject,
-      subject: `You're invited: ${eventTitle}`,
       html: postcardEmail(`
         <!-- Logo banner -->
         <div style="background:#F8F3EF;padding:28px 36px;text-align:center;">
@@ -414,7 +411,6 @@ export async function sendEventReminderEmail(
       from: FROM_EMAIL,
       to: recipientEmail,
       subject,
-      subject: `Heads up! ${eventTitle} is ${timeText}`,
       html: postcardEmail(`
         <div class="masthead">
           <div class="stamp">Heads Up</div>
@@ -482,7 +478,6 @@ export async function sendNewFollowerEmail(
       from: FROM_EMAIL,
       to: recipientEmail,
       subject,
-      subject: `${followerName} just joined your travel crew!`,
       html: postcardEmail(`
         <!-- Logo banner -->
         <div style="background:#F8F3EF;padding:28px 36px;text-align:center;">
@@ -557,7 +552,6 @@ export async function sendNewCommentEmail(
       from: FROM_EMAIL,
       to: recipientEmail,
       subject,
-      subject: `${commenterName} commented on ${eventTitle}`,
       html: postcardEmail(`
         <!-- Logo banner -->
         <div style="background:#F8F3EF;padding:28px 36px;text-align:center;">
@@ -741,7 +735,6 @@ export async function sendEventStartedEmail(params: {
       from: FROM_EMAIL,
       to: email,
       subject,
-      subject: `It's go time! ${itineraryTitle} is live`,
       html: postcardEmail(`
         <div class="masthead" style="background: linear-gradient(135deg, #D4792C 0%, #E09A5C 100%);">
           <div class="stamp">It's Go Time</div>
@@ -792,7 +785,6 @@ export async function sendWhatsNewEmail(params: {
       from: FROM_EMAIL,
       to: email,
       subject,
-      subject: "Fresh off the press: what's new on Tinerary",
       html: postcardEmail(`
         <div class="masthead" style="background:#1A1A1A;">
           <h1 style="font-size:36px;line-height:1.1;">Your Tinerary<br><span style="font-style:italic;font-weight:400;">in Motion</span></h1>
@@ -891,6 +883,88 @@ export async function sendWhatsNewEmail(params: {
   } catch (error: any) {
     console.error("Error sending what's new email:", error)
     await logEmail({ recipientEmail: email, emailType: "whats_new", subject: "Postcards from the team: what's new on Tinerary", status: "failed", errorMessage: error.message })
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Send invitation email to a non-user (someone not yet on Tinerary)
+ */
+export async function sendInvitationEmail(params: {
+  recipientEmail: string
+  inviterName: string
+  itineraryTitle: string
+  itineraryId: string
+  eventDate?: string
+  eventLocation?: string
+}) {
+  try {
+    const { recipientEmail, inviterName, itineraryTitle, itineraryId, eventDate, eventLocation } = params
+    const inviteUrl = `${APP_URL}/auth?invite=${itineraryId}&email=${encodeURIComponent(recipientEmail)}`
+
+    const subject = `${inviterName} invited you to join "${itineraryTitle}" on Tinerary`
+    const resend = getResendClient()
+    const { data: resendData } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: recipientEmail,
+      subject,
+      html: postcardEmail(`
+        <!-- Logo banner -->
+        <div style="background:#F8F3EF;padding:28px 36px;text-align:center;">
+          <img src="${APP_URL}/email/tinerary-logo.png" alt="Tinerary" style="width:180px;height:auto;" width="180">
+        </div>
+
+        <!-- Divider -->
+        <div style="border-top:3px solid #2c2420;margin:0;"></div>
+
+        <!-- Hero block -->
+        <div style="background:#D4792C;padding:48px 36px;text-align:center;">
+          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:rgba(252,250,248,0.7);margin-bottom:16px;">You're Invited</div>
+          <h1 style="margin:0;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:36px;color:#FCFAF8;line-height:1.1;">${itineraryTitle}</h1>
+        </div>
+
+        <!-- Event details block -->
+        <div style="background:#2c2420;padding:36px;text-align:center;">
+          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:3px;color:#D4792C;margin-bottom:16px;">Invited By</div>
+          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:24px;color:#FCFAF8;margin-bottom:20px;">${inviterName}</div>
+          ${eventDate || eventLocation ? `
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              ${eventDate ? `
+              <td style="${eventLocation ? 'width:50%;' : 'width:100%;'}padding:12px 8px;text-align:center;border:2px solid rgba(252,250,248,0.15);border-radius:${eventLocation ? '12px 0 0 12px' : '12px'};">
+                <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#D4792C;margin-bottom:6px;">When</div>
+                <div style="font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;color:#FCFAF8;">${eventDate}</div>
+              </td>
+              ` : ''}
+              ${eventLocation ? `
+              <td style="${eventDate ? 'width:50%;' : 'width:100%;'}padding:12px 8px;text-align:center;border:2px solid rgba(252,250,248,0.15);${eventDate ? 'border-left:none;' : ''}border-radius:${eventDate ? '0 12px 12px 0' : '12px'};">
+                <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#D4792C;margin-bottom:6px;">Where</div>
+                <div style="font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;color:#FCFAF8;">${eventLocation}</div>
+              </td>
+              ` : ''}
+            </tr>
+          </table>
+          ` : ''}
+        </div>
+
+        <!-- Divider -->
+        <div style="border-top:3px solid #2c2420;margin:0;"></div>
+
+        <!-- CTA block -->
+        <div style="background:#D4792C;padding:40px 36px;text-align:center;">
+          <p style="margin:0 0 24px;font-family:'Nunito Sans',sans-serif;font-size:17px;font-weight:600;color:#FCFAF8;line-height:1.5;">Sign up for Tinerary to view the full itinerary and RSVP</p>
+          <a href="${inviteUrl}" style="display:inline-block;background:#FCFAF8;color:#D4792C;padding:16px 48px;text-decoration:none;border-radius:28px;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.5px;">Join &amp; RSVP</a>
+        </div>
+
+        <!-- Divider -->
+        <div style="border-top:3px solid #2c2420;margin:0;"></div>
+      `, 'See you there!'),
+    })
+    await logEmail({ recipientEmail, emailType: "invitation", subject, status: "sent", resendId: resendData?.id, metadata: { itineraryId } })
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error sending invitation email:", error)
+    await logEmail({ recipientEmail, emailType: "invitation", subject: `You're invited to ${itineraryTitle}`, status: "failed", errorMessage: error.message })
     return { success: false, error: error.message }
   }
 }

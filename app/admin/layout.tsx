@@ -12,7 +12,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <AdminAuthGuard>
       <div
-        className="flex min-h-screen"
+        className="flex min-h-screen dark:bg-background"
         style={{
           background: "linear-gradient(135deg, #fef9f3 0%, #fff5ee 50%, #fef9f3 100%)",
         }}

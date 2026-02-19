@@ -127,28 +127,29 @@ export default function EmailAuthForm() {
     setAuthResult(null)
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
+      const res = await fetch("/api/auth/signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email, password: formData.password }),
       })
 
-      if (error) {
-        throw error
+      const result = await res.json()
+
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || "Sign in failed")
       }
 
-      if (data.user) {
-        setAuthResult({
-          success: true,
-          message: "Successfully signed in! Redirecting...",
-        })
+      setAuthResult({
+        success: true,
+        message: "Successfully signed in! Redirecting...",
+      })
 
-        setTimeout(() => {
-          if (typeof window !== "undefined") {
-            const redirectTo = new URLSearchParams(window.location.search).get("redirectTo") || "/dashboard"
-            window.location.href = redirectTo
-          }
-        }, 1500)
-      }
+      setTimeout(() => {
+        if (typeof window !== "undefined") {
+          const redirectTo = new URLSearchParams(window.location.search).get("redirectTo") || "/dashboard"
+          window.location.href = redirectTo
+        }
+      }, 1500)
     } catch (error: any) {
       console.error("Sign in error:", error)
       toast({
@@ -275,41 +276,32 @@ export default function EmailAuthForm() {
           console.error("Welcome email error:", err),
         )
 
-        // Update profile with consent data (the trigger creates the profile)
-        // We'll update it after creation
-        setTimeout(async () => {
-          try {
-            const now = new Date().toISOString()
+        const now = new Date().toISOString()
+        const userId = data.user.id
 
-            // Update profile with consent data
-            await supabase
-              .from("profiles")
-              .update({
-                date_of_birth: dateOfBirth,
-                account_type: accountType,
-                tos_accepted_at: now,
-                tos_version: "1.0.0",
-                privacy_policy_accepted_at: now,
-                privacy_policy_version: "1.0.0",
-                data_processing_consent: true,
-                marketing_consent: marketingAccepted,
-              })
-              .eq("id", data.user.id)
+        // Update profile with consent data
+        // The profile is created by a database trigger on auth.users insert
+        await supabase
+          .from("profiles")
+          .update({
+            date_of_birth: dateOfBirth,
+            account_type: accountType,
+            tos_accepted_at: now,
+            tos_version: "1.0.0",
+            privacy_policy_accepted_at: now,
+            privacy_policy_version: "1.0.0",
+            data_processing_consent: true,
+            marketing_consent: marketingAccepted,
+          })
+          .eq("id", userId)
 
-            // Record consent in audit log (consent_records table)
-            const consentRecords = [
-              { user_id: data.user.id, consent_type: "tos", consent_version: "1.0.0", consent_given: true },
-              { user_id: data.user.id, consent_type: "privacy_policy", consent_version: "1.0.0", consent_given: true },
-              { user_id: data.user.id, consent_type: "data_processing", consent_version: "1.0.0", consent_given: true },
-              { user_id: data.user.id, consent_type: "marketing", consent_version: "1.0.0", consent_given: marketingAccepted },
-            ]
-
-            await supabase.from("consent_records").insert(consentRecords)
-          } catch (updateErr) {
-            // Columns might not exist yet - that's ok, we'll handle gracefully
-            console.log("Profile update note:", updateErr)
-          }
-        }, 500)
+        // Record consent in audit log (consent_records table)
+        await supabase.from("consent_records").insert([
+          { user_id: userId, consent_type: "tos", consent_version: "1.0.0", consent_given: true },
+          { user_id: userId, consent_type: "privacy_policy", consent_version: "1.0.0", consent_given: true },
+          { user_id: userId, consent_type: "data_processing", consent_version: "1.0.0", consent_given: true },
+          { user_id: userId, consent_type: "marketing", consent_version: "1.0.0", consent_given: marketingAccepted },
+        ])
 
         setAuthResult({
           success: true,

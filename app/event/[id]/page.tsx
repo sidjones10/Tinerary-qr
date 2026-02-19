@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
+import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/providers/auth-provider"
-import { Loader2 } from "lucide-react"
+import { Loader2, ArrowLeft } from "lucide-react"
 import { EventDetail } from "@/components/event-detail"
 import { EventNotFound } from "@/components/event-not-found"
 import { EventPrivate } from "@/components/event-private"
+import { Button } from "@/components/ui/button"
+import { DiscoveryFeed } from "@/components/discovery-feed"
 
 // Add these helper functions at the top of the file, after the imports:
 const formatDate = (dateString: string) => {
@@ -519,13 +522,46 @@ export default function EventPage() {
     return <EventPrivate />
   }
 
-  if (error) {
+  if (error || !event) {
     return (
       <div className="container px-4 py-8">
         <div className="max-w-3xl mx-auto text-center">
           <h1 className="text-2xl font-bold mb-4">Error</h1>
-          <p className="text-muted-foreground mb-6">{error}</p>
+          <p className="text-muted-foreground mb-6">{error || "Failed to load this itinerary"}</p>
         </div>
+      </div>
+    )
+  }
+
+  // Guest view: show the TikTok-style discovery feed
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-background">
+        {/* Header -- same as discover page */}
+        <header className="bg-white dark:bg-card shadow-sm py-4 sticky top-0 z-40">
+          <div className="container mx-auto px-4 flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="icon" asChild aria-label="Go back">
+                <Link href="/discover?guest=true">
+                  <ArrowLeft className="h-5 w-5" />
+                </Link>
+              </Button>
+              <h1 className="text-xl font-bold">Discover Itineraries</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" asChild>
+                <Link href="/auth">Sign In</Link>
+              </Button>
+              <Button asChild>
+                <Link href="/auth?tab=signup">Sign Up</Link>
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <main className="container mx-auto px-4 py-4">
+          <DiscoveryFeed />
+        </main>
       </div>
     )
   }

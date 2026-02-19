@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
+import crypto from "crypto"
 
 export async function GET(request: Request) {
   try {
@@ -15,6 +16,7 @@ export async function GET(request: Request) {
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary-app.com"
 
     if (!serviceRoleKey) {
       console.error("SUPABASE_SERVICE_ROLE_KEY is not configured")
@@ -36,16 +38,15 @@ export async function GET(request: Request) {
       .single()
 
     if (lookupError || !loginEvent) {
-      // Redirect to auth page with an error message
-      const redirectUrl = new URL("/auth", process.env.NEXT_PUBLIC_APP_URL || "https://tinerary-app.com")
+      const redirectUrl = new URL("/auth", appUrl)
       redirectUrl.searchParams.set("error", "invalid_token")
       redirectUrl.searchParams.set("message", "This security link is invalid or has expired.")
       return NextResponse.redirect(redirectUrl)
     }
 
     if (loginEvent.revoked) {
-      const redirectUrl = new URL("/auth", process.env.NEXT_PUBLIC_APP_URL || "https://tinerary-app.com")
-      redirectUrl.searchParams.set("message", "This session has already been revoked. Please sign in and change your password.")
+      const redirectUrl = new URL("/auth/forgot-password", appUrl)
+      redirectUrl.searchParams.set("revoked", "already")
       return NextResponse.redirect(redirectUrl)
     }
 
@@ -55,26 +56,66 @@ export async function GET(request: Request) {
       .update({ revoked: true, revoked_at: new Date().toISOString() })
       .eq("id", loginEvent.id)
 
-    // Sign out the user from ALL sessions using the admin API
-    const { error: signOutError } = await supabaseAdmin.auth.admin.signOut(
+    // Get the user's email so we can send a password reset
+    const { data: userData } = await supabaseAdmin.auth.admin.getUserById(
       loginEvent.user_id,
-      "global",
     )
+    const userEmail = userData?.user?.email
 
-    if (signOutError) {
-      console.error("Error revoking sessions:", signOutError)
-      // Still redirect - the token is already marked revoked
+    // 1) Try to invalidate ALL sessions via the GoTrue admin endpoint
+    try {
+      const signOutRes = await fetch(
+        `${supabaseUrl}/auth/v1/admin/users/${loginEvent.user_id}/sessions`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${serviceRoleKey}`,
+            apikey: serviceRoleKey,
+          },
+        },
+      )
+      if (!signOutRes.ok) {
+        console.error(
+          "DELETE sessions returned:",
+          signOutRes.status,
+          await signOutRes.text(),
+        )
+      }
+    } catch (err) {
+      console.error("DELETE sessions error:", err)
     }
 
-    // Redirect to auth page with success message
-    const redirectUrl = new URL("/auth", process.env.NEXT_PUBLIC_APP_URL || "https://tinerary-app.com")
-    redirectUrl.searchParams.set("message", "All devices have been signed out. Please sign in with a new password to secure your account.")
+    // 2) Change the password to a random string so the attacker can't log in
+    //    again once their current JWT expires
+    const randomPassword = crypto.randomBytes(32).toString("base64url")
+    const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(
+      loginEvent.user_id,
+      { password: randomPassword },
+    )
+    if (updateErr) {
+      console.error("Failed to reset user password:", updateErr)
+    }
+
+    // 3) Send a password reset email so the real user can regain access
+    if (userEmail) {
+      const { error: resetErr } =
+        await supabaseAdmin.auth.resetPasswordForEmail(userEmail, {
+          redirectTo: `${appUrl}/auth/reset-password`,
+        })
+      if (resetErr) {
+        console.error("Failed to send password reset email:", resetErr)
+      }
+    }
+
+    // Redirect to forgot-password page with security context
+    const redirectUrl = new URL("/auth/forgot-password", appUrl)
+    redirectUrl.searchParams.set("revoked", "true")
     return NextResponse.redirect(redirectUrl)
   } catch (error) {
     console.error("Revoke sessions error:", error)
-    const redirectUrl = new URL("/auth", process.env.NEXT_PUBLIC_APP_URL || "https://tinerary-app.com")
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary-app.com"
+    const redirectUrl = new URL("/auth/forgot-password", appUrl)
     redirectUrl.searchParams.set("error", "server_error")
-    redirectUrl.searchParams.set("message", "Something went wrong. Please try again or contact support.")
     return NextResponse.redirect(redirectUrl)
   }
 }

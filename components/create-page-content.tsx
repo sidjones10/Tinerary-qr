@@ -803,7 +803,7 @@ export default function CreatePageContent() {
 
       <div className="max-w-3xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Create New</h1>
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200">Create New</h1>
           <div className="flex items-center mt-2 md:mt-0">
             {isSaving && <span className="text-sm text-muted-foreground mr-2">Saving...</span>}
             {lastSaved && !isSaving && (
@@ -870,7 +870,7 @@ export default function CreatePageContent() {
         </Card>
 
         <Tabs defaultValue="details" value={activeTab} onValueChange={setActiveTab} className="mb-8">
-          <TabsList className="grid w-full grid-cols-6 bg-white/70 backdrop-blur-sm">
+          <TabsList className="grid w-full grid-cols-6 bg-white/70 dark:bg-card/70 backdrop-blur-sm">
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="activities">{type === "trip" ? "Itinerary" : "Activities"}</TabsTrigger>
             <TabsTrigger value="people">People</TabsTrigger>
@@ -972,7 +972,7 @@ export default function CreatePageContent() {
                     {type === "event" ? "Add activities to your event schedule" : "Plan your trip day by day"}
                   </CardDescription>
                 </div>
-                <Button onClick={addActivity} variant="outline" size="sm" className="bg-white">
+                <Button onClick={addActivity} variant="outline" size="sm" className="bg-white dark:bg-card">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Activity
                 </Button>
@@ -995,7 +995,7 @@ export default function CreatePageContent() {
                     </div>
 
                     {dayActivities.map((activity) => (
-                      <div key={activity.id} className="space-y-4 p-4 border rounded-lg relative bg-white shadow-sm">
+                      <div key={activity.id} className="space-y-4 p-4 border rounded-lg relative bg-white dark:bg-card shadow-sm">
                         <Button
                           type="button"
                           variant="ghost"
@@ -1148,7 +1148,7 @@ export default function CreatePageContent() {
                   {collaborators.map((collaborator) => (
                     <div
                       key={collaborator.id}
-                      className="flex items-center justify-between p-3 border rounded-lg bg-white"
+                      className="flex items-center justify-between p-3 border rounded-lg bg-white dark:bg-card"
                     >
                       <div className="flex items-center">
                         <Avatar className="h-10 w-10 mr-3">
@@ -1226,7 +1226,7 @@ export default function CreatePageContent() {
                           .map((item) => (
                             <div
                               key={item.id}
-                              className="flex items-center justify-between p-2 border rounded-md bg-white"
+                              className="flex items-center justify-between p-2 border rounded-md bg-white dark:bg-card"
                             >
                               <div className="flex items-center">
                                 <input
@@ -1344,7 +1344,7 @@ export default function CreatePageContent() {
                           <div className="flex justify-between items-center">
                             <div className="flex-1">
                               <Label className="text-sm">{category}</Label>
-                              <div className="w-full bg-gray-200 h-2 rounded-full mt-1">
+                              <div className="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full mt-1">
                                 <div
                                   className="bg-gradient-to-r from-orange-500 to-pink-500 h-2 rounded-full"
                                   style={{ width: `${Math.min(100, (categoryTotal / totalExpenses) * 100)}%` }}
@@ -1374,7 +1374,7 @@ export default function CreatePageContent() {
                     {expenses.map((expense) => (
                       <div
                         key={expense.id}
-                        className="flex justify-between items-center p-3 border rounded-lg bg-white"
+                        className="flex justify-between items-center p-3 border rounded-lg bg-white dark:bg-card"
                       >
                         <div>
                           <p className="font-medium">{expense.name}</p>
@@ -1443,7 +1443,7 @@ export default function CreatePageContent() {
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              <div className="bg-white rounded-lg p-4 border">
+              <div className="bg-white dark:bg-card rounded-lg p-4 border">
                 <h3 className="text-lg font-bold text-center mb-2">Preview</h3>
                 <div
                   className={`rounded-lg overflow-hidden aspect-video flex items-center justify-center p-6 ${
@@ -1523,12 +1523,12 @@ export default function CreatePageContent() {
         </Card>
 
         <div className="flex justify-between gap-4 mb-8">
-          <Button variant="outline" className="bg-white" onClick={() => router.back()} disabled={isSubmitting || isSaving}>
+          <Button variant="outline" className="bg-white dark:bg-card" onClick={() => router.back()} disabled={isSubmitting || isSaving}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
           <div className="flex gap-4">
-            <Button variant="outline" className="bg-white" onClick={handleSaveDraft} disabled={isSubmitting || isSaving}>
+            <Button variant="outline" className="bg-white dark:bg-card" onClick={handleSaveDraft} disabled={isSubmitting || isSaving}>
               {isSaving ? "Saving..." : "Save as Draft"}
             </Button>
             <Button className="btn-sunset" onClick={handlePublish} disabled={isSubmitting || isSaving}>

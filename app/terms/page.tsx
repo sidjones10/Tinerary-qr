@@ -6,8 +6,8 @@ import { ArrowLeft } from "lucide-react"
 
 export default function TermsOfServicePage() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm py-4 sticky top-0 z-40">
+    <div className="min-h-screen bg-gray-50 dark:bg-background">
+      <header className="bg-white dark:bg-card shadow-sm py-4 sticky top-0 z-40">
         <div className="container mx-auto px-4 flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild aria-label="Go back">
             <Link href="/">
@@ -19,7 +19,7 @@ export default function TermsOfServicePage() {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="bg-white rounded-lg shadow-sm p-8 prose prose-gray max-w-none">
+        <div className="bg-white dark:bg-card rounded-lg shadow-sm p-8 prose prose-gray max-w-none">
           <h1 className="text-3xl font-bold mb-2">TINERARY</h1>
           <h2 className="text-2xl font-semibold mb-4">TERMS OF SERVICE</h2>
           <p className="text-muted-foreground mb-8">Effective Date: February 9, 2026</p>
@@ -38,40 +38,40 @@ export default function TermsOfServicePage() {
             <h3 className="text-xl font-semibold mb-4">2. Eligibility and Age Requirements</h3>
             <p className="mb-4">To create an account and use the Service, you must meet the minimum age requirement applicable to your jurisdiction:</p>
             <div className="overflow-x-auto mb-4">
-              <table className="min-w-full border-collapse border border-gray-200">
+              <table className="min-w-full border-collapse border border-gray-200 dark:border-border">
                 <thead>
-                  <tr className="bg-gray-50">
-                    <th className="border border-gray-200 px-4 py-2 text-left">Jurisdiction</th>
-                    <th className="border border-gray-200 px-4 py-2 text-left">Minimum Age</th>
+                  <tr className="bg-gray-50 dark:bg-background">
+                    <th className="border border-gray-200 dark:border-border px-4 py-2 text-left">Jurisdiction</th>
+                    <th className="border border-gray-200 dark:border-border px-4 py-2 text-left">Minimum Age</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td className="border border-gray-200 px-4 py-2">United States</td>
-                    <td className="border border-gray-200 px-4 py-2">13 years old</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">United States</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">13 years old</td>
                   </tr>
                   <tr>
-                    <td className="border border-gray-200 px-4 py-2">European Economic Area (EEA) / United Kingdom</td>
-                    <td className="border border-gray-200 px-4 py-2">16 years old (or lower if your country permits, but no less than 13)</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">European Economic Area (EEA) / United Kingdom</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">16 years old (or lower if your country permits, but no less than 13)</td>
                   </tr>
                   <tr>
-                    <td className="border border-gray-200 px-4 py-2">South Korea</td>
-                    <td className="border border-gray-200 px-4 py-2">14 years old</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">South Korea</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">14 years old</td>
                   </tr>
                   <tr>
-                    <td className="border border-gray-200 px-4 py-2">Brazil</td>
-                    <td className="border border-gray-200 px-4 py-2">18 years old (or with parental consent from age 13)</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">Brazil</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">18 years old (or with parental consent from age 13)</td>
                   </tr>
                   <tr>
-                    <td className="border border-gray-200 px-4 py-2">All other jurisdictions</td>
-                    <td className="border border-gray-200 px-4 py-2">13 years old, or the minimum age required by applicable local law, whichever is higher</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">All other jurisdictions</td>
+                    <td className="border border-gray-200 dark:border-border px-4 py-2">13 years old, or the minimum age required by applicable local law, whichever is higher</td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
-              <h4 className="font-semibold text-amber-800 mb-2">Age-Tiered Account System</h4>
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-border rounded-lg p-4 mb-4">
+              <h4 className="font-semibold text-amber-800 dark:text-amber-300 mb-2">Age-Tiered Account System</h4>
               <p className="text-amber-700 mb-2">Tinerary uses a tiered account system based on age:</p>
               <ul className="list-disc pl-6 space-y-1 text-amber-700">
                 <li><strong>Users aged 13-17 (Minor Accounts):</strong> Can join shared itineraries and use planning features. Cannot make purchases, process payments, or enable location tracking without parental consent.</li>

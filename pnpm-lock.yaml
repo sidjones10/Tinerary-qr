@@ -211,7 +211,7 @@ importers:
         version: 2.1.1
       i18next:
         specifier: ^25.8.10
-        version: 25.8.10(typescript@5.0.2)
+        version: 25.8.11(typescript@5.0.2)
       i18next-browser-languagedetector:
         specifier: ^8.2.1
         version: 8.2.1
@@ -271,7 +271,7 @@ importers:
         version: 7.54.1(react@19.0.0)
       react-i18next:
         specifier: ^16.5.4
-        version: 16.5.4(i18next@25.8.10(typescript@5.0.2))(react-dom@19.0.0(react@19.0.0))(react-native@0.81.1(@babel/core@7.28.3)(@types/react@19.0.0)(bufferutil@4.0.9)(react@19.0.0))(react@19.0.0)(typescript@5.0.2)
+        version: 16.5.4(i18next@25.8.11(typescript@5.0.2))(react-dom@19.0.0(react@19.0.0))(react-native@0.81.1(@babel/core@7.28.3)(@types/react@19.0.0)(bufferutil@4.0.9)(react@19.0.0))(react@19.0.0)(typescript@5.0.2)
       react-leaflet:
         specifier: ^5.0.0
         version: 5.0.0(leaflet@1.9.4)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -4085,8 +4085,8 @@ packages:
   i18next-browser-languagedetector@8.2.1:
     resolution: {integrity: sha512-bZg8+4bdmaOiApD7N7BPT9W8MLZG+nPTOFlLiJiT8uzKXFjhxw4v2ierCXOwB5sFDMtuA5G4kgYZ0AznZxQ/cw==}
 
-  i18next@25.8.10:
-    resolution: {integrity: sha512-CtPJLMAz1G8sxo+mIzfBjGgLxWs7d6WqIjlmmv9BTsOat4pJIfwZ8cm07n3kFS6bP9c6YwsYutYrwsEeJVBo2g==}
+  i18next@25.8.11:
+    resolution: {integrity: sha512-LZ32llTLGludnddjLoijHV7TbmVubU5eJnsWf8taiuM3jmSfUuvBLuyDeubJKS1yBjLBgb7As124M4KWNcBvpw==}
     peerDependencies:
       typescript: ^5
     peerDependenciesMeta:
@@ -10646,7 +10646,7 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.28.3
 
-  i18next@25.8.10(typescript@5.0.2):
+  i18next@25.8.11(typescript@5.0.2):
     dependencies:
       '@babel/runtime': 7.28.6
     optionalDependencies:
@@ -11912,11 +11912,11 @@ snapshots:
     dependencies:
       react: 19.0.0
 
-  react-i18next@16.5.4(i18next@25.8.10(typescript@5.0.2))(react-dom@19.0.0(react@19.0.0))(react-native@0.81.1(@babel/core@7.28.3)(@types/react@19.0.0)(bufferutil@4.0.9)(react@19.0.0))(react@19.0.0)(typescript@5.0.2):
+  react-i18next@16.5.4(i18next@25.8.11(typescript@5.0.2))(react-dom@19.0.0(react@19.0.0))(react-native@0.81.1(@babel/core@7.28.3)(@types/react@19.0.0)(bufferutil@4.0.9)(react@19.0.0))(react@19.0.0)(typescript@5.0.2):
     dependencies:
       '@babel/runtime': 7.28.6
       html-parse-stringify: 3.0.1
-      i18next: 25.8.10(typescript@5.0.2)
+      i18next: 25.8.11(typescript@5.0.2)
       react: 19.0.0
       use-sync-external-store: 1.6.0(react@19.0.0)
     optionalDependencies:

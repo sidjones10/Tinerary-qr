@@ -78,7 +78,7 @@ export function AdminAuthGuard({ children }: AdminAuthGuardProps) {
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-purple-50">
-        <div className="text-center max-w-md mx-auto p-8 bg-white rounded-2xl shadow-xl">
+        <div className="text-center max-w-md mx-auto p-8 bg-white dark:bg-card rounded-2xl shadow-xl">
           <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
             <ShieldAlert className="h-8 w-8 text-red-500" />
           </div>
@@ -103,7 +103,7 @@ export function AdminAuthGuard({ children }: AdminAuthGuardProps) {
   if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-purple-50">
-        <div className="text-center max-w-md mx-auto p-8 bg-white rounded-2xl shadow-xl">
+        <div className="text-center max-w-md mx-auto p-8 bg-white dark:bg-card rounded-2xl shadow-xl">
           <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
             <ShieldAlert className="h-8 w-8 text-red-500" />
           </div>

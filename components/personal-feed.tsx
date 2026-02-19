@@ -130,7 +130,7 @@ export function PersonalFeed() {
 
   return (
     <Tabs defaultValue="upcoming">
-      <TabsList className="w-full max-w-xs bg-white/70 backdrop-blur-sm">
+      <TabsList className="w-full max-w-xs bg-white/70 dark:bg-card/70 backdrop-blur-sm">
         <TabsTrigger value="upcoming" className="flex-1">
           Upcoming
         </TabsTrigger>

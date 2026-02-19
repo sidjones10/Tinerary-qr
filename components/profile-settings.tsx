@@ -10,13 +10,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Pencil, ArrowLeft, Upload, Download } from "lucide-react"
+import { Loader2, Pencil, Upload } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
-import { compressImage, updateImage, deleteImage } from "@/lib/storage-service"
-import Link from "next/link"
-import { DeleteAccountDialog } from "@/components/delete-account-dialog"
-import { Separator } from "@/components/ui/separator"
+import { compressImage, deleteImage } from "@/lib/storage-service"
 
 export function ProfileSettings() {
   const { t } = useTranslation()
@@ -39,7 +36,6 @@ export function ProfileSettings() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [avatarPath, setAvatarPath] = useState<string | null>(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
-  const [downloadingData, setDownloadingData] = useState(false)
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -141,24 +137,36 @@ export function ProfileSettings() {
       // Compress the image
       const compressedFile = await compressImage(file, 400, 400, 0.85)
 
-      // Upload to storage (will delete old photo if exists)
-      const result = await updateImage(compressedFile, avatarPath, "user-avatars")
-
-      console.log("Upload result:", result)
-
-      if (!result.success) {
-        throw new Error(result.error || "Failed to upload image")
+      // Delete old avatar from storage if exists
+      if (avatarPath) {
+        await deleteImage(avatarPath, "user-avatars")
       }
 
-      console.log("Avatar URL to save:", result.url)
-      console.log("Avatar path:", result.path)
+      // Upload via server-side API route for reliable auth handling
+      const formData = new FormData()
+      formData.append("file", compressedFile)
+      formData.append("bucket", "user-avatars")
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.message || "Failed to upload image")
+      }
+
+      const uploadedUrl = result.publicUrl
+      const uploadedPath = result.path
 
       // Update profile in database
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
-          avatar_url: result.url,
-          avatar_path: result.path,
+          avatar_url: uploadedUrl,
+          avatar_path: uploadedPath,
           updated_at: new Date().toISOString(),
         })
         .eq("id", user.id)
@@ -170,20 +178,17 @@ export function ProfileSettings() {
       // Update auth metadata
       await supabase.auth.updateUser({
         data: {
-          avatar_url: result.url,
+          avatar_url: uploadedUrl,
         },
       })
 
-      console.log("Setting avatar URL state:", result.url)
-      setAvatarUrl(result.url || null)
-      setAvatarPath(result.path || null)
+      setAvatarUrl(uploadedUrl || null)
+      setAvatarPath(uploadedPath || null)
 
       toast({
         title: t("settings.profile.photoUpdated"),
         description: t("settings.profile.photoUpdatedDesc"),
       })
-
-      console.log("Avatar state updated, URL:", result.url)
 
       await refreshSession()
     } catch (error: any) {
@@ -252,55 +257,6 @@ export function ProfileSettings() {
       })
     } finally {
       setUploadingAvatar(false)
-    }
-  }
-
-  const handleDownloadData = async () => {
-    if (!user) return
-
-    setDownloadingData(true)
-    try {
-      // Call the export API endpoint
-      const response = await fetch("/api/user/export-data", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to download data")
-      }
-
-      // Get the blob data
-      const blob = await response.blob()
-
-      // Create download link
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      const timestamp = new Date().toISOString().split("T")[0]
-      a.download = `tinerary-data-export-${timestamp}.json`
-      document.body.appendChild(a)
-      a.click()
-
-      // Cleanup
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-
-      toast({
-        title: t("dataPrivacy.dataExported"),
-        description: t("dataPrivacy.dataExportedDesc"),
-      })
-    } catch (error: any) {
-      console.error("Error downloading data:", error)
-      toast({
-        title: t("common.error"),
-        description: error.message || t("dataPrivacy.downloadError", "Failed to download data."),
-        variant: "destructive",
-      })
-    } finally {
-      setDownloadingData(false)
     }
   }
 
@@ -591,61 +547,6 @@ export function ProfileSettings() {
             </Button>
           </div>
         </form>
-
-        <Separator className="my-6" />
-
-        {/* Data & Privacy Section */}
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-lg font-medium">{t("dataPrivacy.title")}</h3>
-            <p className="text-sm text-muted-foreground">
-              {t("dataPrivacy.description")}
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            {/* Download My Data */}
-            <div className="flex items-start justify-between p-4 border rounded-lg">
-              <div className="space-y-1 flex-1">
-                <h4 className="font-medium">{t("dataPrivacy.downloadData")}</h4>
-                <p className="text-sm text-muted-foreground">
-                  {t("dataPrivacy.downloadDataDesc")}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={handleDownloadData}
-                disabled={downloadingData}
-                className="ml-4 shrink-0"
-              >
-                {downloadingData ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {t("common.downloading")}
-                  </>
-                ) : (
-                  <>
-                    <Download className="mr-2 h-4 w-4" />
-                    {t("dataPrivacy.downloadButton")}
-                  </>
-                )}
-              </Button>
-            </div>
-
-            {/* Delete Account */}
-            <div className="flex items-start justify-between p-4 border border-red-200 rounded-lg bg-red-50/50">
-              <div className="space-y-1 flex-1">
-                <h4 className="font-medium text-red-900">{t("dataPrivacy.deleteAccount")}</h4>
-                <p className="text-sm text-red-700">
-                  {t("dataPrivacy.deleteAccountDesc")}
-                </p>
-              </div>
-              <div className="ml-4 shrink-0">
-                {user && <DeleteAccountDialog userId={user.id} userEmail={user.email} />}
-              </div>
-            </div>
-          </div>
-        </div>
       </CardContent>
     </Card>
   )

@@ -265,7 +265,7 @@ export default function AdminCommunicationsPage() {
       </div>
 
       {/* Bulk Welcome Email Panel */}
-      <div className="bg-white/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-5 mb-6">
+      <div className="bg-white/70 dark:bg-card/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-5 mb-6">
         <div className="flex items-center justify-between mb-3">
           <div>
             <h3 className="text-sm font-semibold text-[#2c2420] flex items-center gap-2">
@@ -356,7 +356,7 @@ export default function AdminCommunicationsPage() {
       {/* Stats cards */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-          <div className="bg-white/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-4">
+          <div className="bg-white/70 dark:bg-card/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-4">
             <div className="flex items-center gap-2 text-[#2c2420]/50 mb-1">
               <Send className="h-4 w-4" />
               <span className="text-xs font-medium">Total Emails</span>
@@ -366,7 +366,7 @@ export default function AdminCommunicationsPage() {
               {stats.last24h} today &middot; {stats.last7d} this week
             </p>
           </div>
-          <div className="bg-white/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-4">
+          <div className="bg-white/70 dark:bg-card/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-4">
             <div className="flex items-center gap-2 text-green-600/70 mb-1">
               <Inbox className="h-4 w-4" />
               <span className="text-xs font-medium">Delivered</span>
@@ -374,7 +374,7 @@ export default function AdminCommunicationsPage() {
             <p className="text-2xl font-bold text-[#2c2420]">{stats.delivered.toLocaleString()}</p>
             <p className="text-xs text-[#2c2420]/40 mt-1">{deliveryRate}% delivery rate</p>
           </div>
-          <div className="bg-white/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-4">
+          <div className="bg-white/70 dark:bg-card/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-4">
             <div className="flex items-center gap-2 text-blue-600/70 mb-1">
               <Eye className="h-4 w-4" />
               <span className="text-xs font-medium">Opened</span>
@@ -382,7 +382,7 @@ export default function AdminCommunicationsPage() {
             <p className="text-2xl font-bold text-[#2c2420]">{stats.opened.toLocaleString()}</p>
             <p className="text-xs text-[#2c2420]/40 mt-1">{openRate}% open rate</p>
           </div>
-          <div className="bg-white/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-4">
+          <div className="bg-white/70 dark:bg-card/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-4">
             <div className="flex items-center gap-2 text-red-500/70 mb-1">
               <Ban className="h-4 w-4" />
               <span className="text-xs font-medium">Bounced</span>
@@ -390,7 +390,7 @@ export default function AdminCommunicationsPage() {
             <p className="text-2xl font-bold text-[#2c2420]">{stats.bounced.toLocaleString()}</p>
             <p className="text-xs text-[#2c2420]/40 mt-1">{stats.failed} failed to send</p>
           </div>
-          <div className="bg-white/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-4">
+          <div className="bg-white/70 dark:bg-card/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-4">
             <div className="flex items-center gap-2 text-[#2c2420]/50 mb-1">
               <TrendingUp className="h-4 w-4" />
               <span className="text-xs font-medium">Success Rate</span>
@@ -403,13 +403,13 @@ export default function AdminCommunicationsPage() {
 
       {/* Breakdown by type */}
       {stats && Object.keys(stats.byType).length > 0 && (
-        <div className="bg-white/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-4 mb-6">
+        <div className="bg-white/70 dark:bg-card/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-4 mb-6">
           <h3 className="text-sm font-semibold text-[#2c2420] mb-3">Breakdown by Type</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {Object.entries(stats.byType)
               .sort(([, a], [, b]) => (b.sent + b.delivered + b.failed) - (a.sent + a.delivered + a.failed))
               .map(([type, counts]) => (
-                <div key={type} className="flex items-center justify-between p-2 rounded-lg bg-white/50">
+                <div key={type} className="flex items-center justify-between p-2 rounded-lg bg-white/50 dark:bg-card/50">
                   <Badge className={emailTypeColors[type] || "bg-gray-100 text-gray-700"} variant="secondary">
                     {emailTypeLabels[type] || type}
                   </Badge>
@@ -448,7 +448,7 @@ export default function AdminCommunicationsPage() {
                 className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
                   filter === f
                     ? "bg-[#2c2420] text-white"
-                    : "bg-white/60 text-[#2c2420]/60 hover:bg-white hover:text-[#2c2420]"
+                    : "bg-white/60 dark:bg-card/60 text-[#2c2420]/60 hover:bg-white hover:text-[#2c2420]"
                 }`}
               >
                 {Icon && <Icon className="h-4 w-4 inline mr-2" />}
@@ -460,7 +460,7 @@ export default function AdminCommunicationsPage() {
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
-          className="px-3 py-2 text-sm rounded-lg bg-white/60 border border-[#2c2420]/10 text-[#2c2420]/70"
+          className="px-3 py-2 text-sm rounded-lg bg-white/60 dark:bg-card/60 border border-[#2c2420]/10 text-[#2c2420]/70"
         >
           <option value="all">All types</option>
           {Object.entries(emailTypeLabels).map(([value, label]) => (
@@ -475,7 +475,7 @@ export default function AdminCommunicationsPage() {
           <Loader2 className="h-8 w-8 animate-spin text-[#ffb88c]" />
         </div>
       ) : logs.length === 0 ? (
-        <div className="bg-white/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-10 text-center">
+        <div className="bg-white/70 dark:bg-card/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-10 text-center">
           <Mail className="h-12 w-12 text-[#ffb88c] mx-auto mb-4" />
           <h3 className="text-lg font-medium text-[#2c2420] mb-2">No emails found</h3>
           <p className="text-sm text-[#2c2420]/50">
@@ -494,7 +494,7 @@ export default function AdminCommunicationsPage() {
             return (
               <div
                 key={log.id}
-                className={`bg-white/70 backdrop-blur rounded-2xl border transition-all p-4 ${
+                className={`bg-white/70 dark:bg-card/70 backdrop-blur rounded-2xl border transition-all p-4 ${
                   log.status === "bounced" || log.status === "failed" || log.status === "complained"
                     ? "border-red-200"
                     : log.status === "delivered"

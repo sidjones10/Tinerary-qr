@@ -16,6 +16,55 @@ export type NotificationType =
   | "first_post"
   | "view_milestone"
 
+export interface NotificationPreferences {
+  push: boolean
+  email: boolean
+  sms: boolean
+  tripReminders: boolean
+  activityAlerts: boolean
+  itineraryChanges: boolean
+  newFollowers: boolean
+  likesComments: boolean
+  mentions: boolean
+}
+
+const DEFAULT_PREFERENCES: NotificationPreferences = {
+  push: true,
+  email: true,
+  sms: false,
+  tripReminders: true,
+  activityAlerts: true,
+  itineraryChanges: true,
+  newFollowers: true,
+  likesComments: true,
+  mentions: true,
+}
+
+/**
+ * Fetch a user's notification preferences from user_preferences table.
+ * Returns defaults if no preferences have been saved.
+ */
+export async function getUserNotificationPreferences(
+  userId: string
+): Promise<NotificationPreferences> {
+  try {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("user_preferences")
+      .select("notification_preferences")
+      .eq("user_id", userId)
+      .single()
+
+    if (error || !data?.notification_preferences) {
+      return { ...DEFAULT_PREFERENCES }
+    }
+
+    return { ...DEFAULT_PREFERENCES, ...data.notification_preferences }
+  } catch {
+    return { ...DEFAULT_PREFERENCES }
+  }
+}
+
 interface NotificationData {
   userId: string
   type: NotificationType
@@ -200,6 +249,11 @@ export async function notifyNewComment(
   itineraryTitle: string,
   commentPreview: string
 ) {
+  const prefs = await getUserNotificationPreferences(itineraryOwnerId)
+  if (!prefs.likesComments) {
+    return { success: true, skipped: true, reason: "likesComments disabled" }
+  }
+
   return createNotification({
     userId: itineraryOwnerId,
     type: "new_comment",
@@ -221,6 +275,11 @@ export async function notifyNewFollower(
   followerAvatar: string | null,
   followerId: string
 ) {
+  const prefs = await getUserNotificationPreferences(userId)
+  if (!prefs.newFollowers) {
+    return { success: true, skipped: true, reason: "newFollowers disabled" }
+  }
+
   return createNotification({
     userId,
     type: "follower",
@@ -245,6 +304,11 @@ export async function notifyNewLike(
   // Don't notify if the user is liking their own itinerary
   if (itineraryOwnerId === likerId) {
     return { success: true, skipped: true }
+  }
+
+  const prefs = await getUserNotificationPreferences(itineraryOwnerId)
+  if (!prefs.likesComments) {
+    return { success: true, skipped: true, reason: "likesComments disabled" }
   }
 
   return createNotification({

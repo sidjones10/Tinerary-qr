@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/client"
-import { createNotification, NotificationType } from "@/lib/notification-service"
+import { createNotification, NotificationType, getUserNotificationPreferences } from "@/lib/notification-service"
 import { sendCountdownReminderEmail, sendEventStartedEmail } from "@/lib/email-notifications"
 
 // Reminder intervals in milliseconds
@@ -155,6 +155,12 @@ export async function sendCountdownReminder(
     return { success: true } // Already sent, no need to send again
   }
 
+  // Check user's notification preferences
+  const prefs = await getUserNotificationPreferences(userId)
+  if (!prefs.tripReminders) {
+    return { success: true } // User has disabled trip reminders
+  }
+
   let title: string
   let message: string
   const emoji = eventType === "trip" ? "✈️" : "🎉"
@@ -187,6 +193,7 @@ export async function sendCountdownReminder(
 
   // Also send email if enabled (default: send for major milestones)
   const shouldSendEmail = options?.sendEmail !== false &&
+    prefs.email &&
     ["5_days", "2_days", "1_day", "2_hours", "started"].includes(reminderType)
 
   if (shouldSendEmail) {
@@ -194,11 +201,11 @@ export async function sendCountdownReminder(
       const supabase = createClient()
       const { data: profile } = await supabase
         .from("profiles")
-        .select("email, name, email_notifications")
+        .select("email, name")
         .eq("id", userId)
         .single()
 
-      if (profile?.email && profile?.email_notifications !== false) {
+      if (profile?.email) {
         if (reminderType === "started") {
           await sendEventStartedEmail({
             email: profile.email,

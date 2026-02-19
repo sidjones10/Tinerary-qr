@@ -59,6 +59,7 @@ export async function uploadImage(
     const { data, error } = await supabase.storage.from(bucket).upload(filePath, file, {
       cacheControl: "3600",
       upsert: false,
+      contentType: file.type,
     })
 
     if (error) {
@@ -235,7 +236,8 @@ export async function compressImage(
               reject(new Error("Could not compress image"))
               return
             }
-            const compressedFile = new File([blob], file.name, {
+            const baseName = file.name.replace(/\.[^.]+$/, '') || 'image'
+            const compressedFile = new File([blob], `${baseName}.jpg`, {
               type: "image/jpeg",
               lastModified: Date.now(),
             })

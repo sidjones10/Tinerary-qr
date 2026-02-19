@@ -73,7 +73,7 @@ export function SettingsNav({ activeSection, setActiveSection }: SettingsNavProp
       <div className="pt-6 border-t">
         <Button
           variant="ghost"
-          className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50"
+          className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
           onClick={() => signOut()}
         >
           <LogOut className="mr-2 h-4 w-4" />

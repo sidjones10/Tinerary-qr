@@ -105,7 +105,7 @@ export default function AdminItinerariesPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 overflow-hidden">
+      <div className="bg-white/70 dark:bg-card/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-[#ffb88c]" />
@@ -180,7 +180,7 @@ export default function AdminItinerariesPage() {
                             Public
                           </Badge>
                         ) : (
-                          <Badge variant="secondary" className="bg-gray-100 text-gray-600 hover:bg-gray-100">
+                          <Badge variant="secondary" className="bg-gray-100 dark:bg-card text-gray-600 dark:text-gray-400 hover:bg-gray-100">
                             <Lock className="h-3 w-3 mr-1" />
                             Private
                           </Badge>

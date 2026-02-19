@@ -195,8 +195,8 @@ export default function UnifiedProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-orange-50 via-pink-50 to-white">
-        <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-orange-100">
+      <div className="min-h-screen bg-gradient-to-b from-orange-50 via-pink-50 to-white dark:from-background dark:via-background dark:to-background">
+        <header className="sticky top-0 z-50 bg-white/80 dark:bg-card/80 backdrop-blur-md border-b border-orange-100 dark:border-border">
           <div className="flex items-center justify-between px-4 h-14">
             <Button variant="ghost" size="icon" aria-label="Go back" onClick={() => router.back()} className="hover:bg-orange-100">
               <ArrowLeft className="h-5 w-5" />
@@ -219,13 +219,13 @@ export default function UnifiedProfilePage() {
 
   if (error || !profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-orange-50 via-pink-50 to-white">
-        <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-orange-100">
+      <div className="min-h-screen bg-gradient-to-b from-orange-50 via-pink-50 to-white dark:from-background dark:via-background dark:to-background">
+        <header className="sticky top-0 z-50 bg-white/80 dark:bg-card/80 backdrop-blur-md border-b border-orange-100 dark:border-border">
           <div className="flex items-center justify-between px-4 h-14">
             <Button variant="ghost" size="icon" aria-label="Go back" onClick={() => router.back()} className="hover:bg-orange-100">
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <span className="font-semibold text-gray-800">Profile</span>
+            <span className="font-semibold text-gray-800 dark:text-gray-200">Profile</span>
             <div className="w-10" />
           </div>
         </header>
@@ -246,14 +246,14 @@ export default function UnifiedProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-orange-50 via-pink-50/50 to-white pb-20">
+    <div className="min-h-screen bg-gradient-to-b from-orange-50 via-pink-50/50 to-white dark:from-background dark:via-background dark:to-background pb-20">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-orange-100">
+      <header className="sticky top-0 z-50 bg-white/80 dark:bg-card/80 backdrop-blur-md border-b border-orange-100 dark:border-border">
         <div className="flex items-center justify-between px-4 h-14">
           <Button variant="ghost" size="icon" aria-label="Go back" onClick={() => router.back()} className="hover:bg-orange-100 rounded-full">
             <ArrowLeft className="h-5 w-5 text-gray-700" />
           </Button>
-          <span className="font-semibold text-gray-800">{profile.username ? `@${profile.username}` : displayName}</span>
+          <span className="font-semibold text-gray-800 dark:text-gray-200">{profile.username ? `@${profile.username}` : displayName}</span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="More options" className="hover:bg-orange-100 rounded-full">
@@ -300,7 +300,7 @@ export default function UnifiedProfilePage() {
             </Avatar>
           </div>
 
-          <h1 className="mt-5 text-2xl font-bold text-gray-900">{displayName}</h1>
+          <h1 className="mt-5 text-2xl font-bold text-gray-900 dark:text-gray-100">{displayName}</h1>
 
           {profile.username && (
             <p className="text-orange-600 font-medium">@{profile.username}</p>
@@ -314,12 +314,12 @@ export default function UnifiedProfilePage() {
 
           <div className="flex items-center gap-4 mt-4 text-sm text-gray-500">
             {profile.location && (
-              <div className="flex items-center gap-1 bg-white/60 px-3 py-1 rounded-full">
+              <div className="flex items-center gap-1 bg-white/60 dark:bg-card/60 px-3 py-1 rounded-full">
                 <MapPin className="h-3.5 w-3.5 text-orange-500" />
                 <span>{profile.location}</span>
               </div>
             )}
-            <div className="flex items-center gap-1 bg-white/60 px-3 py-1 rounded-full">
+            <div className="flex items-center gap-1 bg-white/60 dark:bg-card/60 px-3 py-1 rounded-full">
               <Calendar className="h-3.5 w-3.5 text-pink-500" />
               <span>Joined {formatDate(profile.created_at)}</span>
             </div>
@@ -327,18 +327,18 @@ export default function UnifiedProfilePage() {
 
           {/* Stats */}
           <div className="flex items-center justify-center gap-2 mt-6 w-full max-w-sm">
-            <div className="flex-1 text-center bg-white/70 backdrop-blur-sm rounded-2xl py-4 px-3 shadow-sm">
+            <div className="flex-1 text-center bg-white/70 dark:bg-card/70 backdrop-blur-sm rounded-2xl py-4 px-3 shadow-sm">
               <p className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">{itineraries.length}</p>
               <p className="text-xs text-gray-500 mt-1">Itineraries</p>
             </div>
             <Link href={`/followers/${userId}`} className="flex-1">
-              <div className="text-center bg-white/70 backdrop-blur-sm rounded-2xl py-4 px-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+              <div className="text-center bg-white/70 dark:bg-card/70 backdrop-blur-sm rounded-2xl py-4 px-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
                 <p className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">{followCounts.followers}</p>
                 <p className="text-xs text-gray-500 mt-1">Followers</p>
               </div>
             </Link>
             <Link href={`/following/${userId}`} className="flex-1">
-              <div className="text-center bg-white/70 backdrop-blur-sm rounded-2xl py-4 px-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+              <div className="text-center bg-white/70 dark:bg-card/70 backdrop-blur-sm rounded-2xl py-4 px-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
                 <p className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">{followCounts.following}</p>
                 <p className="text-xs text-gray-500 mt-1">Following</p>
               </div>

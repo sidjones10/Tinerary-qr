@@ -46,10 +46,19 @@ export async function POST(request: Request) {
       )
     }
 
+    // Validate service role key exists — without it, admin operations silently fail
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error("SUPABASE_SERVICE_ROLE_KEY is not set — cannot perform admin deletion")
+      return NextResponse.json(
+        { success: false, error: "Server configuration error: service role key is missing" },
+        { status: 500 }
+      )
+    }
+
     // Use service role client for admin operations
     const adminClient = createSupabaseClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      process.env.SUPABASE_SERVICE_ROLE_KEY
     )
 
     // Delete from auth.users FIRST - this is the critical step that

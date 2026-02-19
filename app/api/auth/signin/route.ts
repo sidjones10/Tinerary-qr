@@ -131,11 +131,30 @@ export async function POST(request: Request) {
       console.error("Failed to send sign-in alert email:", err)
     }
 
+    // Check if the user has verified MFA factors (server-side check is more
+    // reliable than a client-side listFactors call right after sign-in because
+    // the browser Supabase client may not pick up session cookies immediately).
+    let mfaRequired = false
+    let mfaFactorId: string | null = null
+    try {
+      const { data: factorsData } = await supabase.auth.mfa.listFactors()
+      const verifiedFactors =
+        factorsData?.totp?.filter((f) => f.status === "verified") || []
+      if (verifiedFactors.length > 0) {
+        mfaRequired = true
+        mfaFactorId = verifiedFactors[0].id
+      }
+    } catch (err) {
+      console.error("Failed to check MFA factors:", err)
+    }
+
     return NextResponse.json({
       success: true,
       message: "Successfully signed in",
       user: data.user,
       session: data.session,
+      mfaRequired,
+      mfaFactorId,
     })
   } catch (error) {
     console.error("Sign in error:", error)

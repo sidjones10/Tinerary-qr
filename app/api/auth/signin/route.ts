@@ -47,10 +47,13 @@ export async function POST(request: Request) {
     })
 
     if (error) {
+      // Use a generic message to prevent user enumeration — don't reveal
+      // whether the email exists or if the password was simply wrong.
+      console.error("Sign-in auth error:", error.message)
       return NextResponse.json(
         {
           success: false,
-          message: error.message,
+          message: "Invalid email or password",
         },
         { status: 401 },
       )

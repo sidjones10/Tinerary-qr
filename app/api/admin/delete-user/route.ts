@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/utils/supabase/server"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
+import { writeAuditLog } from "@/lib/audit-log"
+import { getClientIp } from "@/lib/rate-limit"
 
 export async function POST(request: Request) {
   try {
@@ -74,6 +76,14 @@ export async function POST(request: Request) {
     await adminClient.from("user_interactions").delete().eq("user_id", userId)
     await adminClient.from("notifications").delete().eq("user_id", userId)
     await adminClient.from("profiles").delete().eq("id", userId)
+
+    // Audit log the deletion
+    await writeAuditLog({
+      actor_id: user.id,
+      action: "delete_user",
+      target_id: userId,
+      ip_address: getClientIp(request),
+    })
 
     return NextResponse.json({
       success: true,

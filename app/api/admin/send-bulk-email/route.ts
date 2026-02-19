@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/utils/supabase/server"
 import { sendWhatsNewEmail } from "@/lib/email-notifications"
+import { rateLimit, getClientIp } from "@/lib/rate-limit"
+import { writeAuditLog } from "@/lib/audit-log"
+
+// 3 bulk email operations per hour (admin action, should be rare)
+const BULK_EMAIL_RATE_LIMIT = { maxRequests: 3, windowSeconds: 60 * 60 }
+
+// Hard cap on recipients per batch to prevent abuse
+const MAX_BATCH_SIZE = 500
 
 export async function POST(request: Request) {
   try {
@@ -29,8 +37,19 @@ export async function POST(request: Request) {
       )
     }
 
+    // Rate limit bulk email operations
+    const ip = getClientIp(request)
+    const rl = await rateLimit(`admin-bulk-email:${ip}`, BULK_EMAIL_RATE_LIMIT)
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { success: false, error: "Bulk email rate limit exceeded. Try again later." },
+        { status: 429, headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } },
+      )
+    }
+
     const body = await request.json().catch(() => ({}))
     const { dryRun = false, limit } = body
+    const safeBatchLimit = Math.min(Number(limit) || MAX_BATCH_SIZE, MAX_BATCH_SIZE)
 
     // Fetch all users with marketing consent enabled
     let query = supabase
@@ -39,9 +58,7 @@ export async function POST(request: Request) {
       .eq("marketing_consent", true)
       .not("email", "is", null)
 
-    if (limit) {
-      query = query.limit(limit)
-    }
+    query = query.limit(safeBatchLimit)
 
     const { data: users, error: fetchError } = await query
 
@@ -101,6 +118,14 @@ export async function POST(request: Request) {
       // Small delay between emails to avoid rate limiting
       await new Promise(resolve => setTimeout(resolve, 100))
     }
+
+    // Audit log the bulk email action
+    await writeAuditLog({
+      actor_id: user.id,
+      action: "send_bulk_email",
+      ip_address: ip,
+      metadata: { total: users.length, sent: results.sent, failed: results.failed, dryRun },
+    })
 
     return NextResponse.json({
       success: true,

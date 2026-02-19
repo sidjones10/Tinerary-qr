@@ -55,16 +55,49 @@ export async function POST(request: Request) {
       )
     }
 
-    // Use service role client for admin operations
+    // Use service role client with proper server-side auth config.
+    // Without these options the client tries to manage sessions/tokens
+    // which interferes with admin operations.
     const adminClient = createSupabaseClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
     )
 
-    // Delete from auth.users FIRST - this is the critical step that
-    // invalidates all sessions and prevents sign-in. If this fails,
-    // we abort without touching any data so we don't end up in a
-    // broken state (profile deleted but auth user still exists).
+    // 1. Sign out the user globally to invalidate all active sessions
+    try {
+      await adminClient.auth.admin.signOut(userId, "global")
+    } catch {
+      // User may not have active sessions — continue
+    }
+
+    // 2. Delete storage objects owned by this user.
+    //    storage.objects has a foreign key to auth.users, so deleteUser()
+    //    will fail with a constraint error if any files remain.
+    const storageBuckets = ["user-avatars", "itinerary-images", "event-photos"]
+    for (const bucket of storageBuckets) {
+      try {
+        const { data: files } = await adminClient.storage
+          .from(bucket)
+          .list(userId)
+        if (files && files.length > 0) {
+          const paths = files.map((f) => `${userId}/${f.name}`)
+          await adminClient.storage.from(bucket).remove(paths)
+        }
+      } catch {
+        // Bucket may not exist or be empty — continue
+      }
+    }
+
+    // 3. Delete from auth.users — this is the critical step that
+    //    invalidates all sessions and prevents sign-in. If this fails,
+    //    we abort without touching application data so we don't end up
+    //    in a broken state (profile deleted but auth user still exists).
     const { error: authError } = await adminClient.auth.admin.deleteUser(userId)
 
     if (authError) {
@@ -75,8 +108,8 @@ export async function POST(request: Request) {
       )
     }
 
-    // Auth user deleted — now clean up related application data.
-    // These are best-effort; the user can no longer sign in regardless.
+    // 4. Auth user deleted — clean up related application data.
+    //    These are best-effort; the user can no longer sign in regardless.
     await adminClient.from("itineraries").delete().eq("user_id", userId)
     await adminClient.from("saved_itineraries").delete().eq("user_id", userId)
     await adminClient.from("comments").delete().eq("user_id", userId)

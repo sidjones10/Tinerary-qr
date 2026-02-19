@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   description: "Create and share your travel itineraries",
   generator: 'v0.app',
   icons: {
-    icon: '/icon.svg',
+    icon: '/favicon.png',
   },
   viewport: {
     width: 'device-width',

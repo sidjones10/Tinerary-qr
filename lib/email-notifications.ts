@@ -1,4 +1,5 @@
 import { Resend } from "resend"
+import { escapeHtml } from "@/lib/sanitize"
 
 // Lazy-load Resend client to avoid build-time API key requirement
 let resendClient: Resend | null = null
@@ -238,6 +239,7 @@ export function postcardEmail(body: string, footerNote?: string): string {
  */
 export async function sendWelcomeEmail(email: string, name: string) {
   try {
+    const safeName = escapeHtml(name)
     const resend = getResendClient()
     const subject = "Welcome aboard, traveler!"
     const { data: resendData } = await resend.emails.send({
@@ -263,7 +265,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
 
         <!-- Body -->
         <div class="body-content" style="padding-top:0;">
-          <p style="font-size:16px;line-height:1.7;text-align:center;">Hi ${name}, we're so glad you're here. Tinerary is your home for planning trips, sharing adventures, and making every journey unforgettable.</p>
+          <p style="font-size:16px;line-height:1.7;text-align:center;">Hi ${safeName}, we're so glad you're here. Tinerary is your home for planning trips, sharing adventures, and making every journey unforgettable.</p>
 
           <hr class="divider">
 
@@ -318,6 +320,10 @@ export async function sendEventInviteEmail(
 ) {
   try {
     const eventUrl = `${APP_URL}/event/${eventId}`
+    const safeEventTitle = escapeHtml(eventTitle)
+    const safeEventDate = escapeHtml(eventDate)
+    const safeEventLocation = escapeHtml(eventLocation)
+    const safeInviterName = escapeHtml(inviterName)
 
     const subject = `You're invited to ${eventTitle}`
     const resend = getResendClient()
@@ -343,16 +349,16 @@ export async function sendEventInviteEmail(
         <!-- Event details block -->
         <div style="background:#2c2420;padding:36px;text-align:center;">
           <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:3px;color:#D4792C;margin-bottom:16px;">The Event</div>
-          <h2 style="margin:0 0 20px;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:28px;color:#FCFAF8;line-height:1.2;">${eventTitle}</h2>
+          <h2 style="margin:0 0 20px;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:28px;color:#FCFAF8;line-height:1.2;">${safeEventTitle}</h2>
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr>
               <td style="width:50%;padding:12px 8px;text-align:center;border:2px solid rgba(252,250,248,0.15);border-radius:12px 0 0 12px;">
                 <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#D4792C;margin-bottom:6px;">When</div>
-                <div style="font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;color:#FCFAF8;">${eventDate}</div>
+                <div style="font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;color:#FCFAF8;">${safeEventDate}</div>
               </td>
               <td style="width:50%;padding:12px 8px;text-align:center;border:2px solid rgba(252,250,248,0.15);border-left:none;border-radius:0 12px 12px 0;">
                 <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#D4792C;margin-bottom:6px;">Where</div>
-                <div style="font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;color:#FCFAF8;">${eventLocation}</div>
+                <div style="font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;color:#FCFAF8;">${safeEventLocation}</div>
               </td>
             </tr>
           </table>
@@ -364,7 +370,7 @@ export async function sendEventInviteEmail(
         <!-- Invited by block -->
         <div style="background:#F8F3EF;padding:32px 36px;text-align:center;">
           <div style="font-family:'Nunito Sans',sans-serif;font-size:15px;color:#5C4F42;margin-bottom:4px;">Invited by</div>
-          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:22px;color:#2c2420;">${inviterName}</div>
+          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:22px;color:#2c2420;">${safeInviterName}</div>
         </div>
 
         <!-- Divider -->
@@ -404,6 +410,10 @@ export async function sendEventReminderEmail(
   try {
     const eventUrl = `${APP_URL}/event/${eventId}`
     const timeText = hoursUntil < 24 ? `in ${hoursUntil} hours` : `tomorrow`
+    const safeEventTitle = escapeHtml(eventTitle)
+    const safeRecipientName = escapeHtml(recipientName)
+    const safeEventDate = escapeHtml(eventDate)
+    const safeEventLocation = escapeHtml(eventLocation)
 
     const subject = `Reminder: ${eventTitle} is ${timeText}`
     const resend = getResendClient()
@@ -414,11 +424,11 @@ export async function sendEventReminderEmail(
       html: postcardEmail(`
         <div class="masthead">
           <div class="stamp">Heads Up</div>
-          <h1>${eventTitle}</h1>
+          <h1>${safeEventTitle}</h1>
           <p class="subtitle">is coming up ${timeText} &mdash; get excited!</p>
         </div>
         <div class="body-content">
-          <p>Hi ${recipientName},</p>
+          <p>Hi ${safeRecipientName},</p>
           <p>Friendly nudge &mdash; the fun is almost here!</p>
 
           <div style="text-align:center;margin:22px 0;">
@@ -430,10 +440,10 @@ export async function sendEventReminderEmail(
 
           <div class="info-card info-card-warm">
             <div class="detail-row">
-              <span class="detail-label">When:</span> ${eventDate}
+              <span class="detail-label">When:</span> ${safeEventDate}
             </div>
             <div class="detail-row">
-              <span class="detail-label">Where:</span> ${eventLocation}
+              <span class="detail-label">Where:</span> ${safeEventLocation}
             </div>
           </div>
 
@@ -466,11 +476,13 @@ export async function sendNewFollowerEmail(
   followerAvatarUrl: string | null
 ) {
   try {
-    const profileUrl = `${APP_URL}/user/${followerUsername}`
+    const profileUrl = `${APP_URL}/user/${encodeURIComponent(followerUsername)}`
+    const safeFollowerName = escapeHtml(followerName)
+    const safeFollowerUsername = escapeHtml(followerUsername)
 
     const avatarHtml = followerAvatarUrl
-      ? `<img src="${followerAvatarUrl}" alt="${followerName}" style="width:80px;height:80px;border-radius:50%;border:3px solid #D4792C;margin:0 auto 16px;display:block;">`
-      : `<div style="width:80px;height:80px;border-radius:50%;background:#F8F3EF;border:3px solid #D4792C;margin:0 auto 16px;line-height:80px;font-family:'Nohemi','Nunito Sans',sans-serif;font-size:32px;color:#D4792C;font-weight:700;text-align:center;">${(followerName || '?')[0].toUpperCase()}</div>`
+      ? `<img src="${escapeHtml(followerAvatarUrl)}" alt="${safeFollowerName}" style="width:80px;height:80px;border-radius:50%;border:3px solid #D4792C;margin:0 auto 16px;display:block;">`
+      : `<div style="width:80px;height:80px;border-radius:50%;background:#F8F3EF;border:3px solid #D4792C;margin:0 auto 16px;line-height:80px;font-family:'Nohemi','Nunito Sans',sans-serif;font-size:32px;color:#D4792C;font-weight:700;text-align:center;">${escapeHtml((followerName || '?')[0].toUpperCase())}</div>`
 
     const subject = `${followerName} is now following your travels`
     const resend = getResendClient()
@@ -496,8 +508,8 @@ export async function sendNewFollowerEmail(
         <!-- Profile block -->
         <div style="background:#2c2420;padding:40px 36px;text-align:center;">
           ${avatarHtml}
-          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:26px;color:#FCFAF8;margin-bottom:4px;">${followerName}</div>
-          <div style="font-family:'Nunito Sans',sans-serif;font-size:15px;color:#D4792C;">@${followerUsername}</div>
+          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:26px;color:#FCFAF8;margin-bottom:4px;">${safeFollowerName}</div>
+          <div style="font-family:'Nunito Sans',sans-serif;font-size:15px;color:#D4792C;">@${safeFollowerUsername}</div>
         </div>
 
         <!-- Divider -->
@@ -545,6 +557,9 @@ export async function sendNewCommentEmail(
 ) {
   try {
     const eventUrl = `${APP_URL}/event/${eventId}`
+    const safeCommenterName = escapeHtml(commenterName)
+    const safeCommentText = escapeHtml(commentText)
+    const safeEventTitle = escapeHtml(eventTitle)
 
     const subject = `${commenterName} left a note on ${eventTitle}`
     const resend = getResendClient()
@@ -564,16 +579,16 @@ export async function sendNewCommentEmail(
         <!-- Hero block -->
         <div style="background:#D4792C;padding:48px 36px;text-align:center;">
           <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:rgba(252,250,248,0.7);margin-bottom:16px;">New Comment</div>
-          <h1 style="margin:0;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:36px;color:#FCFAF8;line-height:1.1;">${eventTitle}</h1>
+          <h1 style="margin:0;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:36px;color:#FCFAF8;line-height:1.1;">${safeEventTitle}</h1>
         </div>
 
         <!-- Comment block -->
         <div style="background:#2c2420;padding:40px 36px;text-align:center;">
-          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:3px;color:#D4792C;margin-bottom:20px;">${commenterName} says</div>
+          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:3px;color:#D4792C;margin-bottom:20px;">${safeCommenterName} says</div>
           <div style="background:rgba(252,250,248,0.08);border-radius:12px;padding:28px 24px;margin:0 auto;max-width:460px;">
             <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:36px;color:#D4792C;line-height:1;margin-bottom:8px;">&ldquo;</div>
-            <div style="font-family:'Nunito Sans',sans-serif;font-style:italic;font-size:17px;color:#FCFAF8;line-height:1.7;padding:0 8px;">${commentText}</div>
-            <div style="text-align:right;font-family:'Nunito Sans',sans-serif;font-size:14px;color:rgba(252,250,248,0.5);margin-top:12px;">&mdash; ${commenterName}</div>
+            <div style="font-family:'Nunito Sans',sans-serif;font-style:italic;font-size:17px;color:#FCFAF8;line-height:1.7;padding:0 8px;">${safeCommentText}</div>
+            <div style="text-align:right;font-family:'Nunito Sans',sans-serif;font-size:14px;color:rgba(252,250,248,0.5);margin-top:12px;">&mdash; ${safeCommenterName}</div>
           </div>
         </div>
 
@@ -583,7 +598,7 @@ export async function sendNewCommentEmail(
         <!-- Event context block -->
         <div style="background:#F8F3EF;padding:28px 36px;text-align:center;">
           <div style="font-family:'Nunito Sans',sans-serif;font-size:14px;color:#5C4F42;margin-bottom:4px;">On your event</div>
-          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:20px;color:#2c2420;">${eventTitle}</div>
+          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:20px;color:#2c2420;">${safeEventTitle}</div>
         </div>
 
         <!-- Divider -->
@@ -666,6 +681,9 @@ export async function sendCountdownReminderEmail(params: {
     const { email, name, itineraryTitle, itineraryId, timeRemaining, eventDate, location, eventType = "event" } = params
     const eventUrl = `${APP_URL}/event/${itineraryId}`
     const typeLabel = eventType === "trip" ? "trip" : "event"
+    const safeTitle = escapeHtml(itineraryTitle)
+    const safeName = escapeHtml(name || "there")
+    const safeLocation = location ? escapeHtml(location) : null
 
     const subject = `${timeRemaining} until ${itineraryTitle}!`
     const resend = getResendClient()
@@ -676,15 +694,15 @@ export async function sendCountdownReminderEmail(params: {
       html: postcardEmail(`
         <div class="masthead" style="background: linear-gradient(135deg, #D4792C 0%, #E09A5C 100%);">
           <div class="stamp">Countdown</div>
-          <h1>${itineraryTitle}</h1>
+          <h1>${safeTitle}</h1>
           <p class="subtitle">The countdown is on!</p>
         </div>
         <div class="body-content">
-          <p>Hi ${name || "there"},</p>
+          <p>Hi ${safeName},</p>
 
           <div style="text-align:center;margin:28px 0;">
             <div style="display:inline-block;background:#F8F3EF;border:3px solid #D4792C;border-radius:12px;padding:24px 40px;">
-              <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:48px;font-weight:700;color:#D4792C;line-height:1;">${timeRemaining}</div>
+              <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:48px;font-weight:700;color:#D4792C;line-height:1;">${escapeHtml(timeRemaining)}</div>
               <div style="font-size:12px;color:#9B8E7E;margin-top:8px;text-transform:uppercase;letter-spacing:2px;">until your ${typeLabel}</div>
             </div>
           </div>
@@ -693,7 +711,7 @@ export async function sendCountdownReminderEmail(params: {
             <div class="detail-row">
               <span class="detail-label">When:</span> ${new Date(eventDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </div>
-            ${location ? `<div class="detail-row"><span class="detail-label">Where:</span> ${location}</div>` : ''}
+            ${safeLocation ? `<div class="detail-row"><span class="detail-label">Where:</span> ${safeLocation}</div>` : ''}
           </div>
 
           <p style="text-align:center;font-family:'Nohemi','Nunito Sans',sans-serif;font-style:italic;color:#D4792C;">The adventure is almost here &mdash; make sure you're ready!</p>
@@ -728,6 +746,9 @@ export async function sendEventStartedEmail(params: {
   try {
     const { email, name, itineraryTitle, itineraryId, location, eventType = "event" } = params
     const eventUrl = `${APP_URL}/event/${itineraryId}`
+    const safeTitle = escapeHtml(itineraryTitle)
+    const safeName = escapeHtml(name || "there")
+    const safeLocation = location ? escapeHtml(location) : null
 
     const subject = `${itineraryTitle} is happening now!`
     const resend = getResendClient()
@@ -738,11 +759,11 @@ export async function sendEventStartedEmail(params: {
       html: postcardEmail(`
         <div class="masthead" style="background: linear-gradient(135deg, #D4792C 0%, #E09A5C 100%);">
           <div class="stamp">It's Go Time</div>
-          <h1>${itineraryTitle}</h1>
+          <h1>${safeTitle}</h1>
           <p class="subtitle">is officially underway!</p>
         </div>
         <div class="body-content" style="text-align:center;">
-          <p style="text-align:left;">Hi ${name || "there"},</p>
+          <p style="text-align:left;">Hi ${safeName},</p>
 
           <div style="margin:20px 0;">
             <div style="display:inline-block;background:#FEF0E6;border:3px solid #D4792C;border-radius:12px;padding:16px 32px;">
@@ -750,8 +771,8 @@ export async function sendEventStartedEmail(params: {
             </div>
           </div>
 
-          <h2 style="color:#D4792C;font-size:24px;">${itineraryTitle}</h2>
-          ${location ? `<p style="color:#9B8E7E;font-style:italic;">at ${location}</p>` : ''}
+          <h2 style="color:#D4792C;font-size:24px;">${safeTitle}</h2>
+          ${safeLocation ? `<p style="color:#9B8E7E;font-style:italic;">at ${safeLocation}</p>` : ''}
 
           <p style="font-size:16px;">Your ${eventType} has begun &mdash; soak it all in!</p>
 
@@ -778,6 +799,7 @@ export async function sendWhatsNewEmail(params: {
 }) {
   try {
     const { email, name } = params
+    const safeName = escapeHtml(name || "there")
 
     const subject = "Postcards from the team: what's new on Tinerary"
     const resend = getResendClient()
@@ -791,7 +813,7 @@ export async function sendWhatsNewEmail(params: {
           <p class="subtitle">What's new &amp; what's next for your travels</p>
         </div>
         <div class="body-content">
-          <p>Hi ${name || "there"},</p>
+          <p>Hi ${safeName},</p>
           <p>Here's your latest dispatch from Tinerary HQ &mdash; new features, improvements, and a few things we think you'll love.</p>
 
           <!-- Stat-style highlight cards -->
@@ -900,7 +922,11 @@ export async function sendInvitationEmail(params: {
 }) {
   try {
     const { recipientEmail, inviterName, itineraryTitle, itineraryId, eventDate, eventLocation } = params
-    const inviteUrl = `${APP_URL}/auth?invite=${itineraryId}&email=${encodeURIComponent(recipientEmail)}`
+    const inviteUrl = `${APP_URL}/auth?invite=${encodeURIComponent(itineraryId)}&email=${encodeURIComponent(recipientEmail)}`
+    const safeTitle = escapeHtml(itineraryTitle)
+    const safeInviterName = escapeHtml(inviterName)
+    const safeEventDate = eventDate ? escapeHtml(eventDate) : null
+    const safeEventLocation = eventLocation ? escapeHtml(eventLocation) : null
 
     const subject = `${inviterName} invited you to join "${itineraryTitle}" on Tinerary`
     const resend = getResendClient()
@@ -920,26 +946,26 @@ export async function sendInvitationEmail(params: {
         <!-- Hero block -->
         <div style="background:#D4792C;padding:48px 36px;text-align:center;">
           <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:rgba(252,250,248,0.7);margin-bottom:16px;">You're Invited</div>
-          <h1 style="margin:0;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:36px;color:#FCFAF8;line-height:1.1;">${itineraryTitle}</h1>
+          <h1 style="margin:0;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:36px;color:#FCFAF8;line-height:1.1;">${safeTitle}</h1>
         </div>
 
         <!-- Event details block -->
         <div style="background:#2c2420;padding:36px;text-align:center;">
           <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:3px;color:#D4792C;margin-bottom:16px;">Invited By</div>
-          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:24px;color:#FCFAF8;margin-bottom:20px;">${inviterName}</div>
-          ${eventDate || eventLocation ? `
+          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:24px;color:#FCFAF8;margin-bottom:20px;">${safeInviterName}</div>
+          ${safeEventDate || safeEventLocation ? `
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr>
-              ${eventDate ? `
-              <td style="${eventLocation ? 'width:50%;' : 'width:100%;'}padding:12px 8px;text-align:center;border:2px solid rgba(252,250,248,0.15);border-radius:${eventLocation ? '12px 0 0 12px' : '12px'};">
+              ${safeEventDate ? `
+              <td style="${safeEventLocation ? 'width:50%;' : 'width:100%;'}padding:12px 8px;text-align:center;border:2px solid rgba(252,250,248,0.15);border-radius:${safeEventLocation ? '12px 0 0 12px' : '12px'};">
                 <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#D4792C;margin-bottom:6px;">When</div>
-                <div style="font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;color:#FCFAF8;">${eventDate}</div>
+                <div style="font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;color:#FCFAF8;">${safeEventDate}</div>
               </td>
               ` : ''}
-              ${eventLocation ? `
-              <td style="${eventDate ? 'width:50%;' : 'width:100%;'}padding:12px 8px;text-align:center;border:2px solid rgba(252,250,248,0.15);${eventDate ? 'border-left:none;' : ''}border-radius:${eventDate ? '0 12px 12px 0' : '12px'};">
+              ${safeEventLocation ? `
+              <td style="${safeEventDate ? 'width:50%;' : 'width:100%;'}padding:12px 8px;text-align:center;border:2px solid rgba(252,250,248,0.15);${safeEventDate ? 'border-left:none;' : ''}border-radius:${safeEventDate ? '0 12px 12px 0' : '12px'};">
                 <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#D4792C;margin-bottom:6px;">Where</div>
-                <div style="font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;color:#FCFAF8;">${eventLocation}</div>
+                <div style="font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;color:#FCFAF8;">${safeEventLocation}</div>
               </td>
               ` : ''}
             </tr>
@@ -983,7 +1009,7 @@ export async function sendSignInAlertEmail(params: {
 }) {
   try {
     const { email, name, ipAddress, userAgent, deviceInfo, revokeToken, signInTime } = params
-    const revokeUrl = `${APP_URL}/api/auth/revoke-sessions?token=${revokeToken}`
+    const revokeUrl = `${APP_URL}/api/auth/revoke-sessions?token=${encodeURIComponent(revokeToken)}`
     const formattedTime = new Date(signInTime).toLocaleString("en-US", {
       weekday: "long",
       year: "numeric",
@@ -1019,17 +1045,17 @@ export async function sendSignInAlertEmail(params: {
           <p class="subtitle">Your account was just accessed</p>
         </div>
         <div class="body-content">
-          <p>Hi ${name || "there"},</p>
+          <p>Hi ${escapeHtml(name || "there")},</p>
           <p>We noticed a new sign-in to your Tinerary account. Here are the details:</p>
 
           <div class="info-card" style="background:#FFFDF9; border: 1px solid #D6C9B6; border-left: 3px solid #1A7B7E;">
             <div class="detail-row">
-              <span class="detail-label">When:</span> ${formattedTime}
+              <span class="detail-label">When:</span> ${escapeHtml(formattedTime)}
             </div>
             <div class="detail-row">
-              <span class="detail-label">Device:</span> ${deviceDisplay}
+              <span class="detail-label">Device:</span> ${escapeHtml(deviceDisplay)}
             </div>
-            ${ipAddress ? `<div class="detail-row"><span class="detail-label">IP Address:</span> ${ipAddress}</div>` : ""}
+            ${ipAddress ? `<div class="detail-row"><span class="detail-label">IP Address:</span> ${escapeHtml(ipAddress)}</div>` : ""}
           </div>
 
           <p>If this was you, no action is needed.</p>
@@ -1082,7 +1108,7 @@ export async function sendAccountDeletionWarningEmail(params: {
           <h1>We'd hate to see you go</h1>
         </div>
         <div class="body-content">
-          <p>Hi ${name || username || "there"},</p>
+          <p>Hi ${escapeHtml(name || username || "there")},</p>
 
           <div style="text-align:center;margin:24px 0;">
             <div style="display:inline-block;background:#FEF0EC;border:2px solid #D4792C;border-radius:8px;padding:20px 36px;">

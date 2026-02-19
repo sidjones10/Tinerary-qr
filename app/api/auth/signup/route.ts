@@ -90,10 +90,11 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error("Supabase signup error:", error)
+      // Use a generic message to avoid confirming whether an email is already registered
       return NextResponse.json(
         {
           success: false,
-          message: error.message,
+          message: "Unable to create account. The email may already be in use, or please try again later.",
         },
         { status: 400 },
       )

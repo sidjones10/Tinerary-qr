@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { verifyPhoneCode } from "@/backend/services/auth"
 import { createClient } from "@/utils/supabase/server"
+import { sendWelcomeEmail } from "@/lib/email-notifications"
 
 export async function POST(request: Request) {
   try {
@@ -46,6 +47,21 @@ export async function POST(request: Request) {
         phoneNumber: result.phoneNumber,
         // Note: Client may need to handle session setup
       })
+    }
+
+    // Send welcome email if user has an email address
+    try {
+      const { data: userData } = await supabase
+        .from("users")
+        .select("email, name")
+        .eq("phone", result.phoneNumber)
+        .single()
+
+      if (userData?.email) {
+        await sendWelcomeEmail(userData.email, userData.name || userData.email.split("@")[0])
+      }
+    } catch (emailError) {
+      console.error("Failed to send welcome email:", emailError)
     }
 
     return NextResponse.json({

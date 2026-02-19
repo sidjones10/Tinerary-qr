@@ -26,7 +26,7 @@ import { MutualsSection } from "@/components/mutuals-section"
 import { ThemeIcon } from "@/components/theme-selector"
 import { getFontFamily } from "@/components/font-selector"
 import { PostEventCoverPrompt } from "@/components/post-event-cover-prompt"
-import { shouldPromptCoverUpdate } from "@/lib/reminder-service"
+import { shouldPromptCoverUpdate } from "@/lib/reminder-utils"
 
 interface Activity {
   id: string

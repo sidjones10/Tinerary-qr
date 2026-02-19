@@ -242,7 +242,19 @@ describe("Reminders – Supabase Client Usage", () => {
       "utf-8"
     )
     // Every createClient() call should be preceded by await
-    const syncCalls = serviceSrc.match(/[^await]\s+createClient\(\)/g)
-    expect(syncCalls).toBeNull()
+    const allCalls = serviceSrc.match(/createClient\(\)/g) || []
+    const awaitedCalls = serviceSrc.match(/await createClient\(\)/g) || []
+    expect(allCalls.length).toBe(awaitedCalls.length)
+  })
+
+  it("pure utility functions are in reminder-utils.ts (safe for client components)", () => {
+    const utilsSrc = fs.readFileSync(
+      path.join(basePath, "lib/reminder-utils.ts"),
+      "utf-8"
+    )
+    // reminder-utils should NOT import server-side code
+    expect(utilsSrc).not.toContain("supabase/server")
+    expect(utilsSrc).toContain("shouldPromptCoverUpdate")
+    expect(utilsSrc).toContain("REMINDER_INTERVALS")
   })
 })

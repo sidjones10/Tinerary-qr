@@ -26,6 +26,15 @@ export function LanguageSettings() {
   const [currency, setCurrency] = useState("usd")
   const [distanceUnit, setDistanceUnit] = useState("miles")
 
+  // Apply language change immediately when user selects from dropdown
+  const handleLanguageChange = (newLanguage: string) => {
+    setLanguage(newLanguage)
+    const locale = LANGUAGE_TO_LOCALE[newLanguage]
+    if (locale && locale !== i18n.language) {
+      i18n.changeLanguage(locale)
+    }
+  }
+
   // Load language and region preferences from database
   useEffect(() => {
     const loadPreferences = async () => {
@@ -144,7 +153,7 @@ export function LanguageSettings() {
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="language">{t("settings.language.language")}</Label>
-            <Select value={language} onValueChange={setLanguage}>
+            <Select value={language} onValueChange={handleLanguageChange}>
               <SelectTrigger id="language">
                 <SelectValue placeholder={t("settings.language.selectLanguage")} />
               </SelectTrigger>

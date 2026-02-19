@@ -75,12 +75,11 @@ describe("User Interactions – API Endpoint", () => {
     expect(typeof routeModule.POST).toBe("function")
   })
 
-  it("validates required fields (userId, itineraryId, interactionType)", () => {
+  it("validates required fields (itineraryId, interactionType)", () => {
     const routeSrc = fs.readFileSync(
       path.join(basePath, "app/api/discovery/interaction/route.ts"),
       "utf-8"
     )
-    expect(routeSrc).toContain("userId")
     expect(routeSrc).toContain("itineraryId")
     expect(routeSrc).toContain("interactionType")
     expect(routeSrc).toContain("Missing required fields")
@@ -99,16 +98,15 @@ describe("User Interactions – API Endpoint", () => {
     expect(routeSrc).toContain('"comment"')
   })
 
-  it("ISSUE: endpoint does not authenticate the caller (no auth check)", () => {
+  it("authenticates the caller and uses server-verified user ID", () => {
     const routeSrc = fs.readFileSync(
       path.join(basePath, "app/api/discovery/interaction/route.ts"),
       "utf-8"
     )
-    // The endpoint accepts userId from the body without verifying auth
-    // This means anyone can track interactions as any user
-    expect(routeSrc).not.toContain("auth.getUser")
-    expect(routeSrc).not.toContain("getUser()")
-    expect(routeSrc).not.toContain("Unauthorized")
+    expect(routeSrc).toContain("auth.getUser")
+    expect(routeSrc).toContain("Unauthorized")
+    // Uses authenticated user.id instead of trusting body
+    expect(routeSrc).toContain("user.id")
   })
 })
 

@@ -5,8 +5,9 @@
  * - Invitation sending logic (route handler)
  * - Phone number detection
  * - Registered user vs non-user invitation paths
- * - Invitation acceptance/decline flow (MISSING FEATURE)
- * - Pending invitation → registered invitation conversion on signup (MISSING FEATURE)
+ * - Invitation acceptance/decline endpoint
+ * - Pending invitation → registered invitation conversion on signup
+ * - Client method alignment with backend
  */
 import { describe, it, expect, vi } from "vitest"
 import * as fs from "fs"
@@ -48,7 +49,7 @@ describe("Invitations – Phone Number Detection", () => {
 })
 
 // ------------------------------------------------------------------
-// 2. Structural tests: API route exists
+// 2. Structural tests: API routes exist
 // ------------------------------------------------------------------
 describe("Invitations – API Route Structure", () => {
   const basePath = path.resolve(__dirname, "..")
@@ -58,13 +59,12 @@ describe("Invitations – API Route Structure", () => {
     expect(fs.existsSync(routePath)).toBe(true)
   })
 
-  it("MISSING: no accept/decline API endpoint exists", () => {
-    // This test documents a known gap: there is no endpoint
-    // to accept or decline an invitation.
-    const acceptPath = path.join(basePath, "app/api/invitations/[id]")
-    const respondPath = path.join(basePath, "app/api/invitations/respond")
-    expect(fs.existsSync(acceptPath)).toBe(false)
-    expect(fs.existsSync(respondPath)).toBe(false)
+  it("has an accept/decline respond endpoint", () => {
+    const respondPath = path.join(
+      basePath,
+      "app/api/invitations/[id]/respond/route.ts"
+    )
+    expect(fs.existsSync(respondPath)).toBe(true)
   })
 })
 
@@ -79,45 +79,87 @@ describe("Invitations – Send Route Validation", () => {
 })
 
 // ------------------------------------------------------------------
-// 4. Orphaned client method test
+// 4. Respond endpoint validates correctly
 // ------------------------------------------------------------------
-describe("Invitations – Client-Side respondToInvitation", () => {
-  it("api-client.ts has respondToInvitation method pointing to non-existent endpoint", () => {
-    const clientSrc = fs.readFileSync(
-      path.resolve(__dirname, "..", "lib/api-client.ts"),
-      "utf-8"
-    )
-    // The method exists...
-    expect(clientSrc).toContain("respondToInvitation")
-    // ...but calls /invitations/{id}/accept or /invitations/{id}/decline endpoints
-    // that don't exist on the server
-    expect(clientSrc).toMatch(/invitations\/\$\{invitationId\}\/\$\{response\}/)
+describe("Invitations – Respond Endpoint", () => {
+  const respondSrc = fs.readFileSync(
+    path.resolve(
+      __dirname,
+      "..",
+      "app/api/invitations/[id]/respond/route.ts"
+    ),
+    "utf-8"
+  )
+
+  it("exports a POST handler", () => {
+    expect(respondSrc).toContain("export async function POST")
   })
 
-  it("ISSUE: backend route for accept/decline does not exist", () => {
-    const apiDir = path.resolve(__dirname, "..", "app/api/invitations")
-    const entries = fs.existsSync(apiDir) ? fs.readdirSync(apiDir) : []
-    // Only 'send' directory exists; no 'accept', 'decline', '[id]', or 'respond'
-    expect(entries).toEqual(["send"])
+  it("authenticates the user", () => {
+    expect(respondSrc).toContain("auth.getUser")
+    expect(respondSrc).toContain("Unauthorized")
+  })
+
+  it("validates response is accept or decline", () => {
+    expect(respondSrc).toContain('"accept"')
+    expect(respondSrc).toContain('"decline"')
+  })
+
+  it("verifies caller is the invitee", () => {
+    expect(respondSrc).toContain("invitee_id")
+    expect(respondSrc).toContain("not the recipient")
+  })
+
+  it("prevents double-responding to already handled invitations", () => {
+    expect(respondSrc).toContain('status !== "pending"')
+    expect(respondSrc).toContain("already been")
+  })
+
+  it("adds user as attendee on accept", () => {
+    expect(respondSrc).toContain("itinerary_attendees")
+    expect(respondSrc).toContain('"member"')
+  })
+
+  it("notifies the inviter about the response", () => {
+    expect(respondSrc).toContain("createNotification")
+    expect(respondSrc).toContain("inviter_id")
   })
 })
 
 // ------------------------------------------------------------------
-// 5. Feed service references accepted invitations that can never exist
+// 5. Client method now points to correct endpoint
 // ------------------------------------------------------------------
-describe("Invitations – Feed Service Gap", () => {
-  it("feed-service queries for status=accepted but invitations can never be accepted", () => {
+describe("Invitations – Client respondToInvitation", () => {
+  const clientSrc = fs.readFileSync(
+    path.resolve(__dirname, "..", "lib/api-client.ts"),
+    "utf-8"
+  )
+
+  it("api-client.ts has respondToInvitation method", () => {
+    expect(clientSrc).toContain("respondToInvitation")
+  })
+
+  it("calls the /respond endpoint with JSON body", () => {
+    expect(clientSrc).toMatch(/invitations\/\$\{invitationId\}\/respond/)
+    expect(clientSrc).toContain("JSON.stringify({ response })")
+  })
+})
+
+// ------------------------------------------------------------------
+// 6. Feed service references accepted invitations (now reachable)
+// ------------------------------------------------------------------
+describe("Invitations – Feed Service Integration", () => {
+  it("feed-service queries for status=accepted (now achievable via respond endpoint)", () => {
     const feedSrc = fs.readFileSync(
       path.resolve(__dirname, "..", "lib/feed-service.ts"),
       "utf-8"
     )
-    // Confirms the feed service expects accepted invitations
     expect(feedSrc).toContain('eq("status", "accepted")')
   })
 })
 
 // ------------------------------------------------------------------
-// 6. Schema validation
+// 7. Schema validation
 // ------------------------------------------------------------------
 describe("Invitations – Database Schema", () => {
   it("itinerary_invitations table has correct status constraint", () => {
@@ -149,23 +191,18 @@ describe("Invitations – Database Schema", () => {
 })
 
 // ------------------------------------------------------------------
-// 7. Signup flow does not convert pending invitations
+// 8. Signup converts pending invitations
 // ------------------------------------------------------------------
-describe("Invitations – Signup Conversion Gap", () => {
-  it("ISSUE: signup route does not check pending_invitations for new user email", () => {
+describe("Invitations – Signup Conversion", () => {
+  it("signup route converts pending_invitations for the new user's email", () => {
     const signupPath = path.resolve(
       __dirname,
       "..",
       "app/api/auth/signup/route.ts"
     )
-    if (fs.existsSync(signupPath)) {
-      const signupSrc = fs.readFileSync(signupPath, "utf-8")
-      // Should convert pending_invitations → itinerary_invitations
-      // but currently does NOT reference pending_invitations at all
-      expect(signupSrc).not.toContain("pending_invitations")
-    } else {
-      // Even if signup is handled elsewhere, the gap still exists
-      expect(true).toBe(true)
-    }
+    const signupSrc = fs.readFileSync(signupPath, "utf-8")
+    expect(signupSrc).toContain("pending_invitations")
+    expect(signupSrc).toContain("itinerary_invitations")
+    expect(signupSrc).toContain('"converted"')
   })
 })

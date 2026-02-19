@@ -224,23 +224,25 @@ describe("Reminders – Database Schema", () => {
 })
 
 // ------------------------------------------------------------------
-// 8. Potential Issue: Client-side Supabase in server context
+// 8. Supabase client usage: server-side for cron context
 // ------------------------------------------------------------------
 describe("Reminders – Supabase Client Usage", () => {
-  it("ISSUE: reminder-service uses client-side Supabase (may fail in server/cron context)", () => {
+  it("reminder-service uses server-side Supabase (correct for cron context)", () => {
     const serviceSrc = fs.readFileSync(
       path.join(basePath, "lib/reminder-service.ts"),
       "utf-8"
     )
-    // reminder-service imports from client, not server
-    expect(serviceSrc).toContain('@/lib/supabase/client')
-    // But it's called from the cron endpoint which runs server-side
-    const cronSrc = fs.readFileSync(
-      path.join(basePath, "app/api/reminders/send/route.ts"),
+    expect(serviceSrc).toContain('@/lib/supabase/server')
+    expect(serviceSrc).not.toContain('@/lib/supabase/client')
+  })
+
+  it("all createClient calls are awaited (server client is async)", () => {
+    const serviceSrc = fs.readFileSync(
+      path.join(basePath, "lib/reminder-service.ts"),
       "utf-8"
     )
-    expect(cronSrc).toContain("getItinerariesNeedingReminders")
-    expect(cronSrc).toContain("sendCountdownReminder")
-    // These functions use client-side Supabase but are called from server route
+    // Every createClient() call should be preceded by await
+    const syncCalls = serviceSrc.match(/[^await]\s+createClient\(\)/g)
+    expect(syncCalls).toBeNull()
   })
 })

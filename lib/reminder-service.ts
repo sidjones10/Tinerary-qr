@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/server"
 import { createNotification, NotificationType, getUserNotificationPreferences } from "@/lib/notification-service"
 import { sendCountdownReminderEmail, sendEventStartedEmail } from "@/lib/email-notifications"
 
@@ -91,7 +91,7 @@ export async function hasReminderBeenSent(
   userId: string,
   reminderType: ReminderType
 ): Promise<boolean> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data, error } = await supabase
     .from("itinerary_reminders")
@@ -112,7 +112,7 @@ export async function recordReminderSent(
   userId: string,
   reminderType: ReminderType
 ): Promise<boolean> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { error } = await supabase
     .from("itinerary_reminders")
@@ -198,7 +198,7 @@ export async function sendCountdownReminder(
 
   if (shouldSendEmail) {
     try {
-      const supabase = createClient()
+      const supabase = await createClient()
       const { data: profile } = await supabase
         .from("profiles")
         .select("email, name")
@@ -286,7 +286,7 @@ export async function getItinerariesNeedingReminders(): Promise<{
   startDate: Date
   reminderType: ReminderType
 }[]> {
-  const supabase = createClient()
+  const supabase = await createClient()
   const now = new Date()
 
   // Get itineraries with countdown reminders enabled that haven't ended yet
@@ -337,7 +337,7 @@ export async function getItinerariesNeedingCoverPrompt(): Promise<{
   userId: string
   title: string
 }[]> {
-  const supabase = createClient()
+  const supabase = await createClient()
   const now = new Date()
   const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
   const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000)

@@ -143,6 +143,40 @@ export async function POST(request: Request) {
         )
       }
 
+      // Convert any pending invitations for this email into real invitations
+      try {
+        const { data: pendingInvites } = await supabase
+          .from("pending_invitations")
+          .select("id, itinerary_id, inviter_id")
+          .eq("email", email)
+          .eq("status", "pending")
+
+        if (pendingInvites && pendingInvites.length > 0) {
+          for (const pending of pendingInvites) {
+            // Create a real invitation for the newly registered user
+            await supabase.from("itinerary_invitations").upsert(
+              {
+                itinerary_id: pending.itinerary_id,
+                inviter_id: pending.inviter_id,
+                invitee_id: data.user!.id,
+                status: "pending",
+                created_at: new Date().toISOString(),
+              },
+              { onConflict: "itinerary_id,invitee_id" }
+            )
+
+            // Mark the pending invitation as converted
+            await supabase
+              .from("pending_invitations")
+              .update({ status: "converted" })
+              .eq("id", pending.id)
+          }
+        }
+      } catch (conversionError) {
+        console.error("Failed to convert pending invitations:", conversionError)
+        // Don't fail signup if conversion fails
+      }
+
       // Send welcome email via Resend
       try {
         const displayName = username || email.split("@")[0]

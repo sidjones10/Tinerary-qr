@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { createClient } from "@/utils/supabase/server"
 import { trackUserInteraction } from "@/lib/discovery-algorithm"
 
 /**
@@ -7,16 +8,30 @@ import { trackUserInteraction } from "@/lib/discovery-algorithm"
  */
 export async function POST(request: Request) {
   try {
+    // Authenticate the caller
+    const supabase = await createClient()
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      )
+    }
+
     const body = await request.json()
-    const { userId, itineraryId, interactionType } = body
+    const { itineraryId, interactionType } = body
 
     // Validate required fields
-    if (!userId || !itineraryId || !interactionType) {
+    if (!itineraryId || !interactionType) {
       return NextResponse.json(
         {
           success: false,
           error: "Missing required fields",
-          message: "userId, itineraryId, and interactionType are required",
+          message: "itineraryId and interactionType are required",
         },
         { status: 400 },
       )
@@ -35,8 +50,8 @@ export async function POST(request: Request) {
       )
     }
 
-    // Track the interaction using the discovery algorithm
-    await trackUserInteraction(userId, itineraryId, interactionType)
+    // Use the authenticated user's ID instead of trusting the body
+    await trackUserInteraction(user.id, itineraryId, interactionType)
 
     return NextResponse.json({
       success: true,

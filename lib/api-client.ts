@@ -506,9 +506,10 @@ export class ApiClient {
   }
 
   static async respondToInvitation(invitationId: string, response: "accept" | "decline"): Promise<ApiResponse<void>> {
-    const resp = await fetch(`${API_URL}/invitations/${invitationId}/${response}`, {
+    const resp = await fetch(`${API_URL}/invitations/${invitationId}/respond`, {
       method: "POST",
       headers: getAuthHeaders(),
+      body: JSON.stringify({ response }),
     })
 
     return handleResponse<void>(resp)

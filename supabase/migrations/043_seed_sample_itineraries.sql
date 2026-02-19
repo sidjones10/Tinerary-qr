@@ -253,21 +253,21 @@ VALUES
 -- ============================================================
 -- EXPENSES
 -- ============================================================
-INSERT INTO expenses (itinerary_id, user_id, title, category, amount, currency, date, description)
+INSERT INTO expenses (itinerary_id, user_id, title, category, amount, description, paid_by_user_id, split_type, "date", currency)
 VALUES
   -- Austin Thrifting
-  ('44444444-4444-4444-4444-444444444444', (SELECT id FROM profiles LIMIT 1), 'Thrift Haul', 'Shopping', 85.00, 'USD', NOW(), 'Vintage finds and thrift hauls'),
-  ('44444444-4444-4444-4444-444444444444', (SELECT id FROM profiles LIMIT 1), 'Lunch', 'Food', 25.00, 'USD', NOW(), 'Lunch at Torchy''s Tacos'),
-  ('44444444-4444-4444-4444-444444444444', (SELECT id FROM profiles LIMIT 1), 'Gas & Parking', 'Transportation', 15.00, 'USD', NOW(), 'Gas and parking'),
+  ('44444444-4444-4444-4444-444444444444', (SELECT id FROM profiles LIMIT 1), 'Thrift Haul', 'Shopping', 85.00, 'Vintage finds and thrift hauls', (SELECT id FROM profiles LIMIT 1), 'equal', CURRENT_DATE, 'USD'),
+  ('44444444-4444-4444-4444-444444444444', (SELECT id FROM profiles LIMIT 1), 'Lunch', 'Food', 25.00, 'Lunch at Torchy''s Tacos', (SELECT id FROM profiles LIMIT 1), 'equal', CURRENT_DATE, 'USD'),
+  ('44444444-4444-4444-4444-444444444444', (SELECT id FROM profiles LIMIT 1), 'Gas & Parking', 'Transportation', 15.00, 'Gas and parking', (SELECT id FROM profiles LIMIT 1), 'equal', CURRENT_DATE, 'USD'),
 
   -- CA Burger Tour
-  ('55555555-5555-5555-5555-555555555555', (SELECT id FROM profiles LIMIT 1), 'Burgers', 'Food', 120.00, 'USD', NOW(), 'Burgers across California'),
-  ('55555555-5555-5555-5555-555555555555', (SELECT id FROM profiles LIMIT 1), 'Road Trip Gas', 'Transportation', 200.00, 'USD', NOW(), 'Gas for the road trip'),
-  ('55555555-5555-5555-5555-555555555555', (SELECT id FROM profiles LIMIT 1), 'Hotels', 'Accommodation', 350.00, 'USD', NOW(), 'Hotels along the route'),
+  ('55555555-5555-5555-5555-555555555555', (SELECT id FROM profiles LIMIT 1), 'Burgers', 'Food', 120.00, 'Burgers across California', (SELECT id FROM profiles LIMIT 1), 'equal', CURRENT_DATE, 'USD'),
+  ('55555555-5555-5555-5555-555555555555', (SELECT id FROM profiles LIMIT 1), 'Road Trip Gas', 'Transportation', 200.00, 'Gas for the road trip', (SELECT id FROM profiles LIMIT 1), 'equal', CURRENT_DATE, 'USD'),
+  ('55555555-5555-5555-5555-555555555555', (SELECT id FROM profiles LIMIT 1), 'Hotels', 'Accommodation', 350.00, 'Hotels along the route', (SELECT id FROM profiles LIMIT 1), 'equal', CURRENT_DATE, 'USD'),
 
   -- Long Island
-  ('66666666-6666-6666-6666-666666666666', (SELECT id FROM profiles LIMIT 1), 'Diner Lunch', 'Food', 30.00, 'USD', NOW(), 'Diner lunch'),
-  ('66666666-6666-6666-6666-666666666666', (SELECT id FROM profiles LIMIT 1), 'Train Tickets', 'Transportation', 40.00, 'USD', NOW(), 'Train to Long Island');
+  ('66666666-6666-6666-6666-666666666666', (SELECT id FROM profiles LIMIT 1), 'Diner Lunch', 'Food', 30.00, 'Diner lunch', (SELECT id FROM profiles LIMIT 1), 'equal', CURRENT_DATE, 'USD'),
+  ('66666666-6666-6666-6666-666666666666', (SELECT id FROM profiles LIMIT 1), 'Train Tickets', 'Transportation', 40.00, 'Train to Long Island', (SELECT id FROM profiles LIMIT 1), 'equal', CURRENT_DATE, 'USD');
 
 -- Success message
 DO $$

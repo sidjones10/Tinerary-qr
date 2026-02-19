@@ -77,7 +77,7 @@ export default function AdminSettingsPage() {
 
       <div className="space-y-6">
         {/* Site Settings */}
-        <Card className="bg-white/70 backdrop-blur border-[#2c2420]/5">
+        <Card className="bg-white/70 dark:bg-card/70 backdrop-blur border-[#2c2420]/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-[#2c2420]">
               <Globe className="h-5 w-5" />
@@ -117,7 +117,7 @@ export default function AdminSettingsPage() {
         </Card>
 
         {/* Feature Flags */}
-        <Card className="bg-white/70 backdrop-blur border-[#2c2420]/5">
+        <Card className="bg-white/70 dark:bg-card/70 backdrop-blur border-[#2c2420]/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-[#2c2420]">
               <Shield className="h-5 w-5" />
@@ -187,7 +187,7 @@ export default function AdminSettingsPage() {
         </Card>
 
         {/* User Settings */}
-        <Card className="bg-white/70 backdrop-blur border-[#2c2420]/5">
+        <Card className="bg-white/70 dark:bg-card/70 backdrop-blur border-[#2c2420]/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-[#2c2420]">
               <Users className="h-5 w-5" />
@@ -233,7 +233,7 @@ export default function AdminSettingsPage() {
         </Card>
 
         {/* Notification Settings */}
-        <Card className="bg-white/70 backdrop-blur border-[#2c2420]/5">
+        <Card className="bg-white/70 dark:bg-card/70 backdrop-blur border-[#2c2420]/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-[#2c2420]">
               <Bell className="h-5 w-5" />
@@ -266,7 +266,7 @@ export default function AdminSettingsPage() {
         </Card>
 
         {/* Business Settings */}
-        <Card className="bg-white/70 backdrop-blur border-[#2c2420]/5">
+        <Card className="bg-white/70 dark:bg-card/70 backdrop-blur border-[#2c2420]/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-[#2c2420]">
               <CreditCard className="h-5 w-5" />
@@ -302,11 +302,11 @@ export default function AdminSettingsPage() {
         </Card>
 
         {/* Environment Info */}
-        <Card className="bg-gray-50 border-gray-200">
+        <Card className="bg-gray-50 dark:bg-background border-gray-200 dark:border-border">
           <CardHeader>
-            <CardTitle className="text-gray-600 text-sm">Environment Information</CardTitle>
+            <CardTitle className="text-gray-600 dark:text-gray-400 text-sm">Environment Information</CardTitle>
           </CardHeader>
-          <CardContent className="text-xs text-gray-500 space-y-1">
+          <CardContent className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
             <p><strong>Note:</strong> Some settings require environment variables to be configured in your hosting platform (e.g., Vercel).</p>
             <p>For production deployments, ensure you have configured:</p>
             <ul className="list-disc pl-4 mt-2 space-y-1">

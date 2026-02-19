@@ -359,13 +359,18 @@ export function EventDetail({ event }: EventDetailProps) {
 
     setIsSendingInvite(true)
 
+    // Detect if input is a phone number or email
+    const input = inviteEmail.trim()
+    const digitsOnly = input.replace(/[\s\-().]/g, "")
+    const isPhoneNumber = input.startsWith("+") || (/^\d+$/.test(digitsOnly) && digitsOnly.length >= 7)
+
     try {
       const response = await fetch("/api/invitations/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           itineraryId: event.id,
-          emails: [inviteEmail],
+          ...(isPhoneNumber ? { phoneNumbers: [input] } : { emails: [input] }),
           itineraryTitle: event.title,
           senderName: user.user_metadata?.name || user.email?.split("@")[0] || "Someone",
         }),
@@ -433,7 +438,7 @@ export function EventDetail({ event }: EventDetailProps) {
         />
       )}
       {/* Overlay for readability */}
-      <div className="fixed inset-0 z-0 bg-white/60 backdrop-blur-sm" />
+      <div className="fixed inset-0 z-0 bg-white/60 dark:bg-black/70 backdrop-blur-sm" />
 
       {/* Content */}
       <div
@@ -585,7 +590,7 @@ export function EventDetail({ event }: EventDetailProps) {
                 />
               )}
               <div>
-                <div className="text-sm font-medium text-gray-900">
+                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                   Hosted by {event.host_name || "Anonymous"}
                 </div>
                 {event.host_username && (
@@ -597,7 +602,7 @@ export function EventDetail({ event }: EventDetailProps) {
 
           {event.description && (
             <p
-              className="text-gray-700 mb-6 leading-relaxed"
+              className="text-gray-700 dark:text-gray-300 mb-6 leading-relaxed"
               style={{ fontFamily: getFontFamily((event.font as string) || "default") }}
             >
               {event.description}
@@ -605,8 +610,8 @@ export function EventDetail({ event }: EventDetailProps) {
           )}
 
           {!event.is_public && (
-            <div className="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <div className="flex items-center gap-2 text-sm text-amber-800">
+            <div className="mb-6 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <div className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-300">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-4 w-4"
@@ -620,7 +625,7 @@ export function EventDetail({ event }: EventDetailProps) {
                   />
                 </svg>
                 <span className="font-medium">Private Event</span>
-                <span className="text-amber-600">• Only visible to invited guests</span>
+                <span className="text-amber-600 dark:text-amber-400">• Only visible to invited guests</span>
               </div>
             </div>
           )}
@@ -640,7 +645,7 @@ export function EventDetail({ event }: EventDetailProps) {
               <TabsTrigger value="packing" className="relative">
                 Packing List
                 {isOwner && !event.packing_list_public && (
-                  <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                  <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
                     Private
                   </span>
                 )}
@@ -648,7 +653,7 @@ export function EventDetail({ event }: EventDetailProps) {
               <TabsTrigger value="expenses" className="relative">
                 Expenses
                 {isOwner && !event.expenses_public && (
-                  <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                  <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
                     Private
                   </span>
                 )}
@@ -672,7 +677,7 @@ export function EventDetail({ event }: EventDetailProps) {
                     })
                     .map(([day, dayActivities]: [string, any]) => (
                     <div key={day}>
-                      <h3 className="text-lg font-semibold mb-3 text-gray-800 border-b pb-2">{day}</h3>
+                      <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200 border-b pb-2">{day}</h3>
                       <div className="space-y-3">
                         {dayActivities.map((activity: any) => (
                           <Card key={activity.id} className="overflow-hidden">
@@ -696,7 +701,7 @@ export function EventDetail({ event }: EventDetailProps) {
                                     </span>
                                   </div>
                                 )}
-                                {activity.description && <p className="text-sm mt-2 text-gray-600">{activity.description}</p>}
+                                {activity.description && <p className="text-sm mt-2 text-gray-600 dark:text-gray-400">{activity.description}</p>}
                               </div>
                             </CardContent>
                           </Card>
@@ -729,7 +734,7 @@ export function EventDetail({ event }: EventDetailProps) {
                                 </span>
                               </div>
                             )}
-                            {activity.description && <p className="text-sm mt-2 text-gray-600">{activity.description}</p>}
+                            {activity.description && <p className="text-sm mt-2 text-gray-600 dark:text-gray-400">{activity.description}</p>}
                           </div>
                         </CardContent>
                       </Card>
@@ -796,7 +801,7 @@ export function EventDetail({ event }: EventDetailProps) {
             ) : (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="rounded-full bg-amber-100 p-4 mb-4">
+                  <div className="rounded-full bg-amber-100 dark:bg-amber-900/30 p-4 mb-4">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       className="h-8 w-8 text-amber-600"
@@ -839,7 +844,7 @@ export function EventDetail({ event }: EventDetailProps) {
             ) : (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="rounded-full bg-amber-100 p-4 mb-4">
+                  <div className="rounded-full bg-amber-100 dark:bg-amber-900/30 p-4 mb-4">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       className="h-8 w-8 text-amber-600"
@@ -889,16 +894,16 @@ export function EventDetail({ event }: EventDetailProps) {
             <DialogHeader>
               <DialogTitle>Invite Friends</DialogTitle>
               <DialogDescription>
-                Send an invitation to join &quot;{event.title}&quot; via email
+                Send an invitation to join &quot;{event.title}&quot; via email or phone number
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="email">Email Address</Label>
+                <Label htmlFor="email">Email or Phone Number</Label>
                 <Input
                   id="email"
-                  type="email"
-                  placeholder="friend@example.com"
+                  type="text"
+                  placeholder="friend@example.com or +1 555-123-4567"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   onKeyDown={(e) => {

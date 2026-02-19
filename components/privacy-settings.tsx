@@ -6,16 +6,21 @@ import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { useState, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { useToast } from "@/components/ui/use-toast"
-import { Loader2, Info } from "lucide-react"
+import { Loader2, Info, Download } from "lucide-react"
 import { useAuth } from "@/providers/auth-provider"
 import { createClient } from "@/lib/supabase/client"
+import { Separator } from "@/components/ui/separator"
+import { DeleteAccountDialog } from "@/components/delete-account-dialog"
 
 export function PrivacySettings() {
+  const { t } = useTranslation()
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
   const { user } = useAuth()
 
+  const [downloadingData, setDownloadingData] = useState(false)
   const [profilePrivacy, setProfilePrivacy] = useState("public")
   const [privacySettings, setPrivacySettings] = useState({
     shareLocation: false,
@@ -88,8 +93,8 @@ export function PrivacySettings() {
   const handleSave = async () => {
     if (!user) {
       toast({
-        title: "Authentication required",
-        description: "Please log in to save settings.",
+        title: t("auth.authRequired"),
+        description: t("auth.pleaseLogInSettings"),
         variant: "destructive",
       })
       return
@@ -146,14 +151,14 @@ export function PrivacySettings() {
       }
 
       toast({
-        title: "Settings saved",
-        description: "Your privacy settings have been updated.",
+        title: t("settings.privacy.settingsSaved"),
+        description: t("settings.privacy.settingsSavedDesc"),
       })
     } catch (error: any) {
       console.error("Error saving privacy settings:", error)
       toast({
-        title: "Error",
-        description: error.message || "Failed to save privacy settings.",
+        title: t("common.error"),
+        description: error.message || t("settings.privacy.saveError", "Failed to save privacy settings."),
         variant: "destructive",
       })
     } finally {
@@ -161,24 +166,68 @@ export function PrivacySettings() {
     }
   }
 
+  const handleDownloadData = async () => {
+    if (!user) return
+
+    setDownloadingData(true)
+    try {
+      const response = await fetch("/api/user/export-data", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to download data")
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      const timestamp = new Date().toISOString().split("T")[0]
+      a.download = `tinerary-data-export-${timestamp}.json`
+      document.body.appendChild(a)
+      a.click()
+
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      toast({
+        title: t("dataPrivacy.dataExported"),
+        description: t("dataPrivacy.dataExportedDesc"),
+      })
+    } catch (error: any) {
+      console.error("Error downloading data:", error)
+      toast({
+        title: t("common.error"),
+        description: error.message || t("dataPrivacy.downloadError", "Failed to download data."),
+        variant: "destructive",
+      })
+    } finally {
+      setDownloadingData(false)
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Privacy Settings</CardTitle>
-        <CardDescription>Control your privacy and security preferences</CardDescription>
+        <CardTitle>{t("settings.privacy.title")}</CardTitle>
+        <CardDescription>{t("settings.privacy.description")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">
-          <h3 className="text-sm font-medium text-muted-foreground">Profile Privacy</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">{t("settings.privacy.profilePrivacy")}</h3>
 
           <RadioGroup value={profilePrivacy} onValueChange={setProfilePrivacy} className="space-y-3">
             <div className="flex items-start space-x-2">
               <RadioGroupItem value="public" id="public" className="mt-1" />
               <div className="grid gap-1.5">
                 <Label htmlFor="public" className="font-medium">
-                  Public
+                  {t("settings.privacy.public")}
                 </Label>
-                <p className="text-sm text-muted-foreground">Anyone can view your profile and itineraries</p>
+                <p className="text-sm text-muted-foreground">{t("settings.privacy.publicDesc")}</p>
               </div>
             </div>
 
@@ -186,10 +235,10 @@ export function PrivacySettings() {
               <RadioGroupItem value="followers" id="followers" className="mt-1" />
               <div className="grid gap-1.5">
                 <Label htmlFor="followers" className="font-medium">
-                  Followers Only
+                  {t("settings.privacy.followersOnly")}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Only people who follow you can view your profile and itineraries
+                  {t("settings.privacy.followersOnlyDesc")}
                 </p>
               </div>
             </div>
@@ -198,10 +247,10 @@ export function PrivacySettings() {
               <RadioGroupItem value="private" id="private" className="mt-1" />
               <div className="grid gap-1.5">
                 <Label htmlFor="private" className="font-medium">
-                  Private
+                  {t("settings.privacy.private")}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Only you and people you specifically invite can view your itineraries
+                  {t("settings.privacy.privateDesc")}
                 </p>
               </div>
             </div>
@@ -209,21 +258,21 @@ export function PrivacySettings() {
         </div>
 
         <div className="space-y-4 pt-4 border-t">
-          <h3 className="text-sm font-medium text-muted-foreground">Location Sharing</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">{t("settings.privacy.locationSharing")}</h3>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Share Precise Location</p>
-                <p className="text-sm text-muted-foreground">Allow others to see your exact location in itineraries</p>
+                <p className="font-medium">{t("settings.privacy.sharePreciseLocation")}</p>
+                <p className="text-sm text-muted-foreground">{t("settings.privacy.sharePreciseLocationDesc")}</p>
               </div>
               <Switch checked={privacySettings.shareLocation} onCheckedChange={() => handleToggle("shareLocation")} />
             </div>
 
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Location History</p>
-                <p className="text-sm text-muted-foreground">Save your location history for better recommendations</p>
+                <p className="font-medium">{t("settings.privacy.locationHistory")}</p>
+                <p className="text-sm text-muted-foreground">{t("settings.privacy.locationHistoryDesc")}</p>
               </div>
               <Switch
                 checked={privacySettings.locationHistory}
@@ -234,21 +283,21 @@ export function PrivacySettings() {
         </div>
 
         <div className="space-y-4 pt-4 border-t">
-          <h3 className="text-sm font-medium text-muted-foreground">Activity Privacy</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">{t("settings.privacy.activityPrivacy")}</h3>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Show Activity Status</p>
-                <p className="text-sm text-muted-foreground">Let others see when you're active on Itinerary</p>
+                <p className="font-medium">{t("settings.privacy.showActivityStatus")}</p>
+                <p className="text-sm text-muted-foreground">{t("settings.privacy.showActivityStatusDesc")}</p>
               </div>
               <Switch checked={privacySettings.showActivity} onCheckedChange={() => handleToggle("showActivity")} />
             </div>
 
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Read Receipts</p>
-                <p className="text-sm text-muted-foreground">Let others know when you've read their messages</p>
+                <p className="font-medium">{t("settings.privacy.readReceipts")}</p>
+                <p className="text-sm text-muted-foreground">{t("settings.privacy.readReceiptsDesc")}</p>
               </div>
               <Switch checked={privacySettings.readReceipts} onCheckedChange={() => handleToggle("readReceipts")} />
             </div>
@@ -256,14 +305,14 @@ export function PrivacySettings() {
         </div>
 
         <div className="space-y-4 pt-4 border-t">
-          <h3 className="text-sm font-medium text-muted-foreground">Data & Personalization</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">{t("settings.privacy.dataPersonalization")}</h3>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Personalized Recommendations</p>
+                <p className="font-medium">{t("settings.privacy.personalizedRecommendations")}</p>
                 <p className="text-sm text-muted-foreground">
-                  Allow us to use your activity to personalize recommendations
+                  {t("settings.privacy.personalizedRecommendationsDesc")}
                 </p>
               </div>
               <Switch
@@ -274,8 +323,8 @@ export function PrivacySettings() {
 
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Data Collection</p>
-                <p className="text-sm text-muted-foreground">Allow us to collect usage data to improve our services</p>
+                <p className="font-medium">{t("settings.privacy.dataCollection")}</p>
+                <p className="text-sm text-muted-foreground">{t("settings.privacy.dataCollectionDesc")}</p>
               </div>
               <Switch checked={privacySettings.dataCollection} onCheckedChange={() => handleToggle("dataCollection")} />
             </div>
@@ -284,11 +333,11 @@ export function PrivacySettings() {
           <div className="bg-blue-50 p-3 rounded-md text-blue-800 text-sm flex items-start gap-2 mt-4">
             <Info className="h-5 w-5 flex-shrink-0 mt-0.5" />
             <p>
-              Your privacy is important to us. Review our{" "}
+              {t("settings.privacy.privacyNotice")}{" "}
               <a href="#" className="underline font-medium">
-                Privacy Policy
+                {t("settings.privacy.privacyPolicy")}
               </a>{" "}
-              to learn more about how we protect your data.
+              {t("settings.privacy.privacyNoticeSuffix")}
             </p>
           </div>
         </div>
@@ -298,12 +347,67 @@ export function PrivacySettings() {
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
+                {t("common.saving")}
               </>
             ) : (
-              "Save Privacy Settings"
+              t("settings.privacy.savePrivacySettings")
             )}
           </Button>
+        </div>
+
+        <Separator className="my-6" />
+
+        {/* Data & Privacy Section */}
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-medium">{t("dataPrivacy.title")}</h3>
+            <p className="text-sm text-muted-foreground">
+              {t("dataPrivacy.description")}
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {/* Download Your Data */}
+            <div className="flex items-start justify-between p-4 border rounded-lg">
+              <div className="space-y-1 flex-1">
+                <h4 className="font-medium">{t("dataPrivacy.downloadData")}</h4>
+                <p className="text-sm text-muted-foreground">
+                  {t("dataPrivacy.downloadDataDesc")}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={handleDownloadData}
+                disabled={downloadingData}
+                className="ml-4 shrink-0"
+              >
+                {downloadingData ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {t("common.downloading")}
+                  </>
+                ) : (
+                  <>
+                    <Download className="mr-2 h-4 w-4" />
+                    {t("dataPrivacy.downloadButton")}
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {/* Delete Account */}
+            <div className="flex items-start justify-between p-4 border border-red-200 rounded-lg bg-red-50/50">
+              <div className="space-y-1 flex-1">
+                <h4 className="font-medium text-red-900">{t("dataPrivacy.deleteAccount")}</h4>
+                <p className="text-sm text-red-700">
+                  {t("dataPrivacy.deleteAccountDesc")}
+                </p>
+              </div>
+              <div className="ml-4 shrink-0">
+                {user && <DeleteAccountDialog userId={user.id} userEmail={user.email} />}
+              </div>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -65,16 +65,16 @@ export default function ForgotPasswordPage() {
 
   if (emailSent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-background">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <div className="text-center space-y-4">
               <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
               <h2 className="text-xl font-semibold">Check your email</h2>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-400">
                 We sent a password reset link to <strong>{email}</strong>. Click the link in the email to reset your password.
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 Didn&apos;t receive the email? Check your spam folder or{" "}
                 <button
                   onClick={() => setEmailSent(false)}
@@ -100,7 +100,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-background">
       <Card className="w-full max-w-md">
         {(isRevoked || isAlreadyRevoked) && (
           <div className="px-6 pt-6">

@@ -138,9 +138,9 @@ export function TicketQRCard({
             </div>
           </div>
 
-          <div className="bg-gray-50 p-6 flex flex-col items-center justify-center">
+          <div className="bg-gray-50 dark:bg-background p-6 flex flex-col items-center justify-center">
             <p className="text-sm font-medium text-center mb-2">Scan at the venue</p>
-            <div className="bg-white p-2 rounded-lg shadow-sm">
+            <div className="bg-white dark:bg-card p-2 rounded-lg shadow-sm">
               <Image
                 src={qrCodeUrl || "/placeholder.svg"}
                 alt="Ticket QR Code"

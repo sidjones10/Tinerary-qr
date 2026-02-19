@@ -127,7 +127,7 @@ export function PostEventCoverPrompt({
                 className="w-full h-32 object-cover opacity-50"
               />
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-sm text-gray-600 bg-white/80 px-3 py-1 rounded-full">
+                <span className="text-sm text-gray-600 bg-white/80 dark:bg-card/80 px-3 py-1 rounded-full">
                   Current cover
                 </span>
               </div>

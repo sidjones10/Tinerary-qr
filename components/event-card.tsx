@@ -39,7 +39,7 @@ export function EventCard({ event }: EventCardProps) {
   return (
     <Link href={`/event/${event.id}`} className="block">
       <div
-        className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 card-soft relative"
+        className="bg-white dark:bg-card rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 card-soft relative"
         style={themedStyle}
       >
         {/* Theme icon cluster decoration */}
@@ -76,25 +76,25 @@ export function EventCard({ event }: EventCardProps) {
               <AvatarFallback>{event.organizer.name[0]}</AvatarFallback>
             </Avatar>
             <div className="flex items-center">
-              <span className="text-sm text-gray-700">By {event.organizer.name}</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">By {event.organizer.name}</span>
               {event.isOrganizer && (
                 <Badge className="ml-2 bg-green-500 text-white hover:bg-green-600 border-0 text-xs">Organizer</Badge>
               )}
             </div>
           </div>
 
-          <div className="flex items-center text-sm text-gray-500 mb-2">
+          <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-2">
             <Calendar className="h-4 w-4 mr-2" />
             <span>{event.date}</span>
           </div>
 
-          <div className="flex items-center text-sm text-gray-500 mb-3">
+          <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-3">
             <MapPin className="h-4 w-4 mr-2" />
             <span>{event.location}</span>
           </div>
 
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 text-sm text-gray-500">
+            <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
               {event.like_count !== undefined && event.like_count > 0 && (
                 <div className="flex items-center">
                   <Heart className="h-4 w-4 mr-1" />

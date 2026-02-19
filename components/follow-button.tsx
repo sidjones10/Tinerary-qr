@@ -118,7 +118,7 @@ export function FollowButton({
       disabled={actionLoading}
       className={`transition-all ${
         following
-          ? "border-gray-300 hover:border-red-300 hover:text-red-600"
+          ? "border-gray-300 dark:border-border hover:border-red-300 hover:text-red-600"
           : "bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white"
       } ${className}`}
     >

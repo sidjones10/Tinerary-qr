@@ -139,7 +139,7 @@ export default function AdminErrorsPage() {
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
               filter === f
                 ? "bg-[#2c2420] text-white"
-                : "bg-white/60 text-[#2c2420]/60 hover:bg-white hover:text-[#2c2420]"
+                : "bg-white/60 dark:bg-card/60 text-[#2c2420]/60 hover:bg-white hover:text-[#2c2420]"
             }`}
           >
             {f === "unresolved" && <XCircle className="h-4 w-4 inline mr-2" />}
@@ -155,7 +155,7 @@ export default function AdminErrorsPage() {
           <Loader2 className="h-8 w-8 animate-spin text-[#ffb88c]" />
         </div>
       ) : errors.length === 0 ? (
-        <div className="bg-white/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-10 text-center">
+        <div className="bg-white/70 dark:bg-card/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-10 text-center">
           <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-[#2c2420] mb-2">
             {filter === "unresolved" ? "No unresolved errors!" : "No errors found"}
@@ -171,7 +171,7 @@ export default function AdminErrorsPage() {
           {errors.map((err) => (
             <div
               key={err.id}
-              className={`bg-white/70 backdrop-blur rounded-2xl border transition-all ${
+              className={`bg-white/70 dark:bg-card/70 backdrop-blur rounded-2xl border transition-all ${
                 err.resolved ? "border-green-200" : "border-red-200"
               }`}
             >
@@ -259,7 +259,7 @@ export default function AdminErrorsPage() {
                   {Object.keys(err.metadata || {}).length > 0 && (
                     <div>
                       <p className="text-xs font-medium text-[#2c2420]/60 mb-2">Metadata</p>
-                      <pre className="bg-gray-100 p-3 rounded-lg text-xs overflow-x-auto">
+                      <pre className="bg-gray-100 dark:bg-card p-3 rounded-lg text-xs overflow-x-auto">
                         {JSON.stringify(err.metadata, null, 2)}
                       </pre>
                     </div>

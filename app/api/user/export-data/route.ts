@@ -9,7 +9,7 @@ import { createClient } from "@/utils/supabase/server"
  */
 export async function GET(request: Request) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Check authentication
     const {

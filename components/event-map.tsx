@@ -73,7 +73,7 @@ export function EventMap({ location, title, className = "" }: EventMapProps) {
 
   return (
     <div className={`relative ${className}`}>
-      <div ref={mapRef} className="w-full h-full rounded-lg overflow-hidden border border-gray-200" />
+      <div ref={mapRef} className="w-full h-full rounded-lg overflow-hidden border border-gray-200 dark:border-border" />
     </div>
   )
 }
@@ -110,12 +110,12 @@ export function StaticMapPreview({ location, className = "" }: { location: strin
   const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=-0.1,51.5,-0.09,51.51&layer=mapnik`
 
   return (
-    <div className={`relative bg-gray-100 rounded-lg overflow-hidden border border-gray-200 ${className}`}>
+    <div className={`relative bg-gray-100 dark:bg-card rounded-lg overflow-hidden border border-gray-200 dark:border-border ${className}`}>
       <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-orange-100 to-pink-100">
         <div className="text-center">
           <MapPin className="h-12 w-12 mx-auto mb-2 text-orange-500" />
-          <p className="text-sm font-medium text-gray-700">{location}</p>
-          <p className="text-xs text-gray-500 mt-1">Click to view map</p>
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{location}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Click to view map</p>
         </div>
       </div>
     </div>

@@ -494,11 +494,11 @@ export function DiscoveryFeed() {
 
   if (discoveryItems.length === 0) {
     return (
-      <div className="h-full flex items-center justify-center bg-gradient-to-b from-orange-50 to-pink-50 rounded-xl">
+      <div className="h-full flex items-center justify-center bg-gradient-to-b from-orange-50 to-pink-50 dark:from-card dark:to-background rounded-xl">
         <div className="text-center">
-          <MapPin className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">No trips to discover yet</h3>
-          <p className="text-gray-500">Check back soon for amazing adventures!</p>
+          <MapPin className="h-16 w-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">No trips to discover yet</h3>
+          <p className="text-gray-500 dark:text-gray-400">Check back soon for amazing adventures!</p>
         </div>
       </div>
     )
@@ -604,10 +604,10 @@ export function DiscoveryFeed() {
   const itemsToDisplay = formattedItems.length > 0 ? formattedItems : fallbackItems
 
   return (
-    <div className="relative h-[calc(100vh-160px)] min-h-[500px] max-h-[900px] w-full overflow-hidden rounded-xl bg-gradient-to-b from-white to-orange-50 shadow-2xl">
+    <div className="relative h-[calc(100vh-160px)] min-h-[500px] max-h-[900px] w-full overflow-hidden rounded-xl bg-gradient-to-b from-white to-orange-50 dark:from-card dark:to-background shadow-2xl">
       {/* Pull to refresh indicator */}
       {refreshing && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-white/90 backdrop-blur-md px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-white/90 dark:bg-card/90 backdrop-blur-md px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-orange-500 animate-spin" />
           <span className="text-sm font-medium">Refreshing...</span>
         </div>

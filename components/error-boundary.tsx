@@ -92,18 +92,18 @@ export class ErrorBoundary extends Component<Props, State> {
             </CardHeader>
 
             <CardContent className="space-y-4">
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-400">
                 We encountered an unexpected error. Don't worry, your data is safe. You can try refreshing the page or
                 going back home.
               </p>
 
               {/* Show error details in development */}
               {process.env.NODE_ENV === "development" && this.state.error && (
-                <details className="bg-gray-100 p-3 rounded-lg text-sm">
-                  <summary className="cursor-pointer font-medium text-gray-700 mb-2">
+                <details className="bg-gray-100 dark:bg-card p-3 rounded-lg text-sm">
+                  <summary className="cursor-pointer font-medium text-gray-700 dark:text-gray-200 mb-2">
                     Error Details (Development Only)
                   </summary>
-                  <div className="space-y-2 text-xs font-mono text-gray-600">
+                  <div className="space-y-2 text-xs font-mono text-gray-600 dark:text-gray-400">
                     <div>
                       <strong>Error:</strong> {this.state.error.toString()}
                     </div>
@@ -178,7 +178,7 @@ export function AsyncErrorBoundary({
         <div className="text-center space-y-4">
           <AlertTriangle className="h-12 w-12 text-red-500 mx-auto" />
           <h3 className="text-lg font-semibold">Failed to load</h3>
-          <p className="text-gray-600">{error.message}</p>
+          <p className="text-gray-600 dark:text-gray-400">{error.message}</p>
           <Button onClick={handleRetry} className="bg-gradient-to-r from-orange-500 to-pink-500">
             <RefreshCw className="mr-2 h-4 w-4" />
             Try Again
@@ -219,10 +219,10 @@ export function ErrorFallback({
         </CardHeader>
 
         <CardContent className="space-y-3">
-          <p className="text-gray-600">{description || "We encountered an unexpected error. Please try again."}</p>
+          <p className="text-gray-600 dark:text-gray-400">{description || "We encountered an unexpected error. Please try again."}</p>
 
           {process.env.NODE_ENV === "development" && (
-            <div className="bg-gray-100 p-3 rounded-lg text-xs font-mono text-gray-600">{error.message}</div>
+            <div className="bg-gray-100 dark:bg-card p-3 rounded-lg text-xs font-mono text-gray-600 dark:text-gray-400">{error.message}</div>
           )}
         </CardContent>
 
@@ -253,7 +253,7 @@ export function NetworkError({ onRetry }: { onRetry: () => void }) {
         </CardHeader>
 
         <CardContent>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-400">
             We couldn't connect to the server. Please check your internet connection and try again.
           </p>
         </CardContent>
@@ -284,7 +284,7 @@ export function NotFoundError({ message = "Page not found", homeLink = "/" }: { 
         </CardHeader>
 
         <CardContent>
-          <p className="text-gray-600 text-lg">{message}</p>
+          <p className="text-gray-600 dark:text-gray-400 text-lg">{message}</p>
         </CardContent>
 
         <CardFooter>

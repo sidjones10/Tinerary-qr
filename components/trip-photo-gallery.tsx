@@ -85,7 +85,7 @@ export function TripPhotoGallery() {
       </div>
 
       <Tabs defaultValue="gallery">
-        <TabsList className="grid w-full grid-cols-2 bg-white/70 backdrop-blur-sm">
+        <TabsList className="grid w-full grid-cols-2 bg-white/70 dark:bg-card/70 backdrop-blur-sm">
           <TabsTrigger value="gallery">Gallery</TabsTrigger>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
         </TabsList>

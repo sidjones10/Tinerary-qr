@@ -3,21 +3,20 @@
 import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
+import { useTranslation } from "react-i18next"
 import { useAuth } from "@/providers/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Pencil, ArrowLeft, Upload, Download } from "lucide-react"
+import { Loader2, Pencil, Upload } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
-import { compressImage } from "@/lib/storage-service"
-import Link from "next/link"
-import { DeleteAccountDialog } from "@/components/delete-account-dialog"
-import { Separator } from "@/components/ui/separator"
+import { compressImage, deleteImage } from "@/lib/storage-service"
 
 export function ProfileSettings() {
+  const { t } = useTranslation()
   const { user, refreshSession } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
@@ -37,7 +36,6 @@ export function ProfileSettings() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [avatarPath, setAvatarPath] = useState<string | null>(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
-  const [downloadingData, setDownloadingData] = useState(false)
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -54,8 +52,8 @@ export function ProfileSettings() {
           if (error) {
             console.error("Error fetching profile:", error)
             toast({
-              title: "Error",
-              description: "Failed to load profile data.",
+              title: t("common.error"),
+              description: t("settings.profile.loadError", "Failed to load profile data."),
               variant: "destructive",
             })
           } else if (data) {
@@ -112,8 +110,8 @@ export function ProfileSettings() {
 
       if (data) {
         toast({
-          title: "Username taken",
-          description: "This username is already in use. Please choose another.",
+          title: t("settings.profile.usernameTaken"),
+          description: t("settings.profile.usernameTakenDesc"),
           variant: "destructive",
         })
         return false
@@ -165,16 +163,16 @@ export function ProfileSettings() {
       setAvatarPath(result.path)
 
       toast({
-        title: "Photo updated",
-        description: "Your profile photo has been updated successfully.",
+        title: t("settings.profile.photoUpdated"),
+        description: t("settings.profile.photoUpdatedDesc"),
       })
 
       await refreshSession()
     } catch (error: any) {
       console.error("Error updating photo:", error)
       toast({
-        title: "Error",
-        description: error.message || "Failed to update profile photo.",
+        title: t("common.error"),
+        description: error.message || t("settings.profile.photoError", "Failed to update profile photo."),
         variant: "destructive",
       })
     } finally {
@@ -212,69 +210,20 @@ export function ProfileSettings() {
       setAvatarPath(null)
 
       toast({
-        title: "Photo removed",
-        description: "Your profile photo has been removed.",
+        title: t("settings.profile.photoRemoved"),
+        description: t("settings.profile.photoRemovedDesc"),
       })
 
       await refreshSession()
     } catch (error: any) {
       console.error("Error removing photo:", error)
       toast({
-        title: "Error",
-        description: error.message || "Failed to remove profile photo.",
+        title: t("common.error"),
+        description: error.message || t("settings.profile.photoRemoveError", "Failed to remove profile photo."),
         variant: "destructive",
       })
     } finally {
       setUploadingAvatar(false)
-    }
-  }
-
-  const handleDownloadData = async () => {
-    if (!user) return
-
-    setDownloadingData(true)
-    try {
-      // Call the export API endpoint
-      const response = await fetch("/api/user/export-data", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to download data")
-      }
-
-      // Get the blob data
-      const blob = await response.blob()
-
-      // Create download link
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      const timestamp = new Date().toISOString().split("T")[0]
-      a.download = `tinerary-data-export-${timestamp}.json`
-      document.body.appendChild(a)
-      a.click()
-
-      // Cleanup
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-
-      toast({
-        title: "Data exported",
-        description: "Your data has been downloaded successfully.",
-      })
-    } catch (error: any) {
-      console.error("Error downloading data:", error)
-      toast({
-        title: "Error",
-        description: error.message || "Failed to download data.",
-        variant: "destructive",
-      })
-    } finally {
-      setDownloadingData(false)
     }
   }
 
@@ -315,8 +264,8 @@ export function ProfileSettings() {
         }
 
         toast({
-          title: "Email update initiated",
-          description: "Please check your email to confirm the change.",
+          title: t("settings.profile.emailUpdateInitiated"),
+          description: t("settings.profile.emailUpdateInitiatedDesc"),
         })
       }
 
@@ -364,8 +313,8 @@ export function ProfileSettings() {
       }
 
       toast({
-        title: "Profile updated",
-        description: "Your profile information has been updated successfully.",
+        title: t("settings.profile.profileUpdated"),
+        description: t("settings.profile.profileUpdatedDesc"),
       })
 
       setOriginalUsername(formData.username)
@@ -373,8 +322,8 @@ export function ProfileSettings() {
     } catch (error: any) {
       console.error("Error updating profile:", error)
       toast({
-        title: "Error",
-        description: error.message || "There was a problem updating your profile.",
+        title: t("common.error"),
+        description: error.message || t("settings.profile.updateError", "There was a problem updating your profile."),
         variant: "destructive",
       })
     } finally {
@@ -385,15 +334,15 @@ export function ProfileSettings() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Profile Settings</CardTitle>
-        <CardDescription>Manage your personal information and public profile</CardDescription>
+        <CardTitle>{t("settings.profile.title")}</CardTitle>
+        <CardDescription>{t("settings.profile.description")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-4">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="space-y-2 flex-1">
-                <Label htmlFor="fullName">Full Name</Label>
+                <Label htmlFor="fullName">{t("settings.profile.fullName")}</Label>
                 <Input
                   id="fullName"
                   name="fullName"
@@ -404,7 +353,7 @@ export function ProfileSettings() {
               </div>
 
               <div className="space-y-2 flex-1">
-                <Label htmlFor="username">Username</Label>
+                <Label htmlFor="username">{t("settings.profile.username")}</Label>
                 <Input
                   id="username"
                   name="username"
@@ -414,14 +363,14 @@ export function ProfileSettings() {
                   disabled={checkingUsername}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Your username is visible to others. Choose wisely!
+                  {t("settings.profile.usernameHint")}
                 </p>
               </div>
             </div>
 
             <div className="flex flex-col md:flex-row gap-4">
               <div className="space-y-2 flex-1">
-                <Label htmlFor="email">Email Address</Label>
+                <Label htmlFor="email">{t("settings.profile.emailAddress")}</Label>
                 <Input
                   id="email"
                   name="email"
@@ -431,12 +380,12 @@ export function ProfileSettings() {
                   placeholder="jessica@example.com"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Email changes require verification
+                  {t("settings.profile.emailHint")}
                 </p>
               </div>
 
               <div className="space-y-2 flex-1">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone">{t("settings.profile.phone")}</Label>
                 <Input
                   id="phone"
                   name="phone"
@@ -449,7 +398,7 @@ export function ProfileSettings() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="website">Website</Label>
+              <Label htmlFor="website">{t("settings.profile.website")}</Label>
               <Input
                 id="website"
                 name="website"
@@ -461,7 +410,7 @@ export function ProfileSettings() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bio">Bio</Label>
+              <Label htmlFor="bio">{t("settings.profile.bio")}</Label>
               <Textarea
                 id="bio"
                 name="bio"
@@ -473,7 +422,7 @@ export function ProfileSettings() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
+              <Label htmlFor="location">{t("settings.profile.location")}</Label>
               <Input
                 id="location"
                 name="location"
@@ -484,7 +433,7 @@ export function ProfileSettings() {
             </div>
 
             <div className="space-y-2">
-              <Label>Profile Photo</Label>
+              <Label>{t("settings.profile.profilePhoto")}</Label>
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center overflow-hidden">
                   {avatarUrl ? (
@@ -523,12 +472,12 @@ export function ProfileSettings() {
                     {uploadingAvatar ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Uploading...
+                        {t("common.uploading")}
                       </>
                     ) : (
                       <>
                         <Upload className="mr-2 h-4 w-4" />
-                        Change
+                        {t("common.change")}
                       </>
                     )}
                   </Button>
@@ -541,13 +490,13 @@ export function ProfileSettings() {
                       onClick={handleRemovePhoto}
                       disabled={uploadingAvatar}
                     >
-                      Remove
+                      {t("common.remove")}
                     </Button>
                   )}
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                Recommended: Square image, at least 400x400px. Max 2MB.
+                {t("settings.profile.photoHint")}
               </p>
             </div>
           </div>
@@ -557,71 +506,14 @@ export function ProfileSettings() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
+                  {t("common.saving")}
                 </>
               ) : (
-                "Save Changes"
+                t("settings.profile.saveChanges")
               )}
             </Button>
           </div>
         </form>
-
-        <Separator className="my-6" />
-
-        {/* Data & Privacy Section */}
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-lg font-medium">Data & Privacy</h3>
-            <p className="text-sm text-muted-foreground">
-              Manage your data and account privacy settings
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            {/* Download My Data */}
-            <div className="flex items-start justify-between p-4 border rounded-lg">
-              <div className="space-y-1 flex-1">
-                <h4 className="font-medium">Download Your Data</h4>
-                <p className="text-sm text-muted-foreground">
-                  Export all your data including itineraries, comments, and profile information in JSON format.
-                  This complies with GDPR data portability requirements.
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={handleDownloadData}
-                disabled={downloadingData}
-                className="ml-4 shrink-0"
-              >
-                {downloadingData ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Downloading...
-                  </>
-                ) : (
-                  <>
-                    <Download className="mr-2 h-4 w-4" />
-                    Download Data
-                  </>
-                )}
-              </Button>
-            </div>
-
-            {/* Delete Account */}
-            <div className="flex items-start justify-between p-4 border border-red-200 rounded-lg bg-red-50/50">
-              <div className="space-y-1 flex-1">
-                <h4 className="font-medium text-red-900">Delete Account</h4>
-                <p className="text-sm text-red-700">
-                  Permanently delete your account and all associated data. This action cannot be undone,
-                  but you have 30 days to cancel. You'll receive a warning email 7 days before deletion.
-                </p>
-              </div>
-              <div className="ml-4 shrink-0">
-                {user && <DeleteAccountDialog userId={user.id} userEmail={user.email} />}
-              </div>
-            </div>
-          </div>
-        </div>
       </CardContent>
     </Card>
   )

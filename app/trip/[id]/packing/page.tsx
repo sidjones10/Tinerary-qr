@@ -6,12 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ChevronLeft } from "lucide-react"
 import Link from "next/link"
-import { notFound, redirect } from "next/navigation"
+import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { cookies } from "next/headers"
 
-export default async function PackingPage({ params }: { params: { id: string } }) {
-  const tripId = params.id
+export default async function PackingPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: tripId } = await params
 
   // Fetch trip data
   const trip = await getTripById(tripId)
@@ -20,8 +19,7 @@ export default async function PackingPage({ params }: { params: { id: string } }
   }
 
   // Check access permissions
-  const cookieStore = cookies()
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   // Owner always has access

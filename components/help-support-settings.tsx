@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useToast } from "@/components/ui/use-toast"
-import { Loader2, FileText, Users, Video, MapPin } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
 export function HelpSupportSettings() {
   const { t } = useTranslation()
@@ -139,56 +139,6 @@ export function HelpSupportSettings() {
                 </Button>
               </div>
             </form>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("settings.help.helpResources")}</CardTitle>
-          <CardDescription>{t("settings.help.helpResourcesDesc")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border rounded-md p-4 flex items-start gap-3">
-              <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-md text-blue-600 dark:text-blue-400">
-                <FileText className="h-5 w-5" />
-              </div>
-              <div>
-                <h4 className="font-medium">{t("settings.help.userGuide")}</h4>
-                <p className="text-sm text-muted-foreground">{t("settings.help.userGuideDesc")}</p>
-              </div>
-            </div>
-
-            <div className="border rounded-md p-4 flex items-start gap-3">
-              <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded-md text-green-600 dark:text-green-400">
-                <Users className="h-5 w-5" />
-              </div>
-              <div>
-                <h4 className="font-medium">{t("settings.help.communityForum")}</h4>
-                <p className="text-sm text-muted-foreground">{t("settings.help.communityForumDesc")}</p>
-              </div>
-            </div>
-
-            <div className="border rounded-md p-4 flex items-start gap-3">
-              <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-md text-purple-600 dark:text-purple-400">
-                <Video className="h-5 w-5" />
-              </div>
-              <div>
-                <h4 className="font-medium">{t("settings.help.videoTutorials")}</h4>
-                <p className="text-sm text-muted-foreground">{t("settings.help.videoTutorialsDesc")}</p>
-              </div>
-            </div>
-
-            <div className="border rounded-md p-4 flex items-start gap-3">
-              <div className="bg-amber-100 dark:bg-amber-900/30 p-2 rounded-md text-amber-600 dark:text-amber-400">
-                <MapPin className="h-5 w-5" />
-              </div>
-              <div>
-                <h4 className="font-medium">{t("settings.help.travelTips")}</h4>
-                <p className="text-sm text-muted-foreground">{t("settings.help.travelTipsDesc")}</p>
-              </div>
-            </div>
           </div>
         </CardContent>
       </Card>

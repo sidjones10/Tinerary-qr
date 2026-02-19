@@ -34,7 +34,6 @@ export function ProfileSettings() {
   const [originalUsername, setOriginalUsername] = useState("")
   const [checkingUsername, setCheckingUsername] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
-  const [avatarPath, setAvatarPath] = useState<string | null>(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
 
   useEffect(() => {
@@ -45,7 +44,7 @@ export function ProfileSettings() {
           const supabase = createClient()
           const { data, error } = await supabase
             .from("profiles")
-            .select("name, username, bio, location, website, phone, avatar_url, avatar_path")
+            .select("name, username, bio, location, website, phone, avatar_url")
             .eq("id", user.id)
             .single()
 
@@ -70,7 +69,6 @@ export function ProfileSettings() {
             })
             setOriginalUsername(data.username || "")
             setAvatarUrl(data.avatar_url || null)
-            setAvatarPath(data.avatar_path || null)
           }
         } finally {
           setIsLoading(false)
@@ -139,9 +137,6 @@ export function ProfileSettings() {
       // upload to storage, update profiles table, update auth metadata
       const formData = new FormData()
       formData.append("file", compressedFile)
-      if (avatarPath) {
-        formData.append("oldPath", avatarPath)
-      }
 
       const response = await fetch("/api/profile/avatar", {
         method: "POST",
@@ -160,7 +155,6 @@ export function ProfileSettings() {
       }
 
       setAvatarUrl(result.url)
-      setAvatarPath(result.path)
 
       toast({
         title: t("settings.profile.photoUpdated"),
@@ -192,7 +186,7 @@ export function ProfileSettings() {
       const response = await fetch("/api/profile/avatar", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: avatarPath }),
+        body: JSON.stringify({ avatarUrl }),
       })
 
       if (!response.ok) {
@@ -207,7 +201,6 @@ export function ProfileSettings() {
       }
 
       setAvatarUrl(null)
-      setAvatarPath(null)
 
       toast({
         title: t("settings.profile.photoRemoved"),

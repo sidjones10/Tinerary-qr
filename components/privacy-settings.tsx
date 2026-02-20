@@ -25,8 +25,6 @@ export function PrivacySettings() {
   const [privacySettings, setPrivacySettings] = useState({
     shareLocation: false,
     locationHistory: true,
-    showActivity: true,
-    readReceipts: true,
     personalizedRecs: true,
     dataCollection: true,
   })
@@ -70,6 +68,12 @@ export function PrivacySettings() {
         }
 
         if (prefsData?.privacy_preferences) {
+          // Restore the exact profile privacy level from JSONB
+          // (the profiles.is_private boolean can't distinguish "followers" from "private")
+          if (prefsData.privacy_preferences.profilePrivacy) {
+            setProfilePrivacy(prefsData.privacy_preferences.profilePrivacy)
+          }
+
           setPrivacySettings((prev) => ({
             ...prev,
             ...prefsData.privacy_preferences,
@@ -119,36 +123,19 @@ export function PrivacySettings() {
         throw new Error(`Failed to update profile privacy: ${profileError.message}`)
       }
 
-      // Save other privacy settings to user_preferences
-      const { error: updateError } = await supabase
+      // Save other privacy settings to user_preferences (upsert handles both new and existing rows)
+      const { error: upsertError } = await supabase
         .from("user_preferences")
-        .update({
+        .upsert({
+          user_id: user.id,
           privacy_preferences: {
             ...privacySettings,
             profilePrivacy, // Store the exact privacy level
           },
           updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", user.id)
+        }, { onConflict: "user_id" })
 
-      // If no rows were updated, insert a new row
-      if (updateError && updateError.code === "PGRST116") {
-        const { error: insertError } = await supabase
-          .from("user_preferences")
-          .insert({
-            user_id: user.id,
-            privacy_preferences: {
-              ...privacySettings,
-              profilePrivacy,
-            },
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-
-        if (insertError) throw insertError
-      } else if (updateError) {
-        throw updateError
-      }
+      if (upsertError) throw upsertError
 
       toast({
         title: t("settings.privacy.settingsSaved"),
@@ -278,28 +265,6 @@ export function PrivacySettings() {
                 checked={privacySettings.locationHistory}
                 onCheckedChange={() => handleToggle("locationHistory")}
               />
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-4 pt-4 border-t">
-          <h3 className="text-sm font-medium text-muted-foreground">{t("settings.privacy.activityPrivacy")}</h3>
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">{t("settings.privacy.showActivityStatus")}</p>
-                <p className="text-sm text-muted-foreground">{t("settings.privacy.showActivityStatusDesc")}</p>
-              </div>
-              <Switch checked={privacySettings.showActivity} onCheckedChange={() => handleToggle("showActivity")} />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">{t("settings.privacy.readReceipts")}</p>
-                <p className="text-sm text-muted-foreground">{t("settings.privacy.readReceiptsDesc")}</p>
-              </div>
-              <Switch checked={privacySettings.readReceipts} onCheckedChange={() => handleToggle("readReceipts")} />
             </div>
           </div>
         </div>

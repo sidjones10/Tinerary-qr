@@ -1,6 +1,6 @@
 import type React from "react"
 import "@/app/globals.css"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/providers/auth-provider"
@@ -8,19 +8,32 @@ import { ConsentProvider } from "@/providers/consent-provider"
 import { OnboardingWrapper } from "@/components/onboarding-wrapper"
 import { GlobalErrorHandler } from "@/components/global-error-handler"
 import { I18nProvider } from "@/providers/i18n-provider"
+import { PWARegister } from "@/components/pwa-register"
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#E11D48',
+}
 
 export const metadata: Metadata = {
   title: "Tinerary",
   description: "Create and share your travel itineraries",
   generator: 'v0.app',
+  manifest: '/manifest.json',
   icons: {
     icon: '/Tinerary_icon.png',
+    apple: '/icons/apple-touch-icon.png',
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Tinerary',
+  },
+  formatDetection: {
+    telephone: false,
   },
 }
 
@@ -52,6 +65,7 @@ export default function RootLayout({
             </I18nProvider>
           </AuthProvider>
         </ThemeProvider>
+        <PWARegister />
       </body>
     </html>
   )

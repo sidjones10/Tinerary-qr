@@ -92,7 +92,7 @@ export default function NotificationsPage() {
     <div className="flex min-h-screen flex-col">
       <AppHeader />
 
-      <main className="flex-1 bg-background">
+      <main className="flex-1">
         <div className="container px-4 py-6 md:py-10">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">

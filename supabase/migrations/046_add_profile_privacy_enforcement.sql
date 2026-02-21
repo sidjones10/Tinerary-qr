@@ -68,6 +68,36 @@ GRANT EXECUTE ON FUNCTION can_view_profile(UUID, UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION can_view_profile(UUID, UUID) TO anon;
 
 -- ============================================================================
+-- STEP 1b: Create function to retrieve a user's profile privacy level
+-- ============================================================================
+-- The user_preferences table is locked down by RLS so only the owner can
+-- SELECT their own row.  The client-side profile page needs to know the
+-- *privacy level* of any user it is viewing so it can show/hide content.
+-- This SECURITY DEFINER function safely exposes just the privacy level
+-- without opening up the whole user_preferences table.
+
+CREATE OR REPLACE FUNCTION get_profile_privacy(target_user_id UUID)
+RETURNS TEXT AS $$
+DECLARE
+  privacy_level TEXT;
+BEGIN
+  SELECT COALESCE(
+    (privacy_preferences->>'profilePrivacy'),
+    'public'
+  ) INTO privacy_level
+  FROM user_preferences
+  WHERE user_id = target_user_id;
+
+  RETURN COALESCE(privacy_level, 'public');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+COMMENT ON FUNCTION get_profile_privacy IS 'Return the profilePrivacy level for a user (public/followers/private). Safe to call for any user.';
+
+GRANT EXECUTE ON FUNCTION get_profile_privacy(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION get_profile_privacy(UUID) TO anon;
+
+-- ============================================================================
 -- STEP 2: Update get_followers() to check profile privacy
 -- ============================================================================
 

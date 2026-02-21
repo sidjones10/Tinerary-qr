@@ -30,13 +30,11 @@ export default async function FollowersPage({ params }: { params: Promise<{ user
   let profilePrivacy = "public"
 
   if (!isOwnProfile) {
-    const { data: prefsData } = await supabase
-      .from("user_preferences")
-      .select("privacy_preferences")
-      .eq("user_id", userId)
-      .single()
+    const { data: privacyData } = await supabase.rpc("get_profile_privacy", {
+      target_user_id: userId,
+    })
 
-    profilePrivacy = prefsData?.privacy_preferences?.profilePrivacy ?? "public"
+    profilePrivacy = privacyData ?? "public"
 
     if (profilePrivacy === "private") {
       isProfileRestricted = true

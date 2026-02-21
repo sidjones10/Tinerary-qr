@@ -110,7 +110,16 @@ export function PrivacySettings() {
     try {
       const supabase = createClient()
 
-      // Save privacy settings to user_preferences first (source of truth for the exact privacy level)
+      // Ensure the user row exists in the users table (user_preferences has a FK to it)
+      await supabase
+        .from("users")
+        .upsert({
+          id: user.id,
+          email: user.email ?? null,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "id" })
+
+      // Save privacy settings to user_preferences (source of truth for the exact privacy level)
       const { error: upsertError } = await supabase
         .from("user_preferences")
         .upsert({

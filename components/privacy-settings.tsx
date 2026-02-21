@@ -155,19 +155,22 @@ export function PrivacySettings() {
   }
 
   const handleDownloadData = async () => {
-    if (!user) return
+    if (!user) {
+      toast({
+        title: t("auth.authRequired"),
+        description: t("auth.pleaseLogInSettings"),
+        variant: "destructive",
+      })
+      return
+    }
 
     setDownloadingData(true)
     try {
-      const response = await fetch("/api/user/export-data", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
+      const response = await fetch("/api/user/export-data")
 
       if (!response.ok) {
-        throw new Error("Failed to download data")
+        const errorData = await response.json().catch(() => null)
+        throw new Error(errorData?.error || "Failed to download data")
       }
 
       const blob = await response.blob()
@@ -179,8 +182,11 @@ export function PrivacySettings() {
       document.body.appendChild(a)
       a.click()
 
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      // Delay cleanup so the browser has time to initiate the download
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      }, 150)
 
       toast({
         title: t("dataPrivacy.dataExported"),

@@ -13,7 +13,7 @@ import { LanguageSettings } from "@/components/language-settings"
 import { HelpSupportSettings } from "@/components/help-support-settings"
 import { Navbar } from "@/components/navbar"
 import { ArrowLeft, Loader2 } from "lucide-react"
-import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { useTranslation } from "react-i18next"
 
 function SettingsContent() {
@@ -55,16 +55,15 @@ function SettingsLoading() {
 
 function SettingsTitle() {
   const { t } = useTranslation()
-  const router = useRouter()
   return (
-    <div className="flex items-center gap-3 mb-6">
-      <button
-        onClick={() => router.back()}
-        className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
+    <div className="flex items-center gap-4 mb-6">
+      <Link
+        href="/"
+        className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/80 dark:bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-all text-muted-foreground hover:text-foreground"
         aria-label="Go back"
       >
         <ArrowLeft className="h-5 w-5" />
-      </button>
+      </Link>
       <h1 className="text-3xl font-bold">{t("settings.title")}</h1>
     </div>
   )

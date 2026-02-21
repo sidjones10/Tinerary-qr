@@ -192,7 +192,7 @@ export async function getItinerariesNeedingReminders(): Promise<{
   // Get itineraries with countdown reminders enabled that haven't ended yet
   const { data: itineraries, error } = await supabase
     .from("itineraries")
-    .select("id, user_id, title, start_date, end_date")
+    .select("id, user_id, title, start_date, end_date, time")
     .eq("countdown_reminders_enabled", true)
     .gte("start_date", now.toISOString().split("T")[0])
     .order("start_date", { ascending: true })
@@ -201,6 +201,9 @@ export async function getItinerariesNeedingReminders(): Promise<{
     console.error("Error fetching itineraries for reminders:", error)
     return []
   }
+
+  // Day-based reminder types that work even without a specific time
+  const dayBasedReminders = new Set(["5_days", "2_days", "1_day"])
 
   const remindersNeeded: {
     itineraryId: string
@@ -211,9 +214,24 @@ export async function getItinerariesNeedingReminders(): Promise<{
   }[] = []
 
   for (const itinerary of itineraries) {
-    const startDate = new Date(itinerary.start_date)
+    // Combine start_date + time to get the actual event datetime
+    let startDate: Date
+    if (itinerary.time) {
+      // Time is stored as "HH:MM" (e.g. "14:30")
+      startDate = new Date(`${itinerary.start_date}T${itinerary.time}:00`)
+    } else {
+      // No time set — use start of day (midnight)
+      startDate = new Date(itinerary.start_date)
+    }
+
     const millisUntilStart = startDate.getTime() - now.getTime()
     const reminderType = getReminderTypeForTime(millisUntilStart)
+
+    // If no time is set, only send day-based reminders (5d, 2d, 1d)
+    // Skip hour/minute reminders since we don't know the actual time
+    if (reminderType && !itinerary.time && !dayBasedReminders.has(reminderType) && reminderType !== "started") {
+      continue
+    }
 
     if (reminderType) {
       remindersNeeded.push({

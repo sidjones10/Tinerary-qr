@@ -37,25 +37,7 @@ export function PrivacySettings() {
       try {
         const supabase = createClient()
 
-        // Load profile privacy from profiles table
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("is_private")
-          .eq("id", user.id)
-          .single()
-
-        if (profileError && profileError.code !== "PGRST116") {
-          console.error("Error loading profile privacy:", profileError)
-        } else if (profileData) {
-          // Map is_private boolean to profilePrivacy string
-          if (profileData.is_private === true) {
-            setProfilePrivacy("private")
-          } else if (profileData.is_private === false) {
-            setProfilePrivacy("public")
-          }
-        }
-
-        // Load other privacy settings from user_preferences
+        // Load privacy settings from user_preferences (source of truth)
         const { data: prefsData, error: prefsError } = await supabase
           .from("user_preferences")
           .select("privacy_preferences")
@@ -132,20 +114,6 @@ export function PrivacySettings() {
         }, { onConflict: "user_id" })
 
       if (upsertError) throw upsertError
-
-      // Also update profile privacy in profiles table (best-effort, don't block save if this fails)
-      const isPrivate = profilePrivacy === "private" || profilePrivacy === "followers"
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          is_private: isPrivate,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id)
-
-      if (profileError) {
-        console.error("Failed to update profile is_private flag:", profileError.message)
-      }
 
       toast({
         title: t("settings.privacy.settingsSaved"),

@@ -95,7 +95,11 @@ function CreatePageContent() {
           .maybeSingle()
 
         if (!error && data?.language_preferences?.currency) {
-          setCurrency(data.language_preferences.currency)
+          const savedCurrency = data.language_preferences.currency.toUpperCase()
+          const validCurrencies = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD']
+          if (validCurrencies.includes(savedCurrency)) {
+            setCurrency(savedCurrency as Currency)
+          }
         }
       } catch {
         // Silently ignore - column may not exist if migration not applied

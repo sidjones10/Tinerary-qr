@@ -25,16 +25,18 @@ export default async function PackingPage({ params }: { params: Promise<{ id: st
   // Owner always has access
   const isOwner = user?.id === trip.user_id
 
-  // Try RPC function, fall back to owner check if it fails
+  // Check if user is an accepted invitee
   let hasAccess = isOwner
-  if (!isOwner) {
-    const { data: rpcResult, error } = await supabase.rpc('can_access_private_content', {
-      user_uuid: user?.id || null,
-      itinerary_uuid: tripId,
-      content_type: 'packing'
-    })
-    hasAccess = rpcResult ?? false
-    if (error) console.warn('Packing access RPC error:', error)
+  if (!isOwner && user?.id) {
+    const { data: invitation } = await supabase
+      .from('itinerary_invitations')
+      .select('id')
+      .eq('itinerary_id', tripId)
+      .eq('invitee_id', user.id)
+      .eq('status', 'accepted')
+      .limit(1)
+      .maybeSingle()
+    hasAccess = !!invitation
   }
 
   // If user doesn't have access, show access denied page

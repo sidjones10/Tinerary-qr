@@ -33,7 +33,10 @@ export async function logError(params: LogErrorParams): Promise<string | null> {
       .single()
 
     if (error) {
-      console.error("Failed to log error:", error)
+      // Silently ignore if error_logs table doesn't exist (migration not applied)
+      if (error.code !== 'PGRST204' && error.code !== 'PGRST205') {
+        console.error("Failed to log error:", error)
+      }
       return null
     }
 

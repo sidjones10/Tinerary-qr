@@ -148,38 +148,21 @@ export function EventDetail({ event }: EventDetailProps) {
 
       const supabase = createClient()
 
-      // Owner always has access - this is a fallback in case RPC function fails
-      const isUserOwner = user?.id === event.user_id
+      // Check if user is an accepted invitee for this itinerary
+      const { data: invitation } = await supabase
+        .from('itinerary_invitations')
+        .select('id')
+        .eq('itinerary_id', event.id)
+        .eq('invitee_id', user?.id)
+        .eq('status', 'accepted')
+        .limit(1)
+        .maybeSingle()
 
-      // Try RPC function first, but fall back to owner check if it fails
-      try {
-        // Check packing list access
-        const { data: packingAccess, error: packingError } = await supabase.rpc('can_access_private_content', {
-          user_uuid: user?.id || null,
-          itinerary_uuid: event.id,
-          content_type: 'packing'
-        })
+      const isAttendee = !!invitation
 
-        // Check expenses access
-        const { data: expensesAccess, error: expensesError } = await supabase.rpc('can_access_private_content', {
-          user_uuid: user?.id || null,
-          itinerary_uuid: event.id,
-          content_type: 'expenses'
-        })
-
-        // If RPC returns null (function may not exist), fall back to owner check
-        setCanAccessPacking(packingAccess ?? isUserOwner)
-        setCanAccessExpenses(expensesAccess ?? isUserOwner)
-
-        // Log errors for debugging
-        if (packingError) console.warn('Packing access RPC error:', packingError)
-        if (expensesError) console.warn('Expenses access RPC error:', expensesError)
-      } catch (error) {
-        console.warn('Access check failed, falling back to owner check:', error)
-        // Fall back to owner check if RPC completely fails
-        setCanAccessPacking(isUserOwner)
-        setCanAccessExpenses(isUserOwner)
-      }
+      // Attendees and owners can access private content
+      setCanAccessPacking(isAttendee)
+      setCanAccessExpenses(isAttendee)
 
       setCheckingAccess(false)
     }

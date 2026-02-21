@@ -21,7 +21,6 @@ export interface NotificationPreferences {
   email: boolean
   sms: boolean
   tripReminders: boolean
-  activityAlerts: boolean
   itineraryChanges: boolean
   newFollowers: boolean
   likesComments: boolean
@@ -31,9 +30,8 @@ export interface NotificationPreferences {
 const DEFAULT_PREFERENCES: NotificationPreferences = {
   push: true,
   email: true,
-  sms: false,
+  sms: true,
   tripReminders: true,
-  activityAlerts: true,
   itineraryChanges: true,
   newFollowers: true,
   likesComments: true,

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { getUserNotificationPreferences } from "@/lib/notification-service"
 import { sendNewLikeEmail, sendNewCommentEmail } from "@/lib/email-notifications"
 
 /**
@@ -31,8 +30,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, skipped: true })
     }
 
-    // Check recipient's email notification preferences
-    const prefs = await getUserNotificationPreferences(recipientUserId)
+    // Check recipient's email notification preferences using server-side client
+    // (getUserNotificationPreferences uses the browser client which has no auth
+    // context server-side, so it always falls back to defaults)
+    const { data: prefsRow } = await supabase
+      .from("user_preferences")
+      .select("notification_preferences")
+      .eq("user_id", recipientUserId)
+      .single()
+
+    const prefs = {
+      email: true,
+      likesComments: true,
+      ...((prefsRow?.notification_preferences as Record<string, boolean>) || {}),
+    }
+
     if (!prefs.email || !prefs.likesComments) {
       return NextResponse.json({ success: true, skipped: true, reason: "notifications disabled" })
     }

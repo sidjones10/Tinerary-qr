@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
-import { ArrowLeft, Calendar, MapPin, Clock, Share2, Heart, Users, Edit, Trash2, Loader2 } from "lucide-react"
+import { ArrowLeft, Calendar, MapPin, MapPinOff, Clock, Share2, Heart, Users, Edit, Trash2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -27,6 +27,7 @@ import { ThemeIcon } from "@/components/theme-selector"
 import { getFontFamily } from "@/components/font-selector"
 import { PostEventCoverPrompt } from "@/components/post-event-cover-prompt"
 import { shouldPromptCoverUpdate } from "@/lib/reminder-utils"
+import { Switch } from "@/components/ui/switch"
 
 interface Activity {
   id: string
@@ -121,6 +122,10 @@ export function EventDetail({ event }: EventDetailProps) {
   const [checkingAccess, setCheckingAccess] = useState(true)
   const [coverImage, setCoverImage] = useState(event.image_url as string | undefined)
   const [showCoverPrompt, setShowCoverPrompt] = useState(false)
+  const [sharePreciseLocation, setSharePreciseLocation] = useState<boolean>(
+    (event.share_precise_location as boolean) ?? true
+  )
+  const [isTogglingLocation, setIsTogglingLocation] = useState(false)
   const isOwner = !!(user && user.id === event.user_id)
 
   // Check if we should show the post-event cover update prompt
@@ -379,6 +384,36 @@ export function EventDetail({ event }: EventDetailProps) {
       })
     } finally {
       setIsSendingInvite(false)
+    }
+  }
+
+  const handleTogglePreciseLocation = async (checked: boolean) => {
+    setIsTogglingLocation(true)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from("itineraries")
+        .update({ share_precise_location: checked })
+        .eq("id", event.id)
+
+      if (error) throw error
+
+      setSharePreciseLocation(checked)
+      toast({
+        title: checked ? "Precise location enabled" : "Precise location hidden",
+        description: checked
+          ? "Others can now see the exact address"
+          : "Others will only see the city or region",
+      })
+    } catch (error: any) {
+      console.error("Error updating location setting:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update setting",
+        variant: "destructive",
+      })
+    } finally {
+      setIsTogglingLocation(false)
     }
   }
 
@@ -760,6 +795,29 @@ export function EventDetail({ event }: EventDetailProps) {
                         : "Private - Only invited people can see this event"}
                     </p>
                   </div>
+
+                  {isOwner && event.is_public && (
+                    <div className="pt-2 border-t">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <MapPinOff className="h-5 w-5 text-muted-foreground" />
+                          <div>
+                            <h3 className="font-medium">Share Precise Location</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {sharePreciseLocation
+                                ? "Others can see the exact address"
+                                : "Others only see the city or region"}
+                            </p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={sharePreciseLocation}
+                          onCheckedChange={handleTogglePreciseLocation}
+                          disabled={isTogglingLocation}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

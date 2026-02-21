@@ -103,7 +103,7 @@ export function NotificationSettings() {
       const supabase = createClient()
 
       // 1. Save in-app notification preferences to user_preferences (upsert to handle missing rows)
-      const { error: upsertError } = await supabase
+      const { data: savedPrefs, error: upsertError } = await supabase
         .from("user_preferences")
         .upsert(
           {
@@ -113,19 +113,25 @@ export function NotificationSettings() {
           },
           { onConflict: "user_id" }
         )
+        .select("notification_preferences")
+        .single()
 
       if (upsertError) throw upsertError
+      if (!savedPrefs) throw new Error("Failed to save notification preferences")
 
       // 2. Save marketing & activity digest consent to profiles (independent of step 1)
-      const { error: profileError } = await supabase
+      const { data: savedProfile, error: profileError } = await supabase
         .from("profiles")
         .update({
           marketing_consent: marketingConsent,
           activity_digest_consent: activityDigestConsent,
         })
         .eq("id", user.id)
+        .select("marketing_consent, activity_digest_consent")
+        .single()
 
       if (profileError) throw profileError
+      if (!savedProfile) throw new Error("Failed to save profile preferences")
 
       // 3. Record consent changes in audit log
       await supabase.from("consent_records").insert([

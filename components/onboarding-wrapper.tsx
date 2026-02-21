@@ -25,13 +25,12 @@ export function OnboardingWrapper({ children }: OnboardingWrapperProps) {
       const supabase = createClient()
       const { data: profile } = await supabase
         .from("profiles")
-        .select("onboarding_completed, name, username")
+        .select("name, username")
         .eq("id", user.id)
         .single()
 
       if (profile) {
         setUserName(profile.name || profile.username || "")
-        setShowOnboarding(!profile.onboarding_completed)
       }
 
       setLoading(false)

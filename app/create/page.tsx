@@ -97,8 +97,8 @@ function CreatePageContent() {
         if (!error && data?.language_preferences?.currency) {
           setCurrency(data.language_preferences.currency)
         }
-      } catch (error) {
-        console.error("Error loading currency preference:", error)
+      } catch {
+        // Silently ignore - column may not exist if migration not applied
       }
     }
 

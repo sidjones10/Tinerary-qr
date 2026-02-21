@@ -123,8 +123,8 @@ export function EnhancedExpenseTracker({
           setUserCurrency(currency)
           setNewExpense(prev => ({ ...prev, currency }))
         }
-      } catch (error) {
-        console.error("Error fetching user currency:", error)
+      } catch {
+        // Silently ignore - column may not exist if migration not applied
       }
     }
 

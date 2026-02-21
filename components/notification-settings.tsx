@@ -103,32 +103,23 @@ export function NotificationSettings() {
     try {
       const supabase = createClient()
 
-      // 1. Save in-app notification preferences to user_preferences
-      const { error: updateError } = await supabase
+      // 1. Save in-app notification preferences to user_preferences (upsert to handle missing rows)
+      const { error: upsertError } = await supabase
         .from("user_preferences")
-        .update({
-          notification_preferences: notifications,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", user.id)
-
-      // If no rows were updated, insert a new row
-      if (updateError && updateError.code === "PGRST116") {
-        const { error: insertError } = await supabase
-          .from("user_preferences")
-          .insert({
+        .upsert(
+          {
             user_id: user.id,
             notification_preferences: notifications,
-            created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-          })
+          },
+          { onConflict: "user_id" }
+        )
 
-        if (insertError) throw insertError
-      } else if (updateError) {
-        throw updateError
+      if (upsertError) {
+        console.error("Error saving notification preferences:", upsertError)
       }
 
-      // 2. Save marketing & activity digest consent to profiles
+      // 2. Save marketing & activity digest consent to profiles (independent of step 1)
       const { error: profileError } = await supabase
         .from("profiles")
         .update({

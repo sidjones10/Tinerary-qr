@@ -74,9 +74,10 @@ export function PrivacySettings() {
             setProfilePrivacy(prefsData.privacy_preferences.profilePrivacy)
           }
 
+          const { profilePrivacy: _profilePrivacy, ...toggleSettings } = prefsData.privacy_preferences
           setPrivacySettings((prev) => ({
             ...prev,
-            ...prefsData.privacy_preferences,
+            ...toggleSettings,
           }))
         }
       } catch (error) {
@@ -109,21 +110,7 @@ export function PrivacySettings() {
     try {
       const supabase = createClient()
 
-      // Update profile privacy in profiles table
-      const isPrivate = profilePrivacy === "private" || profilePrivacy === "followers"
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          is_private: isPrivate,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id)
-
-      if (profileError) {
-        throw new Error(`Failed to update profile privacy: ${profileError.message}`)
-      }
-
-      // Save other privacy settings to user_preferences (upsert handles both new and existing rows)
+      // Save privacy settings to user_preferences first (source of truth for the exact privacy level)
       const { error: upsertError } = await supabase
         .from("user_preferences")
         .upsert({
@@ -136,6 +123,20 @@ export function PrivacySettings() {
         }, { onConflict: "user_id" })
 
       if (upsertError) throw upsertError
+
+      // Also update profile privacy in profiles table (best-effort, don't block save if this fails)
+      const isPrivate = profilePrivacy === "private" || profilePrivacy === "followers"
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          is_private: isPrivate,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id)
+
+      if (profileError) {
+        console.error("Failed to update profile is_private flag:", profileError.message)
+      }
 
       toast({
         title: t("settings.privacy.settingsSaved"),

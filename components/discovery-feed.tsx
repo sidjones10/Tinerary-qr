@@ -248,6 +248,18 @@ export function DiscoveryFeed() {
               likedItem.title,
               user.id
             ).catch(err => console.error("Failed to send like notification:", err))
+
+            // Send email notification via server-side API route
+            fetch("/api/notifications/email", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                type: "like",
+                recipientUserId: likedItem.user_id,
+                eventId: itemId,
+                eventTitle: likedItem.title,
+              }),
+            }).catch(err => console.error("Failed to send like email:", err))
           }
         } else {
           console.log("[Like Debug] Unliked! Removing from liked items")

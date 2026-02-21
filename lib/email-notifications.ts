@@ -545,6 +545,73 @@ export async function sendNewFollowerEmail(
 }
 
 /**
+ * Send new like notification email
+ */
+export async function sendNewLikeEmail(
+  recipientEmail: string,
+  recipientName: string,
+  likerName: string,
+  eventTitle: string,
+  eventId: string
+) {
+  try {
+    const eventUrl = `${APP_URL}/event/${eventId}`
+    const safeLikerName = escapeHtml(likerName)
+    const safeEventTitle = escapeHtml(eventTitle)
+
+    const subject = `${likerName} liked your itinerary "${eventTitle}"`
+    const resend = getResendClient()
+    const { data: resendData } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: recipientEmail,
+      subject,
+      html: postcardEmail(`
+        <!-- Logo banner -->
+        <div style="background:#F8F3EF;padding:28px 36px;text-align:center;">
+          <img src="${APP_URL}/email/tinerary-logo.png" alt="Tinerary" style="width:180px;height:auto;" width="180">
+        </div>
+
+        <!-- Divider -->
+        <div style="border-top:3px solid #2c2420;margin:0;"></div>
+
+        <!-- Hero block -->
+        <div style="background:#D4792C;padding:48px 36px;text-align:center;">
+          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:rgba(252,250,248,0.7);margin-bottom:16px;">Someone Loves It</div>
+          <h1 style="margin:0;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:36px;color:#FCFAF8;line-height:1.1;">${safeEventTitle}</h1>
+        </div>
+
+        <!-- Like block -->
+        <div style="background:#2c2420;padding:40px 36px;text-align:center;">
+          <div style="font-size:48px;line-height:1;margin-bottom:16px;">&#10084;</div>
+          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:22px;color:#FCFAF8;margin-bottom:8px;">${safeLikerName}</div>
+          <div style="display:inline-block;background:#D4792C;border-radius:20px;padding:8px 28px;">
+            <span style="font-family:'Nunito Sans',sans-serif;color:#FCFAF8;font-weight:600;font-size:14px;">liked your itinerary</span>
+          </div>
+        </div>
+
+        <!-- Divider -->
+        <div style="border-top:3px solid #2c2420;margin:0;"></div>
+
+        <!-- CTA block -->
+        <div style="background:#D4792C;padding:40px 36px;text-align:center;">
+          <p style="margin:0 0 24px;font-family:'Nunito Sans',sans-serif;font-size:17px;font-weight:600;color:#FCFAF8;line-height:1.5;">Your travels are inspiring others</p>
+          <a href="${eventUrl}" style="display:inline-block;background:#FCFAF8;color:#D4792C;padding:16px 48px;text-decoration:none;border-radius:28px;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.5px;">View Itinerary</a>
+        </div>
+
+        <!-- Divider -->
+        <div style="border-top:3px solid #2c2420;margin:0;"></div>
+      `),
+    })
+    await logEmail({ recipientEmail, emailType: "new_like", subject, status: "sent", resendId: resendData?.id, metadata: { eventId } })
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error sending like notification email:", error)
+    await logEmail({ recipientEmail, emailType: "new_like", subject: `${likerName} liked your itinerary`, status: "failed", errorMessage: error.message })
+    return { success: false, error: error.message }
+  }
+}
+
+/**
  * Send new comment notification email
  */
 export async function sendNewCommentEmail(

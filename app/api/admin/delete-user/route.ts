@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // Validate service role key exists — without it, admin operations silently fail
+    // Validate service role key exists
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
       console.error("SUPABASE_SERVICE_ROLE_KEY is not set — cannot perform admin deletion")
       return NextResponse.json(
@@ -57,9 +57,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // Use service role client with proper server-side auth config.
-    // Without these options the client tries to manage sessions/tokens
-    // which interferes with admin operations.
+    // Admin client for auth and public-schema operations
     const adminClient = createSupabaseClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -71,53 +69,65 @@ export async function POST(request: Request) {
       }
     )
 
-    // 1. Sign out the user globally to invalidate all active sessions
-    try {
-      await adminClient.auth.admin.signOut(userId, "global")
-    } catch {
-      // User may not have active sessions — continue
-    }
-
-    // 2. Delete storage objects owned by this user.
-    //    storage.objects has a foreign key to auth.users, so deleteUser()
-    //    will fail with a constraint error if any files remain.
-    const storageBuckets = ["user-avatars", "itinerary-images", "event-photos"]
-    for (const bucket of storageBuckets) {
-      try {
-        const { data: files } = await adminClient.storage
-          .from(bucket)
-          .list(userId)
-        if (files && files.length > 0) {
-          const paths = files.map((f) => `${userId}/${f.name}`)
-          await adminClient.storage.from(bucket).remove(paths)
-        }
-      } catch {
-        // Bucket may not exist or be empty — continue
+    // Separate client for querying the storage schema directly.
+    // storage.objects has a FK to auth.users, so we must delete all
+    // objects owned by this user before we can delete the auth user.
+    const storageDbClient = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+        db: { schema: "storage" },
       }
+    )
+
+    // 1. Delete ALL storage objects owned by this user (any bucket, any depth).
+    //    This hits the storage.objects table directly instead of trying to
+    //    list/remove from each bucket, which misses nested folders.
+    const { error: storageError } = await storageDbClient
+      .from("objects")
+      .delete()
+      .eq("owner_id", userId)
+
+    if (storageError) {
+      console.error("Error deleting storage objects:", storageError)
+      // Also try the legacy `owner` column in case this is an older Supabase version
+      await storageDbClient.from("objects").delete().eq("owner", userId)
     }
 
-    // 3. Delete from auth.users — this is the critical step that
-    //    invalidates all sessions and prevents sign-in. If this fails,
-    //    we abort without touching application data so we don't end up
-    //    in a broken state (profile deleted but auth user still exists).
-    const { error: authError } = await adminClient.auth.admin.deleteUser(userId)
-
-    if (authError) {
-      console.error("Error deleting auth user:", authError)
-      return NextResponse.json(
-        { success: false, error: "Failed to delete user: " + authError.message },
-        { status: 500 }
-      )
-    }
-
-    // 4. Auth user deleted — clean up related application data.
-    //    These are best-effort; the user can no longer sign in regardless.
+    // 2. Clean up application data BEFORE deleting auth user.
+    //    This avoids FK issues from app tables that reference auth.users.
     await adminClient.from("itineraries").delete().eq("user_id", userId)
     await adminClient.from("saved_itineraries").delete().eq("user_id", userId)
     await adminClient.from("comments").delete().eq("user_id", userId)
     await adminClient.from("user_interactions").delete().eq("user_id", userId)
     await adminClient.from("notifications").delete().eq("user_id", userId)
     await adminClient.from("profiles").delete().eq("id", userId)
+
+    // 3. Delete the auth user
+    const { error: authError } = await adminClient.auth.admin.deleteUser(userId)
+
+    if (authError) {
+      console.error("Error deleting auth user:", authError)
+      return NextResponse.json(
+        { success: false, error: "Failed to delete auth user: " + authError.message },
+        { status: 500 }
+      )
+    }
+
+    // 4. Verify the user was actually removed from auth.users
+    const { data: checkUser } = await adminClient.auth.admin.getUserById(userId)
+
+    if (checkUser?.user) {
+      console.error("deleteUser returned success but user still exists in auth.users")
+      return NextResponse.json(
+        { success: false, error: "User deletion was not confirmed — the auth user still exists. Check Supabase logs for FK constraint errors." },
+        { status: 500 }
+      )
+    }
 
     // Audit log the deletion
     await writeAuditLog({

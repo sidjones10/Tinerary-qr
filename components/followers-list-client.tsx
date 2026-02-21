@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Users, Search } from "lucide-react"
+import { ArrowLeft, Users, Search, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -33,6 +33,8 @@ interface FollowersListClientProps {
   followers: Follower[]
   isOwnProfile: boolean
   currentUserId: string | null
+  isProfileRestricted?: boolean
+  profilePrivacy?: string
 }
 
 export function FollowersListClient({
@@ -40,6 +42,8 @@ export function FollowersListClient({
   followers: initialFollowers,
   isOwnProfile,
   currentUserId,
+  isProfileRestricted = false,
+  profilePrivacy = "public",
 }: FollowersListClientProps) {
   const [followers, setFollowers] = useState(initialFollowers)
   const [searchQuery, setSearchQuery] = useState("")
@@ -111,8 +115,26 @@ export function FollowersListClient({
             </div>
           </div>
 
-          {/* Followers List */}
-          {filteredFollowers.length === 0 ? (
+          {/* Restricted Profile Message */}
+          {isProfileRestricted ? (
+            <Card className="text-center py-12">
+              <CardContent className="pt-6">
+                {profilePrivacy === "private" ? (
+                  <Lock className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                ) : (
+                  <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                )}
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                  {profilePrivacy === "private" ? "This Account is Private" : "Followers Only"}
+                </h3>
+                <p className="text-muted-foreground">
+                  {profilePrivacy === "private"
+                    ? "This user has set their profile to private."
+                    : "Follow this account to see their followers list."}
+                </p>
+              </CardContent>
+            </Card>
+          ) : filteredFollowers.length === 0 ? (
             <Card className="text-center py-12">
               <CardContent className="pt-6">
                 <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />

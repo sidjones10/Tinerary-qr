@@ -46,15 +46,16 @@ export function getReminderTypeForTime(millisUntilStart: number): ReminderType |
     .sort(([, a], [, b]) => b - a)
 
   for (const [type, interval] of intervals) {
-    // Check if we're within a reasonable window (within 10% of the interval or 5 minutes)
-    const tolerance = Math.min(interval * 0.1, 5 * 60 * 1000)
+    // Tolerance must be wide enough that a 1-minute cron will land inside it.
+    // Use the larger of 10% of the interval or 90 seconds (> 1 cron tick).
+    const tolerance = Math.max(interval * 0.1, 90 * 1000)
     if (Math.abs(millisUntilStart - interval) <= tolerance) {
       return type as ReminderType
     }
   }
 
-  // Check if event just started (within 2 minutes of start time)
-  if (millisUntilStart <= 0 && millisUntilStart >= -2 * 60 * 1000) {
+  // Check if event just started (within 3 minutes of start time)
+  if (millisUntilStart <= 0 && millisUntilStart >= -3 * 60 * 1000) {
     return "started"
   }
 

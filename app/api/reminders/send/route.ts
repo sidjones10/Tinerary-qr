@@ -3,7 +3,9 @@ import { createClient } from "@/lib/supabase/server"
 import {
   getItinerariesNeedingReminders,
   getItinerariesNeedingCoverPrompt,
+  getActivitiesNeedingReminders,
   sendCountdownReminder,
+  sendActivityReminder,
 } from "@/lib/reminder-service"
 
 // This endpoint should be called by a cron job every minute
@@ -22,6 +24,7 @@ export async function POST(request: NextRequest) {
 
     const results = {
       countdownReminders: { sent: 0, failed: 0, errors: [] as string[] },
+      activityReminders: { sent: 0, failed: 0, errors: [] as string[] },
       coverPrompts: { sent: 0, failed: 0, errors: [] as string[] },
     }
 
@@ -47,6 +50,32 @@ export async function POST(request: NextRequest) {
       } catch (error: any) {
         results.countdownReminders.failed++
         results.countdownReminders.errors.push(error.message || "Unknown error")
+      }
+    }
+
+    // Send activity/stop reminders
+    const activityRemindersNeeded = await getActivitiesNeedingReminders()
+    for (const reminder of activityRemindersNeeded) {
+      try {
+        const result = await sendActivityReminder(
+          reminder.userId,
+          reminder.itineraryId,
+          reminder.activityId,
+          reminder.activityTitle,
+          reminder.itineraryTitle,
+          reminder.reminderType,
+        )
+        if (result.success) {
+          results.activityReminders.sent++
+        } else {
+          results.activityReminders.failed++
+          if (result.error) {
+            results.activityReminders.errors.push(result.error)
+          }
+        }
+      } catch (error: any) {
+        results.activityReminders.failed++
+        results.activityReminders.errors.push(error.message || "Unknown error")
       }
     }
 

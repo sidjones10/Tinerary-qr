@@ -496,7 +496,7 @@ export default function EventPage() {
     if (!event || !id) return
     const supabase = createClient()
     // Increment view count in metrics (non-blocking)
-    supabase.rpc("increment_view_count", { itinerary_id: id }).catch(() => {})
+    supabase.rpc("increment_view_count", { itinerary_id: id }).then(() => {}, () => {})
     // Track in user_interactions for analytics (non-blocking)
     if (user?.id) {
       supabase

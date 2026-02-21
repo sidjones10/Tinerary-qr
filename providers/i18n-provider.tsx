@@ -21,8 +21,11 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
           .eq("user_id", user.id)
           .single()
 
-        if (error && error.code !== "PGRST116") {
-          console.error("Error loading language preference:", error)
+        if (error) {
+          // Silently ignore: PGRST116 = no rows, 42703 = column doesn't exist
+          if (error.code !== "PGRST116" && error.code !== "42703") {
+            console.error("Error loading language preference:", error)
+          }
           return
         }
 

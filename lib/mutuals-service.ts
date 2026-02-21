@@ -100,7 +100,6 @@ async function getMutualsConnectionsFallback(
       .in("itinerary_id", userEventIds)
       .neq("invitee_id", userId)
       .eq("status", "accepted")
-      .order("itinerary.start_date", { ascending: true })
 
     // Combine and count shared events per user
     const mutualMap = new Map<string, {

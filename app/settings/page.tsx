@@ -12,7 +12,8 @@ import { PrivacySettings } from "@/components/privacy-settings"
 import { LanguageSettings } from "@/components/language-settings"
 import { HelpSupportSettings } from "@/components/help-support-settings"
 import { Navbar } from "@/components/navbar"
-import { Loader2 } from "lucide-react"
+import { ArrowLeft, Loader2 } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { useTranslation } from "react-i18next"
 
 function SettingsContent() {
@@ -54,7 +55,19 @@ function SettingsLoading() {
 
 function SettingsTitle() {
   const { t } = useTranslation()
-  return <h1 className="text-3xl font-bold mb-6">{t("settings.title")}</h1>
+  const router = useRouter()
+  return (
+    <div className="flex items-center gap-3 mb-6">
+      <button
+        onClick={() => router.back()}
+        className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
+        aria-label="Go back"
+      >
+        <ArrowLeft className="h-5 w-5" />
+      </button>
+      <h1 className="text-3xl font-bold">{t("settings.title")}</h1>
+    </div>
+  )
 }
 
 export default function SettingsPage() {

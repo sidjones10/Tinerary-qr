@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/client"
-import { notifyNewComment } from "@/lib/notification-service"
 
 export interface Comment {
   id: string
@@ -142,6 +141,9 @@ export async function createComment(
     }
 
     // Send notification to itinerary owner (if not commenting on own post)
+    // Both in-app notification and email are handled server-side because:
+    // 1. Email requires RESEND_API_KEY (server-only)
+    // 2. In-app notification inserts for other users are blocked by RLS client-side
     try {
       const { data: itinerary } = await supabase
         .from("itineraries")
@@ -152,18 +154,6 @@ export async function createComment(
       if (itinerary && itinerary.user_id !== userId) {
         const commenterProfile = comment.user
 
-        // Send in-app notification
-        await notifyNewComment(
-          itinerary.user_id,
-          commenterProfile?.name || "Someone",
-          commenterProfile?.avatar_url || null,
-          itineraryId,
-          itinerary.title,
-          content
-        )
-
-        // Send email notification via server-side API route
-        // (email sending requires RESEND_API_KEY which is only available server-side)
         fetch("/api/notifications/email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -173,8 +163,9 @@ export async function createComment(
             eventId: itineraryId,
             eventTitle: itinerary.title,
             content,
+            senderAvatarUrl: commenterProfile?.avatar_url || null,
           }),
-        }).catch(err => console.error("Failed to send comment email:", err))
+        }).catch(err => console.error("Failed to send comment notification:", err))
       }
     } catch (notifyError) {
       // Don't fail the comment if notification fails

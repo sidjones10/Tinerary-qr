@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { notifyNewLike } from "@/lib/notification-service"
 import { sendNewLikeEmail } from "@/lib/email-notifications"
 
@@ -93,36 +94,44 @@ export async function POST(
           user.id
         ).catch(err => console.error("Failed to send like notification:", err))
 
-        // Send email notification (query prefs with server-side client)
-        supabase
-          .from("user_preferences")
-          .select("notification_preferences")
-          .eq("user_id", itinerary.user_id)
-          .single()
-          .then(async ({ data: prefsRow }) => {
-            const prefs = {
-              email: true,
-              likesComments: true,
-              ...((prefsRow?.notification_preferences as Record<string, boolean>) || {}),
-            }
-            if (!prefs.email || !prefs.likesComments) return
+        // Send email notification (use admin client to read recipient's prefs)
+        if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+          const adminClient = createSupabaseClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY,
+            { auth: { autoRefreshToken: false, persistSession: false } }
+          )
 
-            const { data: ownerProfile } = await supabase
-              .from("profiles")
-              .select("email, name")
-              .eq("id", itinerary.user_id)
-              .single()
+          adminClient
+            .from("user_preferences")
+            .select("notification_preferences")
+            .eq("user_id", itinerary.user_id)
+            .single()
+            .then(async ({ data: prefsRow }) => {
+              const prefs = {
+                email: true,
+                likesComments: true,
+                ...((prefsRow?.notification_preferences as Record<string, boolean>) || {}),
+              }
+              if (!prefs.email || !prefs.likesComments) return
 
-            if (ownerProfile?.email) {
-              sendNewLikeEmail(
-                ownerProfile.email,
-                ownerProfile.name || "there",
-                likerProfile?.name || "Someone",
-                itinerary.title,
-                itineraryId
-              ).catch(err => console.error("Failed to send like email:", err))
-            }
-          }).catch(err => console.error("Failed to check email prefs:", err))
+              const { data: ownerProfile } = await adminClient
+                .from("profiles")
+                .select("email, name")
+                .eq("id", itinerary.user_id)
+                .single()
+
+              if (ownerProfile?.email) {
+                sendNewLikeEmail(
+                  ownerProfile.email,
+                  ownerProfile.name || "there",
+                  likerProfile?.name || "Someone",
+                  itinerary.title,
+                  itineraryId
+                ).catch(err => console.error("Failed to send like email:", err))
+              }
+            }).catch(err => console.error("Failed to check email prefs:", err))
+        }
       }
     } catch (notifyError) {
       console.error("Notification error:", notifyError)

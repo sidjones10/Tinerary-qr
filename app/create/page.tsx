@@ -147,7 +147,20 @@ function CreatePageContent() {
             setTitle(draftData.title || "")
             setDescription(draftData.description || "")
             setLocation(draftData.location || "")
-            setStartDate(draftData.start_date || "")
+
+            // Extract date and time from start_date (may contain time component)
+            if (draftData.start_date) {
+              const startDateStr = draftData.start_date
+              if (startDateStr.includes("T")) {
+                setStartDate(startDateStr.split("T")[0])
+                const timePart = startDateStr.split("T")[1]
+                if (timePart) {
+                  setTime(timePart.slice(0, 5))
+                }
+              } else {
+                setStartDate(startDateStr)
+              }
+            }
             setEndDate(draftData.end_date || "")
             setType(draftData.type || "event")
             setIsPublic(draftData.is_public !== undefined ? draftData.is_public : true)
@@ -223,8 +236,22 @@ function CreatePageContent() {
             setTitle(itineraryData.title || "")
             setDescription(itineraryData.description || "")
             setLocation(itineraryData.location || "")
-            setStartDate(itineraryData.start_date || "")
-            setEndDate(itineraryData.end_date || "")
+
+            // Extract date and time from start_date (may contain time component e.g. "2026-02-21T14:30:00")
+            if (itineraryData.start_date) {
+              const startDateStr = itineraryData.start_date
+              if (startDateStr.includes("T")) {
+                setStartDate(startDateStr.split("T")[0])
+                const timePart = startDateStr.split("T")[1]
+                if (timePart) {
+                  // Extract HH:MM from the time portion
+                  setTime(timePart.slice(0, 5))
+                }
+              } else {
+                setStartDate(startDateStr)
+              }
+            }
+            setEndDate(itineraryData.end_date?.split("T")[0] || "")
             setIsPublic(itineraryData.is_public !== undefined ? itineraryData.is_public : true)
             setPackingListPublic(itineraryData.packing_list_public !== undefined ? itineraryData.packing_list_public : false)
             setExpensesPublic(itineraryData.expenses_public !== undefined ? itineraryData.expenses_public : false)
@@ -388,11 +415,17 @@ function CreatePageContent() {
         }
       }
 
+      // Merge time into start_date for drafts too
+      let draftStartDate = startDate || new Date().toISOString().split("T")[0]
+      if (time && type === "event") {
+        draftStartDate = `${draftStartDate}T${time}:00`
+      }
+
       const draftData = {
         title,
         description,
         location,
-        start_date: startDate || new Date().toISOString().split("T")[0],
+        start_date: draftStartDate,
         end_date: endDate || startDate || new Date().toISOString().split("T")[0],
         type,
         is_public: isPublic,
@@ -505,9 +538,12 @@ function CreatePageContent() {
     setIsSubmitting(true)
 
     try {
-      // Format dates properly
-      const formattedStartDate = startDate || new Date().toISOString().split("T")[0]
-      const formattedEndDate = endDate || formattedStartDate
+      // Format dates properly - merge time into start date for events
+      let formattedStartDate = startDate || new Date().toISOString().split("T")[0]
+      if (time && type === "event") {
+        formattedStartDate = `${formattedStartDate}T${time}:00`
+      }
+      const formattedEndDate = endDate || (startDate || new Date().toISOString().split("T")[0])
 
       // Prepare itinerary data
       const itineraryData = {

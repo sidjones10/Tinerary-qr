@@ -162,10 +162,10 @@ export default function SavedItemsPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-orange-50/30 via-white to-pink-50/30">
+    <div className="flex min-h-screen flex-col">
       <AppHeader />
 
-      <main className="flex-1 cute-section-bg">
+      <main className="flex-1">
         <div className="container px-4 py-6 md:py-10">
           {/* Cute Header */}
           <div className="flex items-center justify-between mb-8">

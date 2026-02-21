@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client"
 import { notifyViewMilestone, checkViewMilestone } from "@/lib/notification-service"
+import { generalizeLocation } from "@/lib/location-utils"
 
 // Types
 export interface Itinerary {
@@ -15,6 +16,7 @@ export interface Itinerary {
   duration: number
   budget: string
   is_public: boolean
+  share_precise_location: boolean
   image_url: string
   travel_style: string
   activities: string[]
@@ -424,8 +426,14 @@ export async function discoverItineraries(
       // Format the itinerary with metrics
       const metrics = itinerary.itinerary_metrics
 
+      // Mask location for public itineraries where precise location is disabled
+      const displayLocation = (itinerary.is_public && itinerary.share_precise_location === false)
+        ? generalizeLocation(itinerary.location)
+        : itinerary.location
+
       return {
         ...itinerary,
+        location: displayLocation,
         categories,
         creator: itinerary.profiles,
         metrics,

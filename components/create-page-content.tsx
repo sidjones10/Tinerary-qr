@@ -35,6 +35,8 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ThemeSelector, ThemeIcon, themes } from "@/components/theme-selector"
 import { FontSelector, getFontFamily } from "@/components/font-selector"
+import { Switch } from "@/components/ui/switch"
+import { Globe, Lock, MapPinOff } from "lucide-react"
 
 export default function CreatePageContent() {
   const [type, setType] = useState<"event" | "trip">("trip")
@@ -76,6 +78,7 @@ export default function CreatePageContent() {
   const [startDate, setStartDate] = useState("2023-05-15")
   const [endDate, setEndDate] = useState("2023-05-16")
   const [isPublic, setIsPublic] = useState(true)
+  const [sharePreciseLocation, setSharePreciseLocation] = useState(true)
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null)
   const [collaborators, setCollaborators] = useState([
     { id: 1, name: "Taylor Moore", email: "taylor@example.com", status: "joined" },
@@ -131,6 +134,7 @@ export default function CreatePageContent() {
             setEndDate(draft.end_date || "2023-05-16")
             setType(draft.type || "trip")
             setIsPublic(draft.is_public !== undefined ? draft.is_public : true)
+            setSharePreciseLocation(draft.share_precise_location !== undefined ? draft.share_precise_location : true)
             setCoverImageUrl(draft.image_url || null)
 
             if (draft.activities && draft.activities.length > 0) {
@@ -506,6 +510,7 @@ export default function CreatePageContent() {
           start_date: formattedStartDate,
           end_date: formattedEndDate,
           is_public: isPublic,
+          share_precise_location: sharePreciseLocation,
           is_template: false,
           user_id: user.id,
           image_url: coverImageUrl,
@@ -959,6 +964,50 @@ export default function CreatePageContent() {
                     <p className="text-xs text-muted-foreground">Recommended size: 1200 x 800 pixels</p>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-r from-orange-50/50 to-pink-50/50 border shadow-sm">
+              <CardHeader>
+                <CardTitle>Visibility & Privacy</CardTitle>
+                <CardDescription>Control who can see this {type} and what they see</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {isPublic ? (
+                      <Globe className="h-5 w-5 text-green-600" />
+                    ) : (
+                      <Lock className="h-5 w-5 text-amber-600" />
+                    )}
+                    <div>
+                      <p className="font-medium">{isPublic ? "Public" : "Private"}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {isPublic
+                          ? "Anyone can discover and view this " + type
+                          : "Only invited people can see this " + type}
+                      </p>
+                    </div>
+                  </div>
+                  <Switch checked={isPublic} onCheckedChange={setIsPublic} />
+                </div>
+
+                {isPublic && (
+                  <div className="flex items-center justify-between pl-8 border-l-2 border-muted ml-2">
+                    <div className="flex items-center gap-3">
+                      <MapPinOff className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">Share Precise Location</p>
+                        <p className="text-sm text-muted-foreground">
+                          {sharePreciseLocation
+                            ? "Others see the exact address in this " + type
+                            : "Others see only the city or region (e.g. \"New York, NY\" instead of \"1000 5th Ave, New York, NY\")"}
+                        </p>
+                      </div>
+                    </div>
+                    <Switch checked={sharePreciseLocation} onCheckedChange={setSharePreciseLocation} />
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

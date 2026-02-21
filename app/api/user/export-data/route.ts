@@ -6,6 +6,10 @@ import { createClient } from "@/utils/supabase/server"
  *
  * Allows authenticated users to export all their data in JSON format
  * for GDPR compliance (Right to Data Portability)
+ *
+ * Queries tables directly instead of using an RPC function so that
+ * the export works regardless of whether the latest migration has
+ * been applied.
  */
 export async function GET(request: Request) {
   try {
@@ -21,21 +25,56 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Call the database function to export user data
-    const { data: exportData, error: exportError } = await supabase.rpc("export_user_data", {
+    // First, fetch profile and itineraries to get itinerary IDs
+    const [profileResult, itinerariesResult] = await Promise.all([
+      supabase.from("profiles").select("*").eq("id", user.id).single(),
+      supabase.from("itineraries").select("*").eq("user_id", user.id),
+    ])
+
+    const itineraryIds = (itinerariesResult.data ?? []).map((i) => i.id)
+
+    // Then fetch everything else in parallel (sub-tables need itinerary IDs)
+    const [
+      activitiesResult,
+      packingItemsResult,
+      expensesResult,
+      commentsResult,
+      savedResult,
+      notificationsResult,
+      behaviorResult,
+    ] = await Promise.all([
+      itineraryIds.length > 0
+        ? supabase.from("activities").select("*").in("itinerary_id", itineraryIds)
+        : Promise.resolve({ data: [], error: null }),
+      itineraryIds.length > 0
+        ? supabase.from("packing_items").select("*").in("itinerary_id", itineraryIds)
+        : Promise.resolve({ data: [], error: null }),
+      itineraryIds.length > 0
+        ? supabase.from("expenses").select("*").in("itinerary_id", itineraryIds)
+        : Promise.resolve({ data: [], error: null }),
+      supabase.from("comments").select("*").eq("user_id", user.id),
+      supabase.from("saved_itineraries").select("*").eq("user_id", user.id),
+      supabase.from("notifications").select("*").eq("user_id", user.id),
+      supabase.from("user_behavior").select("*").eq("user_id", user.id).single(),
+    ])
+
+    // Nest activities, packing items, and expenses under their itineraries
+    const itineraries = (itinerariesResult.data ?? []).map((itinerary) => ({
+      ...itinerary,
+      activities: (activitiesResult.data ?? []).filter((a) => a.itinerary_id === itinerary.id),
+      packing_items: (packingItemsResult.data ?? []).filter((p) => p.itinerary_id === itinerary.id),
+      expenses: (expensesResult.data ?? []).filter((e) => e.itinerary_id === itinerary.id),
+    }))
+
+    const exportData = {
+      export_date: new Date().toISOString(),
       user_id: user.id,
-    })
-
-    if (exportError) {
-      console.error("Error exporting user data:", exportError)
-      return NextResponse.json(
-        { error: "Failed to export data", details: exportError.message },
-        { status: 500 },
-      )
-    }
-
-    if (!exportData) {
-      return NextResponse.json({ error: "No data found for user" }, { status: 404 })
+      profile: profileResult.data ?? null,
+      itineraries,
+      comments: commentsResult.data ?? [],
+      saved_itineraries: savedResult.data ?? [],
+      notifications: notificationsResult.data ?? [],
+      behavior: behaviorResult.data ?? null,
     }
 
     // Format the filename with current date

@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/components/ui/use-toast"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useTranslation } from "react-i18next"
 
 // Type definitions
 interface Draft {
@@ -172,6 +173,7 @@ export function FeedPage() {
   const { toast } = useToast()
   const router = useRouter()
   const supabase = createClient()
+  const { t } = useTranslation()
 
   // Fetch user's drafts
   useEffect(() => {
@@ -279,7 +281,7 @@ export function FeedPage() {
 
   // Delete draft
   const handleDeleteDraft = async (draftId: string) => {
-    if (!confirm("Are you sure you want to delete this draft?")) return
+    if (!confirm(t("feed.deleteDraftConfirm"))) return
 
     try {
       const { error } = await supabase.from("drafts").delete().eq("id", draftId)
@@ -290,14 +292,14 @@ export function FeedPage() {
       setDrafts(drafts.filter((d) => d.id !== draftId))
 
       toast({
-        title: "Draft deleted",
-        description: "Your draft has been deleted successfully.",
+        title: t("feed.draftDeleted"),
+        description: t("feed.draftDeletedDesc"),
       })
     } catch (error: any) {
       console.error("Error deleting draft:", error)
       toast({
-        title: "Error",
-        description: "Failed to delete draft",
+        title: t("common.error"),
+        description: t("feed.failedDeleteDraft"),
         variant: "destructive",
       })
     }
@@ -352,11 +354,11 @@ export function FeedPage() {
     >
       <div className="container mx-auto px-4 py-4">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">Your Feed</h1>
+          <h1 className="text-2xl font-bold">{t("feed.yourFeed")}</h1>
           <Button asChild className="btn-sunset">
             <Link href="/create">
               <Plus className="h-4 w-4 mr-2" />
-              Create New
+              {t("feed.createNew")}
             </Link>
           </Button>
         </div>
@@ -369,7 +371,7 @@ export function FeedPage() {
             }`}
             onClick={() => setFeedTab("forYou")}
           >
-            For You
+            {t("feed.forYou")}
           </button>
           <button
             className={`flex-1 px-6 py-2 rounded-full text-sm font-medium transition-colors ${
@@ -377,7 +379,7 @@ export function FeedPage() {
             }`}
             onClick={() => setFeedTab("discover")}
           >
-            Discover
+            {t("feed.discover")}
           </button>
         </div>
 
@@ -389,7 +391,7 @@ export function FeedPage() {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold flex items-center gap-2">
                     <FileText className="h-5 w-5" />
-                    Drafts
+                    {t("feed.drafts")}
                     <Badge variant="secondary">{drafts.length}</Badge>
                   </h2>
                 </div>
@@ -403,10 +405,10 @@ export function FeedPage() {
                         variant="outline"
                         className="absolute top-3 right-3 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-700"
                       >
-                        Draft
+                        {t("feed.draft")}
                       </Badge>
                       <div className="pr-16">
-                        <h3 className="font-semibold text-lg mb-1">{draft.title || "Untitled"}</h3>
+                        <h3 className="font-semibold text-lg mb-1">{draft.title || t("feed.untitled")}</h3>
                         {draft.location && (
                           <div className="flex items-center text-sm text-muted-foreground mb-2">
                             <MapPin className="h-3 w-3 mr-1" />
@@ -419,7 +421,7 @@ export function FeedPage() {
                           </p>
                         )}
                         <div className="text-xs text-muted-foreground mb-3">
-                          Last edited: {new Date(draft.updated_at).toLocaleDateString()}
+                          {t("feed.lastEdited")} {new Date(draft.updated_at).toLocaleDateString()}
                         </div>
                       </div>
                       <div className="flex gap-2 mt-4">
@@ -428,7 +430,7 @@ export function FeedPage() {
                           className="flex-1"
                           onClick={() => router.push(`/create?draftId=${draft.id}`)}
                         >
-                          Continue Editing
+                          {t("feed.continueEditing")}
                         </Button>
                         <Button
                           size="sm"
@@ -453,7 +455,7 @@ export function FeedPage() {
                 }`}
                 onClick={() => setTimeTab("upcoming")}
               >
-                Upcoming
+                {t("feed.upcoming")}
               </button>
               <button
                 className={`flex-1 px-6 py-2 rounded-full text-sm font-medium transition-colors ${
@@ -461,7 +463,7 @@ export function FeedPage() {
                 }`}
                 onClick={() => setTimeTab("past")}
               >
-                Past
+                {t("feed.past")}
               </button>
             </div>
 
@@ -474,18 +476,18 @@ export function FeedPage() {
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <Calendar className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" />
                 <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">
-                  No {timeTab} trips yet
+                  {timeTab === "upcoming" ? t("feed.noUpcomingTrips") : t("feed.noPastTrips")}
                 </h3>
                 <p className="text-gray-500 dark:text-gray-400 mb-4">
                   {timeTab === "upcoming"
-                    ? "Create your first trip or get invited to one!"
-                    : "Your past adventures will appear here"}
+                    ? t("feed.createFirstTrip")
+                    : t("feed.pastAdventures")}
                 </p>
                 {timeTab === "upcoming" && (
                   <Button asChild className="btn-sunset">
                     <Link href="/create">
                       <Plus className="h-4 w-4 mr-2" />
-                      Create Trip
+                      {t("feed.createTrip")}
                     </Link>
                   </Button>
                 )}

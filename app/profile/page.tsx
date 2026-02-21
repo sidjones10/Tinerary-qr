@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/providers/auth-provider"
 import { Loader2 } from "lucide-react"
 import { ProtectedRoute } from "@/components/protected-route"
+import { useTranslation } from "react-i18next"
 
 export default function ProfileRedirectPage() {
   const { user, isLoading } = useAuth()
   const router = useRouter()
+  const { t } = useTranslation()
 
   useEffect(() => {
     if (!isLoading && user) {
@@ -21,7 +23,7 @@ export default function ProfileRedirectPage() {
     <ProtectedRoute>
       <div className="flex min-h-screen flex-col items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Loading your profile...</p>
+        <p className="mt-4 text-muted-foreground">{t("profilePage.loadingProfile")}</p>
       </div>
     </ProtectedRoute>
   )

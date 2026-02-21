@@ -109,13 +109,11 @@ export default function UnifiedProfilePage() {
       // Fetch the target user's privacy preference and enforce it
       const isOwn = user?.id === userId
       if (!isOwn) {
-        const { data: prefsData } = await supabase
-          .from("user_preferences")
-          .select("privacy_preferences")
-          .eq("user_id", userId)
-          .single()
+        const { data: privacyData } = await supabase.rpc("get_profile_privacy", {
+          target_user_id: userId,
+        })
 
-        const privacy = prefsData?.privacy_preferences?.profilePrivacy ?? "public"
+        const privacy = privacyData ?? "public"
         setProfilePrivacy(privacy)
 
         // For "followers" mode, check whether the viewer follows this user

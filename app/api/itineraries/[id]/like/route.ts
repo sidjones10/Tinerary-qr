@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { notifyNewLike, getUserNotificationPreferences } from "@/lib/notification-service"
+import { notifyNewLike } from "@/lib/notification-service"
 import { sendNewLikeEmail } from "@/lib/email-notifications"
 
 // POST - Like an itinerary
@@ -93,26 +93,36 @@ export async function POST(
           user.id
         ).catch(err => console.error("Failed to send like notification:", err))
 
-        // Send email notification
-        getUserNotificationPreferences(itinerary.user_id).then(async (prefs) => {
-          if (!prefs.email || !prefs.likesComments) return
+        // Send email notification (query prefs with server-side client)
+        supabase
+          .from("user_preferences")
+          .select("notification_preferences")
+          .eq("user_id", itinerary.user_id)
+          .single()
+          .then(async ({ data: prefsRow }) => {
+            const prefs = {
+              email: true,
+              likesComments: true,
+              ...((prefsRow?.notification_preferences as Record<string, boolean>) || {}),
+            }
+            if (!prefs.email || !prefs.likesComments) return
 
-          const { data: ownerProfile } = await supabase
-            .from("profiles")
-            .select("email, name")
-            .eq("id", itinerary.user_id)
-            .single()
+            const { data: ownerProfile } = await supabase
+              .from("profiles")
+              .select("email, name")
+              .eq("id", itinerary.user_id)
+              .single()
 
-          if (ownerProfile?.email) {
-            sendNewLikeEmail(
-              ownerProfile.email,
-              ownerProfile.name || "there",
-              likerProfile?.name || "Someone",
-              itinerary.title,
-              itineraryId
-            ).catch(err => console.error("Failed to send like email:", err))
-          }
-        }).catch(err => console.error("Failed to check email prefs:", err))
+            if (ownerProfile?.email) {
+              sendNewLikeEmail(
+                ownerProfile.email,
+                ownerProfile.name || "there",
+                likerProfile?.name || "Someone",
+                itinerary.title,
+                itineraryId
+              ).catch(err => console.error("Failed to send like email:", err))
+            }
+          }).catch(err => console.error("Failed to check email prefs:", err))
       }
     } catch (notifyError) {
       console.error("Notification error:", notifyError)

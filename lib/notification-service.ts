@@ -77,7 +77,23 @@ interface NotificationData {
 
 export async function createNotification(data: NotificationData) {
   try {
-    const supabase = createClient()
+    // Server-side: use service role key to bypass RLS.
+    // Notifications are created for OTHER users (e.g. "User A liked User B's post"),
+    // so the RLS policy `auth.uid() = user_id` would block inserts from the acting user.
+    let supabase
+    if (typeof window === "undefined") {
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      if (url && serviceKey) {
+        const { createClient: createServiceClient } = await import("@supabase/supabase-js")
+        supabase = createServiceClient(url, serviceKey)
+      } else {
+        supabase = createClient()
+      }
+    } else {
+      supabase = createClient()
+    }
+
     const { data: notification, error } = await supabase
       .from("notifications")
       .insert({

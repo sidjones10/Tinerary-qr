@@ -1,6 +1,4 @@
 import { createClient } from "@/lib/supabase/client"
-import { notifyNewFollower, getUserNotificationPreferences } from "@/lib/notification-service"
-import { sendNewFollowerEmail } from "@/lib/email-notifications"
 
 export interface FollowUser {
   id: string
@@ -45,49 +43,18 @@ export async function followUser(
       throw error
     }
 
-    // Send notification to the user being followed
-    try {
-      // Get follower's profile info for the notification
-      const { data: followerProfile } = await supabase
-        .from("profiles")
-        .select("name, username, avatar_url")
-        .eq("id", userId)
-        .single()
-
-      if (followerProfile) {
-        // Send in-app notification
-        await notifyNewFollower(
-          targetUserId,
-          followerProfile.name || "Someone",
-          followerProfile.username,
-          followerProfile.avatar_url,
-          userId
-        )
-
-        // Send email notification if user has email notifications enabled
-        const targetPrefs = await getUserNotificationPreferences(targetUserId)
-        if (targetPrefs.email) {
-          const { data: targetProfile } = await supabase
-            .from("profiles")
-            .select("email, name")
-            .eq("id", targetUserId)
-            .single()
-
-          if (targetProfile?.email) {
-            sendNewFollowerEmail(
-              targetProfile.email,
-              targetProfile.name || "there",
-              followerProfile.name || "Someone",
-              followerProfile.username || userId,
-              followerProfile.avatar_url
-            ).catch(err => console.error("Failed to send follower email:", err))
-          }
-        }
-      }
-    } catch (notifyError) {
-      // Don't fail the follow if notification fails
-      console.error("Failed to send follow notification:", notifyError)
-    }
+    // Send in-app notification + email via server-side API route.
+    // Both require server-side privileges: in-app inserts need the service
+    // role key to bypass RLS, and emails need RESEND_API_KEY.
+    fetch("/api/notifications/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "follow",
+        recipientUserId: targetUserId,
+        eventId: userId,
+      }),
+    }).catch(err => console.error("Failed to send follow notification:", err))
 
     return { success: true }
   } catch (error: any) {

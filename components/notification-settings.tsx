@@ -114,9 +114,7 @@ export function NotificationSettings() {
           { onConflict: "user_id" }
         )
 
-      if (upsertError) {
-        console.error("Error saving notification preferences:", upsertError)
-      }
+      if (upsertError) throw upsertError
 
       // 2. Save marketing & activity digest consent to profiles (independent of step 1)
       const { error: profileError } = await supabase

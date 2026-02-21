@@ -150,7 +150,7 @@
       "privateDesc": "Only you and people you specifically invite can view your itineraries",
       "locationSharing": "Location Sharing",
       "sharePreciseLocation": "Share Precise Location",
-      "sharePreciseLocationDesc": "Allow others to see your exact location in itineraries",
+      "sharePreciseLocationDesc": "This setting is now configured per itinerary when creating or editing",
       "locationHistory": "Location History",
       "locationHistoryDesc": "Save your location history for better recommendations",
       "activityPrivacy": "Activity Privacy",

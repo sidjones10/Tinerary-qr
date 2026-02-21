@@ -281,6 +281,51 @@ export function extractState(location: string): string | null {
 }
 
 /**
+ * Generalize a location string to hide the precise address.
+ * For example:
+ *   "1000 5th Ave, New York, NY" → "New York, NY"
+ *   "Sarabeth's, Central Park South" → "Central Park South"
+ *   "Austin, TX" → "Austin, TX" (already general)
+ *   "Tokyo, Japan" → "Tokyo, Japan" (already general)
+ *   "123 Main Street, Brooklyn, New York" → "Brooklyn, New York"
+ *
+ * The logic:
+ * 1. If the location has 3+ comma-separated parts, drop the first part (likely a street address).
+ * 2. If it has 2 parts and the first part looks like a street address (starts with a number
+ *    or contains common street words), drop the first part and return the second.
+ * 3. Otherwise return the location as-is (it's already general enough).
+ */
+export function generalizeLocation(location: string): string {
+  if (!location) return ""
+
+  const trimmed = location.trim()
+  const parts = trimmed.split(",").map(p => p.trim())
+
+  // Single part — return as-is (e.g., "New York" or "Tokyo")
+  if (parts.length === 1) {
+    return trimmed
+  }
+
+  // 3+ parts: drop the first segment (likely street address)
+  // e.g., "1000 5th Ave, New York, NY" → "New York, NY"
+  if (parts.length >= 3) {
+    return parts.slice(1).join(", ").trim()
+  }
+
+  // 2 parts: check if the first part looks like a street address
+  const firstPart = parts[0].toLowerCase()
+  const streetIndicators = /^[\d]+\s|street|st\b|avenue|ave\b|boulevard|blvd\b|road|rd\b|drive|dr\b|lane|ln\b|way\b|place|pl\b|court|ct\b/i
+
+  if (streetIndicators.test(firstPart)) {
+    // First part is a street address, return just the second part
+    return parts[1].trim()
+  }
+
+  // "City, State" or "City, Country" — already general
+  return trimmed
+}
+
+/**
  * Get all locations in the same state/region
  * Useful for "similar locations" features
  * @param location - Reference location

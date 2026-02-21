@@ -194,7 +194,7 @@ export async function getItinerariesNeedingReminders(): Promise<{
     .from("itineraries")
     .select("id, user_id, title, start_date, end_date")
     .eq("countdown_reminders_enabled", true)
-    .gte("start_date", now.toISOString().split("T")[0])
+    .gte("start_date", new Date(now.getTime() - 2 * 60 * 1000).toISOString())
     .order("start_date", { ascending: true })
 
   if (error || !itineraries) {

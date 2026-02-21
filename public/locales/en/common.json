@@ -161,8 +161,6 @@
       "dataPersonalization": "Data & Personalization",
       "personalizedRecommendations": "Personalized Recommendations",
       "personalizedRecommendationsDesc": "Allow us to use your activity to personalize recommendations",
-      "dataCollection": "Data Collection",
-      "dataCollectionDesc": "Allow us to collect usage data to improve our services",
       "privacyNotice": "Your privacy is important to us. Review our",
       "privacyPolicy": "Privacy Policy",
       "privacyNoticeSuffix": "to learn more about how we protect your data.",

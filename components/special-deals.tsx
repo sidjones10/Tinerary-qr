@@ -152,7 +152,7 @@ export function SpecialDeals() {
       </div>
 
       <Tabs defaultValue="all">
-        <TabsList className="grid w-full grid-cols-5 bg-white/70 backdrop-blur-sm">
+        <TabsList className="grid w-full grid-cols-5 bg-white/70 dark:bg-card/70 backdrop-blur-sm">
           <TabsTrigger value="all">All Deals</TabsTrigger>
           <TabsTrigger value="hotels">Hotels</TabsTrigger>
           <TabsTrigger value="flights">Flights</TabsTrigger>

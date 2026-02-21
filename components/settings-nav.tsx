@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useTranslation } from "react-i18next"
 import { useAuth } from "@/providers/auth-provider"
 import { User, Shield, Bell, Palette, Lock, Globe, HelpCircle, LogOut, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -11,16 +12,17 @@ interface SettingsNavProps {
 }
 
 export function SettingsNav({ activeSection, setActiveSection }: SettingsNavProps) {
+  const { t } = useTranslation()
   const { user, signOut } = useAuth()
 
   const navItems = [
-    { id: "profile", label: "Edit Profile", icon: <User className="w-4 h-4" /> },
-    { id: "account", label: "Account", icon: <Shield className="w-4 h-4" /> },
-    { id: "notifications", label: "Notifications", icon: <Bell className="w-4 h-4" /> },
-    { id: "appearance", label: "Appearance", icon: <Palette className="w-4 h-4" /> },
-    { id: "privacy", label: "Privacy", icon: <Lock className="w-4 h-4" /> },
-    { id: "language", label: "Language & Region", icon: <Globe className="w-4 h-4" /> },
-    { id: "help", label: "Help & Support", icon: <HelpCircle className="w-4 h-4" /> },
+    { id: "profile", label: t("settings.nav.editProfile"), icon: <User className="w-4 h-4" /> },
+    { id: "account", label: t("settings.nav.account"), icon: <Shield className="w-4 h-4" /> },
+    { id: "notifications", label: t("settings.nav.notifications"), icon: <Bell className="w-4 h-4" /> },
+    { id: "appearance", label: t("settings.nav.appearance"), icon: <Palette className="w-4 h-4" /> },
+    { id: "privacy", label: t("settings.nav.privacy"), icon: <Lock className="w-4 h-4" /> },
+    { id: "language", label: t("settings.nav.languageRegion"), icon: <Globe className="w-4 h-4" /> },
+    { id: "help", label: t("settings.nav.helpSupport"), icon: <HelpCircle className="w-4 h-4" /> },
   ]
 
   return (
@@ -45,7 +47,7 @@ export function SettingsNav({ activeSection, setActiveSection }: SettingsNavProp
         </div>
         <Button variant="outline" size="sm" className="mt-2 gap-1" asChild>
           <Link href="/profile">
-            View Profile
+            {t("nav.viewProfile")}
             <ExternalLink className="w-3 h-3" />
           </Link>
         </Button>
@@ -71,11 +73,11 @@ export function SettingsNav({ activeSection, setActiveSection }: SettingsNavProp
       <div className="pt-6 border-t">
         <Button
           variant="ghost"
-          className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50"
+          className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
           onClick={() => signOut()}
         >
           <LogOut className="mr-2 h-4 w-4" />
-          Log Out
+          {t("settings.nav.logOut")}
         </Button>
       </div>
     </div>

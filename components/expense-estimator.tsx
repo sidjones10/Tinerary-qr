@@ -248,7 +248,7 @@ export function ExpenseEstimator() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-md">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 dark:bg-background p-4 rounded-md">
             <div>
               <h3 className="text-sm font-medium mb-4">Expense Categories</h3>
               <div className="space-y-6">

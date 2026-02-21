@@ -162,17 +162,17 @@ export default function SavedItemsPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-orange-50/30 via-white to-pink-50/30">
+    <div className="flex min-h-screen flex-col">
       <AppHeader />
 
-      <main className="flex-1 cute-section-bg">
+      <main className="flex-1">
         <div className="container px-4 py-6 md:py-10">
           {/* Cute Header */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
               <Link
                 href="/"
-                className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-all text-muted-foreground hover:text-foreground"
+                className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/80 dark:bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-all text-muted-foreground hover:text-foreground"
               >
                 <ArrowLeft className="h-5 w-5" />
               </Link>

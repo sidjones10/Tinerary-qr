@@ -76,7 +76,7 @@ export default function AdminDashboard() {
       <div className="lg:hidden flex items-center justify-between mb-6">
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="bg-white/70" aria-label="Open menu">
+            <Button variant="outline" size="icon" className="bg-white/70 dark:bg-card/70" aria-label="Open menu">
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
@@ -100,7 +100,7 @@ export default function AdminDashboard() {
             Real-time overview of Tinerary platform metrics
           </p>
         </div>
-        <div className="flex gap-1 bg-white/60 rounded-xl p-1 border border-[#2c2420]/5">
+        <div className="flex gap-1 bg-white/60 dark:bg-card/60 rounded-xl p-1 border border-[#2c2420]/5">
           {(["7d", "30d", "90d"] as const).map((range) => (
             <button
               key={range}
@@ -166,7 +166,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* User growth chart */}
-      <div className="bg-white/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-5 mb-8">
+      <div className="bg-white/70 dark:bg-card/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-5 mb-8">
         <div className="flex items-center justify-between mb-5">
           <div>
             <h3 className="font-semibold text-[#2c2420]">User Growth</h3>
@@ -217,7 +217,7 @@ export default function AdminDashboard() {
       {/* Bottom row: recent users + top itineraries */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Recent users */}
-        <div className="bg-white/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-5">
+        <div className="bg-white/70 dark:bg-card/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-semibold text-[#2c2420]">Recent Users</h3>
@@ -259,7 +259,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Top itineraries */}
-        <div className="bg-white/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-5">
+        <div className="bg-white/70 dark:bg-card/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-semibold text-[#2c2420]">Top Itineraries</h3>

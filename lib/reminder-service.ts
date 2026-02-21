@@ -1,87 +1,20 @@
-import { createClient } from "@/lib/supabase/client"
-import { createNotification, NotificationType } from "@/lib/notification-service"
+import { createClient } from "@/lib/supabase/server"
+import { createNotification, NotificationType, getUserNotificationPreferences } from "@/lib/notification-service"
 import { sendCountdownReminderEmail, sendEventStartedEmail } from "@/lib/email-notifications"
 
-// Reminder intervals in milliseconds
-export const REMINDER_INTERVALS = {
-  "5_days": 5 * 24 * 60 * 60 * 1000,      // 5 days
-  "2_days": 2 * 24 * 60 * 60 * 1000,      // 2 days
-  "1_day": 1 * 24 * 60 * 60 * 1000,       // 1 day
-  "15_hours": 15 * 60 * 60 * 1000,         // 15 hours
-  "10_hours": 10 * 60 * 60 * 1000,         // 10 hours
-  "5_hours": 5 * 60 * 60 * 1000,           // 5 hours
-  "2_hours": 2 * 60 * 60 * 1000,           // 2 hours
-  "45_minutes": 45 * 60 * 1000,            // 45 minutes
-  "20_minutes": 20 * 60 * 1000,            // 20 minutes
-  "10_minutes": 10 * 60 * 1000,            // 10 minutes
-  "5_minutes": 5 * 60 * 1000,              // 5 minutes
-  "started": 0,                            // Event started
-} as const
+// Re-export pure utilities so existing server-side imports still work
+export {
+  REMINDER_INTERVALS,
+  REMINDER_LABELS,
+  getReminderTypeForTime,
+  formatTimeRemaining,
+  getUpcomingReminders,
+  shouldPromptCoverUpdate,
+} from "@/lib/reminder-utils"
+export type { ReminderType } from "@/lib/reminder-utils"
 
-export type ReminderType = keyof typeof REMINDER_INTERVALS | "post_event_cover"
-
-// Human readable labels for reminder types
-export const REMINDER_LABELS: Record<ReminderType, string> = {
-  "5_days": "5 days",
-  "2_days": "2 days",
-  "1_day": "1 day",
-  "15_hours": "15 hours",
-  "10_hours": "10 hours",
-  "5_hours": "5 hours",
-  "2_hours": "2 hours",
-  "45_minutes": "45 minutes",
-  "20_minutes": "20 minutes",
-  "10_minutes": "10 minutes",
-  "5_minutes": "5 minutes",
-  "started": "started",
-  "post_event_cover": "post event",
-}
-
-/**
- * Get the appropriate reminder type based on time until event
- */
-export function getReminderTypeForTime(millisUntilStart: number): ReminderType | null {
-  // Sorted from longest to shortest
-  const intervals = Object.entries(REMINDER_INTERVALS)
-    .filter(([key]) => key !== "started")
-    .sort(([, a], [, b]) => b - a)
-
-  for (const [type, interval] of intervals) {
-    // Check if we're within a reasonable window (within 10% of the interval or 5 minutes)
-    const tolerance = Math.min(interval * 0.1, 5 * 60 * 1000)
-    if (Math.abs(millisUntilStart - interval) <= tolerance) {
-      return type as ReminderType
-    }
-  }
-
-  // Check if event just started (within 2 minutes of start time)
-  if (millisUntilStart <= 0 && millisUntilStart >= -2 * 60 * 1000) {
-    return "started"
-  }
-
-  return null
-}
-
-/**
- * Format time remaining for display
- */
-export function formatTimeRemaining(millisUntilStart: number): string {
-  if (millisUntilStart <= 0) {
-    return "started"
-  }
-
-  const days = Math.floor(millisUntilStart / (24 * 60 * 60 * 1000))
-  const hours = Math.floor((millisUntilStart % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000))
-  const minutes = Math.floor((millisUntilStart % (60 * 60 * 1000)) / (60 * 1000))
-
-  if (days > 0) {
-    return `${days} day${days > 1 ? 's' : ''}`
-  } else if (hours > 0) {
-    return `${hours} hour${hours > 1 ? 's' : ''}`
-  } else {
-    return `${minutes} minute${minutes > 1 ? 's' : ''}`
-  }
-}
+import type { ReminderType } from "@/lib/reminder-utils"
+import { REMINDER_LABELS } from "@/lib/reminder-utils"
 
 /**
  * Check if a reminder has already been sent
@@ -91,7 +24,7 @@ export async function hasReminderBeenSent(
   userId: string,
   reminderType: ReminderType
 ): Promise<boolean> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data, error } = await supabase
     .from("itinerary_reminders")
@@ -112,7 +45,7 @@ export async function recordReminderSent(
   userId: string,
   reminderType: ReminderType
 ): Promise<boolean> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { error } = await supabase
     .from("itinerary_reminders")
@@ -155,6 +88,12 @@ export async function sendCountdownReminder(
     return { success: true } // Already sent, no need to send again
   }
 
+  // Check user's notification preferences
+  const prefs = await getUserNotificationPreferences(userId)
+  if (!prefs.tripReminders) {
+    return { success: true } // User has disabled trip reminders
+  }
+
   let title: string
   let message: string
   const emoji = eventType === "trip" ? "✈️" : "🎉"
@@ -187,18 +126,19 @@ export async function sendCountdownReminder(
 
   // Also send email if enabled (default: send for major milestones)
   const shouldSendEmail = options?.sendEmail !== false &&
+    prefs.email &&
     ["5_days", "2_days", "1_day", "2_hours", "started"].includes(reminderType)
 
   if (shouldSendEmail) {
     try {
-      const supabase = createClient()
+      const supabase = await createClient()
       const { data: profile } = await supabase
         .from("profiles")
-        .select("email, name, email_notifications")
+        .select("email, name")
         .eq("id", userId)
         .single()
 
-      if (profile?.email && profile?.email_notifications !== false) {
+      if (profile?.email) {
         if (reminderType === "started") {
           await sendEventStartedEmail({
             email: profile.email,
@@ -235,40 +175,6 @@ export async function sendCountdownReminder(
 }
 
 /**
- * Get upcoming reminders for an itinerary (for display purposes)
- */
-export function getUpcomingReminders(startDate: Date): { type: ReminderType; time: Date }[] {
-  const now = new Date()
-  const reminders: { type: ReminderType; time: Date }[] = []
-
-  for (const [type, interval] of Object.entries(REMINDER_INTERVALS)) {
-    if (type === "started") continue
-
-    const reminderTime = new Date(startDate.getTime() - interval)
-    if (reminderTime > now) {
-      reminders.push({
-        type: type as ReminderType,
-        time: reminderTime,
-      })
-    }
-  }
-
-  // Sort by time (earliest first)
-  return reminders.sort((a, b) => a.time.getTime() - b.time.getTime())
-}
-
-/**
- * Check if post-event cover update should be prompted (1 day after event ends)
- */
-export function shouldPromptCoverUpdate(endDate: Date): boolean {
-  const now = new Date()
-  const oneDayAfterEnd = new Date(endDate.getTime() + 24 * 60 * 60 * 1000)
-  const twoDaysAfterEnd = new Date(endDate.getTime() + 2 * 24 * 60 * 60 * 1000)
-
-  return now >= oneDayAfterEnd && now < twoDaysAfterEnd
-}
-
-/**
  * Get all itineraries that need reminders sent
  * This should be called by a cron job
  */
@@ -279,7 +185,8 @@ export async function getItinerariesNeedingReminders(): Promise<{
   startDate: Date
   reminderType: ReminderType
 }[]> {
-  const supabase = createClient()
+  const { getReminderTypeForTime } = await import("@/lib/reminder-utils")
+  const supabase = await createClient()
   const now = new Date()
 
   // Get itineraries with countdown reminders enabled that haven't ended yet
@@ -330,7 +237,7 @@ export async function getItinerariesNeedingCoverPrompt(): Promise<{
   userId: string
   title: string
 }[]> {
-  const supabase = createClient()
+  const supabase = await createClient()
   const now = new Date()
   const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
   const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000)

@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Mail, Eye, EyeOff, AlertTriangle } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { createClient } from "@/lib/supabase/client"
+import { triggerWelcomeEmail } from "@/app/actions/send-welcome-email"
 
 const currentYear = new Date().getFullYear()
 const years = Array.from({ length: 100 }, (_, i) => currentYear - i)
@@ -269,41 +270,38 @@ export default function EmailAuthForm() {
       }
 
       if (data.user) {
-        // Update profile with consent data (the trigger creates the profile)
-        // We'll update it after creation
-        setTimeout(async () => {
-          try {
-            const now = new Date().toISOString()
+        // Send welcome email (fire-and-forget so it doesn't block signup)
+        const displayName = formData.username || formData.email.split("@")[0]
+        triggerWelcomeEmail(formData.email, displayName).catch((err) =>
+          console.error("Welcome email error:", err),
+        )
 
-            // Update profile with consent data
-            await supabase
-              .from("profiles")
-              .update({
-                date_of_birth: dateOfBirth,
-                account_type: accountType,
-                tos_accepted_at: now,
-                tos_version: "1.0.0",
-                privacy_policy_accepted_at: now,
-                privacy_policy_version: "1.0.0",
-                data_processing_consent: true,
-                marketing_consent: marketingAccepted,
-              })
-              .eq("id", data.user.id)
+        const now = new Date().toISOString()
+        const userId = data.user.id
 
-            // Record consent in audit log (consent_records table)
-            const consentRecords = [
-              { user_id: data.user.id, consent_type: "tos", consent_version: "1.0.0", consent_given: true },
-              { user_id: data.user.id, consent_type: "privacy_policy", consent_version: "1.0.0", consent_given: true },
-              { user_id: data.user.id, consent_type: "data_processing", consent_version: "1.0.0", consent_given: true },
-              { user_id: data.user.id, consent_type: "marketing", consent_version: "1.0.0", consent_given: marketingAccepted },
-            ]
+        // Update profile with consent data
+        // The profile is created by a database trigger on auth.users insert
+        await supabase
+          .from("profiles")
+          .update({
+            date_of_birth: dateOfBirth,
+            account_type: accountType,
+            tos_accepted_at: now,
+            tos_version: "1.0.0",
+            privacy_policy_accepted_at: now,
+            privacy_policy_version: "1.0.0",
+            data_processing_consent: true,
+            marketing_consent: marketingAccepted,
+          })
+          .eq("id", userId)
 
-            await supabase.from("consent_records").insert(consentRecords)
-          } catch (updateErr) {
-            // Columns might not exist yet - that's ok, we'll handle gracefully
-            console.log("Profile update note:", updateErr)
-          }
-        }, 500)
+        // Record consent in audit log (consent_records table)
+        await supabase.from("consent_records").insert([
+          { user_id: userId, consent_type: "tos", consent_version: "1.0.0", consent_given: true },
+          { user_id: userId, consent_type: "privacy_policy", consent_version: "1.0.0", consent_given: true },
+          { user_id: userId, consent_type: "data_processing", consent_version: "1.0.0", consent_given: true },
+          { user_id: userId, consent_type: "marketing", consent_version: "1.0.0", consent_given: marketingAccepted },
+        ])
 
         setAuthResult({
           success: true,

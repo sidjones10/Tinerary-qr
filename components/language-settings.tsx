@@ -5,13 +5,16 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { useState, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { useToast } from "@/components/ui/use-toast"
 import { Loader2, Info } from "lucide-react"
 import { useAuth } from "@/providers/auth-provider"
 import { createClient } from "@/lib/supabase/client"
+import { LANGUAGE_TO_LOCALE } from "@/lib/i18n"
 
 export function LanguageSettings() {
   const [isLoading, setIsLoading] = useState(false)
+  const { t, i18n } = useTranslation()
   const { toast } = useToast()
   const { user } = useAuth()
 
@@ -22,6 +25,15 @@ export function LanguageSettings() {
   const [timeFormat, setTimeFormat] = useState("12-hour")
   const [currency, setCurrency] = useState("usd")
   const [distanceUnit, setDistanceUnit] = useState("miles")
+
+  // Apply language change immediately when user selects from dropdown
+  const handleLanguageChange = (newLanguage: string) => {
+    setLanguage(newLanguage)
+    const locale = LANGUAGE_TO_LOCALE[newLanguage]
+    if (locale && locale !== i18n.language) {
+      i18n.changeLanguage(locale)
+    }
+  }
 
   // Load language and region preferences from database
   useEffect(() => {
@@ -62,8 +74,8 @@ export function LanguageSettings() {
   const handleSave = async () => {
     if (!user) {
       toast({
-        title: "Authentication required",
-        description: "Please log in to save preferences.",
+        title: t("auth.authRequired"),
+        description: t("auth.pleaseLogIn"),
         variant: "destructive",
       })
       return
@@ -109,14 +121,20 @@ export function LanguageSettings() {
         throw updateError
       }
 
+      // Sync i18n language immediately
+      const locale = LANGUAGE_TO_LOCALE[language]
+      if (locale && locale !== i18n.language) {
+        i18n.changeLanguage(locale)
+      }
+
       toast({
-        title: "Preferences saved",
-        description: "Your language and region preferences have been updated.",
+        title: t("settings.language.preferencesSaved"),
+        description: t("settings.language.preferencesSavedDesc"),
       })
     } catch (error: any) {
       console.error("Error saving language preferences:", error)
       toast({
-        title: "Error",
+        title: t("common.error"),
         description: error.message || "Failed to save preferences.",
         variant: "destructive",
       })
@@ -128,99 +146,99 @@ export function LanguageSettings() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Language & Region</CardTitle>
-        <CardDescription>Customize language, region, and format preferences</CardDescription>
+        <CardTitle>{t("settings.language.title")}</CardTitle>
+        <CardDescription>{t("settings.language.description")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="language">Language</Label>
-            <Select value={language} onValueChange={setLanguage}>
+            <Label htmlFor="language">{t("settings.language.language")}</Label>
+            <Select value={language} onValueChange={handleLanguageChange}>
               <SelectTrigger id="language">
-                <SelectValue placeholder="Select language" />
+                <SelectValue placeholder={t("settings.language.selectLanguage")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="english">English</SelectItem>
-                <SelectItem value="spanish">Spanish</SelectItem>
-                <SelectItem value="french">French</SelectItem>
-                <SelectItem value="german">German</SelectItem>
-                <SelectItem value="japanese">Japanese</SelectItem>
-                <SelectItem value="chinese">Chinese</SelectItem>
+                <SelectItem value="english">{t("settings.language.languages.english")}</SelectItem>
+                <SelectItem value="spanish">{t("settings.language.languages.spanish")}</SelectItem>
+                <SelectItem value="french">{t("settings.language.languages.french")}</SelectItem>
+                <SelectItem value="german">{t("settings.language.languages.german")}</SelectItem>
+                <SelectItem value="japanese">{t("settings.language.languages.japanese")}</SelectItem>
+                <SelectItem value="chinese">{t("settings.language.languages.chinese")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="region">Region</Label>
+            <Label htmlFor="region">{t("settings.language.region")}</Label>
             <Select value={region} onValueChange={setRegion}>
               <SelectTrigger id="region">
-                <SelectValue placeholder="Select region" />
+                <SelectValue placeholder={t("settings.language.selectRegion")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="united-states">United States</SelectItem>
-                <SelectItem value="canada">Canada</SelectItem>
-                <SelectItem value="united-kingdom">United Kingdom</SelectItem>
-                <SelectItem value="australia">Australia</SelectItem>
-                <SelectItem value="japan">Japan</SelectItem>
-                <SelectItem value="germany">Germany</SelectItem>
+                <SelectItem value="united-states">{t("settings.language.regions.united-states")}</SelectItem>
+                <SelectItem value="canada">{t("settings.language.regions.canada")}</SelectItem>
+                <SelectItem value="united-kingdom">{t("settings.language.regions.united-kingdom")}</SelectItem>
+                <SelectItem value="australia">{t("settings.language.regions.australia")}</SelectItem>
+                <SelectItem value="japan">{t("settings.language.regions.japan")}</SelectItem>
+                <SelectItem value="germany">{t("settings.language.regions.germany")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="timezone">Time Zone</Label>
+            <Label htmlFor="timezone">{t("settings.language.timeZone")}</Label>
             <Select value={timeZone} onValueChange={setTimeZone}>
               <SelectTrigger id="timezone">
-                <SelectValue placeholder="Select time zone" />
+                <SelectValue placeholder={t("settings.language.selectTimeZone")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="pacific">Pacific Time (US & Canada)</SelectItem>
-                <SelectItem value="mountain">Mountain Time (US & Canada)</SelectItem>
-                <SelectItem value="central">Central Time (US & Canada)</SelectItem>
-                <SelectItem value="eastern">Eastern Time (US & Canada)</SelectItem>
-                <SelectItem value="gmt">GMT</SelectItem>
-                <SelectItem value="cet">Central European Time</SelectItem>
+                <SelectItem value="pacific">{t("settings.language.timeZones.pacific")}</SelectItem>
+                <SelectItem value="mountain">{t("settings.language.timeZones.mountain")}</SelectItem>
+                <SelectItem value="central">{t("settings.language.timeZones.central")}</SelectItem>
+                <SelectItem value="eastern">{t("settings.language.timeZones.eastern")}</SelectItem>
+                <SelectItem value="gmt">{t("settings.language.timeZones.gmt")}</SelectItem>
+                <SelectItem value="cet">{t("settings.language.timeZones.cet")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
         <div className="pt-4 border-t">
-          <h3 className="text-sm font-medium text-muted-foreground mb-4">Format Preferences</h3>
+          <h3 className="text-sm font-medium text-muted-foreground mb-4">{t("settings.language.formatPreferences")}</h3>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="date-format">Date Format</Label>
+              <Label htmlFor="date-format">{t("settings.language.dateFormat")}</Label>
               <Select value={dateFormat} onValueChange={setDateFormat}>
                 <SelectTrigger id="date-format">
-                  <SelectValue placeholder="Select date format" />
+                  <SelectValue placeholder={t("settings.language.selectDateFormat")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="mm/dd/yyyy">MM/DD/YYYY</SelectItem>
-                  <SelectItem value="dd/mm/yyyy">DD/MM/YYYY</SelectItem>
-                  <SelectItem value="yyyy/mm/dd">YYYY/MM/DD</SelectItem>
+                  <SelectItem value="mm/dd/yyyy">{t("settings.language.dateFormats.mm/dd/yyyy")}</SelectItem>
+                  <SelectItem value="dd/mm/yyyy">{t("settings.language.dateFormats.dd/mm/yyyy")}</SelectItem>
+                  <SelectItem value="yyyy/mm/dd">{t("settings.language.dateFormats.yyyy/mm/dd")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="time-format">Time Format</Label>
+              <Label htmlFor="time-format">{t("settings.language.timeFormat")}</Label>
               <Select value={timeFormat} onValueChange={setTimeFormat}>
                 <SelectTrigger id="time-format">
-                  <SelectValue placeholder="Select time format" />
+                  <SelectValue placeholder={t("settings.language.selectTimeFormat")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="12-hour">12-hour (AM/PM)</SelectItem>
-                  <SelectItem value="24-hour">24-hour</SelectItem>
+                  <SelectItem value="12-hour">{t("settings.language.timeFormats.12-hour")}</SelectItem>
+                  <SelectItem value="24-hour">{t("settings.language.timeFormats.24-hour")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="currency">Currency</Label>
+              <Label htmlFor="currency">{t("settings.language.currency")}</Label>
               <Select value={currency} onValueChange={setCurrency}>
                 <SelectTrigger id="currency">
-                  <SelectValue placeholder="Select currency" />
+                  <SelectValue placeholder={t("settings.language.selectCurrency")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="usd">USD ($)</SelectItem>
@@ -234,14 +252,14 @@ export function LanguageSettings() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="distance-unit">Distance Unit</Label>
+              <Label htmlFor="distance-unit">{t("settings.language.distanceUnit")}</Label>
               <Select value={distanceUnit} onValueChange={setDistanceUnit}>
                 <SelectTrigger id="distance-unit">
-                  <SelectValue placeholder="Select distance unit" />
+                  <SelectValue placeholder={t("settings.language.selectDistanceUnit")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="miles">Miles</SelectItem>
-                  <SelectItem value="kilometers">Kilometers</SelectItem>
+                  <SelectItem value="miles">{t("settings.language.miles")}</SelectItem>
+                  <SelectItem value="kilometers">{t("settings.language.kilometers")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -251,7 +269,7 @@ export function LanguageSettings() {
         <div className="bg-blue-50 p-3 rounded-md text-blue-800 text-sm flex items-start gap-2 mt-4">
           <Info className="h-5 w-5 flex-shrink-0 mt-0.5" />
           <p>
-            Language settings apply to the user interface only. Itinerary content will remain in its original language.
+            {t("settings.language.languageNote")}
           </p>
         </div>
 
@@ -260,10 +278,10 @@ export function LanguageSettings() {
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
+                {t("common.saving")}
               </>
             ) : (
-              "Save Preferences"
+              t("settings.language.savePreferences")
             )}
           </Button>
         </div>

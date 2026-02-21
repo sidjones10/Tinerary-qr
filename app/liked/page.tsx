@@ -178,17 +178,17 @@ export default function LikedPage() {
   const totalEvents = totalLikes - totalTrips
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-red-50/30 via-white to-pink-50/30">
+    <div className="flex min-h-screen flex-col">
       <AppHeader />
 
-      <main className="flex-1 cute-section-bg">
+      <main className="flex-1">
         <div className="container px-4 py-6 md:py-10">
           {/* Cute Header */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
               <Link
                 href="/"
-                className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-all text-muted-foreground hover:text-foreground"
+                className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/80 dark:bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-all text-muted-foreground hover:text-foreground"
               >
                 <ArrowLeft className="h-5 w-5" />
               </Link>
@@ -256,7 +256,7 @@ export default function LikedPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-2 border-2 rounded-md bg-white hover:border-red-300 transition-colors cursor-pointer"
+                className="px-4 py-2 border-2 rounded-md bg-white dark:bg-card hover:border-red-300 transition-colors cursor-pointer"
               >
                 <option value="recent">Recently Liked</option>
                 <option value="title">Title A-Z</option>

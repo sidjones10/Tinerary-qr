@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { useAuth } from "@/providers/auth-provider"
 import { SignupPromptDialog } from "@/components/signup-prompt-dialog"
 import { DiscoveryFeed } from "@/components/discovery-feed"
+import { useTranslation } from "react-i18next"
 
 const GUEST_VIEW_LIMIT = 5
 const GUEST_VIEWS_KEY = "tinerary_guest_views"
@@ -21,6 +22,7 @@ export default function DiscoverPage() {
   const [guestViewCount, setGuestViewCount] = useState(0)
   const [showSignupPrompt, setShowSignupPrompt] = useState(false)
   const [promptReason, setPromptReason] = useState<"like" | "comment" | "save" | "limit_reached" | "general">("general")
+  const { t } = useTranslation()
 
   // If user is logged in and not in guest mode, redirect to home
   useEffect(() => {
@@ -53,9 +55,9 @@ export default function DiscoverPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm py-4 sticky top-0 z-40">
+      <header className="bg-white dark:bg-card shadow-sm py-4 sticky top-0 z-40">
         <div className="container mx-auto px-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" asChild aria-label="Go back">
@@ -63,19 +65,19 @@ export default function DiscoverPage() {
                 <ArrowLeft className="h-5 w-5" />
               </Link>
             </Button>
-            <h1 className="text-xl font-bold">Discover Itineraries</h1>
+            <h1 className="text-xl font-bold">{t("discover.title")}</h1>
           </div>
           <div className="flex items-center gap-2">
             {isGuestMode && (
               <span className="text-sm text-muted-foreground mr-2">
-                {guestViewCount}/{GUEST_VIEW_LIMIT} free views
+                {guestViewCount}/{GUEST_VIEW_LIMIT} {t("discover.freeViews")}
               </span>
             )}
             <Button variant="outline" asChild>
-              <Link href="/auth">Sign In</Link>
+              <Link href="/auth">{t("nav.signIn")}</Link>
             </Button>
             <Button asChild>
-              <Link href="/auth?tab=signup">Sign Up</Link>
+              <Link href="/auth?tab=signup">{t("nav.signUp")}</Link>
             </Button>
           </div>
         </div>

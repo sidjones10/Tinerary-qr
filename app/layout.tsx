@@ -1,25 +1,43 @@
 import type React from "react"
 import "@/app/globals.css"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/providers/auth-provider"
 import { ConsentProvider } from "@/providers/consent-provider"
 import { OnboardingWrapper } from "@/components/onboarding-wrapper"
 import { GlobalErrorHandler } from "@/components/global-error-handler"
+import { I18nProvider } from "@/providers/i18n-provider"
+import { PWARegister } from "@/components/pwa-register"
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#E11D48',
+}
 
 export const metadata: Metadata = {
   title: "Tinerary",
   description: "Create and share your travel itineraries",
   generator: 'v0.app',
+  manifest: '/manifest.json',
   icons: {
-    icon: '/icon.svg',
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml', sizes: 'any' },
+      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: '/icons/apple-touch-icon.png',
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Tinerary',
+  },
+  formatDetection: {
+    telephone: false,
   },
 }
 
@@ -37,18 +55,21 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Pacifico&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-sans" suppressHydrationWarning>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           <AuthProvider>
-            <GlobalErrorHandler>
-              <ConsentProvider>
-                <OnboardingWrapper>
-                  {children}
-                </OnboardingWrapper>
-              </ConsentProvider>
-            </GlobalErrorHandler>
-            <Toaster />
+            <I18nProvider>
+              <GlobalErrorHandler>
+                <ConsentProvider>
+                  <OnboardingWrapper>
+                    {children}
+                  </OnboardingWrapper>
+                </ConsentProvider>
+              </GlobalErrorHandler>
+              <Toaster />
+            </I18nProvider>
           </AuthProvider>
         </ThemeProvider>
+        <PWARegister />
       </body>
     </html>
   )

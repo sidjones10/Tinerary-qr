@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { verifyPhoneCode } from "@/backend/services/auth"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
+import { sendWelcomeEmail } from "@/lib/email-notifications"
 
 export async function POST(request: NextRequest) {
   try {
@@ -112,6 +113,15 @@ export async function POST(request: NextRequest) {
           // Client will need to handle auth state
           requiresClientAuth: true,
         })
+      }
+    }
+
+    // Send welcome email if user has an email address
+    if (user.email) {
+      try {
+        await sendWelcomeEmail(user.email, user.name || user.email.split("@")[0])
+      } catch (emailError) {
+        console.error("Failed to send welcome email:", emailError)
       }
     }
 

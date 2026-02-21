@@ -496,7 +496,7 @@ export default function EventPage() {
     if (!event || !id) return
     const supabase = createClient()
     // Increment view count in metrics (non-blocking)
-    supabase.rpc("increment_view_count", { itinerary_id: id }).catch(() => {})
+    supabase.rpc("increment_view_count", { itinerary_id: id }).then(() => {}, () => {})
     // Track in user_interactions for analytics (non-blocking)
     if (user?.id) {
       supabase
@@ -536,9 +536,9 @@ export default function EventPage() {
   // Guest view: show the TikTok-style discovery feed
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        {/* Header – same as discover page */}
-        <header className="bg-white shadow-sm py-4 sticky top-0 z-40">
+      <div className="min-h-screen bg-gray-50 dark:bg-background">
+        {/* Header -- same as discover page */}
+        <header className="bg-white dark:bg-card shadow-sm py-4 sticky top-0 z-40">
           <div className="container mx-auto px-4 flex justify-between items-center">
             <div className="flex items-center gap-4">
               <Button variant="ghost" size="icon" asChild aria-label="Go back">

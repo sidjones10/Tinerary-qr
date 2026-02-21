@@ -212,14 +212,16 @@ export async function publishDraft(draftId: string) {
     const { data: itinerary, error: insertError } = await supabase
       .from("itineraries")
       .insert({
-        title: draft.title,
+        title: draft.title || "Untitled Event",
         description: draft.description,
-        content: draft.content,
+        location: draft.location,
+        start_date: draft.start_date,
+        end_date: draft.end_date,
+        image_url: draft.cover_image_url,
         user_id: userId,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        is_public: true, // Default to public
-        draft_id: draftId,
+        is_public: draft.is_public ?? true,
       })
       .select()
       .single()

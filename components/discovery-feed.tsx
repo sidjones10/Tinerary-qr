@@ -17,6 +17,7 @@ import Link from "next/link"
 import confetti from "canvas-confetti"
 import { ThemeIcon, getThemeColor } from "@/components/theme-selector"
 import { getFontFamily } from "@/components/font-selector"
+import { useTranslation } from "react-i18next"
 
 interface MetricsData {
   view_count: number
@@ -56,6 +57,7 @@ export function DiscoveryFeed() {
   const [mounted, setMounted] = useState(false)
   const [likedItems, setLikedItems] = useState<Set<string>>(new Set())
   const [savedItems, setSavedItems] = useState<Set<string>>(new Set())
+  const { t } = useTranslation()
   const [commentsOpenFor, setCommentsOpenFor] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [touchStart, setTouchStart] = useState<number | null>(null)
@@ -93,8 +95,8 @@ export function DiscoveryFeed() {
             colors: ['#F97316', '#EC4899'],
           })
           toast({
-            title: "Feed refreshed!",
-            description: `Found ${result.items.length} amazing trips`,
+            title: t("discover.feedRefreshed"),
+            description: t("discover.foundTrips", { count: result.items.length }),
           })
         }
       }
@@ -117,8 +119,8 @@ export function DiscoveryFeed() {
     } catch (error) {
       console.error("Error fetching discovery:", error)
       toast({
-        title: "Couldn't load feed",
-        description: "Pull down to try again",
+        title: t("discover.couldntLoad"),
+        description: t("discover.pullToRefresh"),
         variant: "destructive",
       })
     } finally {
@@ -178,8 +180,8 @@ export function DiscoveryFeed() {
     if (!user?.id) {
       console.log("[Like Debug] No user - showing sign in toast")
       toast({
-        title: "Please sign in",
-        description: "You need to be signed in to like itineraries",
+        title: t("discover.pleaseSignIn"),
+        description: t("discover.signInToLike"),
         variant: "destructive",
       })
       return
@@ -246,6 +248,18 @@ export function DiscoveryFeed() {
               likedItem.title,
               user.id
             ).catch(err => console.error("Failed to send like notification:", err))
+
+            // Send email notification via server-side API route
+            fetch("/api/notifications/email", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                type: "like",
+                recipientUserId: likedItem.user_id,
+                eventId: itemId,
+                eventTitle: likedItem.title,
+              }),
+            }).catch(err => console.error("Failed to send like email:", err))
           }
         } else {
           console.log("[Like Debug] Unliked! Removing from liked items")
@@ -278,8 +292,8 @@ export function DiscoveryFeed() {
     } catch (error) {
       console.error("[Like Debug] Caught error:", error)
       toast({
-        title: "Error",
-        description: "Failed to update like status. Check console for details.",
+        title: t("common.error"),
+        description: t("discover.signInToLike"),
         variant: "destructive",
       })
     }
@@ -289,8 +303,8 @@ export function DiscoveryFeed() {
   const handleSave = async (itemId: string) => {
     if (!user?.id) {
       toast({
-        title: "Please sign in",
-        description: "You need to be signed in to save itineraries",
+        title: t("discover.pleaseSignIn"),
+        description: t("discover.signInToSave"),
         variant: "destructive",
       })
       return
@@ -469,7 +483,7 @@ export function DiscoveryFeed() {
       date: dateStr,
       image: item.image_url || null,
       defaultBackground: !item.image_url ? getDefaultBackground(item.id, item.title) : null,
-      location: item.location || "Somewhere amazing",
+      location: item.location || t("discover.somewhereAmazing"),
       likes: metrics?.like_count || 0,
       comments: metrics?.comment_count || 0,
       saves: metrics?.save_count || 0,
@@ -494,11 +508,11 @@ export function DiscoveryFeed() {
 
   if (discoveryItems.length === 0) {
     return (
-      <div className="h-full flex items-center justify-center bg-gradient-to-b from-orange-50 to-pink-50 rounded-xl">
+      <div className="h-full flex items-center justify-center bg-gradient-to-b from-orange-50 to-pink-50 dark:from-card dark:to-background rounded-xl">
         <div className="text-center">
-          <MapPin className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">No trips to discover yet</h3>
-          <p className="text-gray-500">Check back soon for amazing adventures!</p>
+          <MapPin className="h-16 w-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">{t("discover.noTrips")}</h3>
+          <p className="text-gray-500 dark:text-gray-400">{t("discover.checkBackSoon")}</p>
         </div>
       </div>
     )
@@ -604,12 +618,12 @@ export function DiscoveryFeed() {
   const itemsToDisplay = formattedItems.length > 0 ? formattedItems : fallbackItems
 
   return (
-    <div className="relative h-[calc(100vh-160px)] min-h-[500px] max-h-[900px] w-full overflow-hidden rounded-xl bg-gradient-to-b from-white to-orange-50 shadow-2xl">
+    <div className="relative h-[calc(100vh-160px)] min-h-[500px] max-h-[900px] w-full overflow-hidden rounded-xl bg-gradient-to-b from-white to-orange-50 dark:from-card dark:to-background shadow-2xl">
       {/* Pull to refresh indicator */}
       {refreshing && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-white/90 backdrop-blur-md px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-white/90 dark:bg-card/90 backdrop-blur-md px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-orange-500 animate-spin" />
-          <span className="text-sm font-medium">Refreshing...</span>
+          <span className="text-sm font-medium">{t("discover.refreshing")}</span>
         </div>
       )}
 
@@ -617,7 +631,7 @@ export function DiscoveryFeed() {
       {showScrollPrompt && !hasScrolled && (
         <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-50 animate-bounce">
           <div className="bg-black/70 backdrop-blur-md px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-white">
-            <span className="text-sm font-medium">Swipe up to explore more</span>
+            <span className="text-sm font-medium">{t("discover.swipeUp")}</span>
             <span className="text-lg">👆</span>
           </div>
         </div>
@@ -685,7 +699,7 @@ export function DiscoveryFeed() {
                 <div className="absolute top-4 right-4 z-10">
                   <Badge className="bg-gradient-to-r from-amber-400 to-orange-400 border-0 flex items-center gap-1">
                     <Star className="h-3 w-3 fill-white" />
-                    Promoted
+                    {t("discover.promoted")}
                   </Badge>
                 </div>
               )}
@@ -703,7 +717,7 @@ export function DiscoveryFeed() {
                             : "bg-gradient-to-r from-purple-400 to-pink-300 hover:from-purple-500 hover:to-pink-400 border-0 text-sm px-3 py-1"
                       }
                     >
-                      {item.type === "trip" ? "Trip" : item.type === "business" ? "Business" : "Event"}
+                      {item.type === "trip" ? t("discover.trip") : item.type === "business" ? t("discover.business") : t("discover.event")}
                     </Badge>
                     <h2 className="text-2xl md:text-3xl font-bold mt-3" style={{ fontFamily }}>{item.title}</h2>
                     <div className="flex items-center text-sm md:text-base mt-2 opacity-90">
@@ -749,7 +763,7 @@ export function DiscoveryFeed() {
                       size="sm"
                       className="bg-gradient-to-r from-orange-500 to-pink-500 backdrop-blur-sm border-white/20 text-white hover:from-orange-600 hover:to-pink-600 font-semibold shadow-lg transition-all hover:scale-105"
                     >
-                      {item.type === "business" ? "Learn More" : "View Trip"}
+                      {item.type === "business" ? t("discover.learnMore") : t("discover.viewTrip")}
                     </Button>
                   </Link>
                 </div>
@@ -849,7 +863,7 @@ export function DiscoveryFeed() {
       <div className="absolute top-4 left-4 z-10">
         <Badge className="bg-gradient-to-r from-orange-500 to-pink-500 border-0 text-white font-bold px-4 py-2 text-sm shadow-xl animate-pulse">
           <Sparkles className="h-4 w-4 mr-1" />
-          Discover
+          {t("feed.discover")}
         </Badge>
       </div>
 

@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { createClient } from "@/lib/supabase/client"
+import { useTranslation } from "react-i18next"
 
 export function AppHeader() {
   const [showSearch, setShowSearch] = useState(false)
@@ -28,6 +29,7 @@ export function AppHeader() {
   const [user, setUser] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
+  const { t } = useTranslation()
 
   const supabase = createClient()
 
@@ -97,31 +99,31 @@ export function AppHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/40 supports-[backdrop-filter]:bg-white/20">
+    <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/40 dark:bg-black/40 supports-[backdrop-filter]:bg-white/20 dark:supports-[backdrop-filter]:bg-black/20">
       <div className="container flex h-14 items-center">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <span className="font-bold text-xl text-gray-800">Tinerary</span>
+            <span className="font-bold text-xl text-gray-800 dark:text-orange-100">Tinerary</span>
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
             <Link href="/" className="transition-colors hover:text-foreground/80">
-              Home
+              {t("nav.home")}
             </Link>
             <Link href="/saved" className="transition-colors hover:text-foreground/80">
-              Saved
+              {t("header.saved")}
             </Link>
             <Link href="/liked" className="transition-colors hover:text-foreground/80">
-              Liked
+              {t("header.liked")}
             </Link>
             <Link href="/notifications" className="transition-colors hover:text-foreground/80">
-              Notifications
+              {t("header.notifications")}
             </Link>
           </nav>
         </div>
 
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="mr-2 md:hidden bg-white/50">
+            <Button variant="outline" size="icon" className="mr-2 md:hidden bg-white/50 dark:bg-white/10">
               <Menu className="h-5 w-5" />
               <span className="sr-only">Toggle menu</span>
             </Button>
@@ -132,7 +134,7 @@ export function AppHeader() {
         </Sheet>
 
         <Link href="/" className="mr-6 flex items-center md:hidden">
-          <span className="font-bold text-xl text-gray-800">Tinerary</span>
+          <span className="font-bold text-xl text-gray-800 dark:text-orange-100">Tinerary</span>
         </Link>
 
         <div className={cn("flex items-center ml-auto", showSearch ? "w-full md:w-auto justify-between" : "")}>
@@ -142,8 +144,8 @@ export function AppHeader() {
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
-                  placeholder="Search events, places..."
-                  className="w-full pl-8 md:w-[300px] rounded-full bg-white/70"
+                  placeholder={t("header.searchPlaceholder")}
+                  className="w-full pl-8 md:w-[300px] rounded-full bg-white/70 dark:bg-white/10 dark:text-foreground"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   autoFocus
@@ -177,23 +179,23 @@ export function AppHeader() {
                   </Avatar>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuLabel>{t("header.myAccount")}</DropdownMenuLabel>
                   <DropdownMenuItem asChild>
                     <Link href="/profile" className="flex items-center">
                       <User className="mr-2 h-4 w-4" />
-                      Profile
+                      {t("nav.profile")}
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/settings" className="flex items-center">
                       <Settings className="mr-2 h-4 w-4" />
-                      Settings
+                      {t("nav.settings")}
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="flex items-center text-red-500 cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" />
-                    Sign out
+                    {t("header.signOut")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

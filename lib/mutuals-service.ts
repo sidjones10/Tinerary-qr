@@ -24,24 +24,7 @@ export async function getMutualConnections(
   try {
     const supabase = createClient()
 
-    // Get all events the user is part of (created or invited to)
-    const { data: userEvents, error: eventsError } = await supabase
-      .from("itineraries")
-      .select("id")
-      .or(`user_id.eq.${userId},itinerary_invitations.invitee_id.eq.${userId}`)
-
-    if (eventsError) throw eventsError
-
-    if (!userEvents || userEvents.length === 0) {
-      return { success: true, mutuals: [] }
-    }
-
-    const eventIds = userEvents.map(e => e.id)
-
-    // Find all other users who are part of these same events
-    // This includes:
-    // 1. Event creators
-    // 2. Invited attendees
+    // Try the RPC function first
     const { data: sharedUsers, error: sharedError } = await supabase
       .rpc('get_mutual_connections', {
         p_user_id: userId,
@@ -50,7 +33,6 @@ export async function getMutualConnections(
 
     if (sharedError) {
       // If the RPC doesn't exist, fall back to a simpler query
-      console.warn("RPC get_mutual_connections not found, using fallback query")
       return await getMutualsConnectionsFallback(userId, limit)
     }
 
@@ -118,7 +100,6 @@ async function getMutualsConnectionsFallback(
       .in("itinerary_id", userEventIds)
       .neq("invitee_id", userId)
       .eq("status", "accepted")
-      .order("itinerary.start_date", { ascending: true })
 
     // Combine and count shared events per user
     const mutualMap = new Map<string, {

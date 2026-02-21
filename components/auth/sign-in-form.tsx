@@ -5,7 +5,6 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -44,14 +43,9 @@ export function SignInForm() {
         return
       }
 
-      // Check if the user has MFA enabled (AAL1 means password-only, needs TOTP)
-      const supabase = createClient()
-      const { data: factorsData } = await supabase.auth.mfa.listFactors()
-      const verifiedFactors = factorsData?.totp?.filter((f) => f.status === "verified") || []
-
-      if (verifiedFactors.length > 0) {
-        // User has 2FA — show the TOTP prompt before allowing navigation
-        setMfaFactorId(verifiedFactors[0].id)
+      // Check if the server detected verified MFA factors for this user
+      if (result.mfaRequired && result.mfaFactorId) {
+        setMfaFactorId(result.mfaFactorId)
         setMfaRequired(true)
         return
       }

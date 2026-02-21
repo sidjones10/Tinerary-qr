@@ -23,6 +23,21 @@ const nextConfig = {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(), geolocation=(self), interest-cohort=()",
           },
+          {
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://db.onlinewebfonts.com",
+              "font-src 'self' https://fonts.gstatic.com https://db.onlinewebfonts.com",
+              "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in",
+              "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co",
+              "frame-ancestors 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+              "object-src 'none'",
+            ].join("; "),
+          },
         ],
       },
     ]

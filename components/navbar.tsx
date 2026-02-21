@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useTranslation } from "react-i18next"
 import { useAuth } from "@/providers/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -15,6 +16,7 @@ import {
 import { Loader2, LogOut, Settings, User, Plus } from "lucide-react"
 
 export function Navbar() {
+  const { t } = useTranslation()
   const { user, isLoading, signOut } = useAuth()
 
   const getInitials = (name: string) => {
@@ -34,7 +36,7 @@ export function Navbar() {
 
         <nav className="hidden md:flex items-center space-x-6">
           <Link href="/" className="text-sm font-medium transition-colors hover:text-primary">
-            Home
+            {t("nav.home")}
           </Link>
         </nav>
 
@@ -46,7 +48,7 @@ export function Navbar() {
               <Button asChild variant="outline" size="sm" className="hidden md:flex">
                 <Link href="/create">
                   <Plus className="h-4 w-4 mr-2" />
-                  Create
+                  {t("nav.create")}
                 </Link>
               </Button>
 
@@ -77,13 +79,13 @@ export function Navbar() {
                   <DropdownMenuItem asChild>
                     <Link href="/profile" className="flex items-center">
                       <User className="mr-2 h-4 w-4" />
-                      <span>Profile</span>
+                      <span>{t("nav.profile")}</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/settings" className="flex items-center">
                       <Settings className="mr-2 h-4 w-4" />
-                      <span>Settings</span>
+                      <span>{t("nav.settings")}</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -92,7 +94,7 @@ export function Navbar() {
                     className="flex items-center text-destructive focus:text-destructive"
                   >
                     <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
+                    <span>{t("nav.logOut")}</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -100,10 +102,10 @@ export function Navbar() {
           ) : (
             <div className="flex items-center space-x-2">
               <Button variant="ghost" asChild>
-                <Link href="/auth">Sign in</Link>
+                <Link href="/auth">{t("nav.signIn")}</Link>
               </Button>
               <Button asChild className="btn-sunset">
-                <Link href="/auth?tab=signup">Sign up</Link>
+                <Link href="/auth?tab=signup">{t("nav.signUp")}</Link>
               </Button>
             </div>
           )}

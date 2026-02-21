@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, MapPin, Calendar, Grid3X3, Bookmark, Share2, MoreHorizontal, ExternalLink, FileEdit, Settings, Loader2, Trash2, Edit, MessageCircle } from "lucide-react"
+import { ArrowLeft, MapPin, Calendar, Grid3X3, Bookmark, Share2, MoreHorizontal, ExternalLink, FileEdit, Settings, Loader2, Trash2, Edit, MessageCircle, Lock, Users } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { getUserDrafts, deleteDraft, type EventDraft } from "@/app/actions/draft-actions"
 import { FollowButton } from "@/components/follow-button"
-import { getFollowCounts } from "@/lib/follow-service"
+import { getFollowCounts, isFollowing as checkIsFollowing } from "@/lib/follow-service"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,8 +67,14 @@ export default function UnifiedProfilePage() {
   const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null)
   const [draftToDelete, setDraftToDelete] = useState<string | null>(null)
   const [followCounts, setFollowCounts] = useState({ followers: 0, following: 0 })
+  const [profilePrivacy, setProfilePrivacy] = useState<string>("public")
+  const [viewerIsFollowing, setViewerIsFollowing] = useState(false)
 
   const isOwnProfile = currentUserId === userId
+  const isProfileRestricted = !isOwnProfile && (
+    (profilePrivacy === "private") ||
+    (profilePrivacy === "followers" && !viewerIsFollowing)
+  )
 
   useEffect(() => {
     async function fetchProfile() {
@@ -100,8 +106,35 @@ export default function UnifiedProfilePage() {
         setFollowCounts(countsResult.counts)
       }
 
-      // Fetch itineraries - all for own profile, only public for others
+      // Fetch the target user's privacy preference and enforce it
       const isOwn = user?.id === userId
+      if (!isOwn) {
+        const { data: prefsData } = await supabase
+          .from("user_preferences")
+          .select("privacy_preferences")
+          .eq("user_id", userId)
+          .single()
+
+        const privacy = prefsData?.privacy_preferences?.profilePrivacy ?? "public"
+        setProfilePrivacy(privacy)
+
+        // For "followers" mode, check whether the viewer follows this user
+        let following = false
+        if (privacy === "followers" && user) {
+          const followResult = await checkIsFollowing(user.id, userId)
+          following = followResult.isFollowing ?? false
+          setViewerIsFollowing(following)
+        }
+
+        // If profile is restricted, stop here — don't load itineraries
+        const restricted = privacy === "private" || (privacy === "followers" && !following)
+        if (restricted) {
+          setLoading(false)
+          return
+        }
+      }
+
+      // Fetch itineraries - all for own profile, only public for others
       let query = supabase
         .from("itineraries")
         .select("*")
@@ -306,44 +339,48 @@ export default function UnifiedProfilePage() {
             <p className="text-orange-600 font-medium">@{profile.username}</p>
           )}
 
-          {profile.bio && (
+          {!isProfileRestricted && profile.bio && (
             <p className="mt-4 text-gray-600 max-w-md leading-relaxed px-4">
               {profile.bio}
             </p>
           )}
 
-          <div className="flex items-center gap-4 mt-4 text-sm text-gray-500">
-            {profile.location && (
+          {!isProfileRestricted && (
+            <div className="flex items-center gap-4 mt-4 text-sm text-gray-500">
+              {profile.location && (
+                <div className="flex items-center gap-1 bg-white/60 dark:bg-card/60 px-3 py-1 rounded-full">
+                  <MapPin className="h-3.5 w-3.5 text-orange-500" />
+                  <span>{profile.location}</span>
+                </div>
+              )}
               <div className="flex items-center gap-1 bg-white/60 dark:bg-card/60 px-3 py-1 rounded-full">
-                <MapPin className="h-3.5 w-3.5 text-orange-500" />
-                <span>{profile.location}</span>
+                <Calendar className="h-3.5 w-3.5 text-pink-500" />
+                <span>Joined {formatDate(profile.created_at)}</span>
               </div>
-            )}
-            <div className="flex items-center gap-1 bg-white/60 dark:bg-card/60 px-3 py-1 rounded-full">
-              <Calendar className="h-3.5 w-3.5 text-pink-500" />
-              <span>Joined {formatDate(profile.created_at)}</span>
             </div>
-          </div>
+          )}
 
-          {/* Stats */}
-          <div className="flex items-center justify-center gap-2 mt-6 w-full max-w-sm">
-            <div className="flex-1 text-center bg-white/70 dark:bg-card/70 backdrop-blur-sm rounded-2xl py-4 px-3 shadow-sm">
-              <p className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">{itineraries.length}</p>
-              <p className="text-xs text-gray-500 mt-1">Itineraries</p>
+          {/* Stats — hidden for restricted profiles */}
+          {!isProfileRestricted && (
+            <div className="flex items-center justify-center gap-2 mt-6 w-full max-w-sm">
+              <div className="flex-1 text-center bg-white/70 dark:bg-card/70 backdrop-blur-sm rounded-2xl py-4 px-3 shadow-sm">
+                <p className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">{itineraries.length}</p>
+                <p className="text-xs text-gray-500 mt-1">Itineraries</p>
+              </div>
+              <Link href={`/followers/${userId}`} className="flex-1">
+                <div className="text-center bg-white/70 dark:bg-card/70 backdrop-blur-sm rounded-2xl py-4 px-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                  <p className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">{followCounts.followers}</p>
+                  <p className="text-xs text-gray-500 mt-1">Followers</p>
+                </div>
+              </Link>
+              <Link href={`/following/${userId}`} className="flex-1">
+                <div className="text-center bg-white/70 dark:bg-card/70 backdrop-blur-sm rounded-2xl py-4 px-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                  <p className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">{followCounts.following}</p>
+                  <p className="text-xs text-gray-500 mt-1">Following</p>
+                </div>
+              </Link>
             </div>
-            <Link href={`/followers/${userId}`} className="flex-1">
-              <div className="text-center bg-white/70 dark:bg-card/70 backdrop-blur-sm rounded-2xl py-4 px-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                <p className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">{followCounts.followers}</p>
-                <p className="text-xs text-gray-500 mt-1">Followers</p>
-              </div>
-            </Link>
-            <Link href={`/following/${userId}`} className="flex-1">
-              <div className="text-center bg-white/70 dark:bg-card/70 backdrop-blur-sm rounded-2xl py-4 px-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                <p className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">{followCounts.following}</p>
-                <p className="text-xs text-gray-500 mt-1">Following</p>
-              </div>
-            </Link>
-          </div>
+          )}
 
           {/* Action Buttons */}
           {!isOwnProfile && (
@@ -351,11 +388,27 @@ export default function UnifiedProfilePage() {
               <FollowButton
                 userId={userId}
                 className="flex-1 rounded-full h-11"
-                onFollowChange={(isFollowing) => {
+                onFollowChange={async (isFollowingNow) => {
                   setFollowCounts(prev => ({
                     ...prev,
-                    followers: isFollowing ? prev.followers + 1 : prev.followers - 1
+                    followers: isFollowingNow ? prev.followers + 1 : prev.followers - 1
                   }))
+                  setViewerIsFollowing(isFollowingNow)
+                  // If this unlocks a "followers only" profile, fetch itineraries
+                  if (isFollowingNow && profilePrivacy === "followers") {
+                    const supabase = createClient()
+                    const { data } = await supabase
+                      .from("itineraries")
+                      .select("*")
+                      .eq("user_id", userId)
+                      .eq("is_public", true)
+                      .order("created_at", { ascending: false })
+                    if (data) setItineraries(data)
+                  }
+                  // If unfollowing clears access, hide itineraries
+                  if (!isFollowingNow && profilePrivacy === "followers") {
+                    setItineraries([])
+                  }
                 }}
               />
               <Button
@@ -403,8 +456,29 @@ export default function UnifiedProfilePage() {
         </div>
       </div>
 
+      {/* Restricted Profile Message */}
+      {isProfileRestricted && (
+        <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-100 to-pink-100 flex items-center justify-center mb-4">
+            {profilePrivacy === "private" ? (
+              <Lock className="h-8 w-8 text-orange-500" />
+            ) : (
+              <Users className="h-8 w-8 text-orange-500" />
+            )}
+          </div>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">
+            {profilePrivacy === "private" ? "This Account is Private" : "Followers Only"}
+          </h2>
+          <p className="text-gray-500 max-w-xs">
+            {profilePrivacy === "private"
+              ? "This user has set their profile to private."
+              : "Follow this account to see their itineraries and profile details."}
+          </p>
+        </div>
+      )}
+
       {/* Content Tabs */}
-      <Tabs defaultValue="itineraries" className="w-full">
+      {!isProfileRestricted && <Tabs defaultValue="itineraries" className="w-full">
         <TabsList className="w-full justify-start rounded-none bg-transparent h-14 px-4 border-b border-orange-100">
           <TabsTrigger
             value="itineraries"
@@ -565,7 +639,7 @@ export default function UnifiedProfilePage() {
             </p>
           </div>
         </TabsContent>
-      </Tabs>
+      </Tabs>}
 
       {/* Delete Draft Confirmation Dialog */}
       <Dialog open={!!draftToDelete} onOpenChange={(open) => !open && setDraftToDelete(null)}>

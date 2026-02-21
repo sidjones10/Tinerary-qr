@@ -20,9 +20,8 @@ export function NotificationSettings() {
   const [notifications, setNotifications] = useState({
     push: true,
     email: true,
-    sms: false,
+    sms: true,
     tripReminders: true,
-    activityAlerts: true,
     itineraryChanges: true,
     newFollowers: true,
     likesComments: true,
@@ -235,14 +234,6 @@ export function NotificationSettings() {
                 <p className="text-sm text-muted-foreground">{t("settings.notifications.tripRemindersDesc")}</p>
               </div>
               <Switch checked={notifications.tripReminders} onCheckedChange={() => handleToggle("tripReminders")} />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">{t("settings.notifications.activityAlerts")}</p>
-                <p className="text-sm text-muted-foreground">{t("settings.notifications.activityAlertsDesc")}</p>
-              </div>
-              <Switch checked={notifications.activityAlerts} onCheckedChange={() => handleToggle("activityAlerts")} />
             </div>
 
             <div className="flex items-center justify-between">

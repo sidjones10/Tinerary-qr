@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/client"
-import { notifyNewComment, getUserNotificationPreferences } from "@/lib/notification-service"
-import { sendNewCommentEmail } from "@/lib/email-notifications"
+import { notifyNewComment } from "@/lib/notification-service"
 
 export interface Comment {
   id: string
@@ -163,26 +162,19 @@ export async function createComment(
           content
         )
 
-        // Send email notification if user has email notifications enabled
-        const ownerPrefs = await getUserNotificationPreferences(itinerary.user_id)
-        if (ownerPrefs.email) {
-          const { data: ownerProfile } = await supabase
-            .from("profiles")
-            .select("email, name")
-            .eq("id", itinerary.user_id)
-            .single()
-
-          if (ownerProfile?.email) {
-            sendNewCommentEmail(
-              ownerProfile.email,
-              ownerProfile.name || "there",
-              commenterProfile?.name || "Someone",
-              content,
-              itinerary.title,
-              itineraryId
-            ).catch(err => console.error("Failed to send comment email:", err))
-          }
-        }
+        // Send email notification via server-side API route
+        // (email sending requires RESEND_API_KEY which is only available server-side)
+        fetch("/api/notifications/email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "comment",
+            recipientUserId: itinerary.user_id,
+            eventId: itineraryId,
+            eventTitle: itinerary.title,
+            content,
+          }),
+        }).catch(err => console.error("Failed to send comment email:", err))
       }
     } catch (notifyError) {
       // Don't fail the comment if notification fails

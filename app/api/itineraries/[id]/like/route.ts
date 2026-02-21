@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { notifyNewLike } from "@/lib/notification-service"
+import { notifyNewLike, getUserNotificationPreferences } from "@/lib/notification-service"
+import { sendNewLikeEmail } from "@/lib/email-notifications"
 
 // POST - Like an itinerary
 export async function POST(
@@ -91,6 +92,27 @@ export async function POST(
           itinerary.title,
           user.id
         ).catch(err => console.error("Failed to send like notification:", err))
+
+        // Send email notification
+        getUserNotificationPreferences(itinerary.user_id).then(async (prefs) => {
+          if (!prefs.email || !prefs.likesComments) return
+
+          const { data: ownerProfile } = await supabase
+            .from("profiles")
+            .select("email, name")
+            .eq("id", itinerary.user_id)
+            .single()
+
+          if (ownerProfile?.email) {
+            sendNewLikeEmail(
+              ownerProfile.email,
+              ownerProfile.name || "there",
+              likerProfile?.name || "Someone",
+              itinerary.title,
+              itineraryId
+            ).catch(err => console.error("Failed to send like email:", err))
+          }
+        }).catch(err => console.error("Failed to check email prefs:", err))
       }
     } catch (notifyError) {
       console.error("Notification error:", notifyError)

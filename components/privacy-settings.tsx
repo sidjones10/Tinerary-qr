@@ -26,7 +26,6 @@ export function PrivacySettings() {
     shareLocation: false,
     locationHistory: true,
     personalizedRecs: true,
-    dataCollection: true,
   })
 
   // Load privacy settings from database
@@ -237,7 +236,6 @@ export function PrivacySettings() {
                 <p className="font-medium">{t("settings.privacy.sharePreciseLocation")}</p>
                 <p className="text-sm text-muted-foreground">{t("settings.privacy.sharePreciseLocationDesc")}</p>
               </div>
-              <Switch checked={privacySettings.shareLocation} onCheckedChange={() => handleToggle("shareLocation")} />
             </div>
 
             <div className="flex items-center justify-between">
@@ -268,14 +266,6 @@ export function PrivacySettings() {
                 checked={privacySettings.personalizedRecs}
                 onCheckedChange={() => handleToggle("personalizedRecs")}
               />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">{t("settings.privacy.dataCollection")}</p>
-                <p className="text-sm text-muted-foreground">{t("settings.privacy.dataCollectionDesc")}</p>
-              </div>
-              <Switch checked={privacySettings.dataCollection} onCheckedChange={() => handleToggle("dataCollection")} />
             </div>
           </div>
 

@@ -6,6 +6,7 @@ import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/providers/auth-provider"
 import { Loader2, ArrowLeft } from "lucide-react"
+import { generalizeLocation } from "@/lib/location-utils"
 import { EventDetail } from "@/components/event-detail"
 import { EventNotFound } from "@/components/event-not-found"
 import { EventPrivate } from "@/components/event-private"
@@ -221,6 +222,7 @@ const getEventById = async (id: string) => {
         : formatDate(itineraryData.start_date),
       location: itineraryData.location,
       is_public: itineraryData.is_public,
+      share_precise_location: itineraryData.share_precise_location ?? true,
       packing_list_public: itineraryData.packing_list_public,
       expenses_public: itineraryData.expenses_public,
       theme: itineraryData.theme,
@@ -471,6 +473,28 @@ export default function EventPage() {
         if (!isMockData && eventData.is_public === false && (!user || user.id !== eventData.user_id)) {
           setIsPrivate(true)
           return
+        }
+
+        // Mask precise location for non-owners on public itineraries
+        const isOwner = user && user.id === eventData.user_id
+        if (!isOwner && eventData.is_public && eventData.share_precise_location === false) {
+          eventData.location = generalizeLocation(eventData.location || "")
+          // Also mask activity locations
+          if (eventData.activities) {
+            eventData.activities = eventData.activities.map((activity: any) => ({
+              ...activity,
+              location: activity.location ? generalizeLocation(activity.location) : activity.location,
+            }))
+          }
+          if (eventData.days) {
+            eventData.days = eventData.days.map((day: any) => ({
+              ...day,
+              activities: day.activities?.map((activity: any) => ({
+                ...activity,
+                location: activity.location ? generalizeLocation(activity.location) : activity.location,
+              })),
+            }))
+          }
         }
 
         setEvent(eventData)

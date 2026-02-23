@@ -222,6 +222,7 @@ export async function publishDraft(draftId: string) {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         is_public: draft.is_public ?? true,
+        currency: (draft.currency || 'USD').toUpperCase(),
       })
       .select()
       .single()

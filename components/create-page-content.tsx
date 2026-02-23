@@ -36,7 +36,7 @@ import { Separator } from "@/components/ui/separator"
 import { ThemeSelector, ThemeIcon, themes } from "@/components/theme-selector"
 import { FontSelector, getFontFamily } from "@/components/font-selector"
 import { Switch } from "@/components/ui/switch"
-import { Globe, Lock, MapPinOff } from "lucide-react"
+import { Globe, Lock, MapPinOff, Settings } from "lucide-react"
 
 export default function CreatePageContent() {
   const [type, setType] = useState<"event" | "trip">("trip")
@@ -882,6 +882,7 @@ export default function CreatePageContent() {
             <TabsTrigger value="packing">Packing</TabsTrigger>
             <TabsTrigger value="expenses">Expenses</TabsTrigger>
             <TabsTrigger value="photos">Photos</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="details" className="space-y-6 mt-6">
@@ -967,49 +968,6 @@ export default function CreatePageContent() {
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-r from-orange-50/50 to-pink-50/50 border shadow-sm">
-              <CardHeader>
-                <CardTitle>Visibility & Privacy</CardTitle>
-                <CardDescription>Control who can see this {type} and what they see</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {isPublic ? (
-                      <Globe className="h-5 w-5 text-green-600" />
-                    ) : (
-                      <Lock className="h-5 w-5 text-amber-600" />
-                    )}
-                    <div>
-                      <p className="font-medium">{isPublic ? "Public" : "Private"}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {isPublic
-                          ? "Anyone can discover and view this " + type
-                          : "Only invited people can see this " + type}
-                      </p>
-                    </div>
-                  </div>
-                  <Switch checked={isPublic} onCheckedChange={setIsPublic} />
-                </div>
-
-                {isPublic && (
-                  <div className="flex items-center justify-between pl-8 border-l-2 border-muted ml-2">
-                    <div className="flex items-center gap-3">
-                      <MapPinOff className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">Share Precise Location</p>
-                        <p className="text-sm text-muted-foreground">
-                          {sharePreciseLocation
-                            ? "Others see the exact address in this " + type
-                            : "Others see only the city or region (e.g. \"New York, NY\" instead of \"1000 5th Ave, New York, NY\")"}
-                        </p>
-                      </div>
-                    </div>
-                    <Switch checked={sharePreciseLocation} onCheckedChange={setSharePreciseLocation} />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </TabsContent>
 
           <TabsContent value="activities" className="space-y-6 mt-6">
@@ -1480,6 +1438,52 @@ export default function CreatePageContent() {
                     </div>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="settings" className="space-y-6 mt-6">
+            <Card className="bg-gradient-to-r from-orange-50/50 to-pink-50/50 border shadow-sm">
+              <CardHeader>
+                <CardTitle>Visibility & Privacy</CardTitle>
+                <CardDescription>Control who can see this {type} and what they see</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {isPublic ? (
+                      <Globe className="h-5 w-5 text-green-600" />
+                    ) : (
+                      <Lock className="h-5 w-5 text-amber-600" />
+                    )}
+                    <div>
+                      <p className="font-medium">{isPublic ? "Public" : "Private"}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {isPublic
+                          ? "Anyone can discover and view this " + type
+                          : "Only invited people can see this " + type}
+                      </p>
+                    </div>
+                  </div>
+                  <Switch checked={isPublic} onCheckedChange={setIsPublic} />
+                </div>
+
+                {isPublic && (
+                  <div className="flex items-center justify-between pl-8 border-l-2 border-muted ml-2">
+                    <div className="flex items-center gap-3">
+                      <MapPinOff className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">Share Precise Location</p>
+                        <p className="text-sm text-muted-foreground">
+                          {sharePreciseLocation
+                            ? "Others see the exact address in this " + type
+                            : "Others see only the city or region (e.g. \"New York, NY\" instead of \"1000 5th Ave, New York, NY\")"}
+                        </p>
+                      </div>
+                    </div>
+                    <Switch checked={sharePreciseLocation} onCheckedChange={setSharePreciseLocation} />
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

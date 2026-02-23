@@ -8,8 +8,8 @@ import {
   sendActivityReminder,
 } from "@/lib/reminder-service"
 
-// This endpoint should be called by a cron job every minute
-// Vercel Cron or similar can be configured to call this endpoint
+// Called every minute by Supabase pg_cron via pg_net (see migration 049).
+// Previously used Vercel Cron, which was limited in frequency/count.
 
 export async function POST(request: NextRequest) {
   try {

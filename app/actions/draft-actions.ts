@@ -6,11 +6,23 @@ export interface EventDraft {
   id: string
   title: string
   description: string
+  location: string
+  start_date: string
+  end_date: string
+  time: string
+  type: string
+  is_public: boolean
+  is_published: boolean
+  countdown_reminders_enabled: boolean
+  cover_image_url: string
+  activities: any
+  packing_items: any
+  expenses: any
+  content: any
   user_id: string
   created_at: string
   updated_at: string
-  content: any
-  is_published: boolean
+  [key: string]: any
 }
 
 export async function getUserDrafts() {
@@ -94,6 +106,7 @@ export async function saveDraft(draftData: Partial<EventDraft>) {
       return {
         success: true,
         draft: data as EventDraft,
+        draftId: data.id,
       }
     }
     // Otherwise create a new draft
@@ -121,6 +134,7 @@ export async function saveDraft(draftData: Partial<EventDraft>) {
       return {
         success: true,
         draft: data as EventDraft,
+        draftId: data.id,
       }
     }
   } catch (err) {
@@ -209,6 +223,7 @@ export async function publishDraft(draftId: string) {
     }
 
     // Create a new itinerary from the draft
+    const contentData = draft.content || {}
     const { data: itinerary, error: insertError } = await supabase
       .from("itineraries")
       .insert({
@@ -222,7 +237,11 @@ export async function publishDraft(draftId: string) {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         is_public: draft.is_public ?? true,
-        currency: (draft.currency || 'USD').toUpperCase(),
+        currency: (contentData.currency || 'USD').toUpperCase(),
+        theme: contentData.theme || 'default',
+        font: contentData.font || 'default',
+        packing_list_public: contentData.packing_list_public ?? false,
+        expenses_public: contentData.expenses_public ?? false,
       })
       .select()
       .single()

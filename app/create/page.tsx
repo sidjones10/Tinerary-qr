@@ -158,24 +158,27 @@ function CreatePageContent() {
             }
             setType(draftData.type || "event")
             setIsPublic(draftData.is_public !== undefined ? draftData.is_public : true)
-            setPackingListPublic(draftData.packing_list_public !== undefined ? draftData.packing_list_public : false)
-            setExpensesPublic(draftData.expenses_public !== undefined ? draftData.expenses_public : false)
-            if (draftData.currency) {
-              setCurrency(draftData.currency)
-            }
-            if (draftData.theme) {
-              setSelectedTheme(draftData.theme)
-            }
-            if (draftData.font) {
-              setSelectedFont(draftData.font)
-            }
             if (draftData.countdown_reminders_enabled !== undefined) {
               setCountdownRemindersEnabled(draftData.countdown_reminders_enabled)
             }
 
             // Load cover image if it exists
-            if (draftData.image_url) {
-              setCoverImage(draftData.image_url)
+            if (draftData.cover_image_url) {
+              setCoverImage(draftData.cover_image_url)
+            }
+
+            // Restore extra settings from content JSONB
+            const contentData = draftData.content || {}
+            setPackingListPublic(contentData.packing_list_public !== undefined ? contentData.packing_list_public : false)
+            setExpensesPublic(contentData.expenses_public !== undefined ? contentData.expenses_public : false)
+            if (contentData.currency) {
+              setCurrency(contentData.currency)
+            }
+            if (contentData.theme) {
+              setSelectedTheme(contentData.theme)
+            }
+            if (contentData.font) {
+              setSelectedFont(contentData.font)
             }
 
             if (draftData.activities && draftData.activities.length > 0) {
@@ -197,8 +200,8 @@ function CreatePageContent() {
               setShowPackingExpenses(true)
 
               // Restore splitCount if it was saved in the draft
-              if (draftData.split_count && draftData.split_count > 0) {
-                setSplitCount(draftData.split_count)
+              if (contentData.split_count && contentData.split_count > 0) {
+                setSplitCount(contentData.split_count)
               }
             }
 
@@ -407,17 +410,19 @@ function CreatePageContent() {
         time: time || null,
         type,
         is_public: isPublic,
-        packing_list_public: packingListPublic,
-        expenses_public: expensesPublic,
-        currency,
-        theme: selectedTheme,
-        font: selectedFont,
         countdown_reminders_enabled: countdownRemindersEnabled,
-        image_url: coverImage || null,
+        cover_image_url: coverImage || null,
         activities,
         packing_items: showPackingExpenses ? packingItems : [],
         expenses: showPackingExpenses ? expenses : [],
-        split_count: typeof splitCount === 'number' ? splitCount : 1,
+        content: {
+          packing_list_public: packingListPublic,
+          expenses_public: expensesPublic,
+          currency,
+          theme: selectedTheme,
+          font: selectedFont,
+          split_count: typeof splitCount === 'number' ? splitCount : 1,
+        },
         user_id: user.id,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),

@@ -43,10 +43,11 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
  * Returns defaults if no preferences have been saved.
  */
 export async function getUserNotificationPreferences(
-  userId: string
+  userId: string,
+  supabaseClient?: any
 ): Promise<NotificationPreferences> {
   try {
-    const supabase = createClient()
+    const supabase = supabaseClient || createClient()
     const { data, error } = await supabase
       .from("user_preferences")
       .select("notification_preferences")
@@ -73,9 +74,9 @@ interface NotificationData {
   metadata?: Record<string, any>
 }
 
-export async function createNotification(data: NotificationData) {
+export async function createNotification(data: NotificationData, supabaseClient?: any) {
   try {
-    const supabase = createClient()
+    const supabase = supabaseClient || createClient()
     const { data: notification, error } = await supabase
       .from("notifications")
       .insert({

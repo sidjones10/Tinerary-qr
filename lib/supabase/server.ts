@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr"
+import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 import { getEnv } from "@/lib/env-validation"
 
@@ -24,4 +25,17 @@ export async function createClient() {
       },
     },
   })
+}
+
+/**
+ * Create a Supabase client using the service role key.
+ * Bypasses RLS — use only for server-to-server operations (cron jobs, webhooks).
+ */
+export function createServiceRoleClient() {
+  const env = getEnv()
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!serviceRoleKey) {
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY is not set")
+  }
+  return createSupabaseClient(env.NEXT_PUBLIC_SUPABASE_URL, serviceRoleKey)
 }

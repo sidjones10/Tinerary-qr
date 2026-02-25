@@ -150,26 +150,35 @@ function CreatePageContent() {
             setLocation(draftData.location || "")
             setStartDate(draftData.start_date || "")
             setEndDate(draftData.end_date || "")
+            if (draftData.time) {
+              setTime(draftData.time)
+            }
             setType(draftData.type || "event")
             setIsPublic(draftData.is_public !== undefined ? draftData.is_public : true)
-            setPackingListPublic(draftData.packing_list_public !== undefined ? draftData.packing_list_public : false)
-            setExpensesPublic(draftData.expenses_public !== undefined ? draftData.expenses_public : false)
-            if (draftData.currency) {
-              setCurrency(draftData.currency)
-            }
-            if (draftData.theme) {
-              setSelectedTheme(draftData.theme)
-            }
-            if (draftData.font) {
-              setSelectedFont(draftData.font)
-            }
             if (draftData.countdown_reminders_enabled !== undefined) {
               setCountdownRemindersEnabled(draftData.countdown_reminders_enabled)
             }
 
             // Load cover image if it exists
-            if (draftData.image_url) {
-              setCoverImage(draftData.image_url)
+            if (draftData.cover_image_url) {
+              setCoverImage(draftData.cover_image_url)
+            }
+
+            // Restore extra settings from content JSONB
+            const contentData = draftData.content || {}
+            if (contentData.share_precise_location !== undefined) {
+              setSharePreciseLocation(contentData.share_precise_location)
+            }
+            setPackingListPublic(contentData.packing_list_public !== undefined ? contentData.packing_list_public : false)
+            setExpensesPublic(contentData.expenses_public !== undefined ? contentData.expenses_public : false)
+            if (contentData.currency) {
+              setCurrency(contentData.currency)
+            }
+            if (contentData.theme) {
+              setSelectedTheme(contentData.theme)
+            }
+            if (contentData.font) {
+              setSelectedFont(contentData.font)
             }
 
             if (draftData.activities && draftData.activities.length > 0) {
@@ -191,8 +200,8 @@ function CreatePageContent() {
               setShowPackingExpenses(true)
 
               // Restore splitCount if it was saved in the draft
-              if (draftData.split_count && draftData.split_count > 0) {
-                setSplitCount(draftData.split_count)
+              if (contentData.split_count && contentData.split_count > 0) {
+                setSplitCount(contentData.split_count)
               }
             }
 
@@ -226,7 +235,13 @@ function CreatePageContent() {
             setLocation(itineraryData.location || "")
             setStartDate(itineraryData.start_date || "")
             setEndDate(itineraryData.end_date || "")
+            if (itineraryData.time) {
+              setTime(itineraryData.time)
+            }
             setIsPublic(itineraryData.is_public !== undefined ? itineraryData.is_public : true)
+            if (itineraryData.share_precise_location !== undefined) {
+              setSharePreciseLocation(itineraryData.share_precise_location)
+            }
             setPackingListPublic(itineraryData.packing_list_public !== undefined ? itineraryData.packing_list_public : false)
             setExpensesPublic(itineraryData.expenses_public !== undefined ? itineraryData.expenses_public : false)
             if (itineraryData.currency) {
@@ -395,20 +410,23 @@ function CreatePageContent() {
         location,
         start_date: startDate || new Date().toISOString().split("T")[0],
         end_date: endDate || startDate || new Date().toISOString().split("T")[0],
+        time: time || null,
         type,
         is_public: isPublic,
-        share_precise_location: sharePreciseLocation,
-        packing_list_public: packingListPublic,
-        expenses_public: expensesPublic,
-        currency,
-        theme: selectedTheme,
-        font: selectedFont,
         countdown_reminders_enabled: countdownRemindersEnabled,
-        image_url: coverImage || null,
+        cover_image_url: coverImage || null,
         activities,
         packing_items: showPackingExpenses ? packingItems : [],
         expenses: showPackingExpenses ? expenses : [],
-        split_count: typeof splitCount === 'number' ? splitCount : 1,
+        content: {
+          share_precise_location: sharePreciseLocation,
+          packing_list_public: packingListPublic,
+          expenses_public: expensesPublic,
+          currency,
+          theme: selectedTheme,
+          font: selectedFont,
+          split_count: typeof splitCount === 'number' ? splitCount : 1,
+        },
         user_id: user.id,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -518,6 +536,7 @@ function CreatePageContent() {
         location,
         startDate: formattedStartDate,
         endDate: formattedEndDate,
+        time: time || undefined,
         type,
         isPublic,
         sharePreciseLocation,

@@ -135,7 +135,7 @@ export default function CreatePageContent() {
             setType(draft.type || "trip")
             setIsPublic(draft.is_public !== undefined ? draft.is_public : true)
             setSharePreciseLocation(draft.share_precise_location !== undefined ? draft.share_precise_location : true)
-            setCoverImageUrl(draft.image_url || null)
+            setCoverImageUrl(draft.cover_image_url || null)
 
             if (draft.activities && draft.activities.length > 0) {
               setActivities(draft.activities)
@@ -205,8 +205,10 @@ export default function CreatePageContent() {
               ])
             }
 
-            if (draft.collaborators && draft.collaborators.length > 0) {
-              setCollaborators(draft.collaborators)
+            // Restore extras from content JSONB
+            const contentData = draft.content || {}
+            if (contentData.collaborators && contentData.collaborators.length > 0) {
+              setCollaborators(contentData.collaborators)
             }
 
             if (draft.packing_items && draft.packing_items.length > 0) {
@@ -217,12 +219,12 @@ export default function CreatePageContent() {
               setExpenses(draft.expenses)
             }
 
-            if (draft.photos && draft.photos.length > 0) {
-              setPhotos(draft.photos)
+            if (contentData.photos && contentData.photos.length > 0) {
+              setPhotos(contentData.photos)
             }
 
-            if (draft.discussions && draft.discussions.length > 0) {
-              setDiscussions(draft.discussions)
+            if (contentData.discussions && contentData.discussions.length > 0) {
+              setDiscussions(contentData.discussions)
             }
 
             setLastSaved(draft.last_saved || null)
@@ -306,7 +308,7 @@ export default function CreatePageContent() {
 
     setIsSaving(true)
     try {
-      const draftData: EventDraft = {
+      const draftData: Partial<EventDraft> = {
         id: draftId || undefined,
         title,
         description,
@@ -316,12 +318,14 @@ export default function CreatePageContent() {
         type,
         is_public: isPublic,
         activities,
-        collaborators,
         packing_items: packingItems,
         expenses,
-        photos,
-        discussions,
-        image_url: coverImageUrl,
+        cover_image_url: coverImageUrl,
+        content: {
+          collaborators,
+          photos,
+          discussions,
+        },
       }
 
       const { success, draftId: newDraftId, error } = await saveDraft(draftData)
@@ -733,7 +737,7 @@ export default function CreatePageContent() {
     setIsSaving(true)
 
     try {
-      const draftData: EventDraft = {
+      const draftData: Partial<EventDraft> = {
         id: draftId || undefined,
         title: title || "Untitled Draft",
         description,
@@ -743,12 +747,14 @@ export default function CreatePageContent() {
         type,
         is_public: isPublic,
         activities,
-        collaborators,
         packing_items: packingItems,
         expenses,
-        photos,
-        discussions,
-        image_url: coverImageUrl,
+        cover_image_url: coverImageUrl,
+        content: {
+          collaborators,
+          photos,
+          discussions,
+        },
       }
 
       const { success, draftId: newDraftId, error } = await saveDraft(draftData)

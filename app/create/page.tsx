@@ -334,6 +334,9 @@ function CreatePageContent() {
   }, [searchParams, toast, user])
 
   const handleSaveDraft = async (showToast = true) => {
+    // Prevent saving as draft when editing a published itinerary
+    if (editingItineraryId) return
+
     if (!user) {
       if (showToast) {
         toast({
@@ -1510,9 +1513,11 @@ function CreatePageContent() {
               Back
             </Button>
             <div className="flex gap-4">
-              <Button variant="outline" onClick={handleSaveDraft} disabled={isSubmitting || isSaving}>
-                {isSaving ? "Saving..." : "Save as Draft"}
-              </Button>
+              {!editingItineraryId && (
+                <Button variant="outline" onClick={handleSaveDraft} disabled={isSubmitting || isSaving}>
+                  {isSaving ? "Saving..." : "Save as Draft"}
+                </Button>
+              )}
               <Button
                 className="bg-orange-500 hover:bg-orange-600 text-white"
                 onClick={handlePublish}

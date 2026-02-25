@@ -59,6 +59,7 @@ export default function CreatePageContent() {
   const [lastSaved, setLastSaved] = useState<string | null>(null)
   const [draftId, setDraftId] = useState<string | null>(null)
   const [completionPercentage, setCompletionPercentage] = useState(0)
+  const [isPublished, setIsPublished] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
@@ -300,7 +301,7 @@ export default function CreatePageContent() {
 
   // Auto-save functionality
   const performAutoSave = useCallback(async () => {
-    if (!user) return
+    if (!user || isPublished) return
     if (!title && !description && !location && !startDate) {
       // Don't auto-save if form is mostly empty
       return
@@ -357,6 +358,7 @@ export default function CreatePageContent() {
     endDate,
     type,
     isPublic,
+    isPublished,
     activities,
     collaborators,
     packingItems,
@@ -369,7 +371,7 @@ export default function CreatePageContent() {
 
   // Set up auto-save timer
   useEffect(() => {
-    if (!user) return
+    if (!user || isPublished) return
 
     // Clear existing timer
     if (autoSaveTimerRef.current) {
@@ -387,7 +389,7 @@ export default function CreatePageContent() {
         clearTimeout(autoSaveTimerRef.current)
       }
     }
-  }, [title, description, location, startDate, endDate, type, isPublic, activities, performAutoSave, user])
+  }, [title, description, location, startDate, endDate, type, isPublic, isPublished, activities, performAutoSave, user])
 
   const addActivity = () => {
     const newId = activities.length > 0 ? Math.max(...activities.map((a) => a.id)) + 1 : 1
@@ -696,6 +698,9 @@ export default function CreatePageContent() {
         await supabase.from("drafts").delete().eq("id", draftId)
       }
 
+      // Mark as published to prevent further draft saves or auto-saves
+      setIsPublished(true)
+
       toast({
         title: "Success!",
         description: `Your ${type} has been published.`,
@@ -716,6 +721,9 @@ export default function CreatePageContent() {
   }
 
   const handleSaveDraft = async () => {
+    // Prevent saving as draft after itinerary has been published
+    if (isPublished) return
+
     if (!user) {
       toast({
         title: "Authentication required",
@@ -1587,9 +1595,11 @@ export default function CreatePageContent() {
             Back
           </Button>
           <div className="flex gap-4">
-            <Button variant="outline" className="bg-white dark:bg-card" onClick={handleSaveDraft} disabled={isSubmitting || isSaving}>
-              {isSaving ? "Saving..." : "Save as Draft"}
-            </Button>
+            {!isPublished && (
+              <Button variant="outline" className="bg-white dark:bg-card" onClick={handleSaveDraft} disabled={isSubmitting || isSaving}>
+                {isSaving ? "Saving..." : "Save as Draft"}
+              </Button>
+            )}
             <Button className="btn-sunset" onClick={handlePublish} disabled={isSubmitting || isSaving}>
               {isSubmitting ? "Publishing..." : `Publish ${type === "event" ? "Event" : "Trip"}`}
             </Button>

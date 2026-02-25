@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Calendar, MapPin, Clock, Plus, Lightbulb, Upload, X, Trash2, Users, Mail, Phone } from "lucide-react"
+import { ArrowLeft, Calendar, MapPin, MapPinOff, Clock, Plus, Lightbulb, Upload, X, Trash2, Users, Mail, Phone } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/providers/auth-provider"
@@ -44,6 +44,7 @@ function CreatePageContent() {
   const [endDate, setEndDate] = useState("")
   const [time, setTime] = useState("")
   const [isPublic, setIsPublic] = useState(true)
+  const [sharePreciseLocation, setSharePreciseLocation] = useState(true)
   const [packingListPublic, setPackingListPublic] = useState(false)
   const [expensesPublic, setExpensesPublic] = useState(false)
   const [activities, setActivities] = useState([
@@ -169,6 +170,9 @@ function CreatePageContent() {
 
             // Restore extra settings from content JSONB
             const contentData = draftData.content || {}
+            if (contentData.share_precise_location !== undefined) {
+              setSharePreciseLocation(contentData.share_precise_location)
+            }
             setPackingListPublic(contentData.packing_list_public !== undefined ? contentData.packing_list_public : false)
             setExpensesPublic(contentData.expenses_public !== undefined ? contentData.expenses_public : false)
             if (contentData.currency) {
@@ -239,6 +243,9 @@ function CreatePageContent() {
               setTime(itineraryData.time)
             }
             setIsPublic(itineraryData.is_public !== undefined ? itineraryData.is_public : true)
+            if (itineraryData.share_precise_location !== undefined) {
+              setSharePreciseLocation(itineraryData.share_precise_location)
+            }
             setPackingListPublic(itineraryData.packing_list_public !== undefined ? itineraryData.packing_list_public : false)
             setExpensesPublic(itineraryData.expenses_public !== undefined ? itineraryData.expenses_public : false)
             if (itineraryData.currency) {
@@ -416,6 +423,7 @@ function CreatePageContent() {
         packing_items: showPackingExpenses ? packingItems : [],
         expenses: showPackingExpenses ? expenses : [],
         content: {
+          share_precise_location: sharePreciseLocation,
           packing_list_public: packingListPublic,
           expenses_public: expensesPublic,
           currency,
@@ -535,6 +543,7 @@ function CreatePageContent() {
         time: time || undefined,
         type,
         isPublic,
+        sharePreciseLocation,
         packingListPublic,
         expensesPublic,
         currency,
@@ -1419,11 +1428,28 @@ function CreatePageContent() {
                     <div>
                       <h3 className="font-medium">Public Visibility</h3>
                       <p className="text-sm text-muted-foreground">
-                        Make this {type} visible to everyone in the "For You" feed
+                        Make this {type} visible to everyone in the &quot;For You&quot; feed
                       </p>
                     </div>
                     <Switch checked={isPublic} onCheckedChange={setIsPublic} />
                   </div>
+
+                  {isPublic && (
+                    <div className="flex items-center justify-between pl-6 border-l-2 border-muted ml-2">
+                      <div className="flex items-center gap-3">
+                        <MapPinOff className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <h3 className="font-medium">Share Precise Location</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {sharePreciseLocation
+                              ? "Others see the exact address in this " + type
+                              : "Others see only the city or region (e.g. \"New York, NY\" instead of \"1000 5th Ave, New York, NY\")"}
+                          </p>
+                        </div>
+                      </div>
+                      <Switch checked={sharePreciseLocation} onCheckedChange={setSharePreciseLocation} />
+                    </div>
+                  )}
 
                   <div className="border-t pt-6">
                     <h3 className="font-medium mb-4">Public Access to Private Details</h3>

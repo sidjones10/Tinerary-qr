@@ -23,7 +23,7 @@ export function LanguageSettings() {
   const [timeZone, setTimeZone] = useState("pacific")
   const [dateFormat, setDateFormat] = useState("mm/dd/yyyy")
   const [timeFormat, setTimeFormat] = useState("12-hour")
-  const [currency, setCurrency] = useState("usd")
+  const [currency, setCurrency] = useState("USD")
   const [distanceUnit, setDistanceUnit] = useState("miles")
 
   // Apply language change immediately when user selects from dropdown
@@ -60,7 +60,7 @@ export function LanguageSettings() {
           if (prefs.timeZone) setTimeZone(prefs.timeZone)
           if (prefs.dateFormat) setDateFormat(prefs.dateFormat)
           if (prefs.timeFormat) setTimeFormat(prefs.timeFormat)
-          if (prefs.currency) setCurrency(prefs.currency)
+          if (prefs.currency) setCurrency(prefs.currency.toUpperCase())
           if (prefs.distanceUnit) setDistanceUnit(prefs.distanceUnit)
         }
       } catch (error) {
@@ -241,12 +241,12 @@ export function LanguageSettings() {
                   <SelectValue placeholder={t("settings.language.selectCurrency")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="usd">USD ($)</SelectItem>
-                  <SelectItem value="eur">EUR (€)</SelectItem>
-                  <SelectItem value="gbp">GBP (£)</SelectItem>
-                  <SelectItem value="jpy">JPY (¥)</SelectItem>
-                  <SelectItem value="cad">CAD ($)</SelectItem>
-                  <SelectItem value="aud">AUD ($)</SelectItem>
+                  <SelectItem value="USD">USD ($)</SelectItem>
+                  <SelectItem value="EUR">EUR (€)</SelectItem>
+                  <SelectItem value="GBP">GBP (£)</SelectItem>
+                  <SelectItem value="JPY">JPY (¥)</SelectItem>
+                  <SelectItem value="CAD">CAD ($)</SelectItem>
+                  <SelectItem value="AUD">AUD ($)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

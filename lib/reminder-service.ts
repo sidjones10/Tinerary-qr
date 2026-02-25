@@ -189,18 +189,48 @@ export async function getItinerariesNeedingReminders(): Promise<{
   const supabase = await createClient()
   const now = new Date()
 
-  // Get itineraries with countdown reminders enabled that haven't ended yet
-  const { data: itineraries, error } = await supabase
+  // Try selecting with the time column first; fall back without it
+  // (the time column is added by migration 048 which may not have been applied yet)
+  let itineraries: any[] | null = null
+  let hasTimeColumn = true
+
+  const { data, error } = await supabase
     .from("itineraries")
-    .select("id, user_id, title, start_date, end_date")
+    .select("id, user_id, title, start_date, end_date, time")
     .eq("countdown_reminders_enabled", true)
     .gte("start_date", now.toISOString().split("T")[0])
     .order("start_date", { ascending: true })
 
-  if (error || !itineraries) {
-    console.error("Error fetching itineraries for reminders:", error)
+  if (error) {
+    // If the error is about the time column not existing, retry without it
+    if (error.message?.includes("time") || error.code === "42703") {
+      hasTimeColumn = false
+      const fallback = await supabase
+        .from("itineraries")
+        .select("id, user_id, title, start_date, end_date")
+        .eq("countdown_reminders_enabled", true)
+        .gte("start_date", now.toISOString().split("T")[0])
+        .order("start_date", { ascending: true })
+
+      if (fallback.error || !fallback.data) {
+        console.error("Error fetching itineraries for reminders:", fallback.error)
+        return []
+      }
+      itineraries = fallback.data
+    } else {
+      console.error("Error fetching itineraries for reminders:", error)
+      return []
+    }
+  } else {
+    itineraries = data
+  }
+
+  if (!itineraries) {
     return []
   }
+
+  // Day-based reminder types that work even without a specific time
+  const dayBasedReminders = new Set(["5_days", "2_days", "1_day"])
 
   const remindersNeeded: {
     itineraryId: string
@@ -211,9 +241,25 @@ export async function getItinerariesNeedingReminders(): Promise<{
   }[] = []
 
   for (const itinerary of itineraries) {
-    const startDate = new Date(itinerary.start_date)
+    // Combine start_date + time to get the actual event datetime
+    let startDate: Date
+    const timeValue = hasTimeColumn ? itinerary.time : null
+    if (timeValue) {
+      // Time is stored as "HH:MM" (e.g. "14:30")
+      startDate = new Date(`${itinerary.start_date}T${timeValue}:00`)
+    } else {
+      // No time set — use start of day (midnight)
+      startDate = new Date(itinerary.start_date)
+    }
+
     const millisUntilStart = startDate.getTime() - now.getTime()
     const reminderType = getReminderTypeForTime(millisUntilStart)
+
+    // If no time is set, only send day-based reminders (5d, 2d, 1d)
+    // Skip hour/minute reminders since we don't know the actual time
+    if (reminderType && !timeValue && !dayBasedReminders.has(reminderType) && reminderType !== "started") {
+      continue
+    }
 
     if (reminderType) {
       remindersNeeded.push({
@@ -227,6 +273,156 @@ export async function getItinerariesNeedingReminders(): Promise<{
   }
 
   return remindersNeeded
+}
+
+/**
+ * Get activities/stops that need reminders sent
+ * Activities have their own start_time (TIMESTAMPTZ), so we can send
+ * precise reminders (45m, 20m, 5m) regardless of whether the itinerary
+ * has a time set.
+ */
+export async function getActivitiesNeedingReminders(): Promise<{
+  activityId: string
+  activityTitle: string
+  itineraryId: string
+  itineraryTitle: string
+  userId: string
+  startTime: Date
+  reminderType: ReminderType
+}[]> {
+  const { getReminderTypeForTime } = await import("@/lib/reminder-utils")
+  const supabase = await createClient()
+  const now = new Date()
+
+  // Only check activities that start within the next 5 days (no need to scan further)
+  const fiveDaysFromNow = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000)
+
+  const { data: activities, error } = await supabase
+    .from("activities")
+    .select(`
+      id, title, start_time, itinerary_id, user_id,
+      itineraries!inner(title, countdown_reminders_enabled)
+    `)
+    .eq("itineraries.countdown_reminders_enabled", true)
+    .gte("start_time", now.toISOString())
+    .lte("start_time", fiveDaysFromNow.toISOString())
+    .order("start_time", { ascending: true })
+
+  if (error || !activities) {
+    console.error("Error fetching activities for reminders:", error)
+    return []
+  }
+
+  // For activities, use shorter reminder intervals: 45m, 20m, 10m, 5m, started
+  const activityReminderTypes = new Set([
+    "45_minutes", "20_minutes", "10_minutes", "5_minutes", "started"
+  ])
+
+  const remindersNeeded: {
+    activityId: string
+    activityTitle: string
+    itineraryId: string
+    itineraryTitle: string
+    userId: string
+    startTime: Date
+    reminderType: ReminderType
+  }[] = []
+
+  for (const activity of activities) {
+    if (!activity.start_time) continue
+
+    const startTime = new Date(activity.start_time)
+    const millisUntilStart = startTime.getTime() - now.getTime()
+    const reminderType = getReminderTypeForTime(millisUntilStart)
+
+    // Only send activity-appropriate reminders (short-range)
+    if (reminderType && activityReminderTypes.has(reminderType)) {
+      const itinerary = activity.itineraries as any
+      remindersNeeded.push({
+        activityId: activity.id,
+        activityTitle: activity.title,
+        itineraryId: activity.itinerary_id,
+        itineraryTitle: itinerary?.title || "your event",
+        userId: activity.user_id,
+        startTime,
+        reminderType,
+      })
+    }
+  }
+
+  return remindersNeeded
+}
+
+/**
+ * Send a reminder for an individual activity/stop
+ */
+export async function sendActivityReminder(
+  userId: string,
+  itineraryId: string,
+  activityId: string,
+  activityTitle: string,
+  itineraryTitle: string,
+  reminderType: ReminderType,
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient()
+
+  // Check if already sent (using activity_id to distinguish from itinerary-level reminders)
+  const { data: existing } = await supabase
+    .from("itinerary_reminders")
+    .select("id")
+    .eq("itinerary_id", itineraryId)
+    .eq("user_id", userId)
+    .eq("activity_id", activityId)
+    .eq("reminder_type", reminderType)
+    .maybeSingle()
+
+  if (existing) {
+    return { success: true } // Already sent
+  }
+
+  // Check user preferences
+  const prefs = await getUserNotificationPreferences(userId)
+  if (!prefs.tripReminders) {
+    return { success: true }
+  }
+
+  const timeLabel = REMINDER_LABELS[reminderType]
+  let title: string
+  let message: string
+
+  if (reminderType === "started") {
+    title = `📍 "${activityTitle}" is starting now!`
+    message = `Your activity in "${itineraryTitle}" is happening now.`
+  } else {
+    title = `⏰ ${timeLabel} until "${activityTitle}"`
+    message = `Your activity in "${itineraryTitle}" starts in ${timeLabel}.`
+  }
+
+  const result = await createNotification({
+    userId,
+    type: "system_message" as NotificationType,
+    title,
+    message,
+    linkUrl: `/event/${itineraryId}`,
+    metadata: {
+      reminderType,
+      itineraryId,
+      activityId,
+      activityTitle,
+    },
+  })
+
+  if (result.success) {
+    // Record with activity_id so we don't send duplicates
+    await supabase.from("itinerary_reminders").insert({
+      itinerary_id: itineraryId,
+      user_id: userId,
+      activity_id: activityId,
+      reminder_type: reminderType,
+    })
+  }
+
+  return result
 }
 
 /**

@@ -67,6 +67,7 @@ export interface CreateItineraryData {
   location?: string
   startDate: string
   endDate?: string
+  time?: string
   type?: "event" | "trip"
   isPublic?: boolean
   packingListPublic?: boolean
@@ -117,10 +118,11 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
         is_public: data.isPublic !== undefined ? data.isPublic : true,
         packing_list_public: data.packingListPublic !== undefined ? data.packingListPublic : false,
         expenses_public: data.expensesPublic !== undefined ? data.expensesPublic : false,
-        currency: data.currency || 'USD',
+        currency: (data.currency || 'USD').toUpperCase(),
         theme: data.theme || 'default',
         font: data.font || 'default',
         countdown_reminders_enabled: data.countdownRemindersEnabled !== undefined ? data.countdownRemindersEnabled : true,
+        time: data.time || null,
         is_template: false,
         user_id: userId,
         image_url: data.imageUrl || null,
@@ -235,7 +237,7 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
           paid_by_user_id: userId,
           split_type: 'equal',
           date: data.startDate || new Date().toISOString().split('T')[0],
-          currency: data.currency || 'USD',
+          currency: (data.currency || 'USD').toUpperCase(),
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         }))
@@ -369,10 +371,11 @@ export async function updateItinerary(
     if (data.isPublic !== undefined) updateData.is_public = data.isPublic
     if (data.packingListPublic !== undefined) updateData.packing_list_public = data.packingListPublic
     if (data.expensesPublic !== undefined) updateData.expenses_public = data.expensesPublic
-    if (data.currency !== undefined) updateData.currency = data.currency
+    if (data.currency !== undefined) updateData.currency = data.currency.toUpperCase()
     if (data.theme !== undefined) updateData.theme = data.theme
     if (data.font !== undefined) updateData.font = data.font
     if (data.countdownRemindersEnabled !== undefined) updateData.countdown_reminders_enabled = data.countdownRemindersEnabled
+    if (data.time !== undefined) updateData.time = data.time || null
     if (data.imageUrl !== undefined) updateData.image_url = data.imageUrl
 
     const { data: itinerary, error: updateError } = await supabase
@@ -510,7 +513,7 @@ export async function updateItinerary(
             paid_by_user_id: userId,
             split_type: 'equal',
             date: data.startDate || updateData.start_date || new Date().toISOString().split('T')[0],
-            currency: data.currency || updateData.currency || 'USD',
+            currency: (data.currency || updateData.currency || 'USD').toUpperCase(),
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           }))

@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+import { createServiceRoleClient } from "@/lib/supabase/server"
 import { createNotification, NotificationType, getUserNotificationPreferences } from "@/lib/notification-service"
 import { sendCountdownReminderEmail, sendEventStartedEmail } from "@/lib/email-notifications"
 
@@ -24,7 +24,7 @@ export async function hasReminderBeenSent(
   userId: string,
   reminderType: ReminderType
 ): Promise<boolean> {
-  const supabase = await createClient()
+  const supabase = createServiceRoleClient()
 
   const { data, error } = await supabase
     .from("itinerary_reminders")
@@ -45,7 +45,7 @@ export async function recordReminderSent(
   userId: string,
   reminderType: ReminderType
 ): Promise<boolean> {
-  const supabase = await createClient()
+  const supabase = createServiceRoleClient()
 
   const { error } = await supabase
     .from("itinerary_reminders")
@@ -88,8 +88,11 @@ export async function sendCountdownReminder(
     return { success: true } // Already sent, no need to send again
   }
 
+  // Use service-role client for cron operations (no user session available)
+  const supabase = createServiceRoleClient()
+
   // Check user's notification preferences
-  const prefs = await getUserNotificationPreferences(userId)
+  const prefs = await getUserNotificationPreferences(userId, supabase)
   if (!prefs.tripReminders) {
     return { success: true } // User has disabled trip reminders
   }
@@ -122,7 +125,7 @@ export async function sendCountdownReminder(
       itineraryId,
       itineraryTitle,
     },
-  })
+  }, supabase)
 
   // Also send email if enabled (default: send for major milestones)
   const shouldSendEmail = options?.sendEmail !== false &&
@@ -131,7 +134,7 @@ export async function sendCountdownReminder(
 
   if (shouldSendEmail) {
     try {
-      const supabase = await createClient()
+      const supabase = createServiceRoleClient()
       const { data: profile } = await supabase
         .from("profiles")
         .select("email, name")
@@ -186,7 +189,7 @@ export async function getItinerariesNeedingReminders(): Promise<{
   reminderType: ReminderType
 }[]> {
   const { getReminderTypeForTime } = await import("@/lib/reminder-utils")
-  const supabase = await createClient()
+  const supabase = createServiceRoleClient()
   const now = new Date()
 
   // Try selecting with the time column first; fall back without it
@@ -291,7 +294,7 @@ export async function getActivitiesNeedingReminders(): Promise<{
   reminderType: ReminderType
 }[]> {
   const { getReminderTypeForTime } = await import("@/lib/reminder-utils")
-  const supabase = await createClient()
+  const supabase = createServiceRoleClient()
   const now = new Date()
 
   // Only check activities that start within the next 5 days (no need to scan further)
@@ -364,7 +367,7 @@ export async function sendActivityReminder(
   itineraryTitle: string,
   reminderType: ReminderType,
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient()
+  const supabase = createServiceRoleClient()
 
   // Check if already sent (using activity_id to distinguish from itinerary-level reminders)
   const { data: existing } = await supabase
@@ -381,7 +384,7 @@ export async function sendActivityReminder(
   }
 
   // Check user preferences
-  const prefs = await getUserNotificationPreferences(userId)
+  const prefs = await getUserNotificationPreferences(userId, supabase)
   if (!prefs.tripReminders) {
     return { success: true }
   }
@@ -410,7 +413,7 @@ export async function sendActivityReminder(
       activityId,
       activityTitle,
     },
-  })
+  }, supabase)
 
   if (result.success) {
     // Record with activity_id so we don't send duplicates
@@ -433,7 +436,7 @@ export async function getItinerariesNeedingCoverPrompt(): Promise<{
   userId: string
   title: string
 }[]> {
-  const supabase = await createClient()
+  const supabase = createServiceRoleClient()
   const now = new Date()
   const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
   const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000)

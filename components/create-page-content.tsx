@@ -949,11 +949,17 @@ export default function CreatePageContent() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Start Date</Label>
-                      <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                      <Input type="date" value={startDate} onChange={(e) => {
+                        const newStart = e.target.value
+                        setStartDate(newStart)
+                        if (endDate && newStart > endDate) {
+                          setEndDate(newStart)
+                        }
+                      }} />
                     </div>
                     <div className="space-y-2">
                       <Label>End Date</Label>
-                      <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                      <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} min={startDate} />
                     </div>
                   </div>
                 )}

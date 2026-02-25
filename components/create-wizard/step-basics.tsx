@@ -88,7 +88,13 @@ export function StepBasics({ formData, onChange, errors }: StepBasicsProps) {
             id="startDate"
             type="date"
             value={formData.startDate}
-            onChange={(e) => onChange("startDate", e.target.value)}
+            onChange={(e) => {
+              const newStart = e.target.value
+              onChange("startDate", newStart)
+              if (formData.endDate && newStart > formData.endDate) {
+                onChange("endDate", newStart)
+              }
+            }}
             className="h-11"
           />
           {errors?.startDate && <p className="text-sm text-red-500">{errors.startDate}</p>}

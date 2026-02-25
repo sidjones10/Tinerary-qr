@@ -103,6 +103,11 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
       return { success: false, error: "Title is required" }
     }
 
+    // Validate end date is not before start date
+    if (data.startDate && data.endDate && data.endDate < data.startDate) {
+      return { success: false, error: "End date cannot be before start date" }
+    }
+
     // Ensure user profile exists (for foreign key constraint)
     await ensureUserProfile(userId, supabase)
 
@@ -356,6 +361,11 @@ export async function updateItinerary(
 
     if (existing.user_id !== userId) {
       return { success: false, error: "Unauthorized" }
+    }
+
+    // Validate end date is not before start date
+    if (data.startDate && data.endDate && data.endDate < data.startDate) {
+      return { success: false, error: "End date cannot be before start date" }
     }
 
     // Update the itinerary

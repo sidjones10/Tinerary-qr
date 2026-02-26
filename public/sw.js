@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tinerary-v1';
+const CACHE_NAME = 'tinerary-v2';
 
 // Static assets to pre-cache on install
 const PRECACHE_ASSETS = [
@@ -94,5 +94,51 @@ self.addEventListener('fetch', (event) => {
         return response;
       })
       .catch(() => caches.match(request))
+  );
+});
+
+// ─── Push Notifications ────────────────────────────────────────────────
+// Handle incoming push messages from the server
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+
+  try {
+    const data = event.data.json();
+    const options = {
+      body: data.body || '',
+      icon: data.icon || '/icons/icon-192x192.png',
+      badge: data.badge || '/icons/icon-192x192.png',
+      tag: data.tag || 'tinerary-notification',
+      renotify: true,
+      data: { url: data.url || '/' },
+    };
+
+    event.waitUntil(
+      self.registration.showNotification(data.title || 'Tinerary', options)
+    );
+  } catch (err) {
+    console.error('[sw] Error handling push event:', err);
+  }
+});
+
+// Handle notification click — open the app to the relevant page
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const targetUrl = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      // If a Tinerary tab is already open, focus it and navigate
+      for (const client of clients) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.focus();
+          client.navigate(targetUrl);
+          return;
+        }
+      }
+      // Otherwise open a new tab
+      return self.clients.openWindow(targetUrl);
+    })
   );
 });

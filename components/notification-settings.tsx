@@ -9,12 +9,21 @@ import { useToast } from "@/components/ui/use-toast"
 import { Loader2, Lock } from "lucide-react"
 import { useAuth } from "@/providers/auth-provider"
 import { createClient } from "@/lib/supabase/client"
+import { usePushNotifications } from "@/hooks/use-push-notifications"
 
 export function NotificationSettings() {
   const { t } = useTranslation()
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
+  const {
+    isSupported: pushSupported,
+    isSubscribed: pushSubscribed,
+    permission: pushPermission,
+    loading: pushLoading,
+    subscribe: subscribePush,
+    unsubscribe: unsubscribePush,
+  } = usePushNotifications()
 
   // In-app / push notification preferences (stored in user_preferences)
   const [notifications, setNotifications] = useState({
@@ -205,9 +214,30 @@ export function NotificationSettings() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium">{t("settings.notifications.pushNotifications")}</p>
-                <p className="text-sm text-muted-foreground">{t("settings.notifications.pushDesc")}</p>
+                <p className="text-sm text-muted-foreground">
+                  {!pushSupported
+                    ? "Push notifications are not supported on this browser"
+                    : pushPermission === "denied"
+                      ? "Push notifications are blocked. Please enable them in your browser settings."
+                      : t("settings.notifications.pushDesc")}
+                </p>
               </div>
-              <Switch checked={notifications.push} onCheckedChange={() => handleToggle("push")} />
+              <Switch
+                checked={pushSubscribed}
+                disabled={!pushSupported || pushPermission === "denied" || pushLoading}
+                onCheckedChange={async (checked) => {
+                  const ok = checked ? await subscribePush() : await unsubscribePush()
+                  if (ok) {
+                    setNotifications((prev) => ({ ...prev, push: checked }))
+                  } else if (checked && pushPermission !== "granted") {
+                    toast({
+                      title: "Permission required",
+                      description: "Please allow notifications when prompted by your browser.",
+                      variant: "destructive",
+                    })
+                  }
+                }}
+              />
             </div>
 
             <div className="flex items-center justify-between">

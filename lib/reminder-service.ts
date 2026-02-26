@@ -128,9 +128,14 @@ export async function sendCountdownReminder(
   }, supabase)
 
   // Also send email if enabled (default: send for major milestones)
+  const emailEligibleTypes = ["5_days", "2_days", "1_day", "2_hours", "started"]
   const shouldSendEmail = options?.sendEmail !== false &&
     prefs.email &&
-    ["5_days", "2_days", "1_day", "2_hours", "started"].includes(reminderType)
+    emailEligibleTypes.includes(reminderType)
+
+  if (!shouldSendEmail && prefs.email && options?.sendEmail !== false) {
+    console.log(`[reminder] Skipping email for type "${reminderType}" (not in email-eligible types)`)
+  }
 
   if (shouldSendEmail) {
     try {
@@ -141,11 +146,23 @@ export async function sendCountdownReminder(
         .eq("id", userId)
         .single()
 
-      if (profile?.email) {
+      // Fall back to auth.users if profiles.email is missing (e.g. OAuth signups)
+      let recipientEmail = profile?.email
+      let recipientName = profile?.name
+
+      if (!recipientEmail) {
+        const { data: authUser } = await supabase.auth.admin.getUserById(userId)
+        recipientEmail = authUser?.user?.email ?? null
+        if (!recipientName) {
+          recipientName = authUser?.user?.user_metadata?.name ?? null
+        }
+      }
+
+      if (recipientEmail) {
         if (reminderType === "started") {
           await sendEventStartedEmail({
-            email: profile.email,
-            name: profile.name || undefined,
+            email: recipientEmail,
+            name: recipientName || undefined,
             itineraryTitle,
             itineraryId,
             location: options?.location,
@@ -153,8 +170,8 @@ export async function sendCountdownReminder(
           })
         } else {
           await sendCountdownReminderEmail({
-            email: profile.email,
-            name: profile.name || undefined,
+            email: recipientEmail,
+            name: recipientName || undefined,
             itineraryTitle,
             itineraryId,
             timeRemaining: timeLabel,
@@ -163,6 +180,8 @@ export async function sendCountdownReminder(
             eventType,
           })
         }
+      } else {
+        console.warn(`[reminder] No email found for user ${userId}, skipping email notification`)
       }
     } catch (emailError) {
       console.error("Failed to send reminder email:", emailError)
@@ -186,6 +205,7 @@ export async function getItinerariesNeedingReminders(): Promise<{
   userId: string
   title: string
   startDate: Date
+  location: string | null
   reminderType: ReminderType
 }[]> {
   const { getReminderTypeForTime } = await import("@/lib/reminder-utils")
@@ -199,7 +219,7 @@ export async function getItinerariesNeedingReminders(): Promise<{
 
   const { data, error } = await supabase
     .from("itineraries")
-    .select("id, user_id, title, start_date, end_date, time")
+    .select("id, user_id, title, start_date, end_date, time, location")
     .eq("countdown_reminders_enabled", true)
     .gte("start_date", now.toISOString().split("T")[0])
     .order("start_date", { ascending: true })
@@ -210,7 +230,7 @@ export async function getItinerariesNeedingReminders(): Promise<{
       hasTimeColumn = false
       const fallback = await supabase
         .from("itineraries")
-        .select("id, user_id, title, start_date, end_date")
+        .select("id, user_id, title, start_date, end_date, location")
         .eq("countdown_reminders_enabled", true)
         .gte("start_date", now.toISOString().split("T")[0])
         .order("start_date", { ascending: true })
@@ -240,6 +260,7 @@ export async function getItinerariesNeedingReminders(): Promise<{
     userId: string
     title: string
     startDate: Date
+    location: string | null
     reminderType: ReminderType
   }[] = []
 
@@ -270,6 +291,7 @@ export async function getItinerariesNeedingReminders(): Promise<{
         userId: itinerary.user_id,
         title: itinerary.title,
         startDate,
+        location: itinerary.location ?? null,
         reminderType,
       })
     }

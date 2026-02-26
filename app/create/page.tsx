@@ -1123,7 +1123,8 @@ function CreatePageContent() {
                       <LocationAutocomplete
                         value={activity.location || ""}
                         onChange={(value) => updateActivity(index, "location", value)}
-                        placeholder="e.g., Golden Gate Park or 1600 Pennsylvania Ave, DC"
+                        placeholder="e.g., Golden Gate Park or Starbucks"
+                        biasLocation={location}
                       />
                     </div>
 

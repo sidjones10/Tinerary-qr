@@ -1,6 +1,7 @@
 import { createServiceRoleClient } from "@/lib/supabase/server"
 import { createNotification, NotificationType, getUserNotificationPreferences } from "@/lib/notification-service"
 import { sendCountdownReminderEmail, sendEventStartedEmail } from "@/lib/email-notifications"
+import { sendPushNotification } from "@/lib/push-notifications"
 
 // Re-export pure utilities so existing server-side imports still work
 export {
@@ -126,6 +127,20 @@ export async function sendCountdownReminder(
       itineraryTitle,
     },
   }, supabase)
+
+  // Send push notification if user has push enabled
+  if (prefs.push) {
+    try {
+      await sendPushNotification(userId, {
+        title,
+        body: message,
+        url: `/event/${itineraryId}`,
+        tag: `reminder-${itineraryId}-${reminderType}`,
+      })
+    } catch (pushError) {
+      console.error("Failed to send push notification:", pushError)
+    }
+  }
 
   // Also send email if enabled (default: send for major milestones)
   const emailEligibleTypes = ["5_days", "2_days", "1_day", "2_hours", "started"]
@@ -436,6 +451,20 @@ export async function sendActivityReminder(
       activityTitle,
     },
   }, supabase)
+
+  // Send push notification if user has push enabled
+  if (prefs.push) {
+    try {
+      await sendPushNotification(userId, {
+        title,
+        body: message,
+        url: `/event/${itineraryId}`,
+        tag: `activity-${activityId}-${reminderType}`,
+      })
+    } catch (pushError) {
+      console.error("Failed to send activity push notification:", pushError)
+    }
+  }
 
   if (result.success) {
     // Record with activity_id so we don't send duplicates

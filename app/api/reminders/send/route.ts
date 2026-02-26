@@ -37,7 +37,11 @@ export async function POST(request: NextRequest) {
           reminder.itineraryId,
           reminder.title,
           reminder.reminderType,
-          "event" // Could determine from itinerary type
+          "event",
+          {
+            eventDate: reminder.startDate.toISOString(),
+            location: reminder.location || undefined,
+          }
         )
         if (result.success) {
           results.countdownReminders.sent++

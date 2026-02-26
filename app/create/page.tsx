@@ -534,7 +534,9 @@ function CreatePageContent() {
     try {
       // Format dates properly
       const formattedStartDate = startDate || new Date().toISOString().split("T")[0]
-      const formattedEndDate = endDate || formattedStartDate
+      const formattedEndDate = type === "event"
+        ? formattedStartDate
+        : (endDate && endDate >= formattedStartDate ? endDate : formattedStartDate)
 
       // Prepare itinerary data
       const itineraryData = {
@@ -852,7 +854,12 @@ function CreatePageContent() {
 
               <div
                 className={`cursor-pointer rounded-lg border-2 p-4 flex flex-col items-center ${type === "trip" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : "border-gray-200 dark:border-border hover:border-gray-300"}`}
-                onClick={() => setType("trip")}
+                onClick={() => {
+                  setType("trip")
+                  if (!endDate || endDate < startDate) {
+                    setEndDate(startDate)
+                  }
+                }}
               >
                 <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-3">
                   <MapPin className="h-6 w-6 text-blue-500" />
@@ -933,7 +940,10 @@ function CreatePageContent() {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium mb-1">Date</label>
-                          <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                          <Input type="date" value={startDate} onChange={(e) => {
+                            setStartDate(e.target.value)
+                            setEndDate(e.target.value)
+                          }} />
                         </div>
                         <div>
                           <label className="block text-sm font-medium mb-1">Time</label>

@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { MapPin } from "lucide-react"
+import { useState, useRef, useEffect, useCallback } from "react"
+import { MapPin, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 
 interface LocationAutocompleteProps {
@@ -11,91 +11,143 @@ interface LocationAutocompleteProps {
   className?: string
 }
 
-// Popular locations for autocomplete suggestions organized by type
-const LOCATION_DATA = {
-  // US Cities with state abbreviations
-  cities: [
-    "New York, NY", "Los Angeles, CA", "Chicago, IL", "Houston, TX", "Phoenix, AZ",
-    "Philadelphia, PA", "San Antonio, TX", "San Diego, CA", "Dallas, TX", "San Jose, CA",
-    "Austin, TX", "Jacksonville, FL", "Fort Worth, TX", "Columbus, OH", "Charlotte, NC",
-    "San Francisco, CA", "Indianapolis, IN", "Seattle, WA", "Denver, CO", "Boston, MA",
-    "Miami, FL", "Las Vegas, NV", "Portland, OR", "Nashville, TN", "Atlanta, GA",
-    "Orlando, FL", "New Orleans, LA", "Savannah, GA", "Charleston, SC", "Santa Fe, NM",
-  ],
-  // US States
-  states: [
-    "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut",
-    "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa",
-    "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan",
-    "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire",
-    "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio",
-    "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota",
-    "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia",
-    "Wisconsin", "Wyoming",
-  ],
-  // International Cities
-  international: [
-    "London, United Kingdom", "Paris, France", "Tokyo, Japan", "Rome, Italy", "Barcelona, Spain",
-    "Amsterdam, Netherlands", "Berlin, Germany", "Sydney, Australia", "Dubai, UAE",
-    "Singapore", "Hong Kong", "Bangkok, Thailand", "Istanbul, Turkey", "Prague, Czech Republic",
-    "Vienna, Austria", "Copenhagen, Denmark", "Dublin, Ireland", "Lisbon, Portugal",
-    "Athens, Greece", "Budapest, Hungary", "Warsaw, Poland", "Stockholm, Sweden",
-    "Oslo, Norway", "Helsinki, Finland", "Zurich, Switzerland", "Brussels, Belgium",
-    "Madrid, Spain", "Munich, Germany", "Venice, Italy", "Florence, Italy", "Milan, Italy",
-    "Edinburgh, Scotland", "Dublin, Ireland", "Reykjavik, Iceland", "Montreal, Canada",
-    "Toronto, Canada", "Vancouver, Canada", "Mexico City, Mexico", "Cancun, Mexico",
-  ],
-  // Countries
-  countries: [
-    "United States", "Canada", "Mexico", "United Kingdom", "France", "Germany", "Italy",
-    "Spain", "Japan", "Australia", "Brazil", "Argentina", "Chile", "Peru", "China", "India",
-    "Thailand", "Vietnam", "South Korea", "New Zealand", "Greece", "Portugal", "Netherlands",
-    "Belgium", "Switzerland", "Austria", "Ireland", "Iceland", "Norway", "Sweden", "Denmark",
-    "Finland", "Poland", "Czech Republic", "Hungary", "Croatia", "Turkey", "Egypt", "Morocco",
-  ],
-  // Popular regions, landmarks, and areas
-  regions: [
-    "Napa Valley, CA", "Lake Tahoe, CA", "Big Sur, CA", "Yosemite National Park, CA",
-    "Yellowstone National Park, WY", "Grand Canyon, AZ", "Sedona, AZ", "Zion National Park, UT",
-    "French Riviera, France", "Tuscany, Italy", "Provence, France", "Loire Valley, France",
-    "Scottish Highlands, UK", "Swiss Alps, Switzerland", "Amalfi Coast, Italy",
-    "Cinque Terre, Italy", "Santorini, Greece", "Mykonos, Greece", "Bali, Indonesia",
-    "Maldives", "Hawaii, USA", "Maui, HI", "Oahu, HI", "Kauai, HI", "Iceland",
-    "New England, USA", "Pacific Northwest, USA", "Southern California", "Northern California",
-    "The Hamptons, NY", "Martha's Vineyard, MA", "Nantucket, MA", "Outer Banks, NC",
-  ],
+// Popular locations as quick fallback for short queries
+const POPULAR_LOCATIONS = [
+  "New York, NY", "Los Angeles, CA", "Chicago, IL", "Houston, TX", "Phoenix, AZ",
+  "San Antonio, TX", "San Diego, CA", "Dallas, TX", "Austin, TX", "San Francisco, CA",
+  "Seattle, WA", "Denver, CO", "Boston, MA", "Miami, FL", "Las Vegas, NV",
+  "Nashville, TN", "Atlanta, GA", "Orlando, FL", "New Orleans, LA",
+  "London, United Kingdom", "Paris, France", "Tokyo, Japan", "Rome, Italy",
+  "Barcelona, Spain", "Amsterdam, Netherlands", "Berlin, Germany", "Sydney, Australia",
+  "Dubai, UAE", "Toronto, Canada", "Vancouver, Canada", "Mexico City, Mexico",
+]
+
+interface NominatimResult {
+  display_name: string
+  type: string
+  class: string
 }
 
-// Flatten all locations into a single array for searching
-const POPULAR_LOCATIONS = [
-  ...LOCATION_DATA.cities,
-  ...LOCATION_DATA.states,
-  ...LOCATION_DATA.international,
-  ...LOCATION_DATA.countries,
-  ...LOCATION_DATA.regions,
-]
+function formatNominatimResult(result: NominatimResult): string {
+  // Nominatim returns verbose display_name like "123 Main St, Springfield, Sangamon County, Illinois, 62701, United States"
+  // Trim to keep it readable: remove country code-like suffixes, keep up to 3-4 meaningful parts
+  const parts = result.display_name.split(", ")
+  // For addresses, keep street + city + state (+ country if international)
+  if (parts.length <= 3) return result.display_name
+  // Remove overly specific parts like county, ZIP codes
+  const filtered = parts.filter(part => !/^\d{4,}$/.test(part.trim()))
+  if (filtered.length <= 4) return filtered.join(", ")
+  // Keep first 2 parts (street/place + city) and last 2 (state + country)
+  return [...filtered.slice(0, 2), ...filtered.slice(-2)].join(", ")
+}
 
 export function LocationAutocomplete({ value, onChange, placeholder, className }: LocationAutocompleteProps) {
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
+  const [isLoading, setIsLoading] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  // Track if onChange was triggered by selecting a suggestion
+  const justSelectedRef = useRef(false)
 
-  // Filter suggestions based on input
+  const searchNominatim = useCallback(async (query: string) => {
+    // Cancel any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+    setIsLoading(true)
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=6&addressdetails=1`,
+        {
+          signal: controller.signal,
+          headers: { "Accept": "application/json" },
+        }
+      )
+
+      if (!response.ok) throw new Error("Nominatim request failed")
+
+      const results: NominatimResult[] = await response.json()
+      const formatted = results.map(formatNominatimResult)
+      // Deduplicate
+      const unique = [...new Set(formatted)]
+
+      if (!controller.signal.aborted) {
+        setSuggestions(unique)
+        setShowSuggestions(unique.length > 0)
+        setSelectedIndex(-1)
+      }
+    } catch (err: any) {
+      if (err.name !== "AbortError") {
+        // On API failure, fall back to static list
+        const filtered = POPULAR_LOCATIONS.filter((loc) =>
+          loc.toLowerCase().includes(query.toLowerCase())
+        ).slice(0, 6)
+        setSuggestions(filtered)
+        setShowSuggestions(filtered.length > 0)
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setIsLoading(false)
+      }
+    }
+  }, [])
+
+  // Filter suggestions based on input with debounced Nominatim search
   useEffect(() => {
-    if (value.length > 0) {
-      const filtered = POPULAR_LOCATIONS.filter((location) =>
-        location.toLowerCase().includes(value.toLowerCase())
-      ).slice(0, 8) // Limit to 8 suggestions
+    if (justSelectedRef.current) {
+      justSelectedRef.current = false
+      return
+    }
 
-      setSuggestions(filtered)
-      setShowSuggestions(filtered.length > 0)
-    } else {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+
+    if (value.length === 0) {
       setSuggestions([])
       setShowSuggestions(false)
+      setIsLoading(false)
+      return
     }
-  }, [value])
+
+    // For short input (1-2 chars), use static list immediately
+    if (value.length <= 2) {
+      const filtered = POPULAR_LOCATIONS.filter((loc) =>
+        loc.toLowerCase().includes(value.toLowerCase())
+      ).slice(0, 6)
+      setSuggestions(filtered)
+      setShowSuggestions(filtered.length > 0)
+      return
+    }
+
+    // Show static results instantly while waiting for Nominatim
+    const staticFiltered = POPULAR_LOCATIONS.filter((loc) =>
+      loc.toLowerCase().includes(value.toLowerCase())
+    ).slice(0, 3)
+    if (staticFiltered.length > 0) {
+      setSuggestions(staticFiltered)
+      setShowSuggestions(true)
+    }
+
+    // Debounce the Nominatim API call (400ms)
+    debounceTimerRef.current = setTimeout(() => {
+      searchNominatim(value)
+    }, 400)
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+  }, [value, searchNominatim])
 
   // Handle click outside to close suggestions
   useEffect(() => {
@@ -109,7 +161,20 @@ export function LocationAutocomplete({ value, onChange, placeholder, className }
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+  }, [])
+
   const handleSelect = (location: string) => {
+    justSelectedRef.current = true
     onChange(location)
     setShowSuggestions(false)
     setSelectedIndex(-1)
@@ -146,7 +211,7 @@ export function LocationAutocomplete({ value, onChange, placeholder, className }
         <MapPin className="ml-3 h-4 w-4 text-muted-foreground" />
         <Input
           ref={inputRef}
-          placeholder={placeholder || "e.g., San Antonio, Texas or Paris, France"}
+          placeholder={placeholder || "e.g., 123 Main St, Austin, TX or Paris, France"}
           className="border-0"
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -158,6 +223,9 @@ export function LocationAutocomplete({ value, onChange, placeholder, className }
           }}
           autoComplete="off"
         />
+        {isLoading && (
+          <Loader2 className="mr-3 h-4 w-4 text-muted-foreground animate-spin" />
+        )}
       </div>
 
       {/* Suggestions dropdown */}
@@ -175,12 +243,12 @@ export function LocationAutocomplete({ value, onChange, placeholder, className }
               onMouseEnter={() => setSelectedIndex(index)}
             >
               <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-              <span className="text-sm">{suggestion}</span>
+              <span className="text-sm truncate">{suggestion}</span>
             </div>
           ))}
           {value.length > 0 && !suggestions.some(s => s.toLowerCase() === value.toLowerCase()) && (
             <div className="px-3 py-2 text-xs text-muted-foreground border-t bg-gray-50 dark:bg-white/5">
-              Type any location - not limited to suggestions
+              Type any address - suggestions powered by OpenStreetMap
             </div>
           )}
         </div>

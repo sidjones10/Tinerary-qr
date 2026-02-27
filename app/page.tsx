@@ -84,7 +84,19 @@ export default function HomePage() {
 
       <footer className="bg-gray-100 dark:bg-card py-8">
         <div className="container mx-auto px-4 text-center">
-          <div className="flex justify-center gap-4 mb-4">
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mb-4">
+            <Link href="/pricing" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline">
+              Pricing
+            </Link>
+            <span className="text-gray-400 dark:text-gray-600">|</span>
+            <Link href="/business" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline">
+              For Business
+            </Link>
+            <span className="text-gray-400 dark:text-gray-600">|</span>
+            <Link href="/creators" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline">
+              For Creators
+            </Link>
+            <span className="text-gray-400 dark:text-gray-600">|</span>
             <Link href="/terms" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline">
               {t("home.termsOfService")}
             </Link>

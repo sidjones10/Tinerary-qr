@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Home, Calendar, Heart, Bell, Settings, PlusCircle, LogOut } from "lucide-react"
+import { Home, Calendar, Heart, Bell, Settings, PlusCircle, LogOut, Tag } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -27,6 +27,11 @@ const navItems = [
     title: "Notifications",
     href: "/notifications",
     icon: <Bell className="h-5 w-5" />,
+  },
+  {
+    title: "Pricing",
+    href: "/pricing",
+    icon: <Tag className="h-5 w-5" />,
   },
 ]
 

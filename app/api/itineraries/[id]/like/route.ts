@@ -137,6 +137,45 @@ export async function POST(
       console.error("Notification error:", notifyError)
     }
 
+    // Award coins to itinerary owner — check if view milestone reached (non-blocking)
+    try {
+      const { data: itineraryForCoins } = await supabase
+        .from("itineraries")
+        .select("user_id")
+        .eq("id", itineraryId)
+        .single()
+
+      if (itineraryForCoins && itineraryForCoins.user_id !== user.id) {
+        // Check if view count just crossed 10 — award milestone coins
+        const currentViews = metrics?.like_count || 0
+        if (currentViews >= 10) {
+          // Check if this milestone was already awarded
+          const { count: alreadyAwarded } = await supabase
+            .from("coin_transactions")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", itineraryForCoins.user_id)
+            .eq("action", "itinerary_10_views")
+            .eq("reference_id", itineraryId)
+
+          if (!alreadyAwarded || alreadyAwarded === 0) {
+            supabase.rpc("award_coins", {
+              p_user_id: itineraryForCoins.user_id,
+              p_amount: 25, // itinerary_10_views
+              p_action: "itinerary_10_views",
+              p_description: "Itinerary reached 10+ views",
+              p_reference_type: "itinerary",
+              p_reference_id: itineraryId,
+              p_metadata: {},
+            }).then(({ error }) => {
+              if (error) console.warn("Failed to award view milestone coins:", error.message)
+            })
+          }
+        }
+      }
+    } catch (coinError) {
+      console.warn("Coin award skipped:", coinError)
+    }
+
     return NextResponse.json({
       success: true,
       likes: metrics?.like_count || 1,

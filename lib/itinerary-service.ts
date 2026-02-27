@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client"
 import { createNotification, notifyFirstPost } from "@/lib/notification-service"
+import { awardCoins, hasAlreadyEarned } from "@/lib/coins-service"
 
 /**
  * Ensure user profile exists in the profiles table
@@ -322,6 +323,37 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
       }
     } catch (error: any) {
       console.warn("Notification creation skipped:", error.message || "Unknown error")
+    }
+
+    // 8. Award Tinerary Coins (non-blocking)
+    try {
+      const { count: existingCount } = await supabase
+        .from("itineraries")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+
+      // First itinerary bonus (75 coins)
+      if (existingCount === 1) {
+        const alreadyGotFirst = await hasAlreadyEarned(userId, "first_itinerary")
+        if (!alreadyGotFirst) {
+          awardCoins(userId, "first_itinerary", "itinerary", itineraryId)
+            .catch(err => console.warn("First itinerary coin award skipped:", err))
+        }
+      }
+
+      // Public itinerary bonus (50 coins)
+      if (data.isPublic !== false) {
+        awardCoins(userId, "publish_public_itinerary", "itinerary", itineraryId)
+          .catch(err => console.warn("Publish coin award skipped:", err))
+      }
+
+      // 5+ activities bonus (15 coins)
+      if (data.activities && data.activities.length >= 5) {
+        awardCoins(userId, "add_5_activities", "itinerary", itineraryId)
+          .catch(err => console.warn("Activities coin award skipped:", err))
+      }
+    } catch (error: any) {
+      console.warn("Coin awarding skipped:", error.message || "Unknown error")
     }
 
     return {

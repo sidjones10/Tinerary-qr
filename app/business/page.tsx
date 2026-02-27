@@ -65,7 +65,7 @@ export default function BusinessPage() {
                     variant={tier.highlighted ? "default" : "outline"}
                     asChild
                   >
-                    <Link href={`/business-onboarding?tier=${tier.slug}`}>
+                    <Link href={`/business-profile?tier=${tier.slug}`}>
                       Get Started
                     </Link>
                   </Button>

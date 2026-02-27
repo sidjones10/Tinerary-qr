@@ -24,11 +24,6 @@ const navItems = [
     icon: <Heart className="h-5 w-5" />,
   },
   {
-    title: "Explore",
-    href: "/explore",
-    icon: <Compass className="h-5 w-5" />,
-  },
-  {
     title: "Notifications",
     href: "/notifications",
     icon: <Bell className="h-5 w-5" />,

@@ -150,7 +150,7 @@ export default function ManageDealsPage() {
         <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
           <Link href="/business-profile" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Business Dashboard
+            Back to Business Hub
           </Link>
           <PageHeader
             title="Deals & Promotions"
@@ -292,16 +292,6 @@ export default function ManageDealsPage() {
           )}
           </PaywallGate>
 
-          <nav className="mt-10 border-t pt-6">
-            <p className="text-xs text-muted-foreground mb-3">Related pages</p>
-            <div className="flex flex-wrap gap-2">
-              <Link href="/business-profile" className="text-sm text-primary hover:underline">Business Dashboard</Link>
-              <span className="text-muted-foreground">·</span>
-              <Link href="/business-analytics" className="text-sm text-primary hover:underline">Analytics</Link>
-              <span className="text-muted-foreground">·</span>
-              <Link href="/deals" className="text-sm text-primary hover:underline">Browse Deals</Link>
-            </div>
-          </nav>
         </div>
       </main>
     </div>

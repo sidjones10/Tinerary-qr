@@ -633,6 +633,33 @@ select:focus {
 .sparkle-delay-2 { animation-delay: 0.6s; }
 .sparkle-delay-3 { animation-delay: 0.9s; }
 
+/* Stat card colored left border utilities */
+.stat-accent-blue { @apply border-l-4 border-l-blue-500; }
+.stat-accent-salmon { @apply border-l-4 border-l-[#ff9a8b]; }
+.stat-accent-gold { @apply border-l-4 border-l-[#f59e0b]; }
+.stat-accent-purple { @apply border-l-4 border-l-[#7C3AED]; }
+.stat-accent-green { @apply border-l-4 border-l-green-500; }
+
+/* Gradient text for headings */
+.heading-gradient {
+  @apply bg-clip-text text-transparent;
+  background-image: linear-gradient(to right, #ff9a8b, #f59e0b);
+}
+
+.heading-gradient-purple {
+  @apply bg-clip-text text-transparent;
+  background-image: linear-gradient(to right, #7C3AED, #ec4899);
+}
+
+/* Dark mode heading gradients */
+.dark .heading-gradient {
+  background-image: linear-gradient(to right, #ffb88c, #f59e0b);
+}
+
+.dark .heading-gradient-purple {
+  background-image: linear-gradient(to right, #a78bfa, #f472b6);
+}
+
 /* Hide scrollbar utility */
 .scrollbar-hide {
   -ms-overflow-style: none;  /* IE and Edge */

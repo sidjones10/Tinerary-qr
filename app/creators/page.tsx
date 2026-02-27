@@ -1,10 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowLeft, ArrowRight, Check, Coins, Rocket, Sparkles, TrendingUp, Palette, Percent, Users } from "lucide-react"
+import { ArrowLeft, Check, Coins, Rocket, Sparkles, TrendingUp, Palette, Percent, Users, Crown } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { AppHeader } from "@/components/app-header"
@@ -23,20 +23,29 @@ export default function CreatorsPage() {
           </Link>
 
           {/* Hero */}
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 mb-4">
-              <Sparkles className="h-8 w-8 text-[#7C3AED]" />
-              <h1 className="text-4xl font-bold tracking-tight">Creator Tier</h1>
+          <div className="text-center mb-14 bg-gradient-to-r from-[#7C3AED]/10 via-transparent to-tinerary-peach/20 rounded-3xl py-10 px-6">
+            <div className="relative inline-block mb-5">
+              <div className="size-16 rounded-2xl bg-[#7C3AED]/10 flex items-center justify-center">
+                <Sparkles className="size-8 text-[#7C3AED]" />
+              </div>
+              <div className="absolute -top-1 -right-1 size-3 rounded-full bg-tinerary-gold sparkle" />
+              <div className="absolute -bottom-1 -left-1 size-2 rounded-full bg-tinerary-salmon sparkle sparkle-delay-1" />
             </div>
+            <h1 className="text-4xl font-bold tracking-tight heading-gradient-purple mb-3">Creator Tier</h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               For travel bloggers, local influencers, and trip planning enthusiasts who want to grow their audience and earn.
             </p>
           </div>
 
-          {/* Creator pricing card — v0 style */}
+          {/* Creator pricing card */}
           <div className="max-w-lg mx-auto mb-16">
-            <div className="rounded-2xl border overflow-hidden shadow-lg ring-2 ring-primary/30">
-              <div className="bg-[#7C3AED] px-5 py-6 text-center">
+            <div className="rounded-2xl border overflow-hidden shadow-xl shadow-[#7C3AED]/15 ring-2 ring-[#7C3AED]/30 hover-lift transition-all duration-300">
+              <div className="bg-[#7C3AED] px-5 py-6 text-center relative">
+                <div className="absolute top-2 right-2">
+                  <Badge className="bg-white/20 text-white border-0 text-xs backdrop-blur-sm">
+                    <Crown className="size-3 mr-1" /> Pro
+                  </Badge>
+                </div>
                 <p className="text-xs font-bold tracking-widest text-primary-foreground uppercase">Creator</p>
                 <p className="text-4xl font-bold text-primary-foreground mt-1">$49</p>
                 <p className="text-xs text-primary-foreground/80">per month</p>
@@ -55,13 +64,15 @@ export default function CreatorsPage() {
                   "Sponsorship inbox",
                   "Business-lite listing tools",
                   "2x coin earning rate",
-                ].map((feature) => (
-                  <div key={feature} className="flex items-start gap-2">
-                    <Check className="size-4 text-tinerary-salmon shrink-0 mt-0.5" />
+                ].map((feature, i) => (
+                  <div key={feature} className={`flex items-start gap-2 p-1.5 rounded-lg ${i % 2 === 0 ? "bg-muted/50" : ""}`}>
+                    <Check className="size-4 text-[#7C3AED] shrink-0 mt-0.5" />
                     <span className="text-sm text-foreground">{feature}</span>
                   </div>
                 ))}
-                <Button className="w-full btn-sunset mt-4">Get Started as a Creator</Button>
+                <Button className="w-full btn-sunset mt-4" asChild>
+                  <Link href="/creator">Get Started as a Creator</Link>
+                </Button>
               </div>
             </div>
           </div>
@@ -72,29 +83,39 @@ export default function CreatorsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
                 {
-                  icon: <TrendingUp className="size-8 text-tinerary-gold" />,
+                  icon: <TrendingUp className="size-6 text-tinerary-gold" />,
+                  bgColor: "bg-tinerary-gold/10",
+                  accentColor: "border-t-tinerary-gold",
                   title: "Grow your audience",
                   description: "Priority placement in the discovery feed puts your itineraries in front of more travelers.",
                 },
                 {
-                  icon: <Rocket className="size-8 text-primary" />,
+                  icon: <Rocket className="size-6 text-primary" />,
+                  bgColor: "bg-primary/10",
+                  accentColor: "border-t-primary",
                   title: "Boost your posts",
                   description: "Pay to amplify individual itineraries with targeted impressions from $5.",
                 },
                 {
-                  icon: <Coins className="size-8 text-tinerary-gold" />,
+                  icon: <Coins className="size-6 text-tinerary-gold" />,
+                  bgColor: "bg-tinerary-gold/10",
+                  accentColor: "border-t-tinerary-gold",
                   title: "Earn more",
                   description: "70/30 affiliate split (vs 60/40 for standard users) plus 2x coin earning rate.",
                 },
                 {
-                  icon: <Palette className="size-8 text-tinerary-salmon" />,
+                  icon: <Palette className="size-6 text-tinerary-salmon" />,
+                  bgColor: "bg-tinerary-salmon/10",
+                  accentColor: "border-t-tinerary-salmon",
                   title: "Sell templates",
                   description: "Create and sell premium itinerary templates to other travelers.",
                 },
               ].map((item, i) => (
-                <Card key={i} className="text-center border-border">
+                <Card key={i} className={`text-center border-border border-t-2 ${item.accentColor} hover-lift transition-all duration-300`}>
                   <CardContent className="pt-6">
-                    <div className="flex justify-center mb-4">{item.icon}</div>
+                    <div className={`size-14 rounded-2xl ${item.bgColor} flex items-center justify-center mx-auto mb-4`}>
+                      {item.icon}
+                    </div>
                     <h3 className="font-semibold mb-1">{item.title}</h3>
                     <p className="text-sm text-muted-foreground">{item.description}</p>
                   </CardContent>
@@ -110,19 +131,31 @@ export default function CreatorsPage() {
               Amplify any itinerary post to reach more travelers. Pick the package that fits your goals.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {BOOST_PACKAGES.map((pkg) => (
-                <div
-                  key={pkg.name}
-                  className="flex flex-col items-center p-5 rounded-2xl bg-muted text-center border border-border"
-                >
-                  <p className="text-2xl font-bold text-primary">${pkg.price}</p>
-                  <p className="text-sm font-semibold text-foreground mt-1">{pkg.name}</p>
-                  <div className="w-full h-px bg-border my-3" />
-                  <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Impressions:</span> {pkg.impressions}</p>
-                  <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Duration:</span> {pkg.duration}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Cost per 1K: {pkg.costPer1K}</p>
-                </div>
-              ))}
+              {BOOST_PACKAGES.map((pkg, i) => {
+                const isBestValue = i === BOOST_PACKAGES.length - 1
+                return (
+                  <div
+                    key={pkg.name}
+                    className={`relative flex flex-col items-center p-5 rounded-2xl bg-muted text-center border hover-lift transition-all duration-300 ${
+                      isBestValue ? "border-tinerary-gold ring-1 ring-tinerary-gold/30" : "border-border"
+                    }`}
+                  >
+                    {isBestValue && (
+                      <Badge className="absolute -top-2.5 bg-tinerary-gold text-white border-0 text-xs">
+                        Best Value
+                      </Badge>
+                    )}
+                    <p className="text-2xl font-bold heading-gradient-purple">${pkg.price}</p>
+                    <p className="text-sm font-semibold text-foreground mt-1">{pkg.name}</p>
+                    <div className="w-full h-px bg-border my-3" />
+                    <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Impressions:</span> {pkg.impressions}</p>
+                    <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Duration:</span> {pkg.duration}</p>
+                    <p className={`text-xs mt-1 font-medium ${isBestValue ? "text-tinerary-gold" : "text-muted-foreground"}`}>
+                      Cost per 1K: {pkg.costPer1K}
+                    </p>
+                  </div>
+                )
+              })}
             </div>
           </div>
 
@@ -151,7 +184,7 @@ export default function CreatorsPage() {
                           </div>
                           <Progress
                             value={parseInt(split.userShare)}
-                            className="h-3 rounded-full [&>[data-slot=progress-indicator]]:bg-tinerary-salmon [&>[data-slot=progress-indicator]]:rounded-full"
+                            className="h-4 rounded-full [&>[data-slot=progress-indicator]]:bg-tinerary-salmon [&>[data-slot=progress-indicator]]:rounded-full"
                           />
                         </div>
                         <div>
@@ -161,7 +194,7 @@ export default function CreatorsPage() {
                           </div>
                           <Progress
                             value={parseInt(split.tineraryShare)}
-                            className="h-3 rounded-full [&>[data-slot=progress-indicator]]:bg-primary [&>[data-slot=progress-indicator]]:rounded-full"
+                            className="h-4 rounded-full [&>[data-slot=progress-indicator]]:bg-primary [&>[data-slot=progress-indicator]]:rounded-full"
                           />
                         </div>
                       </div>
@@ -174,12 +207,13 @@ export default function CreatorsPage() {
 
           {/* CTA */}
           <div className="text-center">
-            <Card className="max-w-xl mx-auto bg-gradient-to-r from-tinerary-peach/30 to-tinerary-salmon/10 dark:from-tinerary-salmon/10 dark:to-tinerary-peach/5 border-0">
+            <Card className="max-w-xl mx-auto bg-gradient-to-r from-[#7C3AED]/15 to-tinerary-peach/25 dark:from-[#7C3AED]/10 dark:to-tinerary-peach/10 border-0">
               <CardContent className="py-10">
+                <Sparkles className="size-10 text-[#7C3AED] mx-auto mb-3" />
                 <h3 className="text-xl font-bold mb-2">Ready to level up?</h3>
                 <p className="text-muted-foreground mb-6">Join Tinerary as a Creator and start earning today.</p>
-                <Button className="btn-sunset" size="lg">
-                  Become a Creator
+                <Button className="btn-sunset" size="lg" asChild>
+                  <Link href="/creator">Become a Creator</Link>
                 </Button>
               </CardContent>
             </Card>

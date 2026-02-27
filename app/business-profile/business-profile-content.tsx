@@ -28,6 +28,7 @@ import {
   Coins,
   Zap,
   Loader2,
+  Check,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { BUSINESS_TIERS } from "@/lib/tiers"
@@ -97,6 +98,14 @@ const TIER_ICON: Record<BusinessTierSlug, React.ComponentType<{ className?: stri
   basic: Store,
   premium: Crown,
   enterprise: Shield,
+}
+
+// ─── Tier feature summaries for setup ────────────────────────
+
+const TIER_SUMMARIES: Record<BusinessTierSlug, string> = {
+  basic: "5 deals, basic analytics, email support",
+  premium: "Unlimited deals, advanced analytics, featured placement",
+  enterprise: "API access, real-time analytics, dedicated manager",
 }
 
 // ─── Tool Cards ──────────────────────────────────────────────
@@ -196,6 +205,14 @@ function getActivePerks(tier: BusinessTierSlug) {
   ]
 }
 
+// ─── Setup Steps ─────────────────────────────────────────────
+
+const SETUP_STEPS = [
+  { label: "Business Info", icon: Store },
+  { label: "Details", icon: Sparkles },
+  { label: "Choose Plan", icon: Crown },
+]
+
 // ─── Inline Setup (replaces separate onboarding page) ────────
 
 function InlineSetup({
@@ -228,6 +245,9 @@ function InlineSetup({
       if (profileData.bio) setDescription(profileData.bio)
     }
   }, [profileData])
+
+  // Determine which "step" is active based on form completion
+  const currentStep = !name.trim() || !category ? 0 : !description && !website ? 1 : 2
 
   async function handleSubmit() {
     setError(null)
@@ -266,7 +286,26 @@ function InlineSetup({
         </p>
       </div>
 
-      <Card className="border-border max-w-xl mx-auto w-full">
+      {/* Step Indicator */}
+      <div className="flex items-center justify-center gap-2 max-w-xl mx-auto w-full">
+        {SETUP_STEPS.map((step, i) => (
+          <div key={step.label} className="flex items-center gap-2">
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+              i <= currentStep
+                ? "bg-primary/10 text-primary"
+                : "bg-muted text-muted-foreground"
+            }`}>
+              <step.icon className="size-3" />
+              <span className="hidden sm:inline">{step.label}</span>
+            </div>
+            {i < SETUP_STEPS.length - 1 && (
+              <div className={`w-6 h-px transition-colors ${i < currentStep ? "bg-primary" : "bg-border"}`} />
+            )}
+          </div>
+        ))}
+      </div>
+
+      <Card className="border-border max-w-xl mx-auto w-full cute-card">
         <CardContent className="pt-6">
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-1.5">
@@ -344,6 +383,9 @@ function InlineSetup({
                     <p className="text-xs text-muted-foreground">
                       ${tier.price}/{tier.priceSuffix}
                     </p>
+                    <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
+                      {TIER_SUMMARIES[tier.slug]}
+                    </p>
                     {tier.highlighted && (
                       <Badge className="absolute -top-2 right-2 bg-tinerary-peach text-tinerary-dark border-0 text-[9px]">
                         Popular
@@ -392,6 +434,22 @@ function InlineSetup({
     </div>
   )
 }
+
+// ─── Stat accent colors ──────────────────────────────────────
+
+const dashStatAccents = [
+  "stat-accent-blue",
+  "stat-accent-salmon",
+  "stat-accent-purple",
+  "stat-accent-gold",
+]
+
+const dashStatIconColors = [
+  { color: "text-blue-500", bg: "bg-blue-500/10" },
+  { color: "text-tinerary-salmon", bg: "bg-tinerary-salmon/10" },
+  { color: "text-[#7C3AED]", bg: "bg-[#7C3AED]/10" },
+  { color: "text-tinerary-gold", bg: "bg-tinerary-gold/10" },
+]
 
 // ─── Main Component ──────────────────────────────────────────
 
@@ -458,7 +516,7 @@ export function BusinessProfileContent() {
     return (
       <div className="flex flex-col gap-6">
         <div className="flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-muted animate-pulse" />
+          <div className="size-14 rounded-xl bg-muted animate-pulse" />
           <div className="space-y-2">
             <div className="h-6 w-40 bg-muted rounded animate-pulse" />
             <div className="h-4 w-64 bg-muted rounded animate-pulse" />
@@ -490,17 +548,17 @@ export function BusinessProfileContent() {
   return (
     <>
       {/* Hero */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
+      <div className={`bg-gradient-to-r ${theme.gradientCls} rounded-2xl p-6 mb-8`}>
+        <div className="flex items-center gap-4">
           {business.logo || profileData?.avatar_url ? (
             <img
               src={(business.logo || profileData?.avatar_url)!}
               alt={business.name}
-              className="size-10 rounded-xl object-cover"
+              className="size-14 rounded-xl object-cover shadow-md"
             />
           ) : (
-            <div className={`size-10 rounded-xl ${theme.bg} flex items-center justify-center`}>
-              <TierIcon className="size-5 text-white" />
+            <div className={`size-14 rounded-xl ${theme.bg} flex items-center justify-center shadow-lg`}>
+              <TierIcon className="size-7 text-white" />
             </div>
           )}
           <div>
@@ -524,11 +582,13 @@ export function BusinessProfileContent() {
           { label: "Clicks", value: summaryStats.clicks.toLocaleString(), icon: MousePointerClick },
           { label: "Saves", value: summaryStats.saves.toLocaleString(), icon: Bookmark },
           { label: "Active Deals", value: summaryStats.activeDeals.toString(), icon: Ticket },
-        ].map((stat) => (
-          <Card key={stat.label} className="border-border">
+        ].map((stat, i) => (
+          <Card key={stat.label} className={`border-border ${dashStatAccents[i]}`}>
             <CardContent className="pt-6">
-              <stat.icon className="size-5 text-muted-foreground" />
-              <p className="mt-3 text-2xl font-bold text-foreground">{stat.value}</p>
+              <div className={`size-8 rounded-lg ${dashStatIconColors[i].bg} flex items-center justify-center mb-2`}>
+                <stat.icon className={`size-4 ${dashStatIconColors[i].color}`} />
+              </div>
+              <p className="mt-1 text-2xl font-bold text-foreground">{stat.value}</p>
               <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
             </CardContent>
           </Card>
@@ -539,18 +599,18 @@ export function BusinessProfileContent() {
       <h2 className="text-lg font-bold mb-4">Business Tools</h2>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         {tools.map((tool) => (
-          <Link key={tool.title} href={tool.href}>
-            <Card className="border-border hover:shadow-md transition-shadow cursor-pointer h-full">
+          <Link key={tool.title} href={tool.href} className="group">
+            <Card className="border-border hover-lift transition-all duration-300 cursor-pointer h-full">
               <CardContent className="pt-6">
                 <div
-                  className={`size-10 rounded-xl ${tool.bgColor} flex items-center justify-center mb-4`}
+                  className={`size-12 rounded-xl ${tool.bgColor} flex items-center justify-center mb-4`}
                 >
-                  <tool.icon className={`size-5 ${tool.color}`} />
+                  <tool.icon className={`size-6 ${tool.color}`} />
                 </div>
                 <h3 className="text-sm font-bold text-foreground">{tool.title}</h3>
                 <p className="text-xs text-muted-foreground mt-1">{tool.description}</p>
                 <div className="flex items-center gap-1 mt-3 text-xs font-medium text-primary">
-                  Open <ArrowRight className="size-3" />
+                  Open <ArrowRight className="size-3 transition-transform group-hover:translate-x-1" />
                 </div>
               </CardContent>
             </Card>
@@ -571,9 +631,9 @@ export function BusinessProfileContent() {
             {perks.map((perk) => (
               <div
                 key={perk.label}
-                className="flex items-start gap-3 p-3 rounded-xl bg-muted"
+                className="flex items-start gap-3 p-3 rounded-xl bg-muted hover:bg-muted/80 transition-colors"
               >
-                <div className={`size-8 rounded-lg ${theme.bg} flex items-center justify-center shrink-0 text-primary-foreground`}>
+                <div className={`size-8 rounded-lg ${theme.bg} flex items-center justify-center shrink-0 text-primary-foreground shadow-sm`}>
                   <perk.icon className="size-4" />
                 </div>
                 <div>
@@ -587,8 +647,11 @@ export function BusinessProfileContent() {
       </Card>
 
       {/* Tier CTA */}
-      <Card className={`bg-gradient-to-r ${theme.gradientCls} border-0`}>
-        <CardContent className="py-8 text-center">
+      <Card className={`bg-gradient-to-r ${theme.gradientCls} border-0 relative overflow-hidden`}>
+        <div className="absolute top-3 right-8 size-2 rounded-full bg-tinerary-gold/40 sparkle" />
+        <div className="absolute bottom-6 right-16 size-1.5 rounded-full bg-tinerary-salmon/40 sparkle sparkle-delay-1" />
+        <div className="absolute top-8 left-12 size-1 rounded-full bg-primary/30 sparkle sparkle-delay-2" />
+        <CardContent className="py-8 text-center relative">
           <TierIcon
             className={`size-10 ${tier === "enterprise" ? "text-tinerary-gold" : "text-primary"} mx-auto mb-3`}
           />

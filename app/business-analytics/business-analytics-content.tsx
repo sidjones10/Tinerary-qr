@@ -22,15 +22,22 @@ import {
   MousePointerClick,
   Bookmark,
   Share2,
-  Users,
   ArrowUpRight,
-  ArrowDownRight,
   Lock,
   Crown,
-  CalendarDays,
-  Globe,
   MapPin,
+  Sparkles,
 } from "lucide-react"
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts"
 import { createClient } from "@/lib/supabase/client"
 import {
   getBusinessSubscription,
@@ -56,12 +63,19 @@ interface PromoAnalytics {
 }
 
 // Demo data for advanced insights
-const AUDIENCE_INSIGHTS = [
-  { label: "18-24", percentage: 22, color: "bg-blue-400" },
-  { label: "25-34", percentage: 38, color: "bg-primary" },
-  { label: "35-44", percentage: 24, color: "bg-indigo-400" },
-  { label: "45-54", percentage: 11, color: "bg-violet-400" },
-  { label: "55+", percentage: 5, color: "bg-purple-400" },
+const AUDIENCE_AGE_DATA = [
+  { age: "18-24", percentage: 22 },
+  { age: "25-34", percentage: 38 },
+  { age: "35-44", percentage: 24 },
+  { age: "45-54", percentage: 11 },
+  { age: "55+", percentage: 5 },
+]
+
+const ENGAGEMENT_PATTERN_DATA = [
+  { time: "Morning", percentage: 22 },
+  { time: "Afternoon", percentage: 35 },
+  { time: "Evening", percentage: 32 },
+  { time: "Night", percentage: 11 },
 ]
 
 const TOP_LOCATIONS = [
@@ -80,6 +94,28 @@ const WEEKLY_TREND = [
   { day: "Fri", views: 180, clicks: 35 },
   { day: "Sat", views: 210, clicks: 42 },
   { day: "Sun", views: 195, clicks: 38 },
+]
+
+const RANK_STYLES = [
+  "bg-tinerary-gold text-white",
+  "bg-gray-300 text-gray-700",
+  "bg-amber-600 text-white",
+]
+
+const STAT_ACCENTS = [
+  "stat-accent-blue",
+  "stat-accent-salmon",
+  "stat-accent-gold",
+  "stat-accent-purple",
+  "stat-accent-green",
+]
+
+const STAT_ICON_COLORS = [
+  { color: "text-blue-500", bg: "bg-blue-500/10" },
+  { color: "text-tinerary-salmon", bg: "bg-tinerary-salmon/10" },
+  { color: "text-tinerary-gold", bg: "bg-tinerary-gold/10" },
+  { color: "text-[#7C3AED]", bg: "bg-[#7C3AED]/10" },
+  { color: "text-green-500", bg: "bg-green-500/10" },
 ]
 
 export function BusinessAnalyticsContent() {
@@ -152,16 +188,27 @@ export function BusinessAnalyticsContent() {
     )
   }
 
-  // Gate: basic tier gets locked view
+  // Gate: basic tier gets locked view with blurred preview
   if (analyticsLevel === "basic") {
     return (
       <div className="mt-6">
-        <Card className="border-border">
-          <CardContent className="py-16 text-center">
-            <Lock className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+        <Card className="border-border relative overflow-hidden">
+          {/* Blurred preview behind the lock */}
+          <div className="absolute inset-0 opacity-20 blur-sm pointer-events-none p-6">
+            <div className="grid grid-cols-5 gap-4 mb-6">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="h-20 rounded-xl bg-muted" />
+              ))}
+            </div>
+            <div className="h-48 rounded-xl bg-muted" />
+          </div>
+          <CardContent className="py-16 text-center relative z-10">
+            <div className="size-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+              <Lock className="size-8 text-primary" />
+            </div>
             <h3 className="text-lg font-bold mb-2">Advanced Analytics</h3>
-            <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-              Upgrade to Premium to unlock advanced analytics including audience insights, geographic breakdown, engagement trends, and per-promotion performance metrics.
+            <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+              Upgrade to Premium to unlock audience insights, geographic breakdown, engagement trends, and per-promotion performance metrics.
             </p>
             <Button className="btn-sunset" asChild>
               <Link href="/business">Upgrade to Premium</Link>
@@ -187,7 +234,10 @@ export function BusinessAnalyticsContent() {
           {analyticsLevel === "realtime" ? "Real-time Analytics" : "Advanced Analytics"}
         </Badge>
         {analyticsLevel === "realtime" && (
-          <span className="text-xs text-muted-foreground">Data updates in real-time</span>
+          <span className="text-xs text-muted-foreground flex items-center gap-1">
+            <span className="size-2 rounded-full bg-green-500 animate-pulse" />
+            Data updates in real-time
+          </span>
         )}
       </div>
 
@@ -199,18 +249,20 @@ export function BusinessAnalyticsContent() {
           { label: "Avg CTR", value: `${avgCtr}%`, icon: ArrowUpRight, change: "+2.1%", up: true },
           { label: "Total Saves", value: totalSaves.toLocaleString(), icon: Bookmark, change: "+12%", up: true },
           { label: "Total Shares", value: totalShares.toLocaleString(), icon: Share2, change: "-3%", up: false },
-        ].map((stat) => (
-          <Card key={stat.label} className="border-border">
+        ].map((stat, i) => (
+          <Card key={stat.label} className={`border-border ${STAT_ACCENTS[i]}`}>
             <CardContent className="pt-6">
-              <stat.icon className="size-5 text-muted-foreground" />
-              <p className="mt-3 text-2xl font-bold text-foreground">{stat.value}</p>
-              <div className="flex items-center gap-1 mt-1">
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
+              <div className={`size-8 rounded-lg ${STAT_ICON_COLORS[i].bg} flex items-center justify-center mb-2`}>
+                <stat.icon className={`size-4 ${STAT_ICON_COLORS[i].color}`} />
+              </div>
+              <div className="flex items-baseline gap-2">
+                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
                 <span className={`text-xs font-medium flex items-center ${stat.up ? "text-green-600" : "text-red-500"}`}>
                   {stat.up ? <TrendingUp className="size-3 mr-0.5" /> : <TrendingDown className="size-3 mr-0.5" />}
                   {stat.change}
                 </span>
               </div>
+              <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
             </CardContent>
           </Card>
         ))}
@@ -241,7 +293,12 @@ export function BusinessAnalyticsContent() {
             </CardHeader>
             <CardContent>
               {promos.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">No promotions yet.</p>
+                <div className="text-center py-12">
+                  <div className="cute-empty-icon mx-auto mb-4" style={{ width: 80, height: 80 }}>
+                    <BarChart3 className="size-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">No promotions yet. Create your first deal to see metrics here.</p>
+                </div>
               ) : (
                 <Table>
                   <TableHeader>
@@ -256,8 +313,8 @@ export function BusinessAnalyticsContent() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {promos.map((promo) => (
-                      <TableRow key={promo.id}>
+                    {promos.map((promo, i) => (
+                      <TableRow key={promo.id} className={`hover:bg-muted/50 transition-colors ${i % 2 === 0 ? "bg-muted/30" : ""}`}>
                         <TableCell>
                           <div>
                             <p className="font-medium text-foreground text-sm">{promo.title}</p>
@@ -289,29 +346,27 @@ export function BusinessAnalyticsContent() {
           </Card>
         </TabsContent>
 
-        {/* Audience Insights */}
+        {/* Audience Insights — Recharts */}
         <TabsContent value="audience" className="mt-4">
           <div className="grid gap-6 md:grid-cols-2">
             <Card className="border-border">
               <CardHeader>
-                <CardTitle>Audience Age Distribution</CardTitle>
+                <CardTitle>Age Distribution</CardTitle>
                 <CardDescription>Age breakdown of users who view your promotions</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex flex-col gap-3">
-                  {AUDIENCE_INSIGHTS.map((segment) => (
-                    <div key={segment.label} className="flex items-center gap-3">
-                      <span className="text-xs text-muted-foreground w-10">{segment.label}</span>
-                      <div className="flex-1 h-6 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className={`h-full ${segment.color} rounded-full transition-all`}
-                          style={{ width: `${segment.percentage}%` }}
-                        />
-                      </div>
-                      <span className="text-xs font-medium text-foreground w-10 text-right">{segment.percentage}%</span>
-                    </div>
-                  ))}
-                </div>
+                <ResponsiveContainer width="100%" height={240}>
+                  <BarChart data={AUDIENCE_AGE_DATA} layout="vertical" margin={{ left: 10, right: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
+                    <XAxis type="number" domain={[0, 50]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                    <YAxis type="category" dataKey="age" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" width={40} />
+                    <Tooltip
+                      formatter={(value: number) => [`${value}%`, "Percentage"]}
+                      contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))" }}
+                    />
+                    <Bar dataKey="percentage" fill="#ff9a8b" radius={[0, 6, 6, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
 
@@ -321,25 +376,18 @@ export function BusinessAnalyticsContent() {
                 <CardDescription>When your audience is most active</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex flex-col gap-3">
-                  {[
-                    { time: "Morning (6-12)", pct: 22 },
-                    { time: "Afternoon (12-18)", pct: 35 },
-                    { time: "Evening (18-24)", pct: 32 },
-                    { time: "Night (0-6)", pct: 11 },
-                  ].map((slot) => (
-                    <div key={slot.time} className="flex items-center gap-3">
-                      <span className="text-xs text-muted-foreground w-28">{slot.time}</span>
-                      <div className="flex-1 h-6 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-tinerary-salmon rounded-full"
-                          style={{ width: `${slot.pct}%` }}
-                        />
-                      </div>
-                      <span className="text-xs font-medium text-foreground w-10 text-right">{slot.pct}%</span>
-                    </div>
-                  ))}
-                </div>
+                <ResponsiveContainer width="100%" height={240}>
+                  <BarChart data={ENGAGEMENT_PATTERN_DATA} margin={{ left: -10, right: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                    <XAxis dataKey="time" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                    <YAxis domain={[0, 50]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                    <Tooltip
+                      formatter={(value: number) => [`${value}%`, "Activity"]}
+                      contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))" }}
+                    />
+                    <Bar dataKey="percentage" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
           </div>
@@ -356,7 +404,11 @@ export function BusinessAnalyticsContent() {
               <div className="flex flex-col gap-4">
                 {TOP_LOCATIONS.map((loc, i) => (
                   <div key={loc.city} className="flex items-center gap-4">
-                    <span className="text-sm font-bold text-muted-foreground w-6">{i + 1}.</span>
+                    <div className={`size-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                      i < 3 ? RANK_STYLES[i] : "bg-muted text-muted-foreground"
+                    }`}>
+                      {i + 1}
+                    </div>
                     <MapPin className="size-4 text-primary shrink-0" />
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
@@ -365,7 +417,7 @@ export function BusinessAnalyticsContent() {
                       </div>
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-primary rounded-full"
+                          className="h-full bg-gradient-to-r from-primary to-tinerary-salmon rounded-full transition-all"
                           style={{ width: `${loc.percentage}%` }}
                         />
                       </div>
@@ -378,7 +430,7 @@ export function BusinessAnalyticsContent() {
           </Card>
         </TabsContent>
 
-        {/* Trends */}
+        {/* Trends — Recharts */}
         <TabsContent value="trends" className="mt-4">
           <Card className="border-border">
             <CardHeader>
@@ -386,38 +438,22 @@ export function BusinessAnalyticsContent() {
               <CardDescription>Views and clicks over the past week</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col gap-3">
-                {WEEKLY_TREND.map((day) => {
-                  const maxViews = Math.max(...WEEKLY_TREND.map((d) => d.views))
-                  return (
-                    <div key={day.day} className="flex items-center gap-3">
-                      <span className="text-xs text-muted-foreground w-8">{day.day}</span>
-                      <div className="flex-1 flex gap-1">
-                        <div className="flex-1 h-4 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary rounded-full"
-                            style={{ width: `${(day.views / maxViews) * 100}%` }}
-                          />
-                        </div>
-                        <div className="flex-1 h-4 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-tinerary-salmon rounded-full"
-                            style={{ width: `${(day.clicks / maxViews) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                      <div className="flex gap-3 text-right">
-                        <span className="text-xs text-foreground w-12">{day.views} <span className="text-muted-foreground">v</span></span>
-                        <span className="text-xs text-foreground w-10">{day.clicks} <span className="text-muted-foreground">c</span></span>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-              <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1"><span className="size-2 rounded-full bg-primary" /> Views</span>
-                <span className="flex items-center gap-1"><span className="size-2 rounded-full bg-tinerary-salmon" /> Clicks</span>
-              </div>
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart data={WEEKLY_TREND} margin={{ left: -10, right: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                  <XAxis dataKey="day" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                  <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip
+                    contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))" }}
+                  />
+                  <Legend
+                    iconType="circle"
+                    wrapperStyle={{ fontSize: 12, paddingTop: 12 }}
+                  />
+                  <Bar dataKey="views" name="Views" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="clicks" name="Clicks" fill="#ff9a8b" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
         </TabsContent>

@@ -11,6 +11,7 @@ import {
   Zap,
   ArrowUpRight,
   Check,
+  Sparkles,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -37,6 +38,20 @@ import { createClient } from "@/lib/supabase/client"
 import { getBoostCampaigns, createBoostCampaign, type BoostCampaign } from "@/lib/creator-service"
 import { BOOST_PACKAGES } from "@/lib/tiers"
 import { useToast } from "@/components/ui/use-toast"
+
+const STAT_ACCENTS = [
+  "stat-accent-gold",
+  "stat-accent-blue",
+  "stat-accent-salmon",
+  "stat-accent-purple",
+]
+
+const STAT_ICON_COLORS = [
+  { color: "text-tinerary-gold", bg: "bg-tinerary-gold/10" },
+  { color: "text-blue-500", bg: "bg-blue-500/10" },
+  { color: "text-tinerary-salmon", bg: "bg-tinerary-salmon/10" },
+  { color: "text-[#7C3AED]", bg: "bg-[#7C3AED]/10" },
+]
 
 export default function CreatorBoostPage() {
   const [campaigns, setCampaigns] = useState<BoostCampaign[]>([])
@@ -116,8 +131,8 @@ export default function CreatorBoostPage() {
           <PaywallGate gate="creator_boost">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Rocket className="size-5 text-primary" />
+              <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Rocket className="size-6 text-primary" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold">Boost Posts</h1>
@@ -193,11 +208,13 @@ export default function CreatorBoostPage() {
               { label: "Boosted Impressions", value: totalImpressions.toLocaleString(), icon: Eye },
               { label: "Active Boosts", value: activeCampaigns.length.toString(), icon: Rocket },
               { label: "Total Campaigns", value: campaigns.length.toString(), icon: ArrowUpRight },
-            ].map((stat) => (
-              <Card key={stat.label} className="border-border">
+            ].map((stat, i) => (
+              <Card key={stat.label} className={`border-border ${STAT_ACCENTS[i]}`}>
                 <CardContent className="pt-6">
-                  <stat.icon className="size-5 text-muted-foreground" />
-                  <p className="mt-3 text-2xl font-bold text-foreground">{stat.value}</p>
+                  <div className={`size-8 rounded-lg ${STAT_ICON_COLORS[i].bg} flex items-center justify-center mb-2`}>
+                    <stat.icon className={`size-4 ${STAT_ICON_COLORS[i].color}`} />
+                  </div>
+                  <p className="mt-1 text-2xl font-bold text-foreground">{stat.value}</p>
                   <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
                 </CardContent>
               </Card>
@@ -212,27 +229,37 @@ export default function CreatorBoostPage() {
             </CardHeader>
             <CardContent>
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {BOOST_PACKAGES.map((pkg) => (
-                  <div
-                    key={pkg.name}
-                    className="flex flex-col items-center p-5 rounded-2xl bg-muted text-center border border-border"
-                  >
-                    <p className="text-2xl font-bold text-primary">${pkg.price}</p>
-                    <p className="text-sm font-semibold text-foreground mt-1">{pkg.name}</p>
-                    <div className="w-full h-px bg-border my-3" />
-                    <p className="text-xs text-muted-foreground">
-                      <span className="font-medium text-foreground">Impressions:</span>{" "}
-                      {pkg.impressions}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      <span className="font-medium text-foreground">Duration:</span>{" "}
-                      {pkg.duration}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Cost per 1K: {pkg.costPer1K}
-                    </p>
-                  </div>
-                ))}
+                {BOOST_PACKAGES.map((pkg, i) => {
+                  const isBestValue = i === BOOST_PACKAGES.length - 1
+                  return (
+                    <div
+                      key={pkg.name}
+                      className={`relative flex flex-col items-center p-5 rounded-2xl bg-muted text-center border hover-lift transition-all duration-300 ${
+                        isBestValue ? "border-tinerary-gold ring-1 ring-tinerary-gold/30" : "border-border"
+                      }`}
+                    >
+                      {isBestValue && (
+                        <Badge className="absolute -top-2.5 bg-tinerary-gold text-white border-0 text-xs">
+                          Best Value
+                        </Badge>
+                      )}
+                      <p className="text-2xl font-bold text-primary">${pkg.price}</p>
+                      <p className="text-sm font-semibold text-foreground mt-1">{pkg.name}</p>
+                      <div className="w-full h-px bg-border my-3" />
+                      <p className="text-xs text-muted-foreground">
+                        <span className="font-medium text-foreground">Impressions:</span>{" "}
+                        {pkg.impressions}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        <span className="font-medium text-foreground">Duration:</span>{" "}
+                        {pkg.duration}
+                      </p>
+                      <p className={`text-xs mt-1 font-medium ${isBestValue ? "text-tinerary-gold" : "text-muted-foreground"}`}>
+                        Cost per 1K: {pkg.costPer1K}
+                      </p>
+                    </div>
+                  )
+                })}
               </div>
             </CardContent>
           </Card>
@@ -247,20 +274,31 @@ export default function CreatorBoostPage() {
             </CardHeader>
             <CardContent>
               {campaigns.length === 0 ? (
-                <div className="text-center py-8">
-                  <Rocket className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
-                  <p className="text-sm text-muted-foreground">
-                    No boost campaigns yet. Create your first boost to amplify your content.
+                <div className="cute-empty-state">
+                  <div className="cute-empty-icon">
+                    <Rocket className="size-10 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">No Boost Campaigns Yet</h3>
+                  <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
+                    Create your first boost to amplify your content and reach more travelers.
                   </p>
+                  <Button onClick={() => setDialogOpen(true)} className="btn-sunset">
+                    <Sparkles className="size-4 mr-2" /> Create Your First Boost
+                  </Button>
                 </div>
               ) : (
                 <div className="flex flex-col gap-4">
                   {campaigns.map((campaign) => {
                     const progress = campaign.budget > 0 ? (campaign.spent / campaign.budget) * 100 : 0
+                    const isActive = campaign.status === "active"
                     return (
                       <div
                         key={campaign.id}
-                        className="p-4 rounded-xl bg-muted flex flex-col gap-3"
+                        className={`p-4 rounded-xl flex flex-col gap-3 border-l-4 transition-colors ${
+                          isActive
+                            ? "bg-muted border-l-green-500"
+                            : "bg-muted/60 border-l-muted-foreground/30"
+                        }`}
                       >
                         <div className="flex items-center justify-between">
                           <div>
@@ -276,7 +314,7 @@ export default function CreatorBoostPage() {
                           <Badge
                             variant="secondary"
                             className={
-                              campaign.status === "active"
+                              isActive
                                 ? "bg-tinerary-peach text-tinerary-dark border-0"
                                 : "bg-secondary text-secondary-foreground border-0"
                             }
@@ -286,7 +324,7 @@ export default function CreatorBoostPage() {
                         </div>
                         <Progress
                           value={progress}
-                          className="h-2 [&>[data-slot=progress-indicator]]:bg-primary"
+                          className={`h-2 ${isActive ? "[&>[data-slot=progress-indicator]]:bg-green-500" : "[&>[data-slot=progress-indicator]]:bg-muted-foreground/40"}`}
                         />
                         <div className="flex items-center gap-4">
                           <span className="flex items-center gap-1 text-xs text-muted-foreground">

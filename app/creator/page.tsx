@@ -73,6 +73,20 @@ const activePerks = [
   { label: "Sponsorship Inbox", desc: "Receive brand collaborations", icon: Mail },
 ]
 
+const statAccents = [
+  "stat-accent-purple",
+  "stat-accent-salmon",
+  "stat-accent-gold",
+  "stat-accent-green",
+]
+
+const statIconColors = [
+  { color: "text-[#7C3AED]", bg: "bg-[#7C3AED]/10" },
+  { color: "text-tinerary-salmon", bg: "bg-tinerary-salmon/10" },
+  { color: "text-tinerary-gold", bg: "bg-tinerary-gold/10" },
+  { color: "text-green-500", bg: "bg-green-500/10" },
+]
+
 export default function CreatorHubPage() {
   const [analytics, setAnalytics] = useState<CreatorAnalytics | null>(null)
   const [loading, setLoading] = useState(true)
@@ -102,10 +116,10 @@ export default function CreatorHubPage() {
         <div className="container px-4 py-6 md:py-10">
           <PaywallGate gate="creator_hub">
           {/* Hero */}
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="size-10 rounded-xl bg-[#7C3AED] flex items-center justify-center">
-                <Crown className="size-5 text-white" />
+          <div className="bg-gradient-to-r from-[#7C3AED]/10 to-tinerary-peach/15 rounded-2xl p-6 mb-8">
+            <div className="flex items-center gap-3">
+              <div className="size-14 rounded-xl bg-[#7C3AED] flex items-center justify-center shadow-lg shadow-[#7C3AED]/20">
+                <Crown className="size-7 text-white" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold">Creator Hub</h1>
@@ -139,11 +153,13 @@ export default function CreatorHubPage() {
                 value: `${analytics?.engagementRate || 0}%`,
                 icon: Zap,
               },
-            ].map((stat) => (
-              <Card key={stat.label} className="border-border">
+            ].map((stat, i) => (
+              <Card key={stat.label} className={`border-border ${statAccents[i]}`}>
                 <CardContent className="pt-6">
-                  <stat.icon className="size-5 text-muted-foreground" />
-                  <p className="mt-3 text-2xl font-bold text-foreground">
+                  <div className={`size-8 rounded-lg ${statIconColors[i].bg} flex items-center justify-center mb-2`}>
+                    <stat.icon className={`size-4 ${statIconColors[i].color}`} />
+                  </div>
+                  <p className="mt-1 text-2xl font-bold text-foreground">
                     {loading ? "..." : stat.value}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
@@ -156,18 +172,18 @@ export default function CreatorHubPage() {
           <h2 className="text-lg font-bold mb-4">Creator Tools</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {creatorFeatures.map((feature) => (
-              <Link key={feature.title} href={feature.href}>
-                <Card className="border-border hover:shadow-md transition-shadow cursor-pointer h-full">
+              <Link key={feature.title} href={feature.href} className="group">
+                <Card className="border-border hover-lift transition-all duration-300 cursor-pointer h-full">
                   <CardContent className="pt-6">
                     <div
-                      className={`size-10 rounded-xl ${feature.bgColor} flex items-center justify-center mb-4`}
+                      className={`size-12 rounded-xl ${feature.bgColor} flex items-center justify-center mb-4`}
                     >
-                      <feature.icon className={`size-5 ${feature.color}`} />
+                      <feature.icon className={`size-6 ${feature.color}`} />
                     </div>
                     <h3 className="text-sm font-bold text-foreground">{feature.title}</h3>
                     <p className="text-xs text-muted-foreground mt-1">{feature.description}</p>
                     <div className="flex items-center gap-1 mt-3 text-xs font-medium text-primary">
-                      Open <ArrowRight className="size-3" />
+                      Open <ArrowRight className="size-3 transition-transform group-hover:translate-x-1" />
                     </div>
                   </CardContent>
                 </Card>
@@ -188,9 +204,9 @@ export default function CreatorHubPage() {
                 {activePerks.map((perk) => (
                   <div
                     key={perk.label}
-                    className="flex items-start gap-3 p-3 rounded-xl bg-muted"
+                    className="flex items-start gap-3 p-3 rounded-xl bg-muted hover:bg-muted/80 transition-colors"
                   >
-                    <div className="size-8 rounded-lg bg-primary flex items-center justify-center shrink-0 text-primary-foreground">
+                    <div className="size-8 rounded-lg bg-gradient-to-br from-[#7C3AED] to-primary flex items-center justify-center shrink-0 text-primary-foreground">
                       <perk.icon className="size-4" />
                     </div>
                     <div>
@@ -203,12 +219,12 @@ export default function CreatorHubPage() {
             </CardContent>
           </Card>
 
-          {/* CTA for non-creators */}
-          <Card className="bg-gradient-to-r from-[#7C3AED]/10 to-tinerary-peach/20 border-0">
+          {/* CTA */}
+          <Card className="bg-gradient-to-r from-[#7C3AED]/15 to-tinerary-peach/25 border-0">
             <CardContent className="py-8 text-center">
               <Crown className="size-10 text-[#7C3AED] mx-auto mb-3" />
               <h3 className="text-lg font-bold mb-2">
-                You're on the Creator Tier
+                You&apos;re on the Creator Tier
               </h3>
               <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
                 All premium creator features are active. Explore your tools above or visit pricing to learn about Business upgrades.

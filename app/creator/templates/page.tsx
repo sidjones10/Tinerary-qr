@@ -13,6 +13,7 @@ import {
   DollarSign,
   TrendingUp,
   Eye,
+  Sparkles,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -51,6 +52,20 @@ const categories = [
   "Budget Travel",
   "Luxury",
   "Family",
+]
+
+const STAT_ACCENTS = [
+  "stat-accent-salmon",
+  "stat-accent-green",
+  "stat-accent-gold",
+  "stat-accent-purple",
+]
+
+const STAT_ICON_COLORS = [
+  { color: "text-tinerary-salmon", bg: "bg-tinerary-salmon/10" },
+  { color: "text-green-500", bg: "bg-green-500/10" },
+  { color: "text-tinerary-gold", bg: "bg-tinerary-gold/10" },
+  { color: "text-[#7C3AED]", bg: "bg-[#7C3AED]/10" },
 ]
 
 export default function CreatorTemplatesPage() {
@@ -134,8 +149,8 @@ export default function CreatorTemplatesPage() {
           <PaywallGate gate="creator_templates">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-tinerary-salmon/10 flex items-center justify-center">
-                <ShoppingBag className="size-5 text-tinerary-salmon" />
+              <div className="size-12 rounded-xl bg-tinerary-salmon/10 flex items-center justify-center">
+                <ShoppingBag className="size-6 text-tinerary-salmon" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold">Sell Templates</h1>
@@ -234,11 +249,13 @@ export default function CreatorTemplatesPage() {
                     : "0",
                 icon: Star,
               },
-            ].map((stat) => (
-              <Card key={stat.label} className="border-border">
+            ].map((stat, i) => (
+              <Card key={stat.label} className={`border-border ${STAT_ACCENTS[i]}`}>
                 <CardContent className="pt-6">
-                  <stat.icon className="size-5 text-muted-foreground" />
-                  <p className="mt-3 text-2xl font-bold text-foreground">{stat.value}</p>
+                  <div className={`size-8 rounded-lg ${STAT_ICON_COLORS[i].bg} flex items-center justify-center mb-2`}>
+                    <stat.icon className={`size-4 ${STAT_ICON_COLORS[i].color}`} />
+                  </div>
+                  <p className="mt-1 text-2xl font-bold text-foreground">{stat.value}</p>
                   <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
                 </CardContent>
               </Card>
@@ -255,14 +272,16 @@ export default function CreatorTemplatesPage() {
             </CardHeader>
             <CardContent>
               {templates.length === 0 ? (
-                <div className="text-center py-12">
-                  <ShoppingBag className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <div className="cute-empty-state">
+                  <div className="cute-empty-icon">
+                    <ShoppingBag className="size-10 text-muted-foreground" />
+                  </div>
                   <h3 className="text-lg font-semibold mb-2">No Templates Yet</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
+                  <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
                     Turn your best itineraries into sellable templates. Share your travel expertise and earn.
                   </p>
                   <Button onClick={() => setDialogOpen(true)} className="btn-sunset">
-                    <Plus className="size-4 mr-2" /> Create Your First Template
+                    <Sparkles className="size-4 mr-2" /> Create Your First Template
                   </Button>
                 </div>
               ) : (
@@ -270,9 +289,9 @@ export default function CreatorTemplatesPage() {
                   {templates.map((template) => (
                     <div
                       key={template.id}
-                      className="rounded-2xl border border-border overflow-hidden hover:shadow-md transition-shadow"
+                      className="cute-card rounded-2xl border border-border overflow-hidden"
                     >
-                      <div className="h-32 bg-gradient-to-r from-tinerary-peach to-tinerary-salmon/30 flex items-center justify-center">
+                      <div className="h-32 bg-gradient-to-br from-tinerary-peach via-tinerary-salmon/20 to-[#7C3AED]/10 flex items-center justify-center">
                         {template.coverImage ? (
                           <img
                             src={template.coverImage}
@@ -280,7 +299,7 @@ export default function CreatorTemplatesPage() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <ShoppingBag className="size-8 text-tinerary-salmon" />
+                          <ShoppingBag className="size-8 text-tinerary-salmon/60" />
                         )}
                       </div>
                       <div className="p-4">

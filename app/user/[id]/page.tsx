@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, MapPin, Calendar, Grid3X3, Bookmark, Share2, MoreHorizontal, ExternalLink, FileEdit, Settings, Loader2, Trash2, Edit, MessageCircle, Lock, Users } from "lucide-react"
+import { ArrowLeft, MapPin, Calendar, Grid3X3, Bookmark, Share2, MoreHorizontal, ExternalLink, FileEdit, Settings, Loader2, Trash2, Edit, MessageCircle, Lock, Users, CheckCircle2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -38,6 +38,8 @@ interface UserProfile {
   location: string | null
   website: string | null
   created_at: string
+  tier?: string | null
+  is_verified?: boolean | null
 }
 
 interface Itinerary {
@@ -331,10 +333,23 @@ export default function UnifiedProfilePage() {
             </Avatar>
           </div>
 
-          <h1 className="mt-5 text-2xl font-bold text-gray-900 dark:text-gray-100">{displayName}</h1>
+          <div className="flex items-center gap-2 mt-5">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{displayName}</h1>
+            {(profile.tier === "creator" || profile.tier === "business" || profile.is_verified) && (
+              <CheckCircle2 className="h-6 w-6 text-[#7C3AED] shrink-0" />
+            )}
+          </div>
 
           {profile.username && (
-            <p className="text-orange-600 font-medium">@{profile.username}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-orange-600 font-medium">@{profile.username}</p>
+              {profile.tier === "creator" && (
+                <span className="text-xs font-medium text-[#7C3AED] bg-[#7C3AED]/10 px-2 py-0.5 rounded-full">Creator</span>
+              )}
+              {profile.tier === "business" && (
+                <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">Business</span>
+              )}
+            </div>
           )}
 
           {!isProfileRestricted && profile.bio && (

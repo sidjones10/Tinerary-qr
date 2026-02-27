@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
-import { Heart, Share2, Shield } from "lucide-react"
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import { Heart, Share2, Shield, Lock } from "lucide-react"
 import { processBooking } from "@/app/actions/promotion-actions"
 
 import { Button } from "@/components/ui/button"
@@ -13,6 +14,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/components/ui/use-toast"
 import { DatePicker } from "@/components/date-picker"
 import { useMinorRestriction, MinorRestrictionDialog } from "@/components/minor-restriction-dialog"
+import { createClient } from "@/lib/supabase/client"
+import { getTierLimits } from "@/lib/business-tier-service"
+import type { BusinessTierSlug } from "@/lib/tiers"
 
 interface PromotionBookingPanelProps {
   promotion: any

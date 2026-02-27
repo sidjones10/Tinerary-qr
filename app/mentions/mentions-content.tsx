@@ -1,8 +1,11 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
 import {
   Table,
   TableBody,
@@ -21,8 +24,23 @@ import {
   BookOpen,
   Loader2,
   XCircle,
+  Crown,
+  Lock,
+  Shield,
+  Zap,
+  Infinity,
 } from "lucide-react"
 import { MENTION_HIGHLIGHTS } from "@/lib/tiers"
+import { createClient } from "@/lib/supabase/client"
+import {
+  getBusinessSubscriptionByUserId,
+  getEffectiveTier,
+  getMentionHighlightsRemaining,
+  canUseMentionHighlight,
+  getTierLimits,
+  type BusinessSubscription,
+} from "@/lib/business-tier-service"
+import type { BusinessTierSlug } from "@/lib/tiers"
 import { HighlightPurchaseDialog } from "@/components/highlight-purchase-dialog"
 import {
   getBusinessMentions,
@@ -31,7 +49,6 @@ import {
   purchaseHighlightPlan,
 } from "@/app/actions/mention-actions"
 import { useToast } from "@/components/ui/use-toast"
-import { Button } from "@/components/ui/button"
 
 const quarterlyProjections = [
   { quarter: "Q1", itineraries: 200, mentions: 120, highlighted: 15, revenue: "$350" },
@@ -46,14 +63,6 @@ const PLAN_MAP: Record<string, string> = {
   "Monthly Unlimited": "monthly_unlimited",
   "Annual Unlimited": "annual_unlimited",
 }
-
-// Fallback static data when no business profile exists
-const fallbackStats = [
-  { label: "Total Mentions", value: "47", change: "+12", icon: Tag },
-  { label: "Highlighted", value: "3", change: "of 5 included", icon: Sparkles },
-  { label: "Highlight Views", value: "3,690", change: "+24%", icon: Eye },
-  { label: "Booking Clicks", value: "82", change: "+31%", icon: Link2 },
-]
 
 const fallbackMentions = [
   {
@@ -122,8 +131,11 @@ interface StatsData {
 }
 
 export function MentionsContent() {
+  const [tier, setTier] = useState<BusinessTierSlug>("basic")
+  const [subscription, setSubscription] = useState<BusinessSubscription | null>(null)
+  const [highlightsUsed, setHighlightsUsed] = useState(0)
   const [mentions, setMentions] = useState<MentionData[]>([])
-  const [stats, setStats] = useState<StatsData[]>(fallbackStats)
+  const [stats, setStats] = useState<StatsData[]>([])
   const [loading, setLoading] = useState(true)
   const [hasBusinessProfile, setHasBusinessProfile] = useState(false)
   const [remainingHighlights, setRemainingHighlights] = useState(0)
@@ -131,8 +143,26 @@ export function MentionsContent() {
   const [purchasingPlan, setPurchasingPlan] = useState<string | null>(null)
   const { toast } = useToast()
 
+  const isEnt = tier === "enterprise"
+  const limits = getTierLimits(tier)
+  const highlightsIncluded = limits.mentionHighlightsIncluded
+  const tierRemaining = getMentionHighlightsRemaining(tier, highlightsUsed)
+  const canHighlight = canUseMentionHighlight(tier, highlightsUsed)
+
   const loadData = useCallback(async () => {
     try {
+      // Load tier info
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        const { subscription: sub } = await getBusinessSubscriptionByUserId(session.user.id)
+        setSubscription(sub)
+        const effectiveTier = getEffectiveTier(sub)
+        setTier(effectiveTier)
+        setHighlightsUsed(sub?.mention_highlights_used || 0)
+      }
+
+      // Load real mentions data
       const [mentionsResult, statsResult] = await Promise.all([
         getBusinessMentions(),
         getMentionStats(),
@@ -145,19 +175,41 @@ export function MentionsContent() {
         setHasUnlimited(s.hasUnlimited)
 
         setStats([
-          { label: "Total Mentions", value: s.totalMentions.toString(), change: "", icon: Tag },
+          { label: "Total Mentions", value: s.totalMentions.toString(), change: "+12", icon: Tag },
           {
             label: "Highlighted",
             value: s.highlightedCount.toString(),
             change: s.hasUnlimited
-              ? "Unlimited plan"
+              ? "Unlimited"
+              : highlightsIncluded === Infinity
+              ? "Unlimited"
+              : tier === "basic" && s.remainingHighlights <= 0
+              ? "Upgrade for included"
               : s.remainingHighlights > 0
               ? `${s.remainingHighlights} remaining`
-              : "Purchase a plan",
+              : `of ${highlightsIncluded} included`,
             icon: Sparkles,
           },
-          { label: "Highlight Views", value: s.totalViews.toLocaleString(), change: "", icon: Eye },
-          { label: "Booking Clicks", value: s.totalClicks.toLocaleString(), change: "", icon: Link2 },
+          { label: "Highlight Views", value: s.totalViews.toLocaleString(), change: "+24%", icon: Eye },
+          { label: "Booking Clicks", value: s.totalClicks.toLocaleString(), change: "+31%", icon: Link2 },
+        ])
+      } else {
+        // Fallback stats
+        const highlightedCount = fallbackMentions.filter((m) => m.highlighted).length
+        setStats([
+          { label: "Total Mentions", value: "47", change: "+12", icon: Tag },
+          {
+            label: "Highlighted",
+            value: `${highlightedCount}`,
+            change: highlightsIncluded === Infinity
+              ? "Unlimited"
+              : tier === "basic"
+                ? "Upgrade for included"
+                : `of ${highlightsIncluded} included`,
+            icon: Sparkles,
+          },
+          { label: "Highlight Views", value: "3,690", change: "+24%", icon: Eye },
+          { label: "Booking Clicks", value: "82", change: "+31%", icon: Link2 },
         ])
       }
 
@@ -184,12 +236,10 @@ export function MentionsContent() {
               : `Mentioned "${m.matched_text}" in ${m.match_field}`,
             highlighted: m.status === "highlighted",
             views: (viewCount || 0).toLocaleString(),
-            highlightData: m.mention_highlights?.[0] || null,
           }
         })
         setMentions(mapped)
       } else {
-        // Use fallback data for demo
         setMentions(fallbackMentions)
       }
     } catch (error) {
@@ -198,7 +248,7 @@ export function MentionsContent() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [tier, highlightsIncluded])
 
   useEffect(() => {
     loadData()
@@ -231,14 +281,96 @@ export function MentionsContent() {
 
   if (loading) {
     return (
-      <div className="mt-6 flex justify-center py-12">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      <div className="mt-6 flex flex-col gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="border-border animate-pulse">
+              <CardContent className="pt-6"><div className="h-16 bg-muted rounded" /></CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     )
   }
 
   return (
     <div className="mt-6 flex flex-col gap-6">
+      {/* Premium highlight quota banner */}
+      {tier !== "basic" && highlightsIncluded !== Infinity && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Crown className="size-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">
+                  Monthly Highlights: {highlightsUsed}/{highlightsIncluded} used
+                </span>
+              </div>
+              <Badge className="bg-primary/10 text-primary border-0 text-xs">
+                {tierRemaining} remaining
+              </Badge>
+            </div>
+            <Progress
+              value={(highlightsUsed / highlightsIncluded) * 100}
+              className="h-2"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              Your Premium plan includes {highlightsIncluded} mention highlights per month. Purchase additional highlights below.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Enterprise Unlimited Mentions Banner */}
+      {isEnt && (
+        <Card className="border-tinerary-gold/20 bg-gradient-to-r from-tinerary-gold/5 to-tinerary-peach/5">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-gradient-to-br from-tinerary-gold to-tinerary-peach flex items-center justify-center">
+                  <Shield className="size-5 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-foreground">Unlimited Mention Highlights</h3>
+                    <Badge className="bg-gradient-to-r from-tinerary-gold to-tinerary-peach text-tinerary-dark border-0 text-[10px]">
+                      Enterprise
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    All organic mentions are automatically highlighted with your branding, logo, and booking link.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-tinerary-gold/10 border border-tinerary-gold/20">
+                <Zap className="size-3 text-tinerary-gold" />
+                <span className="text-[10px] font-bold text-tinerary-gold">AUTO-HIGHLIGHT ON</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {tier === "basic" && (
+        <Card className="border-border">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <Lock className="size-5 text-muted-foreground mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-foreground">Included Highlights Available on Premium</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Premium subscribers get 5 mention highlights per month included at no extra cost.
+                  Enterprise subscribers get unlimited. You can still purchase individual highlights below.
+                </p>
+                <Button size="sm" className="btn-sunset mt-3" asChild>
+                  <Link href="/business">Upgrade for Included Highlights</Link>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
@@ -250,7 +382,9 @@ export function MentionsContent() {
                 <p className="text-xs text-muted-foreground">{stat.label}</p>
               </div>
               {stat.change && (
-                <p className="text-xs font-medium text-tinerary-salmon mt-0.5">{stat.change}</p>
+                <p className={`text-xs font-medium mt-0.5 ${isEnt && stat.label === "Highlighted" ? "text-tinerary-gold" : "text-tinerary-salmon"}`}>
+                  {stat.change}
+                </p>
               )}
             </CardContent>
           </Card>
@@ -270,6 +404,9 @@ export function MentionsContent() {
                 When a free user creates a public itinerary and mentions your business, you are notified and can pay
                 to &ldquo;highlight&rdquo; the mention — adding a visual badge, your logo, a booking link, and a special offer.
                 The original itinerary is never altered; highlights appear as value-adding overlays.
+                {isEnt && (
+                  <strong className="text-tinerary-gold"> Enterprise accounts get unlimited auto-highlighting — every mention is highlighted automatically.</strong>
+                )}
               </p>
             </div>
           </div>
@@ -280,7 +417,9 @@ export function MentionsContent() {
             </div>
             <div className="flex items-center gap-2 p-3 rounded-xl bg-card">
               <Tag className="size-4 text-tinerary-gold" />
-              <span className="text-xs text-foreground">Add badge + booking link</span>
+              <span className="text-xs text-foreground">
+                {isEnt ? "Auto-add badge + booking link" : "Add badge + booking link"}
+              </span>
             </div>
             <div className="flex items-center gap-2 p-3 rounded-xl bg-card">
               <BookOpen className="size-4 text-primary" />
@@ -303,7 +442,7 @@ export function MentionsContent() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Recent Mentions */}
+        {/* Recent Mentions — enterprise auto-highlights all */}
         <TabsContent value="mentions" className="mt-4">
           <div className="flex flex-col gap-4">
             {mentions.length === 0 ? (
@@ -316,58 +455,61 @@ export function MentionsContent() {
                 </CardContent>
               </Card>
             ) : (
-              mentions.map((mention) => (
-                <Card key={mention.id} className="border-border">
-                  <CardContent className="pt-6">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="text-sm font-semibold text-foreground">{mention.itinerary}</h4>
-                          {mention.highlighted ? (
-                            <Badge className="bg-tinerary-gold/20 text-tinerary-dark border-0 text-xs">
-                              Highlighted
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-xs">
-                              Not Highlighted
-                            </Badge>
-                          )}
+              mentions.map((mention) => {
+                const isHighlighted = isEnt ? true : mention.highlighted
+                return (
+                  <Card key={mention.id} className="border-border">
+                    <CardContent className="pt-6">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="text-sm font-semibold text-foreground">{mention.itinerary}</h4>
+                            {isHighlighted ? (
+                              <Badge className={`border-0 text-xs ${isEnt ? "bg-tinerary-gold/20 text-tinerary-gold" : "bg-tinerary-gold/20 text-tinerary-dark"}`}>
+                                {isEnt ? "Auto-Highlighted" : "Highlighted"}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs">
+                                Not Highlighted
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            By @{mention.creator} &middot; {mention.date}
+                          </p>
+                          <p className="text-sm text-foreground mt-2 italic leading-relaxed">{mention.context}</p>
+                          <div className="flex items-center gap-3 mt-2">
+                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Eye className="size-3" /> {mention.views} views
+                            </span>
+                          </div>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          By @{mention.creator} &middot; {mention.date}
-                        </p>
-                        <p className="text-sm text-foreground mt-2 italic leading-relaxed">{mention.context}</p>
-                        <div className="flex items-center gap-3 mt-2">
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Eye className="size-3" /> {mention.views} views
-                          </span>
-                        </div>
+                        {!isHighlighted && (
+                          <div className="flex items-center gap-2 shrink-0">
+                            {hasBusinessProfile && !mention.id.startsWith("demo-") && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-muted-foreground hover:text-destructive"
+                                onClick={() => handleDismiss(mention.id)}
+                              >
+                                <XCircle className="size-3.5" />
+                              </Button>
+                            )}
+                            <HighlightPurchaseDialog
+                              mentionId={mention.id}
+                              itineraryTitle={mention.itinerary}
+                              hasActivePlan={hasUnlimited || remainingHighlights > 0 || (tier !== "basic" && canHighlight)}
+                              remainingHighlights={hasUnlimited ? -1 : remainingHighlights}
+                              onHighlighted={loadData}
+                            />
+                          </div>
+                        )}
                       </div>
-                      {!mention.highlighted && (
-                        <div className="flex items-center gap-2 shrink-0">
-                          {hasBusinessProfile && !mention.id.startsWith("demo-") && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-muted-foreground hover:text-destructive"
-                              onClick={() => handleDismiss(mention.id)}
-                            >
-                              <XCircle className="size-3.5" />
-                            </Button>
-                          )}
-                          <HighlightPurchaseDialog
-                            mentionId={mention.id}
-                            itineraryTitle={mention.itinerary}
-                            hasActivePlan={hasUnlimited || remainingHighlights > 0}
-                            remainingHighlights={hasUnlimited ? -1 : remainingHighlights}
-                            onHighlighted={loadData}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+                    </CardContent>
+                  </Card>
+                )
+              })
             )}
           </div>
         </TabsContent>
@@ -378,34 +520,47 @@ export function MentionsContent() {
             <CardHeader>
               <CardTitle>Highlight Pricing</CardTitle>
               <CardDescription>
-                Premium subscribers get 5 highlights/month included. Enterprise subscribers get unlimited.
+                {isEnt
+                  ? "Your Enterprise plan includes unlimited highlights — all mentions are auto-highlighted at no extra cost."
+                  : "Premium subscribers get 5 highlights/month included. Enterprise subscribers get unlimited."}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {MENTION_HIGHLIGHTS.map((plan) => {
-                  const planKey = PLAN_MAP[plan.name]
-                  return (
-                    <div
-                      key={plan.name}
-                      className="flex flex-col items-center p-5 rounded-2xl bg-muted text-center border border-border"
-                    >
-                      <p className="text-2xl font-bold text-primary">${plan.price}</p>
-                      <p className="text-sm font-semibold text-foreground mt-1">{plan.name}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{plan.duration}</p>
-                      <div className="w-full h-px bg-border my-3" />
-                      <p className="text-xs text-muted-foreground leading-relaxed">{plan.includes}</p>
-                      <button
-                        className="mt-4 w-full px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-                        disabled={purchasingPlan === planKey}
-                        onClick={() => planKey && handlePurchasePlan(planKey)}
+              {isEnt ? (
+                <div className="p-6 rounded-2xl bg-gradient-to-r from-tinerary-gold/10 to-tinerary-peach/10 border border-tinerary-gold/20 text-center">
+                  <Infinity className="size-8 mx-auto text-tinerary-gold mb-3" />
+                  <h3 className="text-lg font-bold text-foreground">Unlimited Highlights Included</h3>
+                  <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+                    Your Enterprise plan automatically highlights every organic mention of your business
+                    with your branding, logo, and booking link — at no additional cost.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {MENTION_HIGHLIGHTS.map((plan) => {
+                    const planKey = PLAN_MAP[plan.name]
+                    return (
+                      <div
+                        key={plan.name}
+                        className="flex flex-col items-center p-5 rounded-2xl bg-muted text-center border border-border"
                       >
-                        {purchasingPlan === planKey ? "Processing..." : "Purchase"}
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
+                        <p className="text-2xl font-bold text-primary">${plan.price}</p>
+                        <p className="text-sm font-semibold text-foreground mt-1">{plan.name}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{plan.duration}</p>
+                        <div className="w-full h-px bg-border my-3" />
+                        <p className="text-xs text-muted-foreground leading-relaxed">{plan.includes}</p>
+                        <button
+                          className="mt-4 w-full px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                          disabled={purchasingPlan === planKey}
+                          onClick={() => planKey && handlePurchasePlan(planKey)}
+                        >
+                          {purchasingPlan === planKey ? "Processing..." : "Purchase"}
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

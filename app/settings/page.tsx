@@ -11,6 +11,7 @@ import { AppearanceSettings } from "@/components/appearance-settings"
 import { PrivacySettings } from "@/components/privacy-settings"
 import { LanguageSettings } from "@/components/language-settings"
 import { HelpSupportSettings } from "@/components/help-support-settings"
+import { BusinessSettings } from "@/components/business-settings"
 import { Navbar } from "@/components/navbar"
 import { ArrowLeft, Loader2 } from "lucide-react"
 import Link from "next/link"
@@ -40,6 +41,7 @@ function SettingsContent() {
         {activeSection === "privacy" && <PrivacySettings />}
         {activeSection === "language" && <LanguageSettings />}
         {activeSection === "help" && <HelpSupportSettings />}
+        {activeSection === "business" && <BusinessSettings />}
       </div>
     </div>
   )

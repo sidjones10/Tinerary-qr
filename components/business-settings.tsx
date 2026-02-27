@@ -1,0 +1,289 @@
+"use client"
+
+import Link from "next/link"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
+import { useState } from "react"
+import { useAuth } from "@/providers/auth-provider"
+import {
+  Briefcase,
+  Crown,
+  Sparkles,
+  Users,
+  Store,
+  Megaphone,
+  DollarSign,
+  Link2,
+  Coins,
+  ArrowRight,
+  Check,
+  ChevronRight,
+} from "lucide-react"
+import { USER_TIERS, BUSINESS_TIERS } from "@/lib/tiers"
+
+const accountTypes = [
+  {
+    id: "standard",
+    label: "Personal",
+    description: "Free forever — plan trips, discover, and share itineraries.",
+    icon: <Users className="size-5" />,
+    color: "bg-tinerary-dark",
+  },
+  {
+    id: "creator",
+    label: "Creator",
+    description: "Boost posts, sell templates, earn enhanced affiliate commissions.",
+    icon: <Sparkles className="size-5" />,
+    color: "bg-[#7C3AED]",
+    price: "$49/mo",
+  },
+  {
+    id: "business",
+    label: "Business",
+    description: "List promotions, get analytics, connect with travelers.",
+    icon: <Store className="size-5" />,
+    color: "bg-primary",
+    price: "$49–$399/mo",
+  },
+]
+
+const dashboardLinks = [
+  {
+    href: "/creator-tier",
+    icon: <Sparkles className="size-4 text-[#7C3AED]" />,
+    title: "Creator Dashboard",
+    description: "Post boosts, benefits & tier management",
+    forType: ["creator"],
+  },
+  {
+    href: "/business-profile",
+    icon: <Store className="size-4 text-primary" />,
+    title: "Business Profile",
+    description: "Listings, branding & subscription",
+    forType: ["business"],
+  },
+  {
+    href: "/mentions",
+    icon: <Megaphone className="size-4 text-tinerary-salmon" />,
+    title: "Mention Highlights",
+    description: "Highlight organic business mentions",
+    forType: ["business"],
+  },
+  {
+    href: "/transactions",
+    icon: <DollarSign className="size-4 text-tinerary-gold" />,
+    title: "Transactions & Commission",
+    description: "Bookings, revenue & commission tracking",
+    forType: ["business"],
+  },
+  {
+    href: "/affiliate",
+    icon: <Link2 className="size-4 text-blue-500" />,
+    title: "Affiliate Marketing",
+    description: "Referral links & packing list commerce",
+    forType: ["creator", "business"],
+  },
+  {
+    href: "/coins",
+    icon: <Coins className="size-4 text-tinerary-gold" />,
+    title: "Tinerary Coins",
+    description: "Earn & spend rewards",
+    forType: ["standard", "creator", "business"],
+  },
+  {
+    href: "/pricing",
+    icon: <Crown className="size-4 text-tinerary-gold" />,
+    title: "Plans & Pricing",
+    description: "Compare all tiers and features",
+    forType: ["standard", "creator", "business"],
+  },
+]
+
+export function BusinessSettings() {
+  const { user } = useAuth()
+  const [selectedType, setSelectedType] = useState("standard")
+  const [isBusinessMode, setIsBusinessMode] = useState(false)
+
+  // Filter dashboard links based on active account type
+  const visibleLinks = isBusinessMode
+    ? dashboardLinks
+    : dashboardLinks.filter((l) => l.forType.includes(selectedType))
+
+  return (
+    <div className="space-y-6">
+      {/* Switch to Professional Account */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-gradient-to-br from-tinerary-salmon to-primary flex items-center justify-center">
+              <Briefcase className="size-5 text-white" />
+            </div>
+            <div>
+              <CardTitle>Professional Account</CardTitle>
+              <CardDescription>
+                Switch to a Creator or Business account to unlock professional tools
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between p-4 rounded-xl bg-muted mb-6">
+            <div>
+              <p className="text-sm font-medium text-foreground">Enable professional features</p>
+              <p className="text-xs text-muted-foreground">
+                Like Instagram&apos;s professional mode — activates business tools alongside your personal account
+              </p>
+            </div>
+            <Switch
+              checked={isBusinessMode}
+              onCheckedChange={setIsBusinessMode}
+            />
+          </div>
+
+          {/* Account Type Selection */}
+          <div className="grid gap-3">
+            {accountTypes.map((type) => {
+              const isSelected = selectedType === type.id
+              const isLocked = !isBusinessMode && type.id !== "standard"
+              return (
+                <button
+                  key={type.id}
+                  onClick={() => !isLocked && setSelectedType(type.id)}
+                  disabled={isLocked}
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl border text-left transition-all ${
+                    isSelected
+                      ? "border-primary bg-primary/5 shadow-sm"
+                      : isLocked
+                      ? "border-border opacity-50 cursor-not-allowed"
+                      : "border-border hover:border-primary/30 hover:bg-muted/50 cursor-pointer"
+                  }`}
+                >
+                  <div className={`size-10 rounded-lg ${type.color} flex items-center justify-center shrink-0 text-white`}>
+                    {type.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-foreground">{type.label}</p>
+                      {type.price && (
+                        <Badge variant="secondary" className="text-xs">{type.price}</Badge>
+                      )}
+                      {isSelected && (
+                        <Badge className="bg-primary text-primary-foreground text-xs">Current</Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{type.description}</p>
+                  </div>
+                  {isSelected && <Check className="size-5 text-primary shrink-0" />}
+                </button>
+              )
+            })}
+          </div>
+
+          {!isBusinessMode && (
+            <p className="text-xs text-muted-foreground mt-4 text-center">
+              Turn on professional features above to switch to Creator or Business.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Current Plan Details */}
+      {isBusinessMode && selectedType !== "standard" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              {selectedType === "creator" ? "Creator Plan" : "Business Plan"}
+            </CardTitle>
+            <CardDescription>
+              {selectedType === "creator"
+                ? "You're on the Creator tier at $49/month."
+                : "Choose a Business subscription that fits your needs."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {selectedType === "creator" ? (
+              <div className="space-y-2">
+                {USER_TIERS.find((t) => t.slug === "creator")?.features.map((f) => (
+                  <div key={f} className="flex items-start gap-2">
+                    <Check className="size-4 text-tinerary-salmon shrink-0 mt-0.5" />
+                    <span className="text-xs text-foreground">{f}</span>
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" className="mt-4 w-full" asChild>
+                  <Link href="/creators">
+                    View full Creator details
+                    <ArrowRight className="ml-2 size-3" />
+                  </Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {BUSINESS_TIERS.map((tier) => (
+                  <div
+                    key={tier.slug}
+                    className={`flex items-center justify-between p-3 rounded-xl border ${
+                      tier.highlighted ? "border-primary bg-primary/5" : "border-border"
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-foreground">{tier.name}</p>
+                        {tier.highlighted && (
+                          <Badge className="bg-tinerary-peach text-tinerary-dark border-0 text-xs">Popular</Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">${tier.price}/{tier.priceSuffix}</p>
+                    </div>
+                    <Button variant={tier.highlighted ? "default" : "outline"} size="sm" className={tier.highlighted ? "btn-sunset" : ""}>
+                      Select
+                    </Button>
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" className="mt-1 w-full" asChild>
+                  <Link href="/business">
+                    Compare all business plans
+                    <ArrowRight className="ml-2 size-3" />
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Dashboard & Tools */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Tools & Dashboards</CardTitle>
+          <CardDescription>
+            {isBusinessMode
+              ? "Access your professional tools and dashboards."
+              : "Explore what's available on Tinerary."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-2">
+            {visibleLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-colors group"
+              >
+                <div className="size-9 rounded-lg bg-muted group-hover:bg-background flex items-center justify-center shrink-0">
+                  {link.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground">{link.title}</p>
+                  <p className="text-xs text-muted-foreground">{link.description}</p>
+                </div>
+                <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+              </Link>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

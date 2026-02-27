@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useTranslation } from "react-i18next"
 import { useAuth } from "@/providers/auth-provider"
-import { User, Shield, Bell, Palette, Lock, Globe, HelpCircle, LogOut, ExternalLink } from "lucide-react"
+import { User, Shield, Bell, Palette, Lock, Globe, HelpCircle, LogOut, ExternalLink, Briefcase } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface SettingsNavProps {
@@ -23,6 +23,7 @@ export function SettingsNav({ activeSection, setActiveSection }: SettingsNavProp
     { id: "privacy", label: t("settings.nav.privacy"), icon: <Lock className="w-4 h-4" /> },
     { id: "language", label: t("settings.nav.languageRegion"), icon: <Globe className="w-4 h-4" /> },
     { id: "help", label: t("settings.nav.helpSupport"), icon: <HelpCircle className="w-4 h-4" /> },
+    { id: "business", label: "Business", icon: <Briefcase className="w-4 h-4" /> },
   ]
 
   return (

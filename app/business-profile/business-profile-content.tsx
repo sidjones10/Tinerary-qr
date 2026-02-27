@@ -150,14 +150,14 @@ function EmptyState() {
       {/* CTA */}
       <div className="text-center">
         <Button className="btn-sunset" size="lg" asChild>
-          <Link href="/business">
+          <Link href="/business-onboarding">
             <Rocket className="mr-2 size-4" />
-            Get Started — View Plans
+            Get Started — Create Your Business
             <ArrowRight className="ml-2 size-3" />
           </Link>
         </Button>
         <p className="text-xs text-muted-foreground mt-3">
-          Already have a plan? Your dashboard will appear here once your business profile is created.
+          Choose a plan and set up your business profile in just a few steps.
         </p>
       </div>
     </div>

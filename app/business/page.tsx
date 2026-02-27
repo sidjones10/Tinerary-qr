@@ -63,8 +63,11 @@ export default function BusinessPage() {
                   <Button
                     className={`w-full mt-4 ${tier.highlighted ? "btn-sunset" : ""}`}
                     variant={tier.highlighted ? "default" : "outline"}
+                    asChild
                   >
-                    Get Started
+                    <Link href={`/business-onboarding?tier=${tier.slug}`}>
+                      Get Started
+                    </Link>
                   </Button>
                 </div>
               </div>

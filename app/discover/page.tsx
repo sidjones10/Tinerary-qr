@@ -1,159 +1,99 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import Image from "next/image"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { AppHeader } from "@/components/app-header"
+import { Loader2, ArrowLeft } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useAuth } from "@/providers/auth-provider"
+import { SignupPromptDialog } from "@/components/signup-prompt-dialog"
+import { DiscoveryFeed } from "@/components/discovery-feed"
+import { useTranslation } from "react-i18next"
+
+const GUEST_VIEW_LIMIT = 5
+const GUEST_VIEWS_KEY = "tinerary_guest_views"
 
 export default function DiscoverPage() {
-  const categories = [
-    { name: "Outdoor", count: "1.2K", icon: "🏞️" },
-    { name: "Food & Drink", count: "987", icon: "🍹" },
-    { name: "Music", count: "856", icon: "🎵" },
-    { name: "Tech", count: "743", icon: "💻" },
-    { name: "Arts & Culture", count: "612", icon: "🎨" },
-    { name: "Sports", count: "534", icon: "⚽" },
-  ]
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { user, isLoading: authLoading } = useAuth()
+  const isGuestMode = searchParams?.get("guest") === "true"
 
-  const featuredCalendars = [
-    {
-      name: "Weekend Adventures",
-      description: "Outdoor activities and adventures for weekend warriors",
-      image: "/placeholder.svg?height=80&width=80",
-    },
-    {
-      name: "Tech Meetups",
-      description: "Connect with tech enthusiasts and professionals",
-      image: "/placeholder.svg?height=80&width=80",
-    },
-    {
-      name: "Foodie Favorites",
-      description: "Culinary experiences and food festivals",
-      image: "/placeholder.svg?height=80&width=80",
-    },
-  ]
+  const [guestViewCount, setGuestViewCount] = useState(0)
+  const [showSignupPrompt, setShowSignupPrompt] = useState(false)
+  const [promptReason, setPromptReason] = useState<"like" | "comment" | "save" | "limit_reached" | "general">("general")
+  const { t } = useTranslation()
 
-  const cities = [
-    { name: "New York", count: "45", icon: "🗽" },
-    { name: "Los Angeles", count: "38", icon: "🌴" },
-    { name: "Chicago", count: "27", icon: "🏙️" },
-    { name: "Miami", count: "23", icon: "🏖️" },
-    { name: "Austin", count: "19", icon: "🎸" },
-    { name: "San Francisco", count: "31", icon: "🌉" },
-  ]
+  // If user is logged in and not in guest mode, redirect to home
+  useEffect(() => {
+    if (!authLoading && user && !isGuestMode) {
+      router.replace("/")
+    }
+  }, [user, authLoading, isGuestMode, router])
+
+  // Load guest view count from localStorage
+  useEffect(() => {
+    if (isGuestMode && typeof window !== "undefined") {
+      const stored = localStorage.getItem(GUEST_VIEWS_KEY)
+      if (stored) {
+        const count = parseInt(stored, 10)
+        setGuestViewCount(count)
+        if (count >= GUEST_VIEW_LIMIT) {
+          setPromptReason("limit_reached")
+          setShowSignupPrompt(true)
+        }
+      }
+    }
+  }, [isGuestMode])
+
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <AppHeader />
-
-      <main className="flex-1 pb-12">
-        <div className="container px-4 py-6">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-800 mb-4">Discover Events</h1>
-          <p className="text-muted-foreground mb-8">
-            Explore popular events near you, browse by category, or check out some of the great community calendars.
-          </p>
-
-          <div className="space-y-10">
-            {/* Categories */}
-            <section>
-              <h2 className="text-2xl font-bold mb-4">Browse by Category</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {categories.map((category) => (
-                  <Link
-                    href={`/discover/category/${category.name.toLowerCase().replace(/\s+/g, "-")}`}
-                    key={category.name}
-                    className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow flex items-center space-x-3"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-2xl">
-                      {category.icon}
-                    </div>
-                    <div>
-                      <h3 className="font-medium">{category.name}</h3>
-                      <p className="text-sm text-muted-foreground">{category.count} Events</p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </section>
-
-            {/* Featured Calendars */}
-            <section>
-              <h2 className="text-2xl font-bold mb-4">Featured Calendars</h2>
-              <div className="space-y-4">
-                {featuredCalendars.map((calendar) => (
-                  <Link
-                    href={`/discover/calendar/${calendar.name.toLowerCase().replace(/\s+/g, "-")}`}
-                    key={calendar.name}
-                    className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow flex items-center space-x-4"
-                  >
-                    <Image
-                      src={calendar.image || "/placeholder.svg"}
-                      alt={calendar.name}
-                      width={80}
-                      height={80}
-                      className="rounded-lg"
-                    />
-                    <div>
-                      <h3 className="font-medium text-lg">{calendar.name}</h3>
-                      <p className="text-sm text-muted-foreground">{calendar.description}</p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </section>
-
-            {/* Explore Local Events */}
-            <section>
-              <h2 className="text-2xl font-bold mb-4">Explore Local Events</h2>
-
-              <Tabs defaultValue="north-america" className="mb-6">
-                <TabsList className="bg-white/70 backdrop-blur-sm">
-                  <TabsTrigger value="north-america">North America</TabsTrigger>
-                  <TabsTrigger value="europe">Europe</TabsTrigger>
-                  <TabsTrigger value="asia">Asia & Pacific</TabsTrigger>
-                  <TabsTrigger value="other">Other Regions</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="north-america" className="mt-4">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {cities.map((city) => (
-                      <Link
-                        href={`/discover/city/${city.name.toLowerCase().replace(/\s+/g, "-")}`}
-                        key={city.name}
-                        className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow flex items-center space-x-3"
-                      >
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-300 to-pink-400 flex items-center justify-center text-2xl">
-                          {city.icon}
-                        </div>
-                        <div>
-                          <h3 className="font-medium">{city.name}</h3>
-                          <p className="text-sm text-muted-foreground">{city.count} Events</p>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="europe" className="mt-4">
-                  <div className="p-8 text-center text-muted-foreground">
-                    <p>European events coming soon!</p>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="asia" className="mt-4">
-                  <div className="p-8 text-center text-muted-foreground">
-                    <p>Asia & Pacific events coming soon!</p>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="other" className="mt-4">
-                  <div className="p-8 text-center text-muted-foreground">
-                    <p>More regions coming soon!</p>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </section>
+    <div className="min-h-screen bg-gray-50 dark:bg-background">
+      {/* Header */}
+      <header className="bg-white dark:bg-card shadow-sm py-4 sticky top-0 z-40">
+        <div className="container mx-auto px-4 flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" asChild aria-label="Go back">
+              <Link href="/">
+                <ArrowLeft className="h-5 w-5" />
+              </Link>
+            </Button>
+            <h1 className="text-xl font-bold">{t("discover.title")}</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            {isGuestMode && (
+              <span className="text-sm text-muted-foreground mr-2">
+                {guestViewCount}/{GUEST_VIEW_LIMIT} {t("discover.freeViews")}
+              </span>
+            )}
+            <Button variant="outline" asChild>
+              <Link href="/auth">{t("nav.signIn")}</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/auth?tab=signup">{t("nav.signUp")}</Link>
+            </Button>
           </div>
         </div>
+      </header>
+
+      {/* TikTok-style Discovery Feed */}
+      <main className="container mx-auto px-4 py-4">
+        <DiscoveryFeed />
       </main>
+
+      {/* Signup prompt dialog */}
+      <SignupPromptDialog
+        isOpen={showSignupPrompt}
+        onClose={() => setShowSignupPrompt(false)}
+        reason={promptReason}
+      />
     </div>
   )
 }

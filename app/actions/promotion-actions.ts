@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { createClient } from "@/utils/supabase/server"
+import { canCreatePromotion, getDefaultTier } from "@/lib/business-plan"
+import type { BusinessTierSlug } from "@/lib/tiers"
 
 export async function createDeal(formData: FormData) {
   const supabase = await createClient()
@@ -16,15 +18,28 @@ export async function createDeal(formData: FormData) {
   }
 
   try {
-    // Find the business owned by this user
+    // Find the business owned by this user (include tier)
     const { data: business, error: bizError } = await supabase
       .from("businesses")
-      .select("id")
+      .select("id, business_tier")
       .eq("user_id", session.user.id)
       .single()
 
     if (bizError || !business) {
       return { success: false, error: "No business profile found. Please create a business profile first." }
+    }
+
+    // Enforce active promotion limits based on business tier
+    const tier = (business.business_tier || getDefaultTier()) as BusinessTierSlug
+    const { count: activeCount } = await supabase
+      .from("promotions")
+      .select("*", { count: "exact", head: true })
+      .eq("business_id", business.id)
+      .eq("status", "active")
+
+    const check = canCreatePromotion(tier, activeCount || 0)
+    if (!check.allowed) {
+      return { success: false, error: check.reason }
     }
 
     const title = formData.get("title") as string
@@ -328,5 +343,217 @@ export async function getUserBusiness() {
   } catch (error) {
     console.error("Error fetching user business:", error)
     return { success: false, error: (error as Error).message, data: null }
+  }
+}
+
+export async function getBusinessPlanInfo() {
+  const supabase = await createClient()
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  if (!session) {
+    return { success: false, data: null }
+  }
+
+  try {
+    const { data: business, error } = await supabase
+      .from("businesses")
+      .select("id, business_tier")
+      .eq("user_id", session.user.id)
+      .single()
+
+    if (error && error.code !== "PGRST116") throw error
+    if (!business) return { success: true, data: null }
+
+    const tier = (business.business_tier || getDefaultTier()) as BusinessTierSlug
+
+    // Count active promotions
+    const { count: activeCount } = await supabase
+      .from("promotions")
+      .select("*", { count: "exact", head: true })
+      .eq("business_id", business.id)
+      .eq("status", "active")
+
+    return {
+      success: true,
+      data: {
+        businessId: business.id,
+        tier,
+        activePromotionCount: activeCount || 0,
+      },
+    }
+  } catch (error) {
+    console.error("Error fetching business plan info:", error)
+    return { success: false, error: (error as Error).message, data: null }
+  }
+}
+
+export async function getBusinessAnalytics() {
+  const supabase = await createClient()
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  if (!session) {
+    return { success: false, data: null }
+  }
+
+  try {
+    const { data: business } = await supabase
+      .from("businesses")
+      .select("id, business_tier")
+      .eq("user_id", session.user.id)
+      .single()
+
+    if (!business) return { success: true, data: null }
+
+    // Get all promotions with metrics
+    const { data: promotions } = await supabase
+      .from("promotions")
+      .select("*, promotion_metrics(*)")
+      .eq("business_id", business.id)
+      .order("created_at", { ascending: false })
+
+    const allPromos: any[] = promotions || []
+    const activePromos = allPromos.filter((p: any) => p.status === "active")
+    const expiredPromos = allPromos.filter((p: any) => p.status !== "active")
+
+    // Aggregate metrics
+    const totalViews = allPromos.reduce(
+      (sum: number, p: any) => sum + (p.promotion_metrics?.views || 0),
+      0
+    )
+    const totalClicks = allPromos.reduce(
+      (sum: number, p: any) => sum + (p.promotion_metrics?.clicks || 0),
+      0
+    )
+    const totalSaves = allPromos.reduce(
+      (sum: number, p: any) => sum + (p.promotion_metrics?.saves || 0),
+      0
+    )
+
+    const clickThroughRate =
+      totalViews > 0 ? Math.round((totalClicks / totalViews) * 10000) / 100 : 0
+
+    // Per-promotion performance
+    const promotionPerformance = allPromos.map((p: any) => ({
+      id: p.id,
+      title: p.title,
+      status: p.status,
+      views: p.promotion_metrics?.views || 0,
+      clicks: p.promotion_metrics?.clicks || 0,
+      saves: p.promotion_metrics?.saves || 0,
+      ctr:
+        (p.promotion_metrics?.views || 0) > 0
+          ? Math.round(
+              ((p.promotion_metrics?.clicks || 0) /
+                (p.promotion_metrics?.views || 0)) *
+                10000
+            ) / 100
+          : 0,
+    }))
+
+    return {
+      success: true,
+      data: {
+        tier: (business.business_tier || "basic") as BusinessTierSlug,
+        summary: {
+          totalPromotions: allPromos.length,
+          activePromotions: activePromos.length,
+          expiredPromotions: expiredPromos.length,
+          totalViews,
+          totalClicks,
+          totalSaves,
+          clickThroughRate,
+        },
+        promotionPerformance,
+      },
+    }
+  } catch (error) {
+    console.error("Error fetching business analytics:", error)
+    return { success: false, error: (error as Error).message, data: null }
+  }
+}
+
+export async function generatePerformanceReport() {
+  const supabase = await createClient()
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  if (!session) {
+    return { success: false, error: "Not authenticated" }
+  }
+
+  try {
+    const { data: business } = await supabase
+      .from("businesses")
+      .select("id, name, business_tier")
+      .eq("user_id", session.user.id)
+      .single()
+
+    if (!business) {
+      return { success: false, error: "No business profile found" }
+    }
+
+    // Get promotions with metrics
+    const { data: promotions } = await supabase
+      .from("promotions")
+      .select("*, promotion_metrics(*)")
+      .eq("business_id", business.id)
+      .order("created_at", { ascending: false })
+
+    const allPromos: any[] = promotions || []
+    const activePromos = allPromos.filter((p: any) => p.status === "active")
+
+    const totalViews = allPromos.reduce(
+      (sum: number, p: any) => sum + (p.promotion_metrics?.views || 0),
+      0
+    )
+    const totalClicks = allPromos.reduce(
+      (sum: number, p: any) => sum + (p.promotion_metrics?.clicks || 0),
+      0
+    )
+    const totalSaves = allPromos.reduce(
+      (sum: number, p: any) => sum + (p.promotion_metrics?.saves || 0),
+      0
+    )
+
+    const topPromotion = allPromos.reduce(
+      (top: { title: string; views: number }, p: any) => {
+        const views = p.promotion_metrics?.views || 0
+        return views > top.views ? { title: p.title, views } : top
+      },
+      { title: "N/A", views: 0 }
+    )
+
+    return {
+      success: true,
+      data: {
+        businessName: business.name,
+        tier: business.business_tier || "basic",
+        generatedAt: new Date().toISOString(),
+        period: "Last 30 days",
+        metrics: {
+          totalPromotions: allPromos.length,
+          activePromotions: activePromos.length,
+          totalViews,
+          totalClicks,
+          totalSaves,
+          clickThroughRate:
+            totalViews > 0
+              ? Math.round((totalClicks / totalViews) * 10000) / 100
+              : 0,
+          topPromotion: topPromotion.title,
+        },
+      },
+    }
+  } catch (error) {
+    console.error("Error generating performance report:", error)
+    return { success: false, error: (error as Error).message }
   }
 }

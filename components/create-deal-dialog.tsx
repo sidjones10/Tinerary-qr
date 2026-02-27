@@ -46,9 +46,12 @@ const DEAL_CATEGORIES = [
 
 interface CreateDealDialogProps {
   onDealCreated?: () => void
+  disabled?: boolean
+  activeCount?: number
+  maxCount?: number | null
 }
 
-export function CreateDealDialog({ onDealCreated }: CreateDealDialogProps) {
+export function CreateDealDialog({ onDealCreated, disabled, activeCount, maxCount }: CreateDealDialogProps) {
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [type, setType] = useState("")
@@ -88,9 +91,11 @@ export function CreateDealDialog({ onDealCreated }: CreateDealDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="btn-sunset">
+        <Button className="btn-sunset" disabled={disabled}>
           <Plus className="mr-2 h-4 w-4" />
-          Create Deal
+          {disabled && maxCount !== null
+            ? `Limit Reached (${activeCount}/${maxCount})`
+            : "Create Deal"}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[540px] max-h-[90vh] overflow-y-auto">
@@ -98,6 +103,11 @@ export function CreateDealDialog({ onDealCreated }: CreateDealDialogProps) {
           <DialogTitle>Create a New Deal</DialogTitle>
           <DialogDescription>
             Add a deal or promotion that travelers will see on Tinerary.
+            {maxCount !== null && maxCount !== undefined && (
+              <span className="block mt-1 text-xs">
+                {activeCount}/{maxCount} active promotions used on your plan.
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
 

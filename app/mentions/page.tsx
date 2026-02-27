@@ -1,7 +1,10 @@
+"use client"
+
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { AppHeader } from "@/components/app-header"
 import { PageHeader } from "@/components/page-header"
+import { PaywallGate } from "@/components/paywall-gate"
 import { MentionsContent } from "./mentions-content"
 
 export default function MentionsPage() {
@@ -18,11 +21,13 @@ export default function MentionsPage() {
             title="Organic Mention Highlights"
             description="When users mention your business in itineraries, highlight those mentions to add branding and booking links."
           />
-          <MentionsContent />
+          <PaywallGate gate="mentions">
+            <MentionsContent />
+          </PaywallGate>
           <nav className="mt-10 border-t pt-6">
             <p className="text-xs text-muted-foreground mb-3">Related pages</p>
             <div className="flex flex-wrap gap-2">
-              <Link href="/business-profile" className="text-sm text-primary hover:underline">Business Profile</Link>
+              <Link href="/business-profile" className="text-sm text-primary hover:underline">Business Dashboard</Link>
               <span className="text-muted-foreground">·</span>
               <Link href="/business" className="text-sm text-primary hover:underline">Business Plans</Link>
               <span className="text-muted-foreground">·</span>

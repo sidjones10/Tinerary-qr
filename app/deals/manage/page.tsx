@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Progress } from "@/components/ui/progress"
 import { AppHeader } from "@/components/app-header"
 import { PageHeader } from "@/components/page-header"
+import { PaywallGate } from "@/components/paywall-gate"
 import { CreateDealDialog } from "@/components/create-deal-dialog"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
@@ -162,6 +163,7 @@ export default function ManageDealsPage() {
             }
           />
 
+          <PaywallGate gate="deals_manage">
           {loading ? (
             <div className="mt-6 flex flex-col gap-4">
               {[1, 2, 3].map((i) => (
@@ -288,6 +290,7 @@ export default function ManageDealsPage() {
               )}
             </div>
           )}
+          </PaywallGate>
 
           <nav className="mt-10 border-t pt-6">
             <p className="text-xs text-muted-foreground mb-3">Related pages</p>

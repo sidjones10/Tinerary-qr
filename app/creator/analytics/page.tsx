@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { AppHeader } from "@/components/app-header"
+import { PaywallGate } from "@/components/paywall-gate"
 import { createClient } from "@/lib/supabase/client"
 import { getCreatorAnalytics, type CreatorAnalytics } from "@/lib/creator-service"
 
@@ -75,6 +76,7 @@ export default function CreatorAnalyticsPage() {
             Back to Creator Hub
           </Link>
 
+          <PaywallGate gate="creator_analytics">
           <div className="flex items-center gap-3 mb-8">
             <div className="size-10 rounded-xl bg-tinerary-gold/10 flex items-center justify-center">
               <BarChart3 className="size-5 text-tinerary-gold" />
@@ -190,6 +192,7 @@ export default function CreatorAnalyticsPage() {
               </div>
             </CardContent>
           </Card>
+          </PaywallGate>
         </div>
       </main>
     </div>

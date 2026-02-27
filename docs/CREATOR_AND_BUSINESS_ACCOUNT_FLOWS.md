@@ -537,6 +537,71 @@ BusinessSettings (components/business-settings.tsx):
   Business Premium/Enterprise sees all links including Mentions, Transactions
 ```
 
+### Paywall Infrastructure (lib/paywall.ts + components/paywall-gate.tsx)
+```
+Global kill-switch:  PAYWALL_ENABLED = false  (flip to true when payments go live)
+
+When PAYWALL_ENABLED is false → every PaywallGate renders children directly (bypass mode).
+When PAYWALL_ENABLED is true  → checks auth, accountType, and business tier against gate config.
+
+Gate definitions (PAYWALL_GATES):
+  business_profile       → requiredAccountType: "business", requiredTier: null
+  deals_manage           → requiredAccountType: "business", requiredTier: null
+  business_analytics     → requiredAccountType: "business", requiredTier: "premium"
+  mentions               → requiredAccountType: "business", requiredTier: "premium"
+  transactions           → requiredAccountType: "business", requiredTier: "premium"
+  affiliate              → requiredAccountType: null (creator or business)
+  creator_hub            → requiredAccountType: "creator"
+  creator_analytics      → requiredAccountType: "creator"
+  creator_boost          → requiredAccountType: "creator"
+  creator_templates      → requiredAccountType: "creator"
+  creator_sponsorships   → requiredAccountType: "creator"
+
+PaywallGate component usage:
+  <PaywallGate gate="business_analytics">
+    <BusinessAnalyticsContent />
+  </PaywallGate>
+
+  Props:
+  - gate: PaywallGateId
+  - children: content rendered when allowed
+  - fallback?: custom blocked UI (overrides default upgrade prompt)
+
+Pages wired:
+  /business-profile, /business-analytics, /mentions, /transactions,
+  /deals/manage, /affiliate, /creator, /creator/analytics,
+  /creator/boost, /creator/templates, /creator/sponsorships
+```
+
+### Custom Pricing Overrides
+```
+Per-business price adjustments stored in:
+  business_subscriptions.pricing_override (JSONB, nullable)
+
+Shape (lib/paywall.ts PricingOverride):
+  {
+    monthlyPrice: number | null   — custom price (null = standard tier price)
+    label: string | null          — shown to business ("Early Adopter", "Partner Rate")
+    expiresAt: string | null      — ISO date (null = permanent)
+    reason: string | null         — internal note (not shown)
+  }
+
+Helper:
+  getEffectivePrice(tier, override) → { price, isOverridden, label }
+    Returns standard price if override is null or expired.
+
+DB migration: db/migrations/021_pricing_overrides.sql
+  ALTER TABLE business_subscriptions ADD COLUMN pricing_override JSONB DEFAULT NULL;
+
+Standard prices (STANDARD_PRICES):
+  basic:      $49/mo
+  premium:    $149/mo
+  enterprise: $399/mo
+
+Example override: early adopter gets Premium at $99/mo until 2026-12-31
+  { monthlyPrice: 99, label: "Early Adopter", expiresAt: "2026-12-31", reason: "Launch partner" }
+```
+
 ### Coin Economy Integration
 ```
 Creator tier gets 2x coin multiplier on all earning actions:

@@ -25,6 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { AppHeader } from "@/components/app-header"
+import { PaywallGate } from "@/components/paywall-gate"
 import { createClient } from "@/lib/supabase/client"
 import { getCreatorAnalytics, type CreatorAnalytics } from "@/lib/creator-service"
 
@@ -99,6 +100,7 @@ export default function CreatorHubPage() {
       <AppHeader />
       <main className="flex-1">
         <div className="container px-4 py-6 md:py-10">
+          <PaywallGate gate="creator_hub">
           {/* Hero */}
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
@@ -221,6 +223,7 @@ export default function CreatorHubPage() {
               </div>
             </CardContent>
           </Card>
+        </PaywallGate>
         </div>
       </main>
     </div>

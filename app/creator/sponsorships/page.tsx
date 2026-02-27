@@ -36,6 +36,20 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   declined: { label: "Declined", color: "bg-destructive/10 text-destructive" },
 }
 
+const STAT_ACCENTS = [
+  "stat-accent-purple",
+  "stat-accent-gold",
+  "stat-accent-green",
+  "stat-accent-blue",
+]
+
+const STAT_ICON_COLORS = [
+  { color: "text-[#7C3AED]", bg: "bg-[#7C3AED]/10" },
+  { color: "text-tinerary-gold", bg: "bg-tinerary-gold/10" },
+  { color: "text-green-500", bg: "bg-green-500/10" },
+  { color: "text-blue-500", bg: "bg-blue-500/10" },
+]
+
 export default function CreatorSponsorshipsPage() {
   const [messages, setMessages] = useState<SponsorshipMessage[]>([])
   const [loading, setLoading] = useState(true)
@@ -92,8 +106,8 @@ export default function CreatorSponsorshipsPage() {
 
           <PaywallGate gate="creator_sponsorships">
           <div className="flex items-center gap-3 mb-8">
-            <div className="size-10 rounded-xl bg-[#7C3AED]/10 flex items-center justify-center">
-              <Mail className="size-5 text-[#7C3AED]" />
+            <div className="size-12 rounded-xl bg-[#7C3AED]/10 flex items-center justify-center">
+              <Mail className="size-6 text-[#7C3AED]" />
             </div>
             <div>
               <h1 className="text-2xl font-bold">Sponsorship Inbox</h1>
@@ -110,21 +124,23 @@ export default function CreatorSponsorshipsPage() {
               { label: "New", value: newCount.toString(), icon: Sparkles },
               { label: "Accepted", value: acceptedCount.toString(), icon: CheckCircle2 },
               { label: "Response Rate", value: messages.length > 0 ? `${Math.round(((acceptedCount + messages.filter(m => m.status === "declined").length) / messages.length) * 100)}%` : "0%", icon: MessageSquare },
-            ].map((stat) => (
-              <Card key={stat.label} className="border-border">
+            ].map((stat, i) => (
+              <Card key={stat.label} className={`border-border ${STAT_ACCENTS[i]}`}>
                 <CardContent className="pt-6">
-                  <stat.icon className="size-5 text-muted-foreground" />
-                  <p className="mt-3 text-2xl font-bold text-foreground">{stat.value}</p>
+                  <div className={`size-8 rounded-lg ${STAT_ICON_COLORS[i].bg} flex items-center justify-center mb-2`}>
+                    <stat.icon className={`size-4 ${STAT_ICON_COLORS[i].color}`} />
+                  </div>
+                  <p className="mt-1 text-2xl font-bold text-foreground">{stat.value}</p>
                   <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
                 </CardContent>
               </Card>
             ))}
           </div>
 
-          {/* How it works */}
+          {/* How it works — numbered steps */}
           <Card className="border-border bg-muted mb-8">
             <CardContent className="pt-6">
-              <div className="flex items-start gap-3 mb-4">
+              <div className="flex items-start gap-3 mb-5">
                 <div className="size-10 rounded-xl bg-[#7C3AED] flex items-center justify-center shrink-0">
                   <Mail className="size-5 text-white" />
                 </div>
@@ -132,23 +148,22 @@ export default function CreatorSponsorshipsPage() {
                   <h3 className="text-sm font-bold text-foreground">How Sponsorships Work</h3>
                   <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                     Brands can send collaboration proposals directly to your inbox based on your content, audience, and travel niche.
-                    Review proposals, negotiate terms, and accept partnerships that align with your style.
                   </p>
                 </div>
               </div>
               <div className="grid sm:grid-cols-3 gap-3">
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-card">
-                  <Inbox className="size-4 text-[#7C3AED]" />
-                  <span className="text-xs text-foreground">Receive proposals</span>
-                </div>
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-card">
-                  <Eye className="size-4 text-tinerary-gold" />
-                  <span className="text-xs text-foreground">Review & negotiate</span>
-                </div>
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-card">
-                  <CheckCircle2 className="size-4 text-tinerary-salmon" />
-                  <span className="text-xs text-foreground">Accept & collaborate</span>
-                </div>
+                {[
+                  { num: 1, icon: Inbox, color: "text-[#7C3AED]", bg: "bg-[#7C3AED]/10", label: "Receive proposals" },
+                  { num: 2, icon: Eye, color: "text-tinerary-gold", bg: "bg-tinerary-gold/10", label: "Review & negotiate" },
+                  { num: 3, icon: CheckCircle2, color: "text-tinerary-salmon", bg: "bg-tinerary-salmon/10", label: "Accept & collaborate" },
+                ].map((step) => (
+                  <div key={step.num} className="flex items-center gap-3 p-3 rounded-xl bg-card">
+                    <div className={`size-7 rounded-full ${step.bg} flex items-center justify-center text-xs font-bold ${step.color}`}>
+                      {step.num}
+                    </div>
+                    <span className="text-xs font-medium text-foreground">{step.label}</span>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -170,8 +185,10 @@ export default function CreatorSponsorshipsPage() {
             </CardHeader>
             <CardContent>
               {messages.length === 0 ? (
-                <div className="text-center py-12">
-                  <Mail className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <div className="cute-empty-state">
+                  <div className="cute-empty-icon">
+                    <Mail className="size-10 text-muted-foreground" />
+                  </div>
                   <h3 className="text-lg font-semibold mb-2">No Sponsorship Messages Yet</h3>
                   <p className="text-sm text-muted-foreground max-w-sm mx-auto">
                     As your audience grows, brands will reach out with collaboration opportunities.
@@ -183,10 +200,17 @@ export default function CreatorSponsorshipsPage() {
                   {messages.map((msg) => {
                     const config = statusConfig[msg.status] || statusConfig.new
                     const isExpanded = expandedId === msg.id
+                    const borderColor = msg.status === "new"
+                      ? "border-l-[#7C3AED]"
+                      : msg.status === "accepted"
+                      ? "border-l-green-500"
+                      : msg.status === "declined"
+                      ? "border-l-red-400"
+                      : "border-l-transparent"
                     return (
                       <div
                         key={msg.id}
-                        className={`rounded-xl border transition-all ${
+                        className={`rounded-xl border border-l-4 transition-all hover-lift ${borderColor} ${
                           msg.status === "new" ? "border-[#7C3AED]/30 bg-[#7C3AED]/5" : "border-border bg-muted"
                         }`}
                       >

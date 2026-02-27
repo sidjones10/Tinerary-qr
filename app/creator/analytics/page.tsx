@@ -14,14 +14,46 @@ import {
   TrendingUp,
   Zap,
   ArrowUpRight,
+  Trophy,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import { AppHeader } from "@/components/app-header"
 import { PaywallGate } from "@/components/paywall-gate"
 import { createClient } from "@/lib/supabase/client"
 import { getCreatorAnalytics, type CreatorAnalytics } from "@/lib/creator-service"
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts"
+
+const STAT_ACCENTS = [
+  "stat-accent-blue",
+  "stat-accent-salmon",
+  "stat-accent-purple",
+  "stat-accent-green",
+  "stat-accent-gold",
+  "stat-accent-blue",
+]
+
+const STAT_ICON_COLORS = [
+  { color: "text-blue-500", bg: "bg-blue-500/10" },
+  { color: "text-tinerary-salmon", bg: "bg-tinerary-salmon/10" },
+  { color: "text-[#7C3AED]", bg: "bg-[#7C3AED]/10" },
+  { color: "text-green-500", bg: "bg-green-500/10" },
+  { color: "text-tinerary-gold", bg: "bg-tinerary-gold/10" },
+  { color: "text-blue-500", bg: "bg-blue-500/10" },
+]
+
+const RANK_STYLES = [
+  "bg-tinerary-gold text-white",
+  "bg-gray-300 text-gray-700",
+  "bg-amber-600 text-white",
+]
 
 export default function CreatorAnalyticsPage() {
   const [analytics, setAnalytics] = useState<CreatorAnalytics | null>(null)
@@ -63,6 +95,14 @@ export default function CreatorAnalyticsPage() {
     { label: "Engagement Rate", value: `${analytics?.engagementRate || 0}%`, icon: Zap, change: "+2.1%" },
   ]
 
+  // Build engagement chart data for Recharts
+  const engagementData = [
+    { metric: "Views", value: analytics?.totalViews || 0, fill: "hsl(var(--primary))" },
+    { metric: "Likes", value: analytics?.totalLikes || 0, fill: "#ff9a8b" },
+    { metric: "Saves", value: analytics?.totalSaves || 0, fill: "#f59e0b" },
+    { metric: "Shares", value: analytics?.totalShares || 0, fill: "#7C3AED" },
+  ]
+
   return (
     <div className="flex min-h-screen flex-col">
       <AppHeader />
@@ -78,8 +118,8 @@ export default function CreatorAnalyticsPage() {
 
           <PaywallGate gate="creator_analytics">
           <div className="flex items-center gap-3 mb-8">
-            <div className="size-10 rounded-xl bg-tinerary-gold/10 flex items-center justify-center">
-              <BarChart3 className="size-5 text-tinerary-gold" />
+            <div className="size-12 rounded-xl bg-tinerary-gold/10 flex items-center justify-center">
+              <BarChart3 className="size-6 text-tinerary-gold" />
             </div>
             <div>
               <h1 className="text-2xl font-bold">Analytics Dashboard</h1>
@@ -91,11 +131,13 @@ export default function CreatorAnalyticsPage() {
 
           {/* Stats Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-            {stats.map((stat) => (
-              <Card key={stat.label} className="border-border">
+            {stats.map((stat, i) => (
+              <Card key={stat.label} className={`border-border ${STAT_ACCENTS[i]}`}>
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
-                    <stat.icon className="size-5 text-muted-foreground" />
+                    <div className={`size-8 rounded-lg ${STAT_ICON_COLORS[i].bg} flex items-center justify-center`}>
+                      <stat.icon className={`size-4 ${STAT_ICON_COLORS[i].color}`} />
+                    </div>
                     <span className="text-xs font-medium text-tinerary-salmon flex items-center gap-0.5">
                       {stat.change} <ArrowUpRight className="size-3" />
                     </span>
@@ -121,12 +163,16 @@ export default function CreatorAnalyticsPage() {
                   {analytics.topItineraries.map((it, i) => (
                     <div
                       key={it.id}
-                      className="flex items-center justify-between p-4 rounded-xl bg-muted"
+                      className={`flex items-center justify-between p-4 rounded-xl transition-colors hover:bg-muted/80 ${
+                        i === 0 ? "bg-gradient-to-r from-tinerary-gold/10 to-tinerary-peach/10" : "bg-muted"
+                      }`}
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <span className="text-lg font-bold text-muted-foreground w-6 text-center">
-                          {i + 1}
-                        </span>
+                        <div className={`size-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                          i < 3 ? RANK_STYLES[i] : "bg-muted-foreground/20 text-muted-foreground"
+                        }`}>
+                          {i < 3 ? <Trophy className="size-3.5" /> : i + 1}
+                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-foreground truncate">
                             {it.title}
@@ -154,8 +200,10 @@ export default function CreatorAnalyticsPage() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <BarChart3 className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
+                <div className="text-center py-12">
+                  <div className="cute-empty-icon mx-auto mb-4" style={{ width: 80, height: 80 }}>
+                    <BarChart3 className="size-8 text-muted-foreground" />
+                  </div>
                   <p className="text-sm text-muted-foreground">
                     No public itineraries yet. Create and publish content to see analytics here.
                   </p>
@@ -164,32 +212,33 @@ export default function CreatorAnalyticsPage() {
             </CardContent>
           </Card>
 
-          {/* Engagement Breakdown */}
+          {/* Engagement Breakdown — Recharts */}
           <Card className="border-border">
             <CardHeader>
               <CardTitle>Engagement Breakdown</CardTitle>
               <CardDescription>How your audience interacts with your content</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col gap-4">
-                {[
-                  { label: "Views", value: analytics?.totalViews || 0, max: Math.max(analytics?.totalViews || 1, 1), color: "[&>[data-slot=progress-indicator]]:bg-primary" },
-                  { label: "Likes", value: analytics?.totalLikes || 0, max: Math.max(analytics?.totalViews || 1, 1), color: "[&>[data-slot=progress-indicator]]:bg-tinerary-salmon" },
-                  { label: "Saves", value: analytics?.totalSaves || 0, max: Math.max(analytics?.totalViews || 1, 1), color: "[&>[data-slot=progress-indicator]]:bg-tinerary-gold" },
-                  { label: "Shares", value: analytics?.totalShares || 0, max: Math.max(analytics?.totalViews || 1, 1), color: "[&>[data-slot=progress-indicator]]:bg-[#7C3AED]" },
-                ].map((metric) => (
-                  <div key={metric.label}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-foreground font-medium">{metric.label}</span>
-                      <span className="text-muted-foreground">{metric.value.toLocaleString()}</span>
-                    </div>
-                    <Progress
-                      value={metric.max > 0 ? (metric.value / metric.max) * 100 : 0}
-                      className={`h-3 rounded-full ${metric.color} [&>[data-slot=progress-indicator]]:rounded-full`}
-                    />
-                  </div>
-                ))}
-              </div>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={engagementData} margin={{ left: -10, right: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                  <XAxis dataKey="metric" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                  <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip
+                    contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))" }}
+                    formatter={(value: number, name: string) => [value.toLocaleString(), "Count"]}
+                  />
+                  <Bar
+                    dataKey="value"
+                    radius={[8, 8, 0, 0]}
+                    fill="#ff9a8b"
+                  >
+                    {engagementData.map((entry, index) => (
+                      <rect key={index} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
           </PaywallGate>

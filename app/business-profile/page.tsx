@@ -1,7 +1,10 @@
+"use client"
+
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { AppHeader } from "@/components/app-header"
 import { PageHeader } from "@/components/page-header"
+import { PaywallGate } from "@/components/paywall-gate"
 import { BusinessProfileContent } from "./business-profile-content"
 
 export default function BusinessProfilePage() {
@@ -18,7 +21,9 @@ export default function BusinessProfilePage() {
             title="Business Dashboard"
             description="Your business hub — profile, tools & quick links."
           />
-          <BusinessProfileContent />
+          <PaywallGate gate="business_profile">
+            <BusinessProfileContent />
+          </PaywallGate>
           <nav className="mt-10 border-t pt-6">
             <p className="text-xs text-muted-foreground mb-3">Related pages</p>
             <div className="flex flex-wrap gap-2">

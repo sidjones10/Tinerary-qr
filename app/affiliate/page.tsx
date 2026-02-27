@@ -1,7 +1,10 @@
+"use client"
+
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { AppHeader } from "@/components/app-header"
 import { PageHeader } from "@/components/page-header"
+import { PaywallGate } from "@/components/paywall-gate"
 import { AffiliateContent } from "./affiliate-content"
 
 export default function AffiliatePage() {
@@ -18,7 +21,9 @@ export default function AffiliatePage() {
             title="Affiliate Marketing & Packing List Commerce"
             description="Earn through referral links, experience promotions, and auto-matched packing list product links."
           />
-          <AffiliateContent />
+          <PaywallGate gate="affiliate">
+            <AffiliateContent />
+          </PaywallGate>
           <nav className="mt-10 border-t pt-6">
             <p className="text-xs text-muted-foreground mb-3">Related pages</p>
             <div className="flex flex-wrap gap-2">

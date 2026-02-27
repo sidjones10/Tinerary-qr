@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { AppHeader } from "@/components/app-header"
+import { PaywallGate } from "@/components/paywall-gate"
 import { createClient } from "@/lib/supabase/client"
 import { getCreatorTemplates, createTemplate, type ItineraryTemplate } from "@/lib/creator-service"
 import { useToast } from "@/components/ui/use-toast"
@@ -130,6 +131,7 @@ export default function CreatorTemplatesPage() {
             Back to Creator Hub
           </Link>
 
+          <PaywallGate gate="creator_templates">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-xl bg-tinerary-salmon/10 flex items-center justify-center">
@@ -331,6 +333,7 @@ export default function CreatorTemplatesPage() {
               )}
             </CardContent>
           </Card>
+          </PaywallGate>
         </div>
       </main>
     </div>

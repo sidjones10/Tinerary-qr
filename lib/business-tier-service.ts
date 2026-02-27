@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client"
 import type { BusinessTierSlug } from "@/lib/tiers"
+import type { PricingOverride } from "@/lib/paywall"
 
 export interface BusinessSubscription {
   id: string
@@ -8,6 +9,7 @@ export interface BusinessSubscription {
   status: "active" | "canceled" | "past_due"
   mention_highlights_used: number
   mention_highlights_reset_at: string
+  pricing_override: PricingOverride | null
   created_at: string
   updated_at: string
 }

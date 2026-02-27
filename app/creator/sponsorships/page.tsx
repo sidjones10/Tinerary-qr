@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { AppHeader } from "@/components/app-header"
+import { PaywallGate } from "@/components/paywall-gate"
 import { createClient } from "@/lib/supabase/client"
 import {
   getSponsorshipMessages,
@@ -89,6 +90,7 @@ export default function CreatorSponsorshipsPage() {
             Back to Creator Hub
           </Link>
 
+          <PaywallGate gate="creator_sponsorships">
           <div className="flex items-center gap-3 mb-8">
             <div className="size-10 rounded-xl bg-[#7C3AED]/10 flex items-center justify-center">
               <Mail className="size-5 text-[#7C3AED]" />
@@ -288,6 +290,7 @@ export default function CreatorSponsorshipsPage() {
               )}
             </CardContent>
           </Card>
+          </PaywallGate>
         </div>
       </main>
     </div>

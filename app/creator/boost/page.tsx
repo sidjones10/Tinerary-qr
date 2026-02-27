@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { AppHeader } from "@/components/app-header"
+import { PaywallGate } from "@/components/paywall-gate"
 import { createClient } from "@/lib/supabase/client"
 import { getBoostCampaigns, createBoostCampaign, type BoostCampaign } from "@/lib/creator-service"
 import { BOOST_PACKAGES } from "@/lib/tiers"
@@ -112,6 +113,7 @@ export default function CreatorBoostPage() {
             Back to Creator Hub
           </Link>
 
+          <PaywallGate gate="creator_boost">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -301,6 +303,7 @@ export default function CreatorBoostPage() {
               )}
             </CardContent>
           </Card>
+          </PaywallGate>
         </div>
       </main>
     </div>

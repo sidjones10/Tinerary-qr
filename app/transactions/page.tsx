@@ -1,7 +1,10 @@
+"use client"
+
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { AppHeader } from "@/components/app-header"
 import { PageHeader } from "@/components/page-header"
+import { PaywallGate } from "@/components/paywall-gate"
 import { TransactionsContent } from "./transactions-content"
 
 export default function TransactionsPage() {
@@ -18,11 +21,13 @@ export default function TransactionsPage() {
             title="Transactions & Commission"
             description="Track bookings, commissions, and revenue from Tinerary transactions."
           />
-          <TransactionsContent />
+          <PaywallGate gate="transactions">
+            <TransactionsContent />
+          </PaywallGate>
           <nav className="mt-10 border-t pt-6">
             <p className="text-xs text-muted-foreground mb-3">Related pages</p>
             <div className="flex flex-wrap gap-2">
-              <Link href="/business-profile" className="text-sm text-primary hover:underline">Business Profile</Link>
+              <Link href="/business-profile" className="text-sm text-primary hover:underline">Business Dashboard</Link>
               <span className="text-muted-foreground">·</span>
               <Link href="/mentions" className="text-sm text-primary hover:underline">Mention Highlights</Link>
               <span className="text-muted-foreground">·</span>

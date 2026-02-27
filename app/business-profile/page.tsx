@@ -15,14 +15,18 @@ export default function BusinessProfilePage() {
             Back to Pricing
           </Link>
           <PageHeader
-            title="Business Profile"
-            description="Manage your business listing, branding, and subscription tier."
+            title="Business Dashboard"
+            description="Your business hub — profile, tools & quick links."
           />
           <BusinessProfileContent />
           <nav className="mt-10 border-t pt-6">
             <p className="text-xs text-muted-foreground mb-3">Related pages</p>
             <div className="flex flex-wrap gap-2">
-              <Link href="/mentions" className="text-sm text-primary hover:underline">Mention Highlights</Link>
+              <Link href="/deals/manage" className="text-sm text-primary hover:underline">Deals</Link>
+              <span className="text-muted-foreground">·</span>
+              <Link href="/business-analytics" className="text-sm text-primary hover:underline">Analytics</Link>
+              <span className="text-muted-foreground">·</span>
+              <Link href="/mentions" className="text-sm text-primary hover:underline">Mentions</Link>
               <span className="text-muted-foreground">·</span>
               <Link href="/transactions" className="text-sm text-primary hover:underline">Transactions</Link>
               <span className="text-muted-foreground">·</span>

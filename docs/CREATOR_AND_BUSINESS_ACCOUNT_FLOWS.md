@@ -140,10 +140,10 @@ Each dashboard link in settings has a `forTier` property that controls visibilit
 |---|---|---|
 | Creator Dashboard | creator | — |
 | Business Profile | business | basic, premium, enterprise |
+| Deals & Promotions | business | basic, premium, enterprise |
 | Mention Highlights | business | premium, enterprise |
 | Advanced Analytics | business | premium, enterprise |
 | Transactions | business | premium, enterprise |
-| Booking Integration | business | premium, enterprise |
 | Affiliate Marketing | creator, business | — |
 | Tinerary Coins | standard, creator, business | — |
 | Plans & Pricing | standard, creator, business | — |
@@ -318,7 +318,11 @@ User discovers Business tier via:
 └───────────────────────────────────────────────────────────┘
 ```
 
-### 3b. Business Profile Dashboard (`/business-profile`)
+### 3b. Business Dashboard Hub (`/business-profile`)
+
+The business dashboard follows a **hub + spokes** pattern (mirroring the Creator Hub).
+The hub shows the profile card, summary stats, and tier-gated links to spoke pages.
+All feature-specific content (deal CRUD, deep analytics, reports) lives in dedicated spoke pages.
 
 ```
 /business-profile (app/business-profile/business-profile-content.tsx)
@@ -332,14 +336,6 @@ User discovers Business tier via:
 ├── IF has business profile:
 │   │
 │   ├── Determine tier from business.business_tier (default: "basic")
-│   │   Uses: getPlanLimits(), getTierLimits(), getTierFeatures(), isEnterprise()
-│   │
-│   ├── Subscription Banner (Premium/Enterprise only):
-│   │   ├── Plan name + Active badge
-│   │   └── Feature indicators: Placement | Analytics | Support | Booking
-│   │
-│   ├── Enterprise Unlimited Banner (Enterprise only):
-│   │   └── Shows unlimited feature badges
 │   │
 │   ├── Profile Card:
 │   │   ├── Cover image (enterprise custom branding or gradient)
@@ -348,44 +344,68 @@ User discovers Business tier via:
 │   │   ├── Category, website, join date, rating
 │   │   └── Listing placement level indicator
 │   │
-│   ├── API Key (Enterprise only):
-│   │   └── Masked API key display
+│   ├── Tier Banner (Premium/Enterprise only):
+│   │   ├── Plan name + Active badge + feature indicators
+│   │   └── Enterprise Unlimited badge grid
 │   │
-│   ├── Dedicated Account Manager (Enterprise only):
-│   │   └── EnterpriseAccountManager component
+│   ├── Enterprise-only sections:
+│   │   ├── API Key display (masked)
+│   │   └── Dedicated Account Manager
 │   │
-│   ├── Plan Overview (Basic tier only):
-│   │   └── Current plan features + "Upgrade" CTA → /business
+│   ├── Quick Stats (read-only, 4 cards):
+│   │   └── Total Views | Total Clicks | Total Saves | Active Deals
 │   │
-│   ├── Analytics Dashboard:
-│   │   ├── Enterprise: EnterpriseAnalyticsDashboard (real-time)
-│   │   └── Basic/Premium: Summary stats (Views/Clicks/Saves/CTR)
-│   │       ├── Promotion limits progress bar
-│   │       └── Per-promotion performance list
+│   ├── Business Tools (hub spoke links — tier-gated grid):
+│   │   ├── ALL tiers:    Deals & Promotions → /deals/manage
+│   │   ├── ALL tiers:    Analytics → /business-analytics
+│   │   ├── Premium+:     Mention Highlights → /mentions
+│   │   ├── Premium+:     Transactions → /transactions
+│   │   ├── ALL tiers:    Affiliate Marketing → /affiliate
+│   │   └── ALL tiers:    Tinerary Coins → /coins
+│   │   Basic tier also sees a "locked features" teaser with upgrade CTA
 │   │
-│   ├── Custom Branded Profile (Enterprise only):
-│   │   └── EnterpriseBrandedProfile component
+│   ├── Current Plan Overview:
+│   │   └── Plan features list + "Upgrade" CTA (non-Enterprise)
 │   │
-│   ├── Premium Quick Links (Premium/Enterprise):
-│   │   ├── /mentions — Mention Highlights
-│   │   ├── /business-analytics — Reports
-│   │   └── /deals — Booking Integration
+│   ├── Support Info:
+│   │   └── Email (Basic) | Priority (Premium) | Dedicated Manager (Enterprise)
 │   │
-│   ├── Deals Management:
-│   │   ├── CreateDealDialog (limited by plan tier)
-│   │   ├── Deal list with status badges, metrics, delete
-│   │   └── Promotion limit enforcement (5 for Basic, unlimited for Premium+)
-│   │
-│   ├── Performance Reports:
-│   │   ├── Monthly (Basic) | Weekly (Premium) | Daily (Enterprise)
-│   │   └── Download via generatePerformanceReport()
-│   │
-│   ├── Support:
-│   │   ├── Email (Basic) | Priority (Premium) | Dedicated Manager (Enterprise)
-│   │   └── Contact link
-│   │
-│   └── Upgrade CTA (Basic tier):
+│   └── Upgrade CTA (Basic tier only):
 │       └── "Upgrade to Premium" card → /business
+```
+
+### 3b-ii. Deals Management (`/deals/manage`)
+
+Deal CRUD is a standalone spoke page (moved from the old business-profile):
+
+```
+/deals/manage (app/deals/manage/page.tsx)
+│
+├── Auth gate: loads session → fetches business + subscription → tier
+│
+├── Promotion limits bar (Basic only): X / 5 active
+├── Create Deal button + Download Report button
+│
+├── Deal list (full CRUD):
+│   ├── Each deal shows: title, type, category, location, dates, pricing
+│   ├── Inline metrics: views, clicks, saves, CTR
+│   ├── Enterprise: priority booking badge
+│   └── Delete action per deal
+│
+├── Upgrade CTA (Basic tier)
+│
+└── /deals (public) remains a separate traveler-facing browsing page (SpecialDeals)
+```
+
+### 3b-iii. Public Deals Browsing (`/deals`)
+
+```
+/deals (app/deals/page.tsx) — public, no auth required
+│
+├── SpecialDeals component (components/special-deals.tsx)
+├── Loads active promotions from DB (or demo data fallback)
+├── Category tabs: All | Hotels | Restaurants | Activities
+└── Deal cards with pricing, ratings, "Add to Trip" CTA
 ```
 
 ### 3c. Business Analytics (`/business-analytics`)
@@ -493,7 +513,7 @@ middleware.ts protects: /dashboard, /profile, /create, /settings, /my-events, /s
 Creator pages (/creator/*) handle auth inline:
   → Each page checks session and redirects to /auth?redirectTo=<current-path>
 
-Business pages (/business-profile, /business-analytics) handle auth inline:
+Business pages (/business-profile, /business-analytics, /deals/manage) handle auth inline:
   → Check session + business ownership
 ```
 
@@ -513,8 +533,8 @@ BusinessSettings (components/business-settings.tsx):
   Dashboard links filtered by two dimensions:
   1. forType — matches selectedType ("standard" | "creator" | "business")
   2. forTier — if non-null and selectedType is "business", matches selectedBusinessTier
-  Business Basic tier sees only: Business Profile, Affiliate, Coins, Pricing
-  Business Premium/Enterprise sees all business links including Mentions, Analytics, Transactions, Booking
+  Business Basic tier sees: Business Profile, Deals, Analytics, Affiliate, Coins, Pricing
+  Business Premium/Enterprise sees all links including Mentions, Transactions
 ```
 
 ### Coin Economy Integration
@@ -556,9 +576,11 @@ CREATOR DASHBOARD
   /creator/sponsorships → Brand sponsorship inbox (receive, accept/decline) — auth required
   /creator-tier         → Tier comparison + boost metrics view
 
-BUSINESS DASHBOARD
-  /business-profile     → Full business profile + deals + analytics — auth required
-  /business-analytics   → Advanced analytics (gated by tier) — auth required
+BUSINESS DASHBOARD (Hub + Spokes pattern)
+  /business-profile     → Business hub: profile card, summary stats, tier-gated tool links — auth required
+  /deals/manage         → Deal CRUD: create, manage, delete, report download — auth required
+  /business-analytics   → Advanced analytics: audience, geography, trends (gated by tier) — auth required
+  /deals                → Public deals browsing (traveler-facing, no auth required)
 
 ACCOUNT MANAGEMENT
   /settings?section=business → Professional account toggle, type selection, business tier picker
@@ -566,7 +588,6 @@ ACCOUNT MANAGEMENT
 
 SHARED
   /mentions             → Mention highlights management (Premium/Enterprise business only)
-  /deals                → Deals/promotions browsing + booking integration (Premium/Enterprise)
   /affiliate            → Affiliate marketing dashboard
   /coins                → Tinerary Coins economy
   /transactions         → Booking & commission tracking (Premium/Enterprise business only)

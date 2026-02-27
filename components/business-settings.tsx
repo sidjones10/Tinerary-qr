@@ -95,12 +95,12 @@ const dashboardLinks = [
     forTier: ["premium", "enterprise"],
   },
   {
-    href: "/deals",
+    href: "/deals/manage",
     icon: <FileBarChart className="size-4 text-tinerary-gold" />,
-    title: "Booking Integration",
-    description: "Direct bookings from your listings",
+    title: "Deals & Promotions",
+    description: "Create, manage & track your deals",
     forType: ["business"],
-    forTier: ["premium", "enterprise"],
+    forTier: ["basic", "premium", "enterprise"],
   },
   {
     href: "/affiliate",

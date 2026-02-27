@@ -91,6 +91,7 @@ export async function createDeal(formData: FormData) {
 
     revalidatePath("/business-profile")
     revalidatePath("/deals")
+    revalidatePath("/deals/manage")
     return { success: true, data }
   } catch (error) {
     console.error("Error creating deal:", error)
@@ -151,6 +152,7 @@ export async function updateDeal(id: string, formData: FormData) {
 
     revalidatePath("/business-profile")
     revalidatePath("/deals")
+    revalidatePath("/deals/manage")
     revalidatePath(`/promotion/${id}`)
     return { success: true, data }
   } catch (error) {
@@ -191,6 +193,7 @@ export async function deleteDeal(id: string) {
 
     revalidatePath("/business-profile")
     revalidatePath("/deals")
+    revalidatePath("/deals/manage")
     return { success: true }
   } catch (error) {
     console.error("Error deleting deal:", error)

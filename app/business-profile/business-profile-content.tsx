@@ -1,27 +1,38 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import {
-  MapPin,
   Globe,
   Star,
   Clock,
-  Users,
   Eye,
   CalendarDays,
   CheckCircle2,
   ArrowUpRight,
   Trash2,
   Tag,
+  BarChart3,
+  Mail,
+  FileText,
+  Crown,
+  MousePointerClick,
+  Bookmark,
+  TrendingUp,
+  Download,
+  AlertCircle,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useToast } from "@/components/ui/use-toast"
 import { CreateDealDialog } from "@/components/create-deal-dialog"
-import { deleteDeal } from "@/app/actions/promotion-actions"
+import { deleteDeal, generatePerformanceReport } from "@/app/actions/promotion-actions"
+import { PLAN_LIMITS, getPlanLimits } from "@/lib/business-plan"
+import { BUSINESS_TIERS } from "@/lib/tiers"
+import type { BusinessTierSlug } from "@/lib/tiers"
 
 interface BusinessData {
   id: string
@@ -33,6 +44,7 @@ interface BusinessData {
   rating: number | null
   review_count: number | null
   created_at: string
+  business_tier?: string
 }
 
 interface DealData {
@@ -58,6 +70,7 @@ export function BusinessProfileContent() {
   const [deals, setDeals] = useState<DealData[]>([])
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [generatingReport, setGeneratingReport] = useState(false)
   const { toast } = useToast()
 
   const loadData = useCallback(async () => {
@@ -113,6 +126,47 @@ export function BusinessProfileContent() {
     }
   }
 
+  async function handleGenerateReport() {
+    setGeneratingReport(true)
+    try {
+      const result = await generatePerformanceReport()
+      if (result.success && result.data) {
+        const report = result.data
+        const reportText = [
+          `Performance Report — ${report.businessName}`,
+          `Plan: ${report.tier.charAt(0).toUpperCase() + report.tier.slice(1)}`,
+          `Period: ${report.period}`,
+          `Generated: ${new Date(report.generatedAt).toLocaleDateString()}`,
+          ``,
+          `--- Metrics ---`,
+          `Total Promotions: ${report.metrics.totalPromotions}`,
+          `Active Promotions: ${report.metrics.activePromotions}`,
+          `Total Views: ${report.metrics.totalViews}`,
+          `Total Clicks: ${report.metrics.totalClicks}`,
+          `Total Saves: ${report.metrics.totalSaves}`,
+          `Click-Through Rate: ${report.metrics.clickThroughRate}%`,
+          `Top Promotion: ${report.metrics.topPromotion}`,
+        ].join("\n")
+
+        const blob = new Blob([reportText], { type: "text/plain" })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = `tinerary-report-${new Date().toISOString().split("T")[0]}.txt`
+        a.click()
+        URL.revokeObjectURL(url)
+
+        toast({ title: "Report downloaded", description: "Your monthly performance report has been generated." })
+      } else {
+        toast({ title: "Error", description: "Failed to generate report.", variant: "destructive" })
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to generate report.", variant: "destructive" })
+    } finally {
+      setGeneratingReport(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="mt-6 flex flex-col gap-6">
@@ -144,14 +198,22 @@ export function BusinessProfileContent() {
     )
   }
 
-  const activeDeals = deals.filter((d) => d.status === "active")
-  const totalViews = deals.reduce((sum, d) => sum + ((d.promotion_metrics as any)?.views || 0), 0)
-  const totalClicks = deals.reduce((sum, d) => sum + ((d.promotion_metrics as any)?.clicks || 0), 0)
-  const totalSaves = deals.reduce((sum, d) => sum + ((d.promotion_metrics as any)?.saves || 0), 0)
+  const tier = (business.business_tier || "basic") as BusinessTierSlug
+  const limits = getPlanLimits(tier)
+  const tierConfig = BUSINESS_TIERS.find((t) => t.slug === tier)
+
+  const activeDeals = deals.filter((d: DealData) => d.status === "active")
+  const totalViews = deals.reduce((sum: number, d: DealData) => sum + ((d.promotion_metrics as any)?.views || 0), 0)
+  const totalClicks = deals.reduce((sum: number, d: DealData) => sum + ((d.promotion_metrics as any)?.clicks || 0), 0)
+  const totalSaves = deals.reduce((sum: number, d: DealData) => sum + ((d.promotion_metrics as any)?.saves || 0), 0)
+  const clickThroughRate = totalViews > 0 ? Math.round((totalClicks / totalViews) * 10000) / 100 : 0
+
+  const promotionLimitReached =
+    limits.maxActivePromotions !== null && activeDeals.length >= limits.maxActivePromotions
 
   return (
     <div className="mt-6 flex flex-col gap-6">
-      {/* Profile Card */}
+      {/* Profile Card with Plan Badge */}
       <Card className="overflow-hidden border-border">
         <div className="h-32 bg-gradient-to-r from-tinerary-peach to-secondary" />
         <CardContent className="relative -mt-12">
@@ -166,9 +228,12 @@ export function BusinessProfileContent() {
               )}
             </div>
             <div className="flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-xl font-bold text-foreground">{business.name}</h2>
                 <CheckCircle2 className="size-5 text-primary" />
+                <Badge className="bg-primary text-primary-foreground text-xs">
+                  {tierConfig?.name || "Basic"} Plan
+                </Badge>
               </div>
               {business.description && (
                 <p className="text-sm text-muted-foreground mt-0.5">{business.description}</p>
@@ -190,29 +255,161 @@ export function BusinessProfileContent() {
                     <Star className="size-3" /> {business.rating} ({business.review_count || 0} reviews)
                   </span>
                 )}
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <TrendingUp className="size-3" /> {limits.listingPlacement === "standard" ? "Standard" : limits.listingPlacement === "featured" ? "Featured" : "Top-tier"} listing
+                </span>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: "Total Views", value: totalViews.toLocaleString(), icon: Eye },
-          { label: "Total Clicks", value: totalClicks.toLocaleString(), icon: ArrowUpRight },
-          { label: "Total Saves", value: totalSaves.toLocaleString(), icon: CalendarDays },
-          { label: "Active Deals", value: activeDeals.length.toString(), icon: Tag },
-        ].map((stat) => (
-          <Card key={stat.label} className="border-border">
-            <CardContent className="pt-6">
-              <stat.icon className="size-5 text-muted-foreground" />
-              <p className="mt-3 text-2xl font-bold text-foreground">{stat.value}</p>
-              <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* Plan Overview */}
+      <Card className="border-border">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Crown className="size-5 text-tinerary-gold" />
+              <div>
+                <CardTitle className="text-base">
+                  {tierConfig?.name || "Basic"} Plan — ${tierConfig?.price || 49}/{tierConfig?.priceSuffix || "per month"}
+                </CardTitle>
+                <CardDescription>
+                  {tier === "basic"
+                    ? "Standard listing placement with essential business tools"
+                    : tier === "premium"
+                    ? "Featured placement with advanced tools"
+                    : "Full-featured enterprise plan"}
+                </CardDescription>
+              </div>
+            </div>
+            {tier === "basic" && (
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/business">
+                  Upgrade
+                  <ArrowUpRight className="ml-1 size-3" />
+                </Link>
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {(tierConfig?.features || PLAN_LIMITS.basic && [
+              "Standard listing placement",
+              "Business profile page",
+              "Up to 5 active promotions",
+              "Basic analytics dashboard",
+              "Email support",
+              "Monthly performance report",
+            ]).map((feature) => (
+              <div key={feature} className="flex items-start gap-2">
+                <CheckCircle2 className="size-3.5 text-primary shrink-0 mt-0.5" />
+                <span className="text-xs text-foreground">{feature}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Basic Analytics Dashboard */}
+      <Card className="border-border">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <BarChart3 className="size-5 text-tinerary-gold" />
+            <div>
+              <CardTitle className="text-base">Analytics Dashboard</CardTitle>
+              <CardDescription>
+                {limits.analyticsLevel === "basic"
+                  ? "Basic performance overview for your promotions"
+                  : limits.analyticsLevel === "advanced"
+                  ? "Advanced analytics with deeper insights"
+                  : "Real-time analytics with API access"}
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {/* Summary Stats */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {[
+              { label: "Total Views", value: totalViews.toLocaleString(), icon: Eye, color: "text-blue-500" },
+              { label: "Total Clicks", value: totalClicks.toLocaleString(), icon: MousePointerClick, color: "text-green-500" },
+              { label: "Total Saves", value: totalSaves.toLocaleString(), icon: Bookmark, color: "text-orange-500" },
+              { label: "Click Rate", value: `${clickThroughRate}%`, icon: TrendingUp, color: "text-purple-500" },
+            ].map((stat) => (
+              <div key={stat.label} className="p-4 rounded-xl bg-muted">
+                <stat.icon className={`size-5 ${stat.color}`} />
+                <p className="mt-2 text-2xl font-bold text-foreground">{stat.value}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Promotion Limits */}
+          {limits.maxActivePromotions !== null && (
+            <div className="mb-6 p-4 rounded-xl bg-muted">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-foreground">
+                  Active Promotions
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {activeDeals.length} / {limits.maxActivePromotions}
+                </span>
+              </div>
+              <Progress
+                value={(activeDeals.length / limits.maxActivePromotions) * 100}
+                className="h-2"
+              />
+              {promotionLimitReached && (
+                <p className="text-xs text-orange-500 mt-2 flex items-center gap-1">
+                  <AlertCircle className="size-3" />
+                  Limit reached. Upgrade to Premium for unlimited promotions.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Per-Promotion Performance */}
+          {deals.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-foreground mb-3">Promotion Performance</h4>
+              <div className="space-y-2">
+                {deals.map((deal: DealData) => {
+                  const views = (deal.promotion_metrics as any)?.views || 0
+                  const clicks = (deal.promotion_metrics as any)?.clicks || 0
+                  const saves = (deal.promotion_metrics as any)?.saves || 0
+                  const ctr = views > 0 ? Math.round((clicks / views) * 10000) / 100 : 0
+
+                  return (
+                    <div key={deal.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{deal.title}</p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-xs text-muted-foreground">{views} views</span>
+                          <span className="text-xs text-muted-foreground">{clicks} clicks</span>
+                          <span className="text-xs text-muted-foreground">{saves} saves</span>
+                          <span className="text-xs text-muted-foreground">{ctr}% CTR</span>
+                        </div>
+                      </div>
+                      <Badge
+                        variant="secondary"
+                        className={
+                          deal.status === "active"
+                            ? "bg-tinerary-peach text-tinerary-dark border-0"
+                            : "bg-secondary text-secondary-foreground border-0"
+                        }
+                      >
+                        {deal.status}
+                      </Badge>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Deals Management */}
       <Card className="border-border">
@@ -220,9 +417,21 @@ export function BusinessProfileContent() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Your Deals</CardTitle>
-              <CardDescription>Create and manage deals that travelers will see on Tinerary</CardDescription>
+              <CardDescription>
+                Create and manage deals that travelers will see on Tinerary
+                {limits.maxActivePromotions !== null && (
+                  <span className="ml-1">
+                    ({activeDeals.length}/{limits.maxActivePromotions} active)
+                  </span>
+                )}
+              </CardDescription>
             </div>
-            <CreateDealDialog onDealCreated={loadData} />
+            <CreateDealDialog
+              onDealCreated={loadData}
+              disabled={promotionLimitReached}
+              activeCount={activeDeals.length}
+              maxCount={limits.maxActivePromotions}
+            />
           </div>
         </CardHeader>
         <CardContent>
@@ -235,7 +444,7 @@ export function BusinessProfileContent() {
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {deals.map((deal) => (
+              {deals.map((deal: DealData) => (
                 <div
                   key={deal.id}
                   className="flex items-center justify-between p-3 rounded-xl bg-muted"
@@ -280,6 +489,101 @@ export function BusinessProfileContent() {
                 </div>
               ))}
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Monthly Performance Report */}
+      <Card className="border-border">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <FileText className="size-5 text-tinerary-salmon" />
+            <div>
+              <CardTitle className="text-base">Performance Reports</CardTitle>
+              <CardDescription>
+                {limits.reportFrequency === "monthly"
+                  ? "Download your monthly performance summary"
+                  : limits.reportFrequency === "weekly"
+                  ? "Download your weekly performance summary"
+                  : "Download your daily performance summary"}
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-muted">
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                {limits.reportFrequency.charAt(0).toUpperCase() + limits.reportFrequency.slice(1)} Report
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Includes views, clicks, saves, CTR, and top-performing promotions
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleGenerateReport}
+              disabled={generatingReport}
+            >
+              <Download className="mr-2 size-4" />
+              {generatingReport ? "Generating..." : "Download Report"}
+            </Button>
+          </div>
+          {tier === "basic" && (
+            <p className="text-xs text-muted-foreground mt-3">
+              Upgrade to Premium for weekly reports, or Enterprise for daily reports.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Email Support */}
+      <Card className="border-border">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Mail className="size-5 text-blue-500" />
+            <div>
+              <CardTitle className="text-base">Support</CardTitle>
+              <CardDescription>
+                {limits.supportLevel === "email"
+                  ? "Get help via email support"
+                  : limits.supportLevel === "priority"
+                  ? "Priority support with faster response times"
+                  : "Dedicated account manager"}
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-muted">
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                {limits.supportLevel === "email"
+                  ? "Email Support"
+                  : limits.supportLevel === "priority"
+                  ? "Priority Support"
+                  : "Dedicated Account Manager"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {limits.supportLevel === "email"
+                  ? "Reach our team at business-support@tinerary.com. We respond within 24-48 hours."
+                  : limits.supportLevel === "priority"
+                  ? "Priority queue with 4-8 hour response times."
+                  : "Your dedicated manager is available directly."}
+              </p>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <a href="mailto:business-support@tinerary.com">
+                <Mail className="mr-2 size-4" />
+                Contact Support
+              </a>
+            </Button>
+          </div>
+          {tier === "basic" && (
+            <p className="text-xs text-muted-foreground mt-3">
+              Upgrade to Premium for priority support or Enterprise for a dedicated account manager.
+            </p>
           )}
         </CardContent>
       </Card>

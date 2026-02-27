@@ -193,9 +193,52 @@ export function BusinessSettings() {
     savePreferences(isBusinessMode, type)
   }
 
-  const handleSelectBusinessTier = (tier: BusinessTierSlug) => {
+  const handleSelectBusinessTier = async (tier: BusinessTierSlug) => {
     setSelectedBusinessTier(tier)
     savePreferences(isBusinessMode, selectedType, tier)
+
+    // Also update the actual business tables so the rest of the app reflects the change
+    if (!user) return
+    try {
+      const supabase = createClient()
+      const { data: biz } = await supabase
+        .from("businesses")
+        .select("id")
+        .eq("user_id", user.id)
+        .single()
+
+      if (!biz) return
+
+      // Update businesses.business_tier
+      await supabase
+        .from("businesses")
+        .update({ business_tier: tier })
+        .eq("id", biz.id)
+
+      // Upsert active subscription row so getEffectiveTier() picks up the change
+      const { data: existingSub } = await supabase
+        .from("business_subscriptions")
+        .select("id")
+        .eq("business_id", biz.id)
+        .eq("status", "active")
+        .single()
+
+      if (existingSub) {
+        await supabase
+          .from("business_subscriptions")
+          .update({ tier, updated_at: new Date().toISOString() })
+          .eq("id", existingSub.id)
+      } else {
+        await supabase.from("business_subscriptions").insert({
+          business_id: biz.id,
+          tier,
+          status: "active",
+          updated_at: new Date().toISOString(),
+        })
+      }
+    } catch (error) {
+      console.error("Error updating business tier:", error)
+    }
   }
 
   // Filter dashboard links based on active account type and business tier

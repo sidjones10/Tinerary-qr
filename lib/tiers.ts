@@ -1,6 +1,8 @@
 // Tinerary Revenue Model v3 — Tier Definitions, Pricing & Coins
 // All data sourced from Revenue Model & Growth Protection Strategy v3.0
 
+import type { BusinessTierConfig } from "./enterprise"
+
 // ─── Platform User Tiers ───────────────────────────────────────
 
 export type UserTierSlug = "user" | "creator" | "business"
@@ -126,16 +128,47 @@ export const BUSINESS_TIERS: BusinessTier[] = [
     price: 399,
     priceSuffix: "per month",
     features: [
-      "Top-tier placement + badges",
-      "Custom branded profile",
-      "Unlimited everything",
-      "Real-time analytics + API access",
-      "Dedicated account manager",
-      "Daily performance reports",
-      "Priority booking placement",
-      "Unlimited Mention Highlights",
+      "Top-tier placement + enterprise badge",
+      "Custom branded profile (colors, cover, logo, CTA, video banner)",
+      "Unlimited promotions, locations, team members & uploads",
+      "Real-time analytics dashboard + full API access",
+      "Dedicated account manager with direct contact",
+      "Daily performance reports with trend analysis",
+      "Priority booking placement in all feeds",
+      "Unlimited Mention Highlights (auto-highlight all)",
+      "White-label report exports (CSV, PDF, JSON)",
+      "Webhook integrations (up to 10)",
+      "Competitor benchmarking & recommendations",
     ],
   },
+]
+
+// ─── Enterprise Feature Comparison (for /business page) ─────────
+
+export interface FeatureComparison {
+  feature: string
+  basic: string
+  premium: string
+  enterprise: string
+  category: "placement" | "profile" | "analytics" | "support" | "mentions" | "booking" | "limits"
+}
+
+export const ENTERPRISE_FEATURE_COMPARISON: FeatureComparison[] = [
+  { feature: "Listing placement", basic: "Standard", premium: "Featured", enterprise: "Top-tier + enterprise badge", category: "placement" },
+  { feature: "Profile badge", basic: "\u2014", premium: "Verified", enterprise: "Enterprise badge", category: "placement" },
+  { feature: "Active promotions", basic: "Up to 5", premium: "Unlimited", enterprise: "Unlimited", category: "limits" },
+  { feature: "Business locations", basic: "1", premium: "Up to 5", enterprise: "Unlimited", category: "limits" },
+  { feature: "Team members", basic: "2", premium: "10", enterprise: "Unlimited", category: "limits" },
+  { feature: "Custom branded profile", basic: "\u2014", premium: "\u2014", enterprise: "\u2713 Full branding suite", category: "profile" },
+  { feature: "Analytics", basic: "Basic dashboard", premium: "Advanced + insights", enterprise: "Real-time + API access", category: "analytics" },
+  { feature: "API access", basic: "\u2014", premium: "\u2014", enterprise: "\u2713 Full REST API", category: "analytics" },
+  { feature: "Support", basic: "Email", premium: "Priority", enterprise: "Dedicated account manager", category: "support" },
+  { feature: "Performance reports", basic: "Monthly", premium: "Weekly", enterprise: "Daily + trend analysis", category: "analytics" },
+  { feature: "Report exports", basic: "\u2014", premium: "CSV", enterprise: "CSV, PDF, JSON (white-label)", category: "analytics" },
+  { feature: "Booking integration", basic: "\u2014", premium: "\u2713", enterprise: "\u2713 Priority placement", category: "booking" },
+  { feature: "Mention Highlights", basic: "\u2014", premium: "5/mo included", enterprise: "Unlimited (auto-highlight)", category: "mentions" },
+  { feature: "Webhook integrations", basic: "\u2014", premium: "\u2014", enterprise: "Up to 10", category: "analytics" },
+  { feature: "Competitor benchmarking", basic: "\u2014", premium: "\u2014", enterprise: "\u2713", category: "analytics" },
 ]
 
 // ─── Creator Post Boost Pricing ────────────────────────────────

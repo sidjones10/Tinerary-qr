@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { createClient } from "@/utils/supabase/server"
 import type { Database } from "@/lib/database.types"
+import { getTierLimits } from "@/lib/business-tier-service"
+import type { BusinessTierSlug } from "@/lib/tiers"
 
 type Booking = Database["public"]["Tables"]["bookings"]["Row"]
 type NewBooking = Omit<Booking, "id" | "created_at" | "user_id" | "status">
@@ -32,11 +34,29 @@ export async function createBooking(formData: FormData) {
     // Get the promotion details to calculate total price
     const { data: promotion, error: promotionError } = await supabase
       .from("promotions")
-      .select("price, currency")
+      .select("price, currency, business_id")
       .eq("id", promotionId)
       .single()
 
     if (promotionError) throw promotionError
+
+    // Check if the business has booking integration enabled (premium/enterprise)
+    const { data: sub } = await supabase
+      .from("business_subscriptions")
+      .select("tier, status")
+      .eq("business_id", promotion.business_id)
+      .eq("status", "active")
+      .single()
+
+    const businessTier = (sub?.tier as BusinessTierSlug) || "basic"
+    const limits = getTierLimits(businessTier)
+
+    if (!limits.bookingIntegration) {
+      return {
+        success: false,
+        error: "This business has not enabled booking integration. They need to upgrade to a Premium or Enterprise plan.",
+      }
+    }
 
     const totalPrice = promotion.price * quantity
 

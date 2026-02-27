@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { AppHeader } from "@/components/app-header"
-import { BUSINESS_TIERS, MENTION_HIGHLIGHTS } from "@/lib/tiers"
+import { BUSINESS_TIERS, MENTION_HIGHLIGHTS, ENTERPRISE_FEATURE_COMPARISON } from "@/lib/tiers"
 
 export default function BusinessPage() {
   return (
@@ -151,21 +151,12 @@ export default function BusinessPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {[
-                        { feature: "Listing placement", basic: "Standard", premium: "Featured", enterprise: "Top-tier + badges" },
-                        { feature: "Active promotions", basic: "Up to 5", premium: "Unlimited", enterprise: "Unlimited" },
-                        { feature: "Analytics", basic: "Basic", premium: "Advanced", enterprise: "Real-time + API" },
-                        { feature: "Support", basic: "Email", premium: "Priority", enterprise: "Dedicated manager" },
-                        { feature: "Performance reports", basic: "Monthly", premium: "Weekly", enterprise: "Daily" },
-                        { feature: "Booking integration", basic: "\u2014", premium: "\u2713", enterprise: "Priority placement" },
-                        { feature: "Mention Highlights", basic: "\u2014", premium: "5/mo included", enterprise: "Unlimited" },
-                        { feature: "Custom branded profile", basic: "\u2014", premium: "\u2014", enterprise: "\u2713" },
-                      ].map((row, i) => (
+                      {ENTERPRISE_FEATURE_COMPARISON.map((row, i) => (
                         <tr key={i} className="border-b last:border-b-0">
                           <td className="py-3 px-4 font-medium text-foreground">{row.feature}</td>
                           <td className="py-3 px-4 text-center text-muted-foreground">{row.basic}</td>
                           <td className="py-3 px-4 text-center text-foreground">{row.premium}</td>
-                          <td className="py-3 px-4 text-center text-foreground">{row.enterprise}</td>
+                          <td className="py-3 px-4 text-center font-medium text-foreground">{row.enterprise}</td>
                         </tr>
                       ))}
                     </tbody>

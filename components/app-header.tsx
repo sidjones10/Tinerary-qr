@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Bell, Menu, Search, X, User, Settings, LogOut, PlusCircle } from "lucide-react"
+import { Bell, Menu, Search, X, User, Settings, LogOut, PlusCircle, Crown } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -189,6 +189,12 @@ export function AppHeader() {
                     <Link href="/profile" className="flex items-center">
                       <User className="mr-2 h-4 w-4" />
                       {t("nav.profile")}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/creator" className="flex items-center">
+                      <Crown className="mr-2 h-4 w-4" />
+                      Creator Hub
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>

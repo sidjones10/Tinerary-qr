@@ -356,6 +356,81 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
       console.warn("Coin awarding skipped:", error.message || "Unknown error")
     }
 
+    // 9. Scan activities for business mentions (non-blocking for public itineraries)
+    if (data.isPublic !== false && data.activities && data.activities.length > 0) {
+      try {
+        const { data: businesses } = await supabase
+          .from("businesses")
+          .select("id, name, user_id")
+          .neq("user_id", userId)
+
+        if (businesses && businesses.length > 0) {
+          const activitiesData = await supabase
+            .from("activities")
+            .select("id, title, location, description")
+            .eq("itinerary_id", itineraryId)
+
+          if (activitiesData.data) {
+            for (const activity of activitiesData.data) {
+              for (const business of businesses) {
+                const nameLower = business.name.toLowerCase()
+                const fields = [
+                  { field: "title", text: activity.title },
+                  { field: "location", text: activity.location },
+                  { field: "description", text: activity.description },
+                ] as const
+
+                for (const { field, text } of fields) {
+                  if (!text) continue
+                  if (text.toLowerCase().includes(nameLower)) {
+                    const idx = text.toLowerCase().indexOf(nameLower)
+                    const start = Math.max(0, idx - 40)
+                    const end = Math.min(text.length, idx + business.name.length + 40)
+                    const snippet =
+                      (start > 0 ? "..." : "") + text.slice(start, end) + (end < text.length ? "..." : "")
+
+                    // Get creator username
+                    const { data: profile } = await supabase
+                      .from("profiles")
+                      .select("username")
+                      .eq("id", userId)
+                      .single()
+
+                    await supabase.from("business_mentions").upsert(
+                      {
+                        business_id: business.id,
+                        itinerary_id: itineraryId,
+                        activity_id: activity.id,
+                        matched_text: business.name,
+                        match_field: field,
+                        context_snippet: snippet,
+                        creator_username: profile?.username || null,
+                        status: "detected",
+                      },
+                      { onConflict: "business_id,itinerary_id,activity_id" }
+                    )
+
+                    // Notify the business owner
+                    await createNotification({
+                      userId: business.user_id,
+                      type: "mention",
+                      title: "Your business was mentioned!",
+                      message: `"${business.name}" was mentioned in "${data.title}" — highlight it to add your badge and booking link.`,
+                      linkUrl: "/mentions",
+                    })
+
+                    break // One match per activity per business
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch (error: any) {
+        console.warn("Mention detection skipped:", error.message || "Unknown error")
+      }
+    }
+
     return {
       success: true,
       itinerary: itinerary,
@@ -566,6 +641,79 @@ export async function updateItinerary(
             console.error("Expenses update error:", expensesError)
           }
         }
+      }
+    }
+
+    // Re-scan for business mentions if activities were updated on a public itinerary
+    if (data.activities !== undefined && (data.isPublic !== false || itinerary.is_public)) {
+      try {
+        const { data: businesses } = await supabase
+          .from("businesses")
+          .select("id, name, user_id")
+          .neq("user_id", userId)
+
+        if (businesses && businesses.length > 0) {
+          const { data: updatedActivities } = await supabase
+            .from("activities")
+            .select("id, title, location, description")
+            .eq("itinerary_id", itineraryId)
+
+          if (updatedActivities) {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("username")
+              .eq("id", userId)
+              .single()
+
+            for (const activity of updatedActivities) {
+              for (const business of businesses) {
+                const nameLower = business.name.toLowerCase()
+                const fields = [
+                  { field: "title", text: activity.title },
+                  { field: "location", text: activity.location },
+                  { field: "description", text: activity.description },
+                ] as const
+
+                for (const { field, text } of fields) {
+                  if (!text) continue
+                  if (text.toLowerCase().includes(nameLower)) {
+                    const idx = text.toLowerCase().indexOf(nameLower)
+                    const start = Math.max(0, idx - 40)
+                    const end = Math.min(text.length, idx + business.name.length + 40)
+                    const snippet =
+                      (start > 0 ? "..." : "") + text.slice(start, end) + (end < text.length ? "..." : "")
+
+                    await supabase.from("business_mentions").upsert(
+                      {
+                        business_id: business.id,
+                        itinerary_id: itineraryId,
+                        activity_id: activity.id,
+                        matched_text: business.name,
+                        match_field: field,
+                        context_snippet: snippet,
+                        creator_username: profile?.username || null,
+                        status: "detected",
+                      },
+                      { onConflict: "business_id,itinerary_id,activity_id" }
+                    )
+
+                    await createNotification({
+                      userId: business.user_id,
+                      type: "mention",
+                      title: "Your business was mentioned!",
+                      message: `"${business.name}" was mentioned in "${data.title || itinerary.title}" — highlight it to add your badge and booking link.`,
+                      linkUrl: "/mentions",
+                    })
+
+                    break
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch (error: any) {
+        console.warn("Mention detection on update skipped:", error.message || "Unknown error")
       }
     }
 

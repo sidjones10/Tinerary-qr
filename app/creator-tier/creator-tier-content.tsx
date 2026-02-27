@@ -194,7 +194,7 @@ export function CreatorTierContent() {
               { label: "70/30 Affiliate Split", desc: "Enhanced commission rate", active: true },
               { label: "Priority Discovery", desc: "Boosted in feeds & search", active: true },
               { label: "Template Selling", desc: "Sell itinerary templates", active: true },
-              { label: "Sponsorship Inbox", desc: "Direct brand collaborations", active: false },
+              { label: "Sponsorship Inbox", desc: "Direct brand collaborations", active: true },
             ].map((feature) => (
               <div
                 key={feature.label}

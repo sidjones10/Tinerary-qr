@@ -377,12 +377,12 @@ export async function discoverItineraries(
       ])
     }
 
-    // Build the base query
+    // Build the base query — include creator tier for priority scoring
     let query = supabase
       .from("itineraries")
       .select(`
         *,
-        profiles:user_id(name, avatar_url),
+        profiles:user_id(name, avatar_url, tier, is_verified),
         itinerary_metrics(*),
         itinerary_categories(category)
       `)
@@ -472,13 +472,20 @@ export async function discoverItineraries(
       const qualityScore = calculateQuality(itinerary, itinerary.metrics)
       const proximityScore = calculateProximity(itinerary, userProfile?.location || null)
 
-      // Calculate final score (weighted sum)
+      // Creator priority boost: creators and businesses get a score bonus
+      const creatorTier = itinerary.creator?.tier
+      const creatorBoost =
+        creatorTier === "creator" ? 0.08 :
+        creatorTier === "business" ? 0.05 : 0
+
+      // Calculate final score (weighted sum + creator priority)
       let finalScore =
         relevanceScore * 0.4 +
         popularityScore * 0.25 +
         freshnessScore * 0.15 +
         qualityScore * 0.15 +
-        proximityScore * 0.05
+        proximityScore * 0.05 +
+        creatorBoost
 
       // Apply featured placement boost for premium/enterprise business accounts
       const ownerTier = businessTierMap.get(itinerary.user_id)

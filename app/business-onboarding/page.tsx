@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, ArrowRight, Building2, Check, Loader2 } from "lucide-react"
@@ -28,6 +28,14 @@ const CATEGORIES = [
 ]
 
 export default function BusinessOnboardingPage() {
+  return (
+    <Suspense>
+      <BusinessOnboardingContent />
+    </Suspense>
+  )
+}
+
+function BusinessOnboardingContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const preselectedTier = searchParams.get("tier") as BusinessTierSlug | null

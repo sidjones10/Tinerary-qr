@@ -25,6 +25,12 @@ import {
   TrendingUp,
   Download,
   AlertCircle,
+  Sparkles,
+  Headphones,
+  FileBarChart,
+  Ticket,
+  Megaphone,
+  Zap,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useToast } from "@/components/ui/use-toast"
@@ -33,6 +39,12 @@ import { deleteDeal, generatePerformanceReport } from "@/app/actions/promotion-a
 import { PLAN_LIMITS, getPlanLimits } from "@/lib/business-plan"
 import { BUSINESS_TIERS } from "@/lib/tiers"
 import type { BusinessTierSlug } from "@/lib/tiers"
+import {
+  getBusinessSubscription,
+  getEffectiveTier,
+  getTierLimits,
+  type BusinessSubscription,
+} from "@/lib/business-tier-service"
 
 interface BusinessData {
   id: string
@@ -71,6 +83,7 @@ export function BusinessProfileContent() {
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [generatingReport, setGeneratingReport] = useState(false)
+  const [subscription, setSubscription] = useState<BusinessSubscription | null>(null)
   const { toast } = useToast()
 
   const loadData = useCallback(async () => {
@@ -91,6 +104,10 @@ export function BusinessProfileContent() {
 
     if (biz) {
       setBusiness(biz)
+
+      // Fetch subscription
+      const sub = await getBusinessSubscription(biz.id)
+      setSubscription(sub)
 
       // Fetch deals for this business
       const { data: promos } = await supabase
@@ -156,7 +173,7 @@ export function BusinessProfileContent() {
         a.click()
         URL.revokeObjectURL(url)
 
-        toast({ title: "Report downloaded", description: "Your monthly performance report has been generated." })
+        toast({ title: "Report downloaded", description: "Your performance report has been generated." })
       } else {
         toast({ title: "Error", description: "Failed to generate report.", variant: "destructive" })
       }
@@ -200,6 +217,7 @@ export function BusinessProfileContent() {
 
   const tier = (business.business_tier || "basic") as BusinessTierSlug
   const limits = getPlanLimits(tier)
+  const premiumLimits = getTierLimits(tier)
   const tierConfig = BUSINESS_TIERS.find((t) => t.slug === tier)
 
   const activeDeals = deals.filter((d: DealData) => d.status === "active")
@@ -213,12 +231,64 @@ export function BusinessProfileContent() {
 
   return (
     <div className="mt-6 flex flex-col gap-6">
+      {/* Subscription Tier Banner (premium/enterprise) */}
+      {tier !== "basic" && (
+        <Card className={`border-border overflow-hidden ${tier === "premium" ? "ring-2 ring-primary/30" : "ring-2 ring-tinerary-gold/40"}`}>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`size-10 rounded-xl flex items-center justify-center ${
+                  tier === "enterprise" ? "bg-tinerary-gold" : "bg-primary"
+                }`}>
+                  <Crown className="size-5 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-foreground">{tierConfig?.name || "Premium"} Plan</h3>
+                    <Badge className={tier === "enterprise" ? "bg-tinerary-gold/20 text-tinerary-dark border-0" : "bg-primary/10 text-primary border-0"}>
+                      Active
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {tier === "premium" && "Featured placement, unlimited promotions, advanced analytics, and priority support."}
+                    {tier === "enterprise" && "Top-tier placement, real-time analytics, dedicated manager, and unlimited everything."}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Premium feature indicators */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
+              {[
+                { icon: Sparkles, label: "Featured Placement", active: premiumLimits.featuredPlacement },
+                { icon: BarChart3, label: premiumLimits.analyticsLevel === "realtime" ? "Real-time Analytics" : "Advanced Analytics", active: true },
+                { icon: Headphones, label: premiumLimits.supportLevel === "dedicated" ? "Dedicated Manager" : "Priority Support", active: true },
+                { icon: Ticket, label: "Booking Integration", active: premiumLimits.bookingIntegration },
+              ].map((feat) => (
+                <div key={feat.label} className="flex items-center gap-1.5 p-2 rounded-lg bg-muted/50">
+                  <feat.icon className="size-3.5 text-primary shrink-0" />
+                  <span className="text-xs text-foreground truncate">{feat.label}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Profile Card with Plan Badge */}
       <Card className="overflow-hidden border-border">
-        <div className="h-32 bg-gradient-to-r from-tinerary-peach to-secondary" />
+        <div className={`h-32 ${
+          tier === "enterprise"
+            ? "bg-gradient-to-r from-tinerary-gold via-amber-400 to-orange-400"
+            : tier === "premium"
+              ? "bg-gradient-to-r from-primary via-blue-500 to-indigo-500"
+              : "bg-gradient-to-r from-tinerary-peach to-secondary"
+        }`} />
         <CardContent className="relative -mt-12">
           <div className="flex flex-col sm:flex-row sm:items-end gap-4">
-            <div className="size-24 rounded-2xl bg-card border-4 border-card flex items-center justify-center shadow-md">
+            <div className={`size-24 rounded-2xl bg-card border-4 border-card flex items-center justify-center shadow-md ${
+              tier !== "basic" ? "ring-2 ring-primary/30" : ""
+            }`}>
               {business.logo ? (
                 <img src={business.logo} alt={business.name} className="size-full rounded-2xl object-cover" />
               ) : (
@@ -230,8 +300,14 @@ export function BusinessProfileContent() {
             <div className="flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-xl font-bold text-foreground">{business.name}</h2>
-                <CheckCircle2 className="size-5 text-primary" />
-                <Badge className="bg-primary text-primary-foreground text-xs">
+                <CheckCircle2 className={`size-5 ${tier === "enterprise" ? "text-tinerary-gold" : "text-primary"}`} />
+                <Badge className={`text-xs border-0 ${
+                  tier === "enterprise"
+                    ? "bg-tinerary-gold/20 text-tinerary-dark"
+                    : tier === "premium"
+                      ? "bg-primary/10 text-primary"
+                      : "bg-primary text-primary-foreground"
+                }`}>
                   {tierConfig?.name || "Basic"} Plan
                 </Badge>
               </div>
@@ -264,55 +340,49 @@ export function BusinessProfileContent() {
         </CardContent>
       </Card>
 
-      {/* Plan Overview */}
-      <Card className="border-border">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Crown className="size-5 text-tinerary-gold" />
-              <div>
-                <CardTitle className="text-base">
-                  {tierConfig?.name || "Basic"} Plan — ${tierConfig?.price || 49}/{tierConfig?.priceSuffix || "per month"}
-                </CardTitle>
-                <CardDescription>
-                  {tier === "basic"
-                    ? "Standard listing placement with essential business tools"
-                    : tier === "premium"
-                    ? "Featured placement with advanced tools"
-                    : "Full-featured enterprise plan"}
-                </CardDescription>
+      {/* Plan Overview (basic tier) */}
+      {tier === "basic" && (
+        <Card className="border-border">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Crown className="size-5 text-tinerary-gold" />
+                <div>
+                  <CardTitle className="text-base">
+                    {tierConfig?.name || "Basic"} Plan — ${tierConfig?.price || 49}/{tierConfig?.priceSuffix || "per month"}
+                  </CardTitle>
+                  <CardDescription>Standard listing placement with essential business tools</CardDescription>
+                </div>
               </div>
-            </div>
-            {tier === "basic" && (
               <Button variant="outline" size="sm" asChild>
                 <Link href="/business">
                   Upgrade
                   <ArrowUpRight className="ml-1 size-3" />
                 </Link>
               </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {(tierConfig?.features || PLAN_LIMITS.basic && [
-              "Standard listing placement",
-              "Business profile page",
-              "Up to 5 active promotions",
-              "Basic analytics dashboard",
-              "Email support",
-              "Monthly performance report",
-            ]).map((feature) => (
-              <div key={feature} className="flex items-start gap-2">
-                <CheckCircle2 className="size-3.5 text-primary shrink-0 mt-0.5" />
-                <span className="text-xs text-foreground">{feature}</span>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {(tierConfig?.features || [
+                "Standard listing placement",
+                "Business profile page",
+                "Up to 5 active promotions",
+                "Basic analytics dashboard",
+                "Email support",
+                "Monthly performance report",
+              ]).map((feature) => (
+                <div key={feature} className="flex items-start gap-2">
+                  <CheckCircle2 className="size-3.5 text-primary shrink-0 mt-0.5" />
+                  <span className="text-xs text-foreground">{feature}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Basic Analytics Dashboard */}
+      {/* Analytics Dashboard */}
       <Card className="border-border">
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -411,6 +481,53 @@ export function BusinessProfileContent() {
         </CardContent>
       </Card>
 
+      {/* Premium Quick Links */}
+      {tier !== "basic" && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Link href="/mentions">
+            <Card className="border-border hover:shadow-md transition-all hover:-translate-y-0.5 h-full cursor-pointer">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3 mb-1">
+                  <Megaphone className="size-5 text-tinerary-salmon" />
+                  <h3 className="text-sm font-semibold text-foreground">Mention Highlights</h3>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {premiumLimits.mentionHighlightsIncluded === Infinity
+                    ? "Unlimited highlights included"
+                    : `${premiumLimits.mentionHighlightsIncluded} highlights/mo included`}
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/business-analytics">
+            <Card className="border-border hover:shadow-md transition-all hover:-translate-y-0.5 h-full cursor-pointer">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3 mb-1">
+                  <FileBarChart className="size-5 text-primary" />
+                  <h3 className="text-sm font-semibold text-foreground">
+                    {premiumLimits.reportFrequency === "daily" ? "Daily" : premiumLimits.reportFrequency === "weekly" ? "Weekly" : "Monthly"} Reports
+                  </h3>
+                </div>
+                <p className="text-xs text-muted-foreground">Performance reports delivered to your inbox</p>
+              </CardContent>
+            </Card>
+          </Link>
+          {premiumLimits.bookingIntegration && (
+            <Link href="/deals">
+              <Card className="border-border hover:shadow-md transition-all hover:-translate-y-0.5 h-full cursor-pointer">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3 mb-1">
+                    <Ticket className="size-5 text-tinerary-gold" />
+                    <h3 className="text-sm font-semibold text-foreground">Booking Integration</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Direct bookings from your listings</p>
+                </CardContent>
+              </Card>
+            </Link>
+          )}
+        </div>
+      )}
+
       {/* Deals Management */}
       <Card className="border-border">
         <CardHeader>
@@ -493,7 +610,7 @@ export function BusinessProfileContent() {
         </CardContent>
       </Card>
 
-      {/* Monthly Performance Report */}
+      {/* Performance Report */}
       <Card className="border-border">
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -538,7 +655,7 @@ export function BusinessProfileContent() {
         </CardContent>
       </Card>
 
-      {/* Email Support */}
+      {/* Support */}
       <Card className="border-border">
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -587,6 +704,28 @@ export function BusinessProfileContent() {
           )}
         </CardContent>
       </Card>
+
+      {/* Upgrade CTA for basic tier */}
+      {tier === "basic" && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-4">
+              <div className="size-12 rounded-xl bg-primary flex items-center justify-center shrink-0">
+                <Zap className="size-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-bold text-foreground">Upgrade to Premium</h3>
+                <p className="text-sm text-muted-foreground mt-1 mb-3">
+                  Get featured placement in feeds, unlimited promotions, advanced analytics, priority support, weekly reports, booking integration, and 5 mention highlights per month.
+                </p>
+                <Button className="btn-sunset" asChild>
+                  <Link href="/business">View Premium Plans</Link>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/client"
 import { notifyViewMilestone, checkViewMilestone } from "@/lib/notification-service"
 import { generalizeLocation } from "@/lib/location-utils"
+import { getFeaturedBoostMultiplier } from "@/lib/business-tier-service"
+import type { BusinessTierSlug } from "@/lib/tiers"
 
 // Types
 export interface Itinerary {
@@ -440,6 +442,28 @@ export async function discoverItineraries(
       }
     })
 
+    // Fetch business subscription tiers for featured placement boost
+    const userIds = [...new Set(processedItineraries.map((i) => i.user_id))]
+    const businessTierMap = new Map<string, BusinessTierSlug>()
+    if (userIds.length > 0) {
+      const { data: businessSubs } = await supabase
+        .from("businesses")
+        .select("user_id, business_subscriptions(tier, status)")
+        .in("user_id", userIds)
+
+      if (businessSubs) {
+        for (const biz of businessSubs) {
+          const subs = (biz as any).business_subscriptions
+          const activeSub = Array.isArray(subs)
+            ? subs.find((s: any) => s.status === "active")
+            : subs?.status === "active" ? subs : null
+          if (activeSub) {
+            businessTierMap.set(biz.user_id, activeSub.tier as BusinessTierSlug)
+          }
+        }
+      }
+    }
+
     // Calculate scores for each itinerary
     const scoredItineraries: ItineraryWithScores[] = processedItineraries.map((itinerary) => {
       const relevanceScore = calculateRelevance(itinerary, userPreferences)
@@ -455,13 +479,19 @@ export async function discoverItineraries(
         creatorTier === "business" ? 0.05 : 0
 
       // Calculate final score (weighted sum + creator priority)
-      const finalScore =
+      let finalScore =
         relevanceScore * 0.4 +
         popularityScore * 0.25 +
         freshnessScore * 0.15 +
         qualityScore * 0.15 +
         proximityScore * 0.05 +
         creatorBoost
+
+      // Apply featured placement boost for premium/enterprise business accounts
+      const ownerTier = businessTierMap.get(itinerary.user_id)
+      if (ownerTier) {
+        finalScore *= getFeaturedBoostMultiplier(ownerTier)
+      }
 
       return {
         ...itinerary,

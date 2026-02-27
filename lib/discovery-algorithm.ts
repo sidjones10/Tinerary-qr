@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/client"
 import { notifyViewMilestone, checkViewMilestone } from "@/lib/notification-service"
 import { generalizeLocation } from "@/lib/location-utils"
 import { getFeaturedBoostMultiplier } from "@/lib/business-tier-service"
+import { getPlacementBoost, getBookingPlacementPriority } from "@/lib/enterprise"
 import type { BusinessTierSlug } from "@/lib/tiers"
 
 // Types

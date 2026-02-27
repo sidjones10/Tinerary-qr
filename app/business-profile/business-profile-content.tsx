@@ -31,6 +31,8 @@ import {
   Ticket,
   Megaphone,
   Zap,
+  Shield,
+  Key,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useToast } from "@/components/ui/use-toast"
@@ -45,6 +47,17 @@ import {
   getTierLimits,
   type BusinessSubscription,
 } from "@/lib/business-tier-service"
+import { EnterpriseProfileBadge, EnterpriseBadge, TopTierPlacementIndicator } from "@/components/enterprise-badge"
+import { EnterpriseAccountManager } from "@/components/enterprise-account-manager"
+import { EnterpriseAnalyticsDashboard } from "@/components/enterprise-analytics-dashboard"
+import { EnterpriseBrandedProfile } from "@/components/enterprise-branded-profile"
+import {
+  getTierFeatures,
+  isEnterprise,
+  ENTERPRISE_ACCOUNT_MANAGERS,
+  ENTERPRISE_UNLIMITED_FEATURES,
+  type EnterpriseBrandingConfig,
+} from "@/lib/enterprise"
 
 interface BusinessData {
   id: string
@@ -57,6 +70,12 @@ interface BusinessData {
   review_count: number | null
   created_at: string
   business_tier?: string
+  branding_config?: EnterpriseBrandingConfig | null
+  enterprise_badge_enabled?: boolean
+  priority_placement?: boolean
+  unlimited_mentions?: boolean
+  api_key?: string | null
+  api_enabled?: boolean
 }
 
 interface DealData {
@@ -219,6 +238,8 @@ export function BusinessProfileContent() {
   const limits = getPlanLimits(tier)
   const premiumLimits = getTierLimits(tier)
   const tierConfig = BUSINESS_TIERS.find((t) => t.slug === tier)
+  const enterpriseFeatures = getTierFeatures(tier)
+  const isEnt = isEnterprise(tier)
 
   const activeDeals = deals.filter((d: DealData) => d.status === "active")
   const totalViews = deals.reduce((sum: number, d: DealData) => sum + ((d.promotion_metrics as any)?.views || 0), 0)
@@ -228,6 +249,14 @@ export function BusinessProfileContent() {
 
   const promotionLimitReached =
     limits.maxActivePromotions !== null && activeDeals.length >= limits.maxActivePromotions
+
+  // Enterprise branding config
+  const brandingConfig = business.branding_config
+  const coverStyle = isEnt && brandingConfig
+    ? {
+        background: `linear-gradient(135deg, ${brandingConfig.primaryColor || "#1a1a2e"}, ${brandingConfig.secondaryColor || "#16213e"})`,
+      }
+    : undefined
 
   return (
     <div className="mt-6 flex flex-col gap-6">
@@ -240,7 +269,7 @@ export function BusinessProfileContent() {
                 <div className={`size-10 rounded-xl flex items-center justify-center ${
                   tier === "enterprise" ? "bg-tinerary-gold" : "bg-primary"
                 }`}>
-                  <Crown className="size-5 text-white" />
+                  {isEnt ? <Shield className="size-5 text-white" /> : <Crown className="size-5 text-white" />}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -248,6 +277,7 @@ export function BusinessProfileContent() {
                     <Badge className={tier === "enterprise" ? "bg-tinerary-gold/20 text-tinerary-dark border-0" : "bg-primary/10 text-primary border-0"}>
                       Active
                     </Badge>
+                    {isEnt && <TopTierPlacementIndicator tier={tier} />}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {tier === "premium" && "Featured placement, unlimited promotions, advanced analytics, and priority support."}
@@ -257,13 +287,13 @@ export function BusinessProfileContent() {
               </div>
             </div>
 
-            {/* Premium feature indicators */}
+            {/* Feature indicators */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
               {[
-                { icon: Sparkles, label: "Featured Placement", active: premiumLimits.featuredPlacement },
+                { icon: Sparkles, label: isEnt ? "Top-tier Placement" : "Featured Placement", active: premiumLimits.featuredPlacement },
                 { icon: BarChart3, label: premiumLimits.analyticsLevel === "realtime" ? "Real-time Analytics" : "Advanced Analytics", active: true },
                 { icon: Headphones, label: premiumLimits.supportLevel === "dedicated" ? "Dedicated Manager" : "Priority Support", active: true },
-                { icon: Ticket, label: "Booking Integration", active: premiumLimits.bookingIntegration },
+                { icon: Ticket, label: isEnt ? "Priority Booking" : "Booking Integration", active: premiumLimits.bookingIntegration },
               ].map((feat) => (
                 <div key={feat.label} className="flex items-center gap-1.5 p-2 rounded-lg bg-muted/50">
                   <feat.icon className="size-3.5 text-primary shrink-0" />
@@ -275,15 +305,44 @@ export function BusinessProfileContent() {
         </Card>
       )}
 
+      {/* Enterprise Unlimited Features Banner */}
+      {isEnt && (
+        <Card className="border-tinerary-gold/20 bg-gradient-to-r from-tinerary-gold/5 to-tinerary-peach/5">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="size-4 text-tinerary-gold" />
+              <h3 className="text-sm font-bold text-foreground">Enterprise Unlimited</h3>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+              {Object.entries(ENTERPRISE_UNLIMITED_FEATURES).slice(0, 5).map(([key, description]) => (
+                <div key={key} className="flex items-start gap-1.5 p-2 rounded-lg bg-card/50">
+                  <CheckCircle2 className="size-3 text-tinerary-gold shrink-0 mt-0.5" />
+                  <span className="text-[10px] text-muted-foreground leading-tight">{description.split(" ").slice(0, 4).join(" ")}...</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Profile Card with Plan Badge */}
-      <Card className="overflow-hidden border-border">
-        <div className={`h-32 ${
-          tier === "enterprise"
-            ? "bg-gradient-to-r from-tinerary-gold via-amber-400 to-orange-400"
-            : tier === "premium"
-              ? "bg-gradient-to-r from-primary via-blue-500 to-indigo-500"
-              : "bg-gradient-to-r from-tinerary-peach to-secondary"
-        }`} />
+      <Card className={`overflow-hidden ${isEnt ? "border-tinerary-gold/20" : "border-border"}`}>
+        <div
+          className={`h-32 ${
+            !coverStyle
+              ? tier === "enterprise"
+                ? "bg-gradient-to-r from-tinerary-gold via-amber-400 to-orange-400"
+                : tier === "premium"
+                  ? "bg-gradient-to-r from-primary via-blue-500 to-indigo-500"
+                  : "bg-gradient-to-r from-tinerary-peach to-secondary"
+              : ""
+          }`}
+          style={coverStyle}
+        >
+          {isEnt && brandingConfig?.coverImageUrl && (
+            <img src={brandingConfig.coverImageUrl} alt="Cover" className="w-full h-full object-cover" />
+          )}
+        </div>
         <CardContent className="relative -mt-12">
           <div className="flex flex-col sm:flex-row sm:items-end gap-4">
             <div className={`size-24 rounded-2xl bg-card border-4 border-card flex items-center justify-center shadow-md ${
@@ -299,8 +358,14 @@ export function BusinessProfileContent() {
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-xl font-bold text-foreground">{business.name}</h2>
-                <CheckCircle2 className={`size-5 ${tier === "enterprise" ? "text-tinerary-gold" : "text-primary"}`} />
+                {isEnt ? (
+                  <EnterpriseProfileBadge tier={tier} businessName={business.name} />
+                ) : (
+                  <>
+                    <h2 className="text-xl font-bold text-foreground">{business.name}</h2>
+                    <CheckCircle2 className={`size-5 ${tier === "premium" ? "text-primary" : "text-muted-foreground"}`} />
+                  </>
+                )}
                 <Badge className={`text-xs border-0 ${
                   tier === "enterprise"
                     ? "bg-tinerary-gold/20 text-tinerary-dark"
@@ -339,6 +404,31 @@ export function BusinessProfileContent() {
           </div>
         </CardContent>
       </Card>
+
+      {/* API Key Info (Enterprise only) */}
+      {isEnt && business.api_key && (
+        <Card className="border-border">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Key className="size-4 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">API Access</p>
+                  <p className="text-xs text-muted-foreground">Use your API key to access analytics and reports programmatically.</p>
+                </div>
+              </div>
+              <Badge variant="secondary" className="text-[10px] font-mono">
+                {business.api_key.slice(0, 8)}...{business.api_key.slice(-4)}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Dedicated Account Manager (Enterprise only) */}
+      {isEnt && (
+        <EnterpriseAccountManager manager={ENTERPRISE_ACCOUNT_MANAGERS[0]} />
+      )}
 
       {/* Plan Overview (basic tier) */}
       {tier === "basic" && (
@@ -382,104 +472,96 @@ export function BusinessProfileContent() {
         </Card>
       )}
 
-      {/* Analytics Dashboard */}
-      <Card className="border-border">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <BarChart3 className="size-5 text-tinerary-gold" />
-            <div>
-              <CardTitle className="text-base">Analytics Dashboard</CardTitle>
-              <CardDescription>
-                {limits.analyticsLevel === "basic"
-                  ? "Basic performance overview for your promotions"
-                  : limits.analyticsLevel === "advanced"
-                  ? "Advanced analytics with deeper insights"
-                  : "Real-time analytics with API access"}
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {/* Summary Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {[
-              { label: "Total Views", value: totalViews.toLocaleString(), icon: Eye, color: "text-blue-500" },
-              { label: "Total Clicks", value: totalClicks.toLocaleString(), icon: MousePointerClick, color: "text-green-500" },
-              { label: "Total Saves", value: totalSaves.toLocaleString(), icon: Bookmark, color: "text-orange-500" },
-              { label: "Click Rate", value: `${clickThroughRate}%`, icon: TrendingUp, color: "text-purple-500" },
-            ].map((stat) => (
-              <div key={stat.label} className="p-4 rounded-xl bg-muted">
-                <stat.icon className={`size-5 ${stat.color}`} />
-                <p className="mt-2 text-2xl font-bold text-foreground">{stat.value}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
+      {/* Analytics Dashboard — Enterprise gets the full real-time dashboard */}
+      {isEnt ? (
+        <EnterpriseAnalyticsDashboard tier={tier} />
+      ) : (
+        <Card className="border-border">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <BarChart3 className="size-5 text-tinerary-gold" />
+              <div>
+                <CardTitle className="text-base">Analytics Dashboard</CardTitle>
+                <CardDescription>
+                  {limits.analyticsLevel === "basic"
+                    ? "Basic performance overview for your promotions"
+                    : limits.analyticsLevel === "advanced"
+                    ? "Advanced analytics with deeper insights"
+                    : "Real-time analytics with API access"}
+                </CardDescription>
               </div>
-            ))}
-          </div>
-
-          {/* Promotion Limits */}
-          {limits.maxActivePromotions !== null && (
-            <div className="mb-6 p-4 rounded-xl bg-muted">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-foreground">
-                  Active Promotions
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  {activeDeals.length} / {limits.maxActivePromotions}
-                </span>
-              </div>
-              <Progress
-                value={(activeDeals.length / limits.maxActivePromotions) * 100}
-                className="h-2"
-              />
-              {promotionLimitReached && (
-                <p className="text-xs text-orange-500 mt-2 flex items-center gap-1">
-                  <AlertCircle className="size-3" />
-                  Limit reached. Upgrade to Premium for unlimited promotions.
-                </p>
-              )}
             </div>
-          )}
+          </CardHeader>
+          <CardContent>
+            {/* Summary Stats */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {[
+                { label: "Total Views", value: totalViews.toLocaleString(), icon: Eye, color: "text-blue-500" },
+                { label: "Total Clicks", value: totalClicks.toLocaleString(), icon: MousePointerClick, color: "text-green-500" },
+                { label: "Total Saves", value: totalSaves.toLocaleString(), icon: Bookmark, color: "text-orange-500" },
+                { label: "Click Rate", value: `${clickThroughRate}%`, icon: TrendingUp, color: "text-purple-500" },
+              ].map((stat) => (
+                <div key={stat.label} className="p-4 rounded-xl bg-muted">
+                  <stat.icon className={`size-5 ${stat.color}`} />
+                  <p className="mt-2 text-2xl font-bold text-foreground">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
+                </div>
+              ))}
+            </div>
 
-          {/* Per-Promotion Performance */}
-          {deals.length > 0 && (
-            <div>
-              <h4 className="text-sm font-semibold text-foreground mb-3">Promotion Performance</h4>
-              <div className="space-y-2">
-                {deals.map((deal: DealData) => {
-                  const views = (deal.promotion_metrics as any)?.views || 0
-                  const clicks = (deal.promotion_metrics as any)?.clicks || 0
-                  const saves = (deal.promotion_metrics as any)?.saves || 0
-                  const ctr = views > 0 ? Math.round((clicks / views) * 10000) / 100 : 0
+            {/* Promotion Limits */}
+            {limits.maxActivePromotions !== null && (
+              <div className="mb-6 p-4 rounded-xl bg-muted">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-foreground">Active Promotions</span>
+                  <span className="text-sm text-muted-foreground">{activeDeals.length} / {limits.maxActivePromotions}</span>
+                </div>
+                <Progress value={(activeDeals.length / limits.maxActivePromotions) * 100} className="h-2" />
+                {promotionLimitReached && (
+                  <p className="text-xs text-orange-500 mt-2 flex items-center gap-1">
+                    <AlertCircle className="size-3" />
+                    Limit reached. Upgrade to Premium for unlimited promotions.
+                  </p>
+                )}
+              </div>
+            )}
 
-                  return (
-                    <div key={deal.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{deal.title}</p>
-                        <div className="flex items-center gap-3 mt-1">
-                          <span className="text-xs text-muted-foreground">{views} views</span>
-                          <span className="text-xs text-muted-foreground">{clicks} clicks</span>
-                          <span className="text-xs text-muted-foreground">{saves} saves</span>
-                          <span className="text-xs text-muted-foreground">{ctr}% CTR</span>
+            {/* Per-Promotion Performance */}
+            {deals.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-foreground mb-3">Promotion Performance</h4>
+                <div className="space-y-2">
+                  {deals.map((deal: DealData) => {
+                    const views = (deal.promotion_metrics as any)?.views || 0
+                    const clicks = (deal.promotion_metrics as any)?.clicks || 0
+                    const saves = (deal.promotion_metrics as any)?.saves || 0
+                    const ctr = views > 0 ? Math.round((clicks / views) * 10000) / 100 : 0
+                    return (
+                      <div key={deal.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{deal.title}</p>
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className="text-xs text-muted-foreground">{views} views</span>
+                            <span className="text-xs text-muted-foreground">{clicks} clicks</span>
+                            <span className="text-xs text-muted-foreground">{saves} saves</span>
+                            <span className="text-xs text-muted-foreground">{ctr}% CTR</span>
+                          </div>
                         </div>
+                        <Badge variant="secondary" className={deal.status === "active" ? "bg-tinerary-peach text-tinerary-dark border-0" : "bg-secondary text-secondary-foreground border-0"}>
+                          {deal.status}
+                        </Badge>
                       </div>
-                      <Badge
-                        variant="secondary"
-                        className={
-                          deal.status === "active"
-                            ? "bg-tinerary-peach text-tinerary-dark border-0"
-                            : "bg-secondary text-secondary-foreground border-0"
-                        }
-                      >
-                        {deal.status}
-                      </Badge>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
               </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Custom Branded Profile (Enterprise only, shows locked state for others) */}
+      <EnterpriseBrandedProfile tier={tier} brandingConfig={brandingConfig} />
 
       {/* Premium Quick Links */}
       {tier !== "basic" && (
@@ -520,7 +602,9 @@ export function BusinessProfileContent() {
                     <Ticket className="size-5 text-tinerary-gold" />
                     <h3 className="text-sm font-semibold text-foreground">Booking Integration</h3>
                   </div>
-                  <p className="text-xs text-muted-foreground">Direct bookings from your listings</p>
+                  <p className="text-xs text-muted-foreground">
+                    {isEnt ? "Priority placement in all booking feeds" : "Direct bookings from your listings"}
+                  </p>
                 </CardContent>
               </Card>
             </Link>
@@ -536,19 +620,22 @@ export function BusinessProfileContent() {
               <CardTitle>Your Deals</CardTitle>
               <CardDescription>
                 Create and manage deals that travelers will see on Tinerary
-                {limits.maxActivePromotions !== null && (
-                  <span className="ml-1">
-                    ({activeDeals.length}/{limits.maxActivePromotions} active)
-                  </span>
-                )}
+                {isEnt
+                  ? " — Enterprise accounts get priority booking placement"
+                  : limits.maxActivePromotions !== null
+                    ? ` (${activeDeals.length}/${limits.maxActivePromotions} active)`
+                    : ""}
               </CardDescription>
             </div>
-            <CreateDealDialog
-              onDealCreated={loadData}
-              disabled={promotionLimitReached}
-              activeCount={activeDeals.length}
-              maxCount={limits.maxActivePromotions}
-            />
+            <div className="flex items-center gap-2">
+              {isEnt && <Badge variant="secondary" className="text-[10px]">Unlimited</Badge>}
+              <CreateDealDialog
+                onDealCreated={loadData}
+                disabled={promotionLimitReached}
+                activeCount={activeDeals.length}
+                maxCount={limits.maxActivePromotions}
+              />
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -562,12 +649,16 @@ export function BusinessProfileContent() {
           ) : (
             <div className="flex flex-col gap-3">
               {deals.map((deal: DealData) => (
-                <div
-                  key={deal.id}
-                  className="flex items-center justify-between p-3 rounded-xl bg-muted"
-                >
+                <div key={deal.id} className="flex items-center justify-between p-3 rounded-xl bg-muted">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{deal.title}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-foreground truncate">{deal.title}</p>
+                      {isEnt && enterpriseFeatures.hasPriorityBookingPlacement && (
+                        <Badge variant="outline" className="text-[10px] border-tinerary-gold/30 text-tinerary-gold">
+                          <Crown className="size-2.5 mr-0.5" /> Priority
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       {deal.type} &middot; {deal.category} &middot; {deal.location}
                     </p>
@@ -579,27 +670,12 @@ export function BusinessProfileContent() {
                   </div>
                   <div className="flex items-center gap-2 ml-4">
                     <div className="text-right mr-2 hidden sm:block">
-                      <p className="text-xs text-muted-foreground">
-                        {(deal.promotion_metrics as any)?.views || 0} views
-                      </p>
+                      <p className="text-xs text-muted-foreground">{(deal.promotion_metrics as any)?.views || 0} views</p>
                     </div>
-                    <Badge
-                      variant="secondary"
-                      className={
-                        deal.status === "active"
-                          ? "bg-tinerary-peach text-tinerary-dark border-0"
-                          : "bg-secondary text-secondary-foreground border-0"
-                      }
-                    >
+                    <Badge variant="secondary" className={deal.status === "active" ? "bg-tinerary-peach text-tinerary-dark border-0" : "bg-secondary text-secondary-foreground border-0"}>
                       {deal.status}
                     </Badge>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      onClick={() => handleDeleteDeal(deal.id)}
-                      disabled={deletingId === deal.id}
-                    >
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteDeal(deal.id)} disabled={deletingId === deal.id}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -635,14 +711,10 @@ export function BusinessProfileContent() {
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Includes views, clicks, saves, CTR, and top-performing promotions
+                {isEnt && " plus trend analysis, competitor benchmarks, and recommendations"}
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGenerateReport}
-              disabled={generatingReport}
-            >
+            <Button variant="outline" size="sm" onClick={handleGenerateReport} disabled={generatingReport}>
               <Download className="mr-2 size-4" />
               {generatingReport ? "Generating..." : "Download Report"}
             </Button>
@@ -676,11 +748,7 @@ export function BusinessProfileContent() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-muted">
             <div>
               <p className="text-sm font-medium text-foreground">
-                {limits.supportLevel === "email"
-                  ? "Email Support"
-                  : limits.supportLevel === "priority"
-                  ? "Priority Support"
-                  : "Dedicated Account Manager"}
+                {limits.supportLevel === "email" ? "Email Support" : limits.supportLevel === "priority" ? "Priority Support" : "Dedicated Account Manager"}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {limits.supportLevel === "email"

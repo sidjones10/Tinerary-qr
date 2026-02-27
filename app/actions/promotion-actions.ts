@@ -250,7 +250,11 @@ export async function getPublicDeals() {
           logo,
           website,
           rating,
-          review_count
+          review_count,
+          business_tier,
+          enterprise_badge_enabled,
+          priority_placement,
+          branding_config
         ),
         promotion_metrics (*)
       `)
@@ -259,7 +263,29 @@ export async function getPublicDeals() {
 
     if (error) throw error
 
-    return { success: true, data: data || [] }
+    // Apply enterprise priority placement boost:
+    // Enterprise businesses with priority_placement get sorted to top
+    const deals = data || []
+    deals.sort((a: any, b: any) => {
+      const aTier = a.businesses?.business_tier || "basic"
+      const bTier = b.businesses?.business_tier || "basic"
+      const aPriority = a.businesses?.priority_placement ? 1 : 0
+      const bPriority = b.businesses?.priority_placement ? 1 : 0
+
+      // Priority placement businesses come first
+      if (aPriority !== bPriority) return bPriority - aPriority
+
+      // Among same priority, enterprise > premium > basic
+      const tierRank: Record<string, number> = { enterprise: 3, premium: 2, basic: 1 }
+      const aTierRank = tierRank[aTier] || 0
+      const bTierRank = tierRank[bTier] || 0
+      if (aTierRank !== bTierRank) return bTierRank - aTierRank
+
+      // Fall back to rank_score
+      return (b.rank_score || 0) - (a.rank_score || 0)
+    })
+
+    return { success: true, data: deals }
   } catch (error) {
     console.error("Error fetching public deals:", error)
     return { success: false, error: (error as Error).message, data: [] }

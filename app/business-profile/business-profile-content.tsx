@@ -2,9 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Store,
   BarChart3,
@@ -18,13 +22,12 @@ import {
   Bookmark,
   ArrowRight,
   Sparkles,
-  CheckCircle2,
   Shield,
   Headphones,
   Mail,
   Coins,
   Zap,
-  Rocket,
+  Loader2,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { BUSINESS_TIERS } from "@/lib/tiers"
@@ -34,6 +37,7 @@ import {
   getEffectiveTier,
   getTierLimits,
 } from "@/lib/business-tier-service"
+import { createBusiness } from "@/app/actions/business-actions"
 
 interface BusinessData {
   id: string
@@ -47,6 +51,27 @@ interface BusinessData {
   created_at: string
   business_tier?: string
 }
+
+interface ProfileData {
+  name: string | null
+  username: string | null
+  bio: string | null
+  location: string | null
+  website: string | null
+  avatar_url: string | null
+}
+
+const CATEGORIES = [
+  "Accommodation",
+  "Activities & Tours",
+  "Food & Dining",
+  "Transportation",
+  "Shopping",
+  "Entertainment",
+  "Wellness & Spa",
+  "Travel Services",
+  "Other",
+]
 
 // ─── Tier Theme ──────────────────────────────────────────────
 
@@ -171,96 +196,199 @@ function getActivePerks(tier: BusinessTierSlug) {
   ]
 }
 
-// ─── Empty State ─────────────────────────────────────────────
+// ─── Inline Setup (replaces separate onboarding page) ────────
 
-function EmptyState() {
-  const tierIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-    basic: Store,
-    premium: Crown,
-    enterprise: Shield,
-  }
-  const tierColors: Record<string, { bg: string; gradient: string }> = {
-    basic: { bg: "bg-primary", gradient: "from-tinerary-peach to-secondary" },
-    premium: { bg: "bg-primary", gradient: "from-primary via-blue-500 to-indigo-500" },
-    enterprise: { bg: "bg-tinerary-gold", gradient: "from-tinerary-gold via-amber-400 to-orange-400" },
+function InlineSetup({
+  profileData,
+  onCreated,
+}: {
+  profileData: ProfileData | null
+  onCreated: () => void
+}) {
+  const searchParams = useSearchParams()
+  const preselectedTier = searchParams.get("tier") as BusinessTierSlug | null
+
+  const [name, setName] = useState("")
+  const [category, setCategory] = useState("")
+  const [description, setDescription] = useState("")
+  const [website, setWebsite] = useState("")
+  const [selectedTier, setSelectedTier] = useState<BusinessTierSlug>(
+    preselectedTier && ["basic", "premium", "enterprise"].includes(preselectedTier)
+      ? preselectedTier
+      : "basic"
+  )
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Pre-fill from profile data
+  useEffect(() => {
+    if (profileData) {
+      if (profileData.name) setName(profileData.name)
+      if (profileData.website) setWebsite(profileData.website)
+      if (profileData.bio) setDescription(profileData.bio)
+    }
+  }, [profileData])
+
+  async function handleSubmit() {
+    setError(null)
+    setSubmitting(true)
+
+    const formData = new FormData()
+    formData.set("name", name)
+    formData.set("category", category)
+    formData.set("description", description)
+    formData.set("website", website)
+    formData.set("tier", selectedTier)
+
+    const result = await createBusiness(formData)
+
+    if (result && "success" in result) {
+      if (result.success) {
+        onCreated()
+      } else {
+        setError(result.error || "Something went wrong.")
+        setSubmitting(false)
+      }
+    }
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <div className="text-center">
         <div className="size-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
           <Store className="size-8 text-primary" />
         </div>
-        <h2 className="text-2xl font-bold text-foreground">Launch Your Business on Tinerary</h2>
-        <p className="text-sm text-muted-foreground mt-2 max-w-lg mx-auto">
-          Reach travelers at the moment they&apos;re planning. Choose a plan to unlock your
-          business dashboard with promotions, analytics, and booking tools.
+        <h2 className="text-2xl font-bold text-foreground">Set Up Your Business</h2>
+        <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
+          {profileData?.name
+            ? "We\u2019ve pulled in your profile info as a starting point. Pick a category and you\u2019re ready to go."
+            : "Tell us about your business to get started."}
         </p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-4">
-        {BUSINESS_TIERS.map((tier) => {
-          const Icon = tierIcons[tier.slug]
-          const colors = tierColors[tier.slug]
-          return (
-            <Card
-              key={tier.slug}
-              className={`border-border overflow-hidden relative ${
-                tier.highlighted ? "ring-2 ring-primary/40 shadow-md" : ""
-              }`}
-            >
-              {tier.highlighted && (
-                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-primary to-blue-500" />
-              )}
-              <div className={`h-20 bg-gradient-to-r ${colors.gradient}`} />
-              <CardContent className="pt-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`size-8 rounded-lg ${colors.bg} flex items-center justify-center`}>
-                    <Icon className="size-4 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-foreground">{tier.name}</h3>
+      <Card className="border-border max-w-xl mx-auto w-full">
+        <CardContent className="pt-6">
+          <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="biz-name">
+                Business Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="biz-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Sunset Beach Resort"
+                maxLength={100}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="biz-category">
+                Category <span className="text-destructive">*</span>
+              </Label>
+              <select
+                id="biz-category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value="">Select a category</option>
+                {CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="biz-desc">Description</Label>
+              <Textarea
+                id="biz-desc"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="What your business offers to travelers..."
+                maxLength={500}
+                rows={3}
+              />
+              <p className="text-xs text-muted-foreground text-right">
+                {description.length}/500
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="biz-website">Website</Label>
+              <Input
+                id="biz-website"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                placeholder="https://yourbusiness.com"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label>Plan</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {BUSINESS_TIERS.map((tier) => (
+                  <button
+                    key={tier.slug}
+                    type="button"
+                    onClick={() => setSelectedTier(tier.slug)}
+                    className={`relative p-3 rounded-xl border text-center transition-all ${
+                      selectedTier === tier.slug
+                        ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                        : "border-border hover:border-primary/30"
+                    }`}
+                  >
+                    <p className="text-sm font-bold text-foreground">{tier.name}</p>
                     <p className="text-xs text-muted-foreground">
                       ${tier.price}/{tier.priceSuffix}
                     </p>
-                  </div>
-                  {tier.highlighted && (
-                    <Badge className="ml-auto bg-tinerary-peach text-tinerary-dark border-0 text-[10px]">
-                      Popular
-                    </Badge>
-                  )}
-                </div>
-                <div className="flex flex-col gap-1.5 mt-3">
-                  {tier.features.slice(0, 5).map((f) => (
-                    <div key={f} className="flex items-start gap-1.5">
-                      <CheckCircle2 className="size-3 text-primary shrink-0 mt-0.5" />
-                      <span className="text-[11px] text-muted-foreground leading-tight">{f}</span>
-                    </div>
-                  ))}
-                  {tier.features.length > 5 && (
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      +{tier.features.length - 5} more features
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )
-        })}
-      </div>
+                    {tier.highlighted && (
+                      <Badge className="absolute -top-2 right-2 bg-tinerary-peach text-tinerary-dark border-0 text-[9px]">
+                        Popular
+                      </Badge>
+                    )}
+                  </button>
+                ))}
+              </div>
+              <Button
+                variant="link"
+                size="sm"
+                className="self-end text-xs p-0 h-auto"
+                asChild
+              >
+                <Link href="/business">Compare plans in detail</Link>
+              </Button>
+            </div>
 
-      <div className="text-center">
-        <Button className="btn-sunset" size="lg" asChild>
-          <Link href="/business-onboarding">
-            <Rocket className="mr-2 size-4" />
-            Get Started — Create Your Business
-            <ArrowRight className="ml-2 size-3" />
-          </Link>
-        </Button>
-        <p className="text-xs text-muted-foreground mt-3">
-          Choose a plan and set up your business profile in just a few steps.
-        </p>
-      </div>
+            {error && (
+              <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+                {error}
+              </p>
+            )}
+
+            <Button
+              className="btn-sunset w-full"
+              size="lg"
+              disabled={!name.trim() || !category || submitting}
+              onClick={handleSubmit}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  Create Business
+                  <ArrowRight className="ml-2 size-4" />
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
@@ -272,6 +400,7 @@ export function BusinessProfileContent() {
   const [loading, setLoading] = useState(true)
   const [tier, setTier] = useState<BusinessTierSlug>("basic")
   const [summaryStats, setSummaryStats] = useState({ views: 0, clicks: 0, saves: 0, activeDeals: 0 })
+  const [profileData, setProfileData] = useState<ProfileData | null>(null)
 
   const loadData = useCallback(async () => {
     const supabase = createClient()
@@ -282,6 +411,16 @@ export function BusinessProfileContent() {
       return
     }
 
+    // Fetch profile data (for pre-filling setup + avatar fallback)
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("name, username, bio, location, website, avatar_url")
+      .eq("id", session.user.id)
+      .single()
+
+    if (profile) setProfileData(profile)
+
+    // Fetch business
     const { data: biz } = await supabase
       .from("businesses")
       .select("*")
@@ -339,7 +478,7 @@ export function BusinessProfileContent() {
   }
 
   if (!business) {
-    return <EmptyState />
+    return <InlineSetup profileData={profileData} onCreated={loadData} />
   }
 
   const theme = TIER_THEME[tier]
@@ -353,18 +492,26 @@ export function BusinessProfileContent() {
       {/* Hero */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <div className={`size-10 rounded-xl ${theme.bg} flex items-center justify-center`}>
-            <TierIcon className="size-5 text-white" />
-          </div>
+          {business.logo || profileData?.avatar_url ? (
+            <img
+              src={(business.logo || profileData?.avatar_url)!}
+              alt={business.name}
+              className="size-10 rounded-xl object-cover"
+            />
+          ) : (
+            <div className={`size-10 rounded-xl ${theme.bg} flex items-center justify-center`}>
+              <TierIcon className="size-5 text-white" />
+            </div>
+          )}
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold">Business Hub</h1>
+              <h1 className="text-2xl font-bold">{business.name}</h1>
               <Badge className={`${theme.badgeCls} border-0 text-xs`}>
                 {tierConfig?.name || "Basic"}
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              {business.name} — manage your promotions, analytics, and tools
+              Manage your promotions, analytics, and tools
             </p>
           </div>
         </div>

@@ -1,7 +1,11 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
 import {
   Table,
   TableBody,
@@ -18,8 +22,21 @@ import {
   Bell,
   Tag,
   BookOpen,
+  Crown,
+  Lock,
 } from "lucide-react"
 import { MENTION_HIGHLIGHTS } from "@/lib/tiers"
+import { createClient } from "@/lib/supabase/client"
+import {
+  getBusinessSubscriptionByUserId,
+  getEffectiveTier,
+  getMentionHighlightsRemaining,
+  canUseMentionHighlight,
+  getTierLimits,
+  type BusinessSubscription,
+} from "@/lib/business-tier-service"
+import type { BusinessTierSlug } from "@/lib/tiers"
+import { useToast } from "@/components/ui/use-toast"
 
 const quarterlyProjections = [
   { quarter: "Q1", itineraries: 200, mentions: 120, highlighted: 15, revenue: "$350" },
@@ -71,16 +88,154 @@ const recentMentions = [
   },
 ]
 
-const stats = [
-  { label: "Total Mentions", value: "47", change: "+12", icon: Tag },
-  { label: "Highlighted", value: "3", change: "of 5 included", icon: Sparkles },
-  { label: "Highlight Views", value: "3,690", change: "+24%", icon: Eye },
-  { label: "Booking Clicks", value: "82", change: "+31%", icon: Link2 },
-]
-
 export function MentionsContent() {
+  const [tier, setTier] = useState<BusinessTierSlug>("basic")
+  const [subscription, setSubscription] = useState<BusinessSubscription | null>(null)
+  const [highlightsUsed, setHighlightsUsed] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
+
+  useEffect(() => {
+    async function load() {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { setLoading(false); return }
+
+      const { subscription: sub } = await getBusinessSubscriptionByUserId(session.user.id)
+      setSubscription(sub)
+      const effectiveTier = getEffectiveTier(sub)
+      setTier(effectiveTier)
+      setHighlightsUsed(sub?.mention_highlights_used || 0)
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  const limits = getTierLimits(tier)
+  const highlightsIncluded = limits.mentionHighlightsIncluded
+  const remaining = getMentionHighlightsRemaining(tier, highlightsUsed)
+  const canHighlight = canUseMentionHighlight(tier, highlightsUsed)
+  const highlightedCount = recentMentions.filter((m) => m.highlighted).length
+
+  const handleHighlight = () => {
+    if (tier === "basic") {
+      toast({
+        title: "Upgrade Required",
+        description: "Mention Highlights are available on Premium and Enterprise plans. Upgrade to get 5 highlights/month included.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!canHighlight) {
+      toast({
+        title: "Highlight Limit Reached",
+        description: `You've used all ${highlightsIncluded} included highlights this month. Purchase additional highlights or upgrade your plan.`,
+        variant: "destructive",
+      })
+      return
+    }
+
+    toast({
+      title: "Mention Highlighted",
+      description: "Your badge, logo, and booking link have been added to this mention.",
+    })
+    setHighlightsUsed((prev) => prev + 1)
+  }
+
+  const stats = [
+    { label: "Total Mentions", value: "47", change: "+12", icon: Tag },
+    {
+      label: "Highlighted",
+      value: `${highlightedCount}`,
+      change: highlightsIncluded === Infinity
+        ? "Unlimited"
+        : tier === "basic"
+          ? "Upgrade for included"
+          : `of ${highlightsIncluded} included`,
+      icon: Sparkles,
+    },
+    { label: "Highlight Views", value: "3,690", change: "+24%", icon: Eye },
+    { label: "Booking Clicks", value: "82", change: "+31%", icon: Link2 },
+  ]
+
+  if (loading) {
+    return (
+      <div className="mt-6 flex flex-col gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="border-border animate-pulse">
+              <CardContent className="pt-6"><div className="h-16 bg-muted rounded" /></CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="mt-6 flex flex-col gap-6">
+      {/* Tier-aware highlight quota banner */}
+      {tier !== "basic" && highlightsIncluded !== Infinity && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Crown className="size-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">
+                  Monthly Highlights: {highlightsUsed}/{highlightsIncluded} used
+                </span>
+              </div>
+              <Badge className="bg-primary/10 text-primary border-0 text-xs">
+                {remaining} remaining
+              </Badge>
+            </div>
+            <Progress
+              value={(highlightsUsed / highlightsIncluded) * 100}
+              className="h-2"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              Your Premium plan includes {highlightsIncluded} mention highlights per month. Purchase additional highlights below.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {tier === "enterprise" && (
+        <Card className="border-tinerary-gold/20 bg-tinerary-gold/5">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2">
+              <Crown className="size-4 text-tinerary-gold" />
+              <span className="text-sm font-semibold text-foreground">Unlimited Mention Highlights</span>
+              <Badge className="bg-tinerary-gold/20 text-tinerary-dark border-0 text-xs">Enterprise</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Your Enterprise plan includes unlimited mention highlights. All new mentions can be highlighted automatically.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {tier === "basic" && (
+        <Card className="border-border">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <Lock className="size-5 text-muted-foreground mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-foreground">Included Highlights Available on Premium</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Premium subscribers get 5 mention highlights per month included at no extra cost.
+                  Enterprise subscribers get unlimited. You can still purchase individual highlights below.
+                </p>
+                <Button size="sm" className="btn-sunset mt-3" asChild>
+                  <Link href="/business">Upgrade for Included Highlights</Link>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
@@ -174,8 +329,11 @@ export function MentionsContent() {
                       </div>
                     </div>
                     {!mention.highlighted && (
-                      <button className="shrink-0 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-medium hover:bg-primary/90 transition-colors">
-                        Highlight
+                      <button
+                        onClick={handleHighlight}
+                        className="shrink-0 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-medium hover:bg-primary/90 transition-colors"
+                      >
+                        {tier !== "basic" && canHighlight ? "Highlight (Included)" : "Highlight"}
                       </button>
                     )}
                   </div>

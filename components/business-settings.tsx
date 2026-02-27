@@ -21,6 +21,8 @@ import {
   ArrowRight,
   Check,
   ChevronRight,
+  BarChart3,
+  FileBarChart,
 } from "lucide-react"
 import { USER_TIERS, BUSINESS_TIERS } from "@/lib/tiers"
 
@@ -70,6 +72,13 @@ const dashboardLinks = [
     icon: <Megaphone className="size-4 text-tinerary-salmon" />,
     title: "Mention Highlights",
     description: "Highlight organic business mentions",
+    forType: ["business"],
+  },
+  {
+    href: "/business-analytics",
+    icon: <BarChart3 className="size-4 text-tinerary-salmon" />,
+    title: "Advanced Analytics & Insights",
+    description: "Audience insights, geographic data & performance trends",
     forType: ["business"],
   },
   {

@@ -656,6 +656,79 @@ export interface Database {
           created_at?: string
         }
       }
+      business_subscriptions: {
+        Row: {
+          id: string
+          business_id: string
+          tier: "basic" | "premium" | "enterprise"
+          status: "active" | "canceled" | "past_due"
+          mention_highlights_used: number
+          mention_highlights_reset_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          business_id: string
+          tier: "basic" | "premium" | "enterprise"
+          status?: "active" | "canceled" | "past_due"
+          mention_highlights_used?: number
+          mention_highlights_reset_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          business_id?: string
+          tier?: "basic" | "premium" | "enterprise"
+          status?: "active" | "canceled" | "past_due"
+          mention_highlights_used?: number
+          mention_highlights_reset_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      bookings: {
+        Row: {
+          id: string
+          user_id: string
+          promotion_id: string
+          quantity: number
+          total_price: number
+          currency: string | null
+          attendee_names: string | null
+          attendee_emails: string | null
+          special_requests: string | null
+          status: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          promotion_id: string
+          quantity: number
+          total_price: number
+          currency?: string | null
+          attendee_names?: string | null
+          attendee_emails?: string | null
+          special_requests?: string | null
+          status?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          promotion_id?: string
+          quantity?: number
+          total_price?: number
+          currency?: string | null
+          attendee_names?: string | null
+          attendee_emails?: string | null
+          special_requests?: string | null
+          status?: string
+          created_at?: string
+        }
+      }
     }
     Functions: {
       toggle_like: {
@@ -688,3 +761,5 @@ export type SavedItinerary = Database["public"]["Tables"]["saved_itineraries"]["
 export type UserFollow = Database["public"]["Tables"]["user_follows"]["Row"]
 export type ItineraryMetrics = Database["public"]["Tables"]["itinerary_metrics"]["Row"]
 export type Expense = Database["public"]["Tables"]["expenses"]["Row"]
+export type BusinessSubscription = Database["public"]["Tables"]["business_subscriptions"]["Row"]
+export type Booking = Database["public"]["Tables"]["bookings"]["Row"]

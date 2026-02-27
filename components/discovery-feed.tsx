@@ -476,6 +476,9 @@ export function DiscoveryFeed() {
       return gradients[hash % gradients.length]
     }
 
+    // Items from premium/enterprise business accounts get a featured badge
+    const isFeatured = !!(item as any).finalScore && (item as any).finalScore > 0.8
+
     return {
       id: item.id,
       title: item.title,
@@ -497,7 +500,7 @@ export function DiscoveryFeed() {
         avatar: item.owner?.avatar_url || "/placeholder.svg?height=40&width=40",
       },
       highlights: item.highlights || [],
-      promoted: false,
+      promoted: isFeatured,
     }
   }
 

@@ -3,6 +3,18 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { createClient } from "@/utils/supabase/server"
+import { getTierLimits } from "@/lib/business-tier-service"
+import type { BusinessTierSlug } from "@/lib/tiers"
+
+async function getBusinessTier(supabase: any, businessId: string): Promise<BusinessTierSlug> {
+  const { data } = await supabase
+    .from("business_subscriptions")
+    .select("tier, status")
+    .eq("business_id", businessId)
+    .eq("status", "active")
+    .single()
+  return (data?.tier as BusinessTierSlug) || "basic"
+}
 
 export async function createDeal(formData: FormData) {
   const supabase = await createClient()
@@ -25,6 +37,25 @@ export async function createDeal(formData: FormData) {
 
     if (bizError || !business) {
       return { success: false, error: "No business profile found. Please create a business profile first." }
+    }
+
+    // Enforce promotion limits based on tier
+    const tier = await getBusinessTier(supabase, business.id)
+    const limits = getTierLimits(tier)
+
+    if (limits.maxPromotions !== Infinity) {
+      const { count } = await supabase
+        .from("promotions")
+        .select("id", { count: "exact", head: true })
+        .eq("business_id", business.id)
+        .eq("status", "active")
+
+      if ((count || 0) >= limits.maxPromotions) {
+        return {
+          success: false,
+          error: `You've reached the limit of ${limits.maxPromotions} active promotions on the ${tier} plan. Upgrade to Premium for unlimited promotions.`,
+        }
+      }
     }
 
     const title = formData.get("title") as string

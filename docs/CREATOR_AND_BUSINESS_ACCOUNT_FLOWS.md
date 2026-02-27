@@ -65,6 +65,91 @@ Platform User Tiers          Business Subscription Tiers
 
 ---
 
+## 1b. Account Type Selection & Header Navigation
+
+Users switch between Personal / Creator / Business modes via **Settings → Business tab** (`components/business-settings.tsx`). This selection is stored in `user_preferences.business_preferences` (JSONB) and drives two runtime behaviors:
+
+### Header Dropdown (Conditional Navigation)
+
+The global `AppHeader` (`components/app-header.tsx`) reads the user's account type on load and conditionally renders navigation items in the profile dropdown:
+
+```
+AppHeader loads session
+  │
+  ├── Fetches user_preferences.business_preferences
+  │   └── Reads isBusinessMode + selectedType
+  │
+  ├── accountType = "standard" (default)
+  │   └── Dropdown shows: Profile | Settings | Sign Out
+  │
+  ├── accountType = "creator"
+  │   └── Dropdown shows: Profile | ★ Creator Hub (/creator) | Settings | Sign Out
+  │
+  └── accountType = "business"
+      └── Dropdown shows: Profile | ★ Business Profile (/business-profile) | Settings | Sign Out
+```
+
+**Key detail:** The "Creator Hub" and "Business Profile" links are **mutually exclusive** — only one appears based on the active account type. Standard users see neither.
+
+### Settings Business Tab (Professional Mode Toggle)
+
+```
+/settings?section=business (components/business-settings.tsx)
+│
+├── Professional Account toggle (Switch)
+│   ├── OFF → selectedType = "standard", only Personal available
+│   └── ON  → defaults to "creator" if was "standard"
+│
+├── Account Type selector (3 options):
+│   ├── Personal   — locked when professional mode ON
+│   ├── Creator    — locked when professional mode OFF
+│   └── Business   — locked when professional mode OFF
+│
+├── IF Creator selected:
+│   └── Shows Creator plan features (from USER_TIERS)
+│   └── Link to /creators for full details
+│
+├── IF Business selected:
+│   ├── Business tier selector (clickable cards):
+│   │   ├── Basic ($49/mo)
+│   │   ├── Premium ($149/mo) — "Popular" badge
+│   │   └── Enterprise ($399/mo)
+│   │   Each shows "Current" badge when selected
+│   │
+│   ├── Selected tier feature list (expanded below cards)
+│   └── Link to /business for full comparison
+│
+└── Tools & Dashboards (filtered link grid):
+    Links are filtered by BOTH accountType AND selectedBusinessTier:
+    ├── forType filter — which account types see the link
+    └── forTier filter — which business sub-tiers see the link (null = no restriction)
+
+    Example filtering for Business account:
+    ├── Basic:      Business Profile | Affiliate | Coins | Pricing
+    ├── Premium:    + Mentions | Analytics | Transactions | Booking Integration
+    └── Enterprise: same as Premium (all features unlocked)
+```
+
+**Persistence:** All selections (`isBusinessMode`, `selectedType`, `selectedBusinessTier`) are saved to `user_preferences.business_preferences` via upsert on every change.
+
+### Dashboard Link Tier Gating
+
+Each dashboard link in settings has a `forTier` property that controls visibility for business users:
+
+| Link | forType | forTier (business only) |
+|---|---|---|
+| Creator Dashboard | creator | — |
+| Business Profile | business | basic, premium, enterprise |
+| Mention Highlights | business | premium, enterprise |
+| Advanced Analytics | business | premium, enterprise |
+| Transactions | business | premium, enterprise |
+| Booking Integration | business | premium, enterprise |
+| Affiliate Marketing | creator, business | — |
+| Tinerary Coins | standard, creator, business | — |
+| Plans & Pricing | standard, creator, business | — |
+
+---
+
 ## 2. Creator Account Flow
 
 ### 2a. Discovery & Upgrade Path
@@ -412,6 +497,26 @@ Business pages (/business-profile, /business-analytics) handle auth inline:
   → Check session + business ownership
 ```
 
+### Header Navigation Gating
+```
+AppHeader (components/app-header.tsx):
+  On mount, fetches user_preferences.business_preferences to determine accountType
+  → "standard": no hub links in dropdown
+  → "creator":  shows "Creator Hub" link → /creator
+  → "business": shows "Business Profile" link → /business-profile
+  Links are mutually exclusive based on the active professional account type.
+```
+
+### Settings Dashboard Link Filtering
+```
+BusinessSettings (components/business-settings.tsx):
+  Dashboard links filtered by two dimensions:
+  1. forType — matches selectedType ("standard" | "creator" | "business")
+  2. forTier — if non-null and selectedType is "business", matches selectedBusinessTier
+  Business Basic tier sees only: Business Profile, Affiliate, Coins, Pricing
+  Business Premium/Enterprise sees all business links including Mentions, Analytics, Transactions, Booking
+```
+
 ### Coin Economy Integration
 ```
 Creator tier gets 2x coin multiplier on all earning actions:
@@ -455,10 +560,14 @@ BUSINESS DASHBOARD
   /business-profile     → Full business profile + deals + analytics — auth required
   /business-analytics   → Advanced analytics (gated by tier) — auth required
 
+ACCOUNT MANAGEMENT
+  /settings?section=business → Professional account toggle, type selection, business tier picker
+  AppHeader dropdown         → Conditional "Creator Hub" or "Business Profile" link based on accountType
+
 SHARED
-  /mentions             → Mention highlights management
-  /deals                → Deals/promotions browsing
+  /mentions             → Mention highlights management (Premium/Enterprise business only)
+  /deals                → Deals/promotions browsing + booking integration (Premium/Enterprise)
   /affiliate            → Affiliate marketing dashboard
   /coins                → Tinerary Coins economy
-  /transactions         → Booking & commission tracking
+  /transactions         → Booking & commission tracking (Premium/Enterprise business only)
 ```

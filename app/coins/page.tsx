@@ -80,6 +80,7 @@ export default function CoinsPage() {
                       <tr className="bg-tinerary-dark">
                         <th className="text-left py-3 px-4 font-medium text-primary-foreground">Action</th>
                         <th className="text-center py-3 px-4 font-medium text-primary-foreground">Coins</th>
+                        <th className="text-center py-3 px-4 font-medium text-primary-foreground">Creator (2x)</th>
                         <th className="text-left py-3 px-4 font-medium text-primary-foreground hidden sm:table-cell">Why</th>
                       </tr>
                     </thead>
@@ -90,6 +91,11 @@ export default function CoinsPage() {
                           <td className="py-3 px-4 text-center">
                             <Badge variant="secondary" className="bg-tinerary-gold/20 text-tinerary-dark dark:text-tinerary-gold border-0">
                               +{row.coins}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <Badge variant="secondary" className="bg-[#7C3AED]/20 text-[#7C3AED] border-0">
+                              +{row.coins * 2}
                             </Badge>
                           </td>
                           <td className="py-3 px-4 text-muted-foreground hidden sm:table-cell">{row.reason}</td>

@@ -1,11 +1,12 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowLeft, ArrowRight, Check, Coins, Rocket, Sparkles, TrendingUp, Palette } from "lucide-react"
+import { ArrowLeft, ArrowRight, Check, Coins, Rocket, Sparkles, TrendingUp, Palette, Percent, Users } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
 import { AppHeader } from "@/components/app-header"
 import { BOOST_PACKAGES, AFFILIATE_COMMISSIONS } from "@/lib/tiers"
 
@@ -24,7 +25,7 @@ export default function CreatorsPage() {
           {/* Hero */}
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 mb-4">
-              <Sparkles className="h-8 w-8 text-primary" />
+              <Sparkles className="h-8 w-8 text-[#7C3AED]" />
               <h1 className="text-4xl font-bold tracking-tight">Creator Tier</h1>
             </div>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -32,43 +33,37 @@ export default function CreatorsPage() {
             </p>
           </div>
 
-          {/* Creator pricing card */}
+          {/* Creator pricing card — v0 style */}
           <div className="max-w-lg mx-auto mb-16">
-            <Card className="border-2 border-primary shadow-md overflow-hidden">
-              <CardHeader className="text-center pb-4">
-                <Badge className="w-fit mx-auto mb-2 bg-primary text-primary-foreground">Creator</Badge>
-                <div className="flex items-baseline justify-center gap-1">
-                  <span className="text-4xl font-bold">$49</span>
-                  <span className="text-muted-foreground">/month</span>
-                </div>
-                <CardDescription className="mt-2">
+            <div className="rounded-2xl border overflow-hidden shadow-lg ring-2 ring-primary/30">
+              <div className="bg-[#7C3AED] px-5 py-6 text-center">
+                <p className="text-xs font-bold tracking-widest text-primary-foreground uppercase">Creator</p>
+                <p className="text-4xl font-bold text-primary-foreground mt-1">$49</p>
+                <p className="text-xs text-primary-foreground/80">per month</p>
+              </div>
+              <div className="p-6 flex flex-col gap-3 bg-card">
+                <p className="text-sm text-muted-foreground mb-2">
                   Everything in User, plus powerful tools to grow and earn.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3">
-                  {[
-                    "Boost individual posts",
-                    "Creator badge & verified profile",
-                    "Analytics dashboard",
-                    "Enhanced affiliate commissions (70/30)",
-                    "Priority in discovery feed",
-                    "Sell itinerary templates",
-                    "Sponsorship inbox",
-                    "Business-lite listing tools",
-                    "2x coin earning rate",
-                  ].map((feature, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm">
-                      <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-              <CardFooter>
-                <Button className="w-full btn-sunset">Get Started as a Creator</Button>
-              </CardFooter>
-            </Card>
+                </p>
+                {[
+                  "Boost individual posts",
+                  "Creator badge & verified profile",
+                  "Analytics dashboard",
+                  "Enhanced affiliate commissions (70/30)",
+                  "Priority in discovery feed",
+                  "Sell itinerary templates",
+                  "Sponsorship inbox",
+                  "Business-lite listing tools",
+                  "2x coin earning rate",
+                ].map((feature) => (
+                  <div key={feature} className="flex items-start gap-2">
+                    <Check className="size-4 text-tinerary-salmon shrink-0 mt-0.5" />
+                    <span className="text-sm text-foreground">{feature}</span>
+                  </div>
+                ))}
+                <Button className="w-full btn-sunset mt-4">Get Started as a Creator</Button>
+              </div>
+            </div>
           </div>
 
           {/* Why Creator */}
@@ -77,27 +72,27 @@ export default function CreatorsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
                 {
-                  icon: <TrendingUp className="h-8 w-8 text-green-500" />,
+                  icon: <TrendingUp className="size-8 text-tinerary-gold" />,
                   title: "Grow your audience",
                   description: "Priority placement in the discovery feed puts your itineraries in front of more travelers.",
                 },
                 {
-                  icon: <Rocket className="h-8 w-8 text-blue-500" />,
+                  icon: <Rocket className="size-8 text-primary" />,
                   title: "Boost your posts",
                   description: "Pay to amplify individual itineraries with targeted impressions from $5.",
                 },
                 {
-                  icon: <Coins className="h-8 w-8 text-yellow-500" />,
+                  icon: <Coins className="size-8 text-tinerary-gold" />,
                   title: "Earn more",
                   description: "70/30 affiliate split (vs 60/40 for standard users) plus 2x coin earning rate.",
                 },
                 {
-                  icon: <Palette className="h-8 w-8 text-pink-500" />,
+                  icon: <Palette className="size-8 text-tinerary-salmon" />,
                   title: "Sell templates",
                   description: "Create and sell premium itinerary templates to other travelers.",
                 },
               ].map((item, i) => (
-                <Card key={i} className="text-center">
+                <Card key={i} className="text-center border-border">
                   <CardContent className="pt-6">
                     <div className="flex justify-center mb-4">{item.icon}</div>
                     <h3 className="font-semibold mb-1">{item.title}</h3>
@@ -115,59 +110,71 @@ export default function CreatorsPage() {
               Amplify any itinerary post to reach more travelers. Pick the package that fits your goals.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {BOOST_PACKAGES.map((pkg, i) => (
-                <Card key={i} className="transition-all duration-200 hover:shadow-md">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">{pkg.name}</CardTitle>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-bold">${pkg.price}</span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-1">
-                    <p className="text-sm"><span className="font-medium">Impressions:</span> {pkg.impressions}</p>
-                    <p className="text-sm"><span className="font-medium">Duration:</span> {pkg.duration}</p>
-                    <p className="text-xs text-muted-foreground">Cost per 1K: {pkg.costPer1K}</p>
-                  </CardContent>
-                </Card>
+              {BOOST_PACKAGES.map((pkg) => (
+                <div
+                  key={pkg.name}
+                  className="flex flex-col items-center p-5 rounded-2xl bg-muted text-center border border-border"
+                >
+                  <p className="text-2xl font-bold text-primary">${pkg.price}</p>
+                  <p className="text-sm font-semibold text-foreground mt-1">{pkg.name}</p>
+                  <div className="w-full h-px bg-border my-3" />
+                  <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Impressions:</span> {pkg.impressions}</p>
+                  <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Duration:</span> {pkg.duration}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Cost per 1K: {pkg.costPer1K}</p>
+                </div>
               ))}
             </div>
           </div>
 
-          {/* Affiliate Commission Table */}
+          {/* Affiliate Commission Splits */}
           <div className="max-w-2xl mx-auto mb-16">
-            <h2 className="text-2xl font-bold text-center mb-2">Affiliate Commission Splits</h2>
-            <p className="text-center text-muted-foreground mb-8">
-              Creators earn a bigger share of every affiliate sale.
-            </p>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium">User Type</th>
-                    <th className="text-center py-3 px-4 font-medium">Your Share</th>
-                    <th className="text-center py-3 px-4 font-medium">Tinerary Share</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {AFFILIATE_COMMISSIONS.map((row, i) => (
-                    <tr key={i} className="border-b last:border-b-0">
-                      <td className="py-3 px-4 font-medium">{row.userType}</td>
-                      <td className="py-3 px-4 text-center">
-                        <Badge variant={row.userType === "Creator" ? "default" : "secondary"}>
-                          {row.userShare}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4 text-center text-muted-foreground">{row.tineraryShare}</td>
-                    </tr>
+            <Card className="border-border">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Percent className="size-5 text-tinerary-salmon" /> Affiliate Commission Splits
+                </CardTitle>
+                <CardDescription>Creators earn a bigger share of every affiliate sale.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {AFFILIATE_COMMISSIONS.map((split) => (
+                    <div key={split.userType} className="p-5 rounded-2xl bg-muted">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Users className="size-4 text-muted-foreground" />
+                        <h4 className="text-sm font-bold text-foreground">{split.userType}</h4>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <div>
+                          <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                            <span>User Share</span>
+                            <span className="font-semibold text-foreground">{split.userShare}</span>
+                          </div>
+                          <Progress
+                            value={parseInt(split.userShare)}
+                            className="h-3 rounded-full [&>[data-slot=progress-indicator]]:bg-tinerary-salmon [&>[data-slot=progress-indicator]]:rounded-full"
+                          />
+                        </div>
+                        <div>
+                          <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                            <span>Tinerary Share</span>
+                            <span className="font-semibold text-foreground">{split.tineraryShare}</span>
+                          </div>
+                          <Progress
+                            value={parseInt(split.tineraryShare)}
+                            className="h-3 rounded-full [&>[data-slot=progress-indicator]]:bg-primary [&>[data-slot=progress-indicator]]:rounded-full"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* CTA */}
           <div className="text-center">
-            <Card className="max-w-xl mx-auto bg-gradient-to-r from-pink-50 to-orange-50 dark:from-pink-900/20 dark:to-orange-900/20 border-0">
+            <Card className="max-w-xl mx-auto bg-gradient-to-r from-tinerary-peach/30 to-tinerary-salmon/10 dark:from-tinerary-salmon/10 dark:to-tinerary-peach/5 border-0">
               <CardContent className="py-10">
                 <h3 className="text-xl font-bold mb-2">Ready to level up?</h3>
                 <p className="text-muted-foreground mb-6">Join Tinerary as a Creator and start earning today.</p>
@@ -180,18 +187,18 @@ export default function CreatorsPage() {
         </div>
       </main>
 
-      <footer className="bg-gray-100 dark:bg-card py-8 mt-12">
+      <footer className="bg-muted/50 py-8 mt-12">
         <div className="container mx-auto px-4 text-center">
           <div className="flex justify-center gap-4 mb-4">
-            <Link href="/terms" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline">
+            <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
               Terms of Service
             </Link>
-            <span className="text-gray-400 dark:text-gray-600">|</span>
-            <Link href="/privacy" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline">
+            <span className="text-muted-foreground/40">|</span>
+            <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
               Privacy Policy
             </Link>
           </div>
-          <p className="text-gray-600 dark:text-gray-400">&copy; {new Date().getFullYear()} Tinerary. All rights reserved.</p>
+          <p className="text-muted-foreground">&copy; {new Date().getFullYear()} Tinerary. All rights reserved.</p>
         </div>
       </footer>
     </div>

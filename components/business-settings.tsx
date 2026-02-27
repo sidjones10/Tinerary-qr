@@ -129,7 +129,11 @@ export function BusinessSettings() {
         if (data?.business_preferences) {
           const prefs = data.business_preferences
           if (typeof prefs.isBusinessMode === "boolean") setIsBusinessMode(prefs.isBusinessMode)
-          if (prefs.selectedType) setSelectedType(prefs.selectedType)
+          if (prefs.selectedType) {
+            // If professional mode is on, ensure Personal is not selected
+            const type = prefs.isBusinessMode && prefs.selectedType === "standard" ? "creator" : prefs.selectedType
+            setSelectedType(type)
+          }
         }
       } catch (error) {
         console.error("Error loading business preferences:", error)
@@ -175,9 +179,15 @@ export function BusinessSettings() {
 
   const handleToggleBusinessMode = (checked: boolean) => {
     setIsBusinessMode(checked)
-    const newType = !checked ? "standard" : selectedType
-    if (!checked) setSelectedType("standard")
-    savePreferences(checked, newType)
+    if (checked) {
+      // Default to creator when enabling professional mode (Personal is not a professional type)
+      const newType = selectedType === "standard" ? "creator" : selectedType
+      setSelectedType(newType)
+      savePreferences(checked, newType)
+    } else {
+      setSelectedType("standard")
+      savePreferences(checked, "standard")
+    }
   }
 
   const handleSelectType = (type: string) => {
@@ -186,9 +196,7 @@ export function BusinessSettings() {
   }
 
   // Filter dashboard links based on active account type
-  const visibleLinks = isBusinessMode
-    ? dashboardLinks
-    : dashboardLinks.filter((l) => l.forType.includes(selectedType))
+  const visibleLinks = dashboardLinks.filter((l) => l.forType.includes(selectedType))
 
   return (
     <div className="space-y-6">
@@ -225,7 +233,7 @@ export function BusinessSettings() {
           <div className="grid gap-3">
             {accountTypes.map((type) => {
               const isSelected = selectedType === type.id
-              const isLocked = !isBusinessMode && type.id !== "standard"
+              const isLocked = (!isBusinessMode && type.id !== "standard") || (isBusinessMode && type.id === "standard")
               return (
                 <button
                   key={type.id}

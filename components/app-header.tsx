@@ -118,9 +118,6 @@ export function AppHeader() {
             <Link href="/notifications" className="transition-colors hover:text-foreground/80">
               {t("header.notifications")}
             </Link>
-            <Link href="/pricing" className="transition-colors hover:text-foreground/80">
-              Pricing
-            </Link>
           </nav>
         </div>
 

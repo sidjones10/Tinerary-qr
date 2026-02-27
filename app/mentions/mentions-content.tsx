@@ -1,5 +1,6 @@
 "use client"
 
+import { useCallback, useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -18,8 +19,19 @@ import {
   Bell,
   Tag,
   BookOpen,
+  Loader2,
+  XCircle,
 } from "lucide-react"
 import { MENTION_HIGHLIGHTS } from "@/lib/tiers"
+import { HighlightPurchaseDialog } from "@/components/highlight-purchase-dialog"
+import {
+  getBusinessMentions,
+  getMentionStats,
+  dismissMention,
+  purchaseHighlightPlan,
+} from "@/app/actions/mention-actions"
+import { useToast } from "@/components/ui/use-toast"
+import { Button } from "@/components/ui/button"
 
 const quarterlyProjections = [
   { quarter: "Q1", itineraries: 200, mentions: 120, highlighted: 15, revenue: "$350" },
@@ -28,8 +40,24 @@ const quarterlyProjections = [
   { quarter: "Q4", itineraries: 5000, mentions: 3600, highlighted: 700, revenue: "$10,800" },
 ]
 
-const recentMentions = [
+const PLAN_MAP: Record<string, string> = {
+  "Single Mention": "single",
+  "Bundle (5 mentions)": "bundle",
+  "Monthly Unlimited": "monthly_unlimited",
+  "Annual Unlimited": "annual_unlimited",
+}
+
+// Fallback static data when no business profile exists
+const fallbackStats = [
+  { label: "Total Mentions", value: "47", change: "+12", icon: Tag },
+  { label: "Highlighted", value: "3", change: "of 5 included", icon: Sparkles },
+  { label: "Highlight Views", value: "3,690", change: "+24%", icon: Eye },
+  { label: "Booking Clicks", value: "82", change: "+31%", icon: Link2 },
+]
+
+const fallbackMentions = [
   {
+    id: "demo-1",
     itinerary: "SF Food Tour: Mission to Marina",
     creator: "Sarah_Travels",
     date: "Feb 25, 2026",
@@ -38,6 +66,7 @@ const recentMentions = [
     views: "1,240",
   },
   {
+    id: "demo-2",
     itinerary: "Valentine's Day SF Guide",
     creator: "CityExplorer",
     date: "Feb 22, 2026",
@@ -46,6 +75,7 @@ const recentMentions = [
     views: "890",
   },
   {
+    id: "demo-3",
     itinerary: "48 Hours in San Francisco",
     creator: "TravelWithMike",
     date: "Feb 20, 2026",
@@ -54,6 +84,7 @@ const recentMentions = [
     views: "2,100",
   },
   {
+    id: "demo-4",
     itinerary: "Best Restaurants Near Fisherman's Wharf",
     creator: "FoodieJen",
     date: "Feb 18, 2026",
@@ -62,6 +93,7 @@ const recentMentions = [
     views: "670",
   },
   {
+    id: "demo-5",
     itinerary: "Bay Area Weekend Escapes",
     creator: "NomadNina",
     date: "Feb 15, 2026",
@@ -71,14 +103,140 @@ const recentMentions = [
   },
 ]
 
-const stats = [
-  { label: "Total Mentions", value: "47", change: "+12", icon: Tag },
-  { label: "Highlighted", value: "3", change: "of 5 included", icon: Sparkles },
-  { label: "Highlight Views", value: "3,690", change: "+24%", icon: Eye },
-  { label: "Booking Clicks", value: "82", change: "+31%", icon: Link2 },
-]
+interface MentionData {
+  id: string
+  itinerary: string
+  creator: string
+  date: string
+  context: string
+  highlighted: boolean
+  views: string
+  itineraryId?: string
+}
+
+interface StatsData {
+  label: string
+  value: string
+  change: string
+  icon: any
+}
 
 export function MentionsContent() {
+  const [mentions, setMentions] = useState<MentionData[]>([])
+  const [stats, setStats] = useState<StatsData[]>(fallbackStats)
+  const [loading, setLoading] = useState(true)
+  const [hasBusinessProfile, setHasBusinessProfile] = useState(false)
+  const [remainingHighlights, setRemainingHighlights] = useState(0)
+  const [hasUnlimited, setHasUnlimited] = useState(false)
+  const [purchasingPlan, setPurchasingPlan] = useState<string | null>(null)
+  const { toast } = useToast()
+
+  const loadData = useCallback(async () => {
+    try {
+      const [mentionsResult, statsResult] = await Promise.all([
+        getBusinessMentions(),
+        getMentionStats(),
+      ])
+
+      if (statsResult.success && statsResult.data) {
+        setHasBusinessProfile(true)
+        const s = statsResult.data
+        setRemainingHighlights(s.remainingHighlights)
+        setHasUnlimited(s.hasUnlimited)
+
+        setStats([
+          { label: "Total Mentions", value: s.totalMentions.toString(), change: "", icon: Tag },
+          {
+            label: "Highlighted",
+            value: s.highlightedCount.toString(),
+            change: s.hasUnlimited
+              ? "Unlimited plan"
+              : s.remainingHighlights > 0
+              ? `${s.remainingHighlights} remaining`
+              : "Purchase a plan",
+            icon: Sparkles,
+          },
+          { label: "Highlight Views", value: s.totalViews.toLocaleString(), change: "", icon: Eye },
+          { label: "Booking Clicks", value: s.totalClicks.toLocaleString(), change: "", icon: Link2 },
+        ])
+      }
+
+      if (mentionsResult.success && mentionsResult.data && mentionsResult.data.length > 0) {
+        const mapped = mentionsResult.data.map((m: any) => {
+          const itinerary = Array.isArray(m.itineraries) ? m.itineraries[0] : m.itineraries
+          const owner = itinerary?.owner
+          const ownerUsername = Array.isArray(owner) ? owner[0]?.username : owner?.username
+          const metrics = itinerary?.metrics
+          const viewCount = Array.isArray(metrics) ? metrics[0]?.view_count : metrics?.view_count
+
+          return {
+            id: m.id,
+            itinerary: itinerary?.title || "Unknown Itinerary",
+            itineraryId: itinerary?.id,
+            creator: m.creator_username || ownerUsername || "unknown",
+            date: new Date(m.created_at).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            }),
+            context: m.context_snippet
+              ? `"${m.context_snippet}"`
+              : `Mentioned "${m.matched_text}" in ${m.match_field}`,
+            highlighted: m.status === "highlighted",
+            views: (viewCount || 0).toLocaleString(),
+            highlightData: m.mention_highlights?.[0] || null,
+          }
+        })
+        setMentions(mapped)
+      } else {
+        // Use fallback data for demo
+        setMentions(fallbackMentions)
+      }
+    } catch (error) {
+      console.error("Error loading mentions data:", error)
+      setMentions(fallbackMentions)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  const handleDismiss = async (mentionId: string) => {
+    const result = await dismissMention(mentionId)
+    if (result.success) {
+      setMentions((prev) => prev.filter((m) => m.id !== mentionId))
+      toast({ title: "Mention dismissed" })
+    }
+  }
+
+  const handlePurchasePlan = async (planType: string) => {
+    setPurchasingPlan(planType)
+    try {
+      const result = await purchaseHighlightPlan(planType)
+      if (result.success) {
+        toast({ title: "Plan purchased!", description: "You can now highlight mentions." })
+        loadData()
+      } else {
+        toast({ title: "Error", description: result.error || "Failed to purchase plan", variant: "destructive" })
+      }
+    } catch {
+      toast({ title: "Error", description: "Something went wrong", variant: "destructive" })
+    } finally {
+      setPurchasingPlan(null)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="mt-6 flex justify-center py-12">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
   return (
     <div className="mt-6 flex flex-col gap-6">
       {/* Stats */}
@@ -91,7 +249,9 @@ export function MentionsContent() {
               <div className="flex items-center gap-1 mt-1">
                 <p className="text-xs text-muted-foreground">{stat.label}</p>
               </div>
-              <p className="text-xs font-medium text-tinerary-salmon mt-0.5">{stat.change}</p>
+              {stat.change && (
+                <p className="text-xs font-medium text-tinerary-salmon mt-0.5">{stat.change}</p>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -146,42 +306,69 @@ export function MentionsContent() {
         {/* Recent Mentions */}
         <TabsContent value="mentions" className="mt-4">
           <div className="flex flex-col gap-4">
-            {recentMentions.map((mention) => (
-              <Card key={mention.itinerary} className="border-border">
-                <CardContent className="pt-6">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="text-sm font-semibold text-foreground">{mention.itinerary}</h4>
-                        {mention.highlighted ? (
-                          <Badge className="bg-tinerary-gold/20 text-tinerary-dark border-0 text-xs">
-                            Highlighted
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-xs">
-                            Not Highlighted
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        By @{mention.creator} &middot; {mention.date}
-                      </p>
-                      <p className="text-sm text-foreground mt-2 italic leading-relaxed">{mention.context}</p>
-                      <div className="flex items-center gap-3 mt-2">
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Eye className="size-3" /> {mention.views} views
-                        </span>
-                      </div>
-                    </div>
-                    {!mention.highlighted && (
-                      <button className="shrink-0 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-medium hover:bg-primary/90 transition-colors">
-                        Highlight
-                      </button>
-                    )}
-                  </div>
+            {mentions.length === 0 ? (
+              <Card className="border-border">
+                <CardContent className="py-12 text-center">
+                  <Tag className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    No mentions yet. When users mention your business in their itineraries, they&apos;ll appear here.
+                  </p>
                 </CardContent>
               </Card>
-            ))}
+            ) : (
+              mentions.map((mention) => (
+                <Card key={mention.id} className="border-border">
+                  <CardContent className="pt-6">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="text-sm font-semibold text-foreground">{mention.itinerary}</h4>
+                          {mention.highlighted ? (
+                            <Badge className="bg-tinerary-gold/20 text-tinerary-dark border-0 text-xs">
+                              Highlighted
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-xs">
+                              Not Highlighted
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          By @{mention.creator} &middot; {mention.date}
+                        </p>
+                        <p className="text-sm text-foreground mt-2 italic leading-relaxed">{mention.context}</p>
+                        <div className="flex items-center gap-3 mt-2">
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Eye className="size-3" /> {mention.views} views
+                          </span>
+                        </div>
+                      </div>
+                      {!mention.highlighted && (
+                        <div className="flex items-center gap-2 shrink-0">
+                          {hasBusinessProfile && !mention.id.startsWith("demo-") && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-muted-foreground hover:text-destructive"
+                              onClick={() => handleDismiss(mention.id)}
+                            >
+                              <XCircle className="size-3.5" />
+                            </Button>
+                          )}
+                          <HighlightPurchaseDialog
+                            mentionId={mention.id}
+                            itineraryTitle={mention.itinerary}
+                            hasActivePlan={hasUnlimited || remainingHighlights > 0}
+                            remainingHighlights={hasUnlimited ? -1 : remainingHighlights}
+                            onHighlighted={loadData}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </TabsContent>
 
@@ -196,21 +383,28 @@ export function MentionsContent() {
             </CardHeader>
             <CardContent>
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {MENTION_HIGHLIGHTS.map((plan) => (
-                  <div
-                    key={plan.name}
-                    className="flex flex-col items-center p-5 rounded-2xl bg-muted text-center border border-border"
-                  >
-                    <p className="text-2xl font-bold text-primary">${plan.price}</p>
-                    <p className="text-sm font-semibold text-foreground mt-1">{plan.name}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{plan.duration}</p>
-                    <div className="w-full h-px bg-border my-3" />
-                    <p className="text-xs text-muted-foreground leading-relaxed">{plan.includes}</p>
-                    <button className="mt-4 w-full px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-medium hover:bg-primary/90 transition-colors">
-                      Purchase
-                    </button>
-                  </div>
-                ))}
+                {MENTION_HIGHLIGHTS.map((plan) => {
+                  const planKey = PLAN_MAP[plan.name]
+                  return (
+                    <div
+                      key={plan.name}
+                      className="flex flex-col items-center p-5 rounded-2xl bg-muted text-center border border-border"
+                    >
+                      <p className="text-2xl font-bold text-primary">${plan.price}</p>
+                      <p className="text-sm font-semibold text-foreground mt-1">{plan.name}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{plan.duration}</p>
+                      <div className="w-full h-px bg-border my-3" />
+                      <p className="text-xs text-muted-foreground leading-relaxed">{plan.includes}</p>
+                      <button
+                        className="mt-4 w-full px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                        disabled={purchasingPlan === planKey}
+                        onClick={() => planKey && handlePurchasePlan(planKey)}
+                      >
+                        {purchasingPlan === planKey ? "Processing..." : "Purchase"}
+                      </button>
+                    </div>
+                  )
+                })}
               </div>
             </CardContent>
           </Card>

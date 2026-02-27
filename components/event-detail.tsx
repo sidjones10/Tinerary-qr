@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { ArrowLeft, Calendar, MapPin, Clock, Share2, Heart, Users, Edit, Trash2, Loader2 } from "lucide-react"
+import { MentionHighlightBadge } from "@/components/mention-highlight-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -121,7 +122,55 @@ export function EventDetail({ event }: EventDetailProps) {
   const [checkingAccess, setCheckingAccess] = useState(true)
   const [coverImage, setCoverImage] = useState(event.image_url as string | undefined)
   const [showCoverPrompt, setShowCoverPrompt] = useState(false)
+  const [highlightsByActivity, setHighlightsByActivity] = useState<Record<string, any>>({})
   const isOwner = !!(user && user.id === event.user_id)
+
+  // Fetch mention highlights for this itinerary (non-blocking)
+  useEffect(() => {
+    const fetchHighlights = async () => {
+      try {
+        const supabase = createClient()
+        const { data } = await supabase
+          .from("mention_highlights")
+          .select(`
+            id,
+            booking_url,
+            offer_text,
+            badge_style,
+            expires_at,
+            business_mentions!inner (
+              itinerary_id,
+              activity_id,
+              matched_text,
+              business_id,
+              businesses (
+                id, name, logo, website
+              )
+            )
+          `)
+          .eq("business_mentions.itinerary_id", event.id)
+          .gte("expires_at", new Date().toISOString())
+
+        if (data) {
+          const map: Record<string, any> = {}
+          data.forEach((h: any) => {
+            const mention = Array.isArray(h.business_mentions) ? h.business_mentions[0] : h.business_mentions
+            if (mention?.activity_id) {
+              map[mention.activity_id] = {
+                ...h,
+                business_mentions: mention,
+              }
+            }
+          })
+          setHighlightsByActivity(map)
+        }
+      } catch {
+        // Highlights are optional; fail silently
+      }
+    }
+
+    fetchHighlights()
+  }, [event.id])
 
   // Check if we should show the post-event cover update prompt
   useEffect(() => {
@@ -685,6 +734,9 @@ export function EventDetail({ event }: EventDetailProps) {
                                   </div>
                                 )}
                                 {activity.description && <p className="text-sm mt-2 text-gray-600 dark:text-gray-400">{activity.description}</p>}
+                                {highlightsByActivity[activity.id] && (
+                                  <MentionHighlightBadge highlight={highlightsByActivity[activity.id]} />
+                                )}
                               </div>
                             </CardContent>
                           </Card>
@@ -718,6 +770,9 @@ export function EventDetail({ event }: EventDetailProps) {
                               </div>
                             )}
                             {activity.description && <p className="text-sm mt-2 text-gray-600 dark:text-gray-400">{activity.description}</p>}
+                            {highlightsByActivity[activity.id] && (
+                              <MentionHighlightBadge highlight={highlightsByActivity[activity.id]} />
+                            )}
                           </div>
                         </CardContent>
                       </Card>

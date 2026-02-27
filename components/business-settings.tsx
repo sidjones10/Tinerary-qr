@@ -5,8 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/providers/auth-provider"
+import { createClient } from "@/lib/supabase/client"
 import {
   Briefcase,
   Crown,
@@ -105,6 +106,84 @@ export function BusinessSettings() {
   const { user } = useAuth()
   const [selectedType, setSelectedType] = useState("standard")
   const [isBusinessMode, setIsBusinessMode] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+
+  // Load business preferences from database
+  useEffect(() => {
+    const loadPreferences = async () => {
+      if (!user) return
+
+      try {
+        const supabase = createClient()
+        const { data, error } = await supabase
+          .from("user_preferences")
+          .select("business_preferences")
+          .eq("user_id", user.id)
+          .single()
+
+        if (error && error.code !== "PGRST116") {
+          console.error("Error loading business preferences:", error)
+          return
+        }
+
+        if (data?.business_preferences) {
+          const prefs = data.business_preferences
+          if (typeof prefs.isBusinessMode === "boolean") setIsBusinessMode(prefs.isBusinessMode)
+          if (prefs.selectedType) setSelectedType(prefs.selectedType)
+        }
+      } catch (error) {
+        console.error("Error loading business preferences:", error)
+      } finally {
+        setLoaded(true)
+      }
+    }
+
+    loadPreferences()
+  }, [user])
+
+  // Persist business preferences whenever they change
+  const savePreferences = useCallback(
+    async (mode: boolean, type: string) => {
+      if (!user || !loaded) return
+
+      try {
+        const supabase = createClient()
+        const businessPreferences = { isBusinessMode: mode, selectedType: type }
+
+        const { error: updateError } = await supabase
+          .from("user_preferences")
+          .update({
+            business_preferences: businessPreferences,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("user_id", user.id)
+
+        if (updateError && updateError.code === "PGRST116") {
+          await supabase.from("user_preferences").insert({
+            user_id: user.id,
+            business_preferences: businessPreferences,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+        }
+      } catch (error) {
+        console.error("Error saving business preferences:", error)
+      }
+    },
+    [user, loaded],
+  )
+
+  const handleToggleBusinessMode = (checked: boolean) => {
+    setIsBusinessMode(checked)
+    const newType = !checked ? "standard" : selectedType
+    if (!checked) setSelectedType("standard")
+    savePreferences(checked, newType)
+  }
+
+  const handleSelectType = (type: string) => {
+    setSelectedType(type)
+    savePreferences(isBusinessMode, type)
+  }
 
   // Filter dashboard links based on active account type
   const visibleLinks = isBusinessMode
@@ -138,7 +217,7 @@ export function BusinessSettings() {
             </div>
             <Switch
               checked={isBusinessMode}
-              onCheckedChange={setIsBusinessMode}
+              onCheckedChange={handleToggleBusinessMode}
             />
           </div>
 
@@ -150,7 +229,7 @@ export function BusinessSettings() {
               return (
                 <button
                   key={type.id}
-                  onClick={() => !isLocked && setSelectedType(type.id)}
+                  onClick={() => !isLocked && handleSelectType(type.id)}
                   disabled={isLocked}
                   className={`w-full flex items-center gap-4 p-4 rounded-xl border text-left transition-all ${
                     isSelected

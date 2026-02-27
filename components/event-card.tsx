@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Calendar, MapPin, Users, Heart, MessageCircle } from "lucide-react"
+import { Calendar, MapPin, Users, Heart, MessageCircle, CheckCircle2 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { ThemeIcon, getThemeColor } from "@/components/theme-selector"
@@ -16,6 +16,7 @@ interface EventCardProps {
     organizer: {
       name: string
       avatar?: string
+      isCreator?: boolean
     }
     isOrganizer?: boolean
     attendees: number
@@ -77,6 +78,9 @@ export function EventCard({ event }: EventCardProps) {
             </Avatar>
             <div className="flex items-center">
               <span className="text-sm text-gray-700 dark:text-gray-300">By {event.organizer.name}</span>
+              {event.organizer.isCreator && (
+                <CheckCircle2 className="ml-1 h-4 w-4 text-[#7C3AED]" />
+              )}
               {event.isOrganizer && (
                 <Badge className="ml-2 bg-green-500 text-white hover:bg-green-600 border-0 text-xs">Organizer</Badge>
               )}

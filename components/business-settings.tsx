@@ -25,6 +25,7 @@ import {
   FileBarChart,
 } from "lucide-react"
 import { USER_TIERS, BUSINESS_TIERS } from "@/lib/tiers"
+import type { BusinessTierSlug } from "@/lib/tiers"
 
 const accountTypes = [
   {
@@ -59,6 +60,7 @@ const dashboardLinks = [
     title: "Creator Dashboard",
     description: "Post boosts, benefits & tier management",
     forType: ["creator"],
+    forTier: null,
   },
   {
     href: "/business-profile",
@@ -66,6 +68,7 @@ const dashboardLinks = [
     title: "Business Profile",
     description: "Listings, branding & subscription",
     forType: ["business"],
+    forTier: ["basic", "premium", "enterprise"],
   },
   {
     href: "/mentions",
@@ -73,6 +76,7 @@ const dashboardLinks = [
     title: "Mention Highlights",
     description: "Highlight organic business mentions",
     forType: ["business"],
+    forTier: ["premium", "enterprise"],
   },
   {
     href: "/business-analytics",
@@ -80,6 +84,7 @@ const dashboardLinks = [
     title: "Advanced Analytics & Insights",
     description: "Audience insights, geographic data & performance trends",
     forType: ["business"],
+    forTier: ["premium", "enterprise"],
   },
   {
     href: "/transactions",
@@ -87,6 +92,15 @@ const dashboardLinks = [
     title: "Transactions & Commission",
     description: "Bookings, revenue & commission tracking",
     forType: ["business"],
+    forTier: ["premium", "enterprise"],
+  },
+  {
+    href: "/deals",
+    icon: <FileBarChart className="size-4 text-tinerary-gold" />,
+    title: "Booking Integration",
+    description: "Direct bookings from your listings",
+    forType: ["business"],
+    forTier: ["premium", "enterprise"],
   },
   {
     href: "/affiliate",
@@ -94,6 +108,7 @@ const dashboardLinks = [
     title: "Affiliate Marketing",
     description: "Referral links & packing list commerce",
     forType: ["creator", "business"],
+    forTier: null,
   },
   {
     href: "/coins",
@@ -101,6 +116,7 @@ const dashboardLinks = [
     title: "Tinerary Coins",
     description: "Earn & spend rewards",
     forType: ["standard", "creator", "business"],
+    forTier: null,
   },
   {
     href: "/pricing",
@@ -108,6 +124,7 @@ const dashboardLinks = [
     title: "Plans & Pricing",
     description: "Compare all tiers and features",
     forType: ["standard", "creator", "business"],
+    forTier: null,
   },
 ]
 
@@ -115,6 +132,7 @@ export function BusinessSettings() {
   const { user } = useAuth()
   const [selectedType, setSelectedType] = useState("standard")
   const [isBusinessMode, setIsBusinessMode] = useState(false)
+  const [selectedBusinessTier, setSelectedBusinessTier] = useState<BusinessTierSlug>("basic")
   const [loaded, setLoaded] = useState(false)
 
   // Load business preferences from database
@@ -143,6 +161,9 @@ export function BusinessSettings() {
             const type = prefs.isBusinessMode && prefs.selectedType === "standard" ? "creator" : prefs.selectedType
             setSelectedType(type)
           }
+          if (prefs.selectedBusinessTier) {
+            setSelectedBusinessTier(prefs.selectedBusinessTier)
+          }
         }
       } catch (error) {
         console.error("Error loading business preferences:", error)
@@ -156,12 +177,16 @@ export function BusinessSettings() {
 
   // Persist business preferences whenever they change
   const savePreferences = useCallback(
-    async (mode: boolean, type: string) => {
+    async (mode: boolean, type: string, businessTier?: BusinessTierSlug) => {
       if (!user || !loaded) return
 
       try {
         const supabase = createClient()
-        const businessPreferences = { isBusinessMode: mode, selectedType: type }
+        const businessPreferences = {
+          isBusinessMode: mode,
+          selectedType: type,
+          selectedBusinessTier: businessTier ?? selectedBusinessTier,
+        }
 
         const { error: updateError } = await supabase
           .from("user_preferences")
@@ -183,7 +208,7 @@ export function BusinessSettings() {
         console.error("Error saving business preferences:", error)
       }
     },
-    [user, loaded],
+    [user, loaded, selectedBusinessTier],
   )
 
   const handleToggleBusinessMode = (checked: boolean) => {
@@ -204,8 +229,20 @@ export function BusinessSettings() {
     savePreferences(isBusinessMode, type)
   }
 
-  // Filter dashboard links based on active account type
-  const visibleLinks = dashboardLinks.filter((l) => l.forType.includes(selectedType))
+  const handleSelectBusinessTier = (tier: BusinessTierSlug) => {
+    setSelectedBusinessTier(tier)
+    savePreferences(isBusinessMode, selectedType, tier)
+  }
+
+  // Filter dashboard links based on active account type and business tier
+  const visibleLinks = dashboardLinks.filter((l) => {
+    if (!l.forType.includes(selectedType)) return false
+    // If the link has tier restrictions and we're in business mode, filter by tier
+    if (l.forTier && selectedType === "business") {
+      return l.forTier.includes(selectedBusinessTier)
+    }
+    return true
+  })
 
   return (
     <div className="space-y-6">
@@ -316,28 +353,59 @@ export function BusinessSettings() {
               </div>
             ) : (
               <div className="grid gap-3">
-                {BUSINESS_TIERS.map((tier) => (
-                  <div
-                    key={tier.slug}
-                    className={`flex items-center justify-between p-3 rounded-xl border ${
-                      tier.highlighted ? "border-primary bg-primary/5" : "border-border"
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-foreground">{tier.name}</p>
-                        {tier.highlighted && (
-                          <Badge className="bg-tinerary-peach text-tinerary-dark border-0 text-xs">Popular</Badge>
-                        )}
+                {BUSINESS_TIERS.map((tier) => {
+                  const isSelected = selectedBusinessTier === tier.slug
+                  return (
+                    <button
+                      key={tier.slug}
+                      onClick={() => handleSelectBusinessTier(tier.slug)}
+                      className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
+                        isSelected
+                          ? "border-primary bg-primary/5 shadow-sm"
+                          : "border-border hover:border-primary/30 hover:bg-muted/50"
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-foreground">{tier.name}</p>
+                          {tier.highlighted && (
+                            <Badge className="bg-tinerary-peach text-tinerary-dark border-0 text-xs">Popular</Badge>
+                          )}
+                          {isSelected && (
+                            <Badge className="bg-primary text-primary-foreground text-xs">Current</Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">${tier.price}/{tier.priceSuffix}</p>
                       </div>
-                      <p className="text-xs text-muted-foreground">${tier.price}/{tier.priceSuffix}</p>
+                      {isSelected ? (
+                        <Check className="size-5 text-primary shrink-0" />
+                      ) : (
+                        <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+                      )}
+                    </button>
+                  )
+                })}
+                {/* Features for the selected business tier */}
+                {(() => {
+                  const activeTier = BUSINESS_TIERS.find((t) => t.slug === selectedBusinessTier)
+                  if (!activeTier) return null
+                  return (
+                    <div className="mt-3 p-3 rounded-xl bg-muted/50 border border-border">
+                      <p className="text-xs font-semibold text-foreground mb-2">
+                        {activeTier.name} Plan — ${activeTier.price}/{activeTier.priceSuffix}
+                      </p>
+                      <div className="space-y-1.5">
+                        {activeTier.features.map((f) => (
+                          <div key={f} className="flex items-start gap-2">
+                            <Check className="size-3.5 text-primary shrink-0 mt-0.5" />
+                            <span className="text-xs text-muted-foreground">{f}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <Button variant={tier.highlighted ? "default" : "outline"} size="sm" className={tier.highlighted ? "btn-sunset" : ""}>
-                      Select
-                    </Button>
-                  </div>
-                ))}
-                <Button variant="outline" size="sm" className="mt-1 w-full" asChild>
+                  )
+                })()}
+                <Button variant="outline" size="sm" className="mt-3 w-full" asChild>
                   <Link href="/business">
                     Compare all business plans
                     <ArrowRight className="ml-2 size-3" />

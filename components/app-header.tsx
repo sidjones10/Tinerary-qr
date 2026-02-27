@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Bell, Menu, Search, X, User, Settings, LogOut, PlusCircle, Crown } from "lucide-react"
+import { Bell, Menu, Search, X, User, Settings, LogOut, PlusCircle, Crown, Store } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,6 +29,7 @@ export function AppHeader() {
   const [searchQuery, setSearchQuery] = useState("")
   const [user, setUser] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [accountType, setAccountType] = useState<string>("standard")
   const router = useRouter()
   const { t } = useTranslation()
 
@@ -50,6 +51,21 @@ export function AppHeader() {
           setUser(null)
         } else {
           setUser(session?.user || null)
+
+          // Fetch business preferences to determine account type
+          if (session?.user) {
+            const { data: prefs } = await supabase
+              .from("user_preferences")
+              .select("business_preferences")
+              .eq("user_id", session.user.id)
+              .single()
+
+            if (prefs?.business_preferences?.isBusinessMode && prefs.business_preferences.selectedType) {
+              setAccountType(prefs.business_preferences.selectedType)
+            } else {
+              setAccountType("standard")
+            }
+          }
         }
       } catch (error) {
         console.error("Error checking auth:", error)
@@ -191,12 +207,22 @@ export function AppHeader() {
                       {t("nav.profile")}
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/creator" className="flex items-center">
-                      <Crown className="mr-2 h-4 w-4" />
-                      Creator Hub
-                    </Link>
-                  </DropdownMenuItem>
+                  {accountType === "creator" && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/creator" className="flex items-center">
+                        <Crown className="mr-2 h-4 w-4" />
+                        Creator Hub
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {accountType === "business" && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/business-profile" className="flex items-center">
+                        <Store className="mr-2 h-4 w-4" />
+                        Business Profile
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem asChild>
                     <Link href="/settings" className="flex items-center">
                       <Settings className="mr-2 h-4 w-4" />

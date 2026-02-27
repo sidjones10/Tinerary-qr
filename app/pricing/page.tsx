@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowRight, Check, Coins, Crown, Megaphone, Sparkles, Store, Users } from "lucide-react"
+import { ArrowLeft, ArrowRight, Check, Coins, Crown, Megaphone, Sparkles, Store, Users } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -28,6 +28,11 @@ export default function PricingPage() {
 
       <main className="flex-1">
         <div className="container px-4 py-6 md:py-10">
+          <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Home
+          </Link>
+
           {/* Hero */}
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 mb-4">

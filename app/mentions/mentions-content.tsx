@@ -24,6 +24,9 @@ import {
   BookOpen,
   Crown,
   Lock,
+  Shield,
+  Zap,
+  Infinity,
 } from "lucide-react"
 import { MENTION_HIGHLIGHTS } from "@/lib/tiers"
 import { createClient } from "@/lib/supabase/client"
@@ -111,6 +114,7 @@ export function MentionsContent() {
     load()
   }, [])
 
+  const isEnt = tier === "enterprise"
   const limits = getTierLimits(tier)
   const highlightsIncluded = limits.mentionHighlightsIncluded
   const remaining = getMentionHighlightsRemaining(tier, highlightsUsed)
@@ -175,7 +179,7 @@ export function MentionsContent() {
 
   return (
     <div className="mt-6 flex flex-col gap-6">
-      {/* Tier-aware highlight quota banner */}
+      {/* Premium highlight quota banner */}
       {tier !== "basic" && highlightsIncluded !== Infinity && (
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="pt-6">
@@ -201,17 +205,32 @@ export function MentionsContent() {
         </Card>
       )}
 
-      {tier === "enterprise" && (
-        <Card className="border-tinerary-gold/20 bg-tinerary-gold/5">
+      {/* Enterprise Unlimited Mentions Banner */}
+      {isEnt && (
+        <Card className="border-tinerary-gold/20 bg-gradient-to-r from-tinerary-gold/5 to-tinerary-peach/5">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-2">
-              <Crown className="size-4 text-tinerary-gold" />
-              <span className="text-sm font-semibold text-foreground">Unlimited Mention Highlights</span>
-              <Badge className="bg-tinerary-gold/20 text-tinerary-dark border-0 text-xs">Enterprise</Badge>
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-gradient-to-br from-tinerary-gold to-tinerary-peach flex items-center justify-center">
+                  <Shield className="size-5 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-foreground">Unlimited Mention Highlights</h3>
+                    <Badge className="bg-gradient-to-r from-tinerary-gold to-tinerary-peach text-tinerary-dark border-0 text-[10px]">
+                      Enterprise
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    All organic mentions are automatically highlighted with your branding, logo, and booking link.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-tinerary-gold/10 border border-tinerary-gold/20">
+                <Zap className="size-3 text-tinerary-gold" />
+                <span className="text-[10px] font-bold text-tinerary-gold">AUTO-HIGHLIGHT ON</span>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Your Enterprise plan includes unlimited mention highlights. All new mentions can be highlighted automatically.
-            </p>
           </CardContent>
         </Card>
       )}
@@ -246,7 +265,9 @@ export function MentionsContent() {
               <div className="flex items-center gap-1 mt-1">
                 <p className="text-xs text-muted-foreground">{stat.label}</p>
               </div>
-              <p className="text-xs font-medium text-tinerary-salmon mt-0.5">{stat.change}</p>
+              <p className={`text-xs font-medium mt-0.5 ${isEnt && stat.label === "Highlighted" ? "text-tinerary-gold" : "text-tinerary-salmon"}`}>
+                {stat.change}
+              </p>
             </CardContent>
           </Card>
         ))}
@@ -265,6 +286,9 @@ export function MentionsContent() {
                 When a free user creates a public itinerary and mentions your business, you are notified and can pay
                 to &ldquo;highlight&rdquo; the mention — adding a visual badge, your logo, a booking link, and a special offer.
                 The original itinerary is never altered; highlights appear as value-adding overlays.
+                {isEnt && (
+                  <strong className="text-tinerary-gold"> Enterprise accounts get unlimited auto-highlighting — every mention is highlighted automatically.</strong>
+                )}
               </p>
             </div>
           </div>
@@ -275,7 +299,9 @@ export function MentionsContent() {
             </div>
             <div className="flex items-center gap-2 p-3 rounded-xl bg-card">
               <Tag className="size-4 text-tinerary-gold" />
-              <span className="text-xs text-foreground">Add badge + booking link</span>
+              <span className="text-xs text-foreground">
+                {isEnt ? "Auto-add badge + booking link" : "Add badge + booking link"}
+              </span>
             </div>
             <div className="flex items-center gap-2 p-3 rounded-xl bg-card">
               <BookOpen className="size-4 text-primary" />
@@ -298,48 +324,51 @@ export function MentionsContent() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Recent Mentions */}
+        {/* Recent Mentions — enterprise auto-highlights all */}
         <TabsContent value="mentions" className="mt-4">
           <div className="flex flex-col gap-4">
-            {recentMentions.map((mention) => (
-              <Card key={mention.itinerary} className="border-border">
-                <CardContent className="pt-6">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="text-sm font-semibold text-foreground">{mention.itinerary}</h4>
-                        {mention.highlighted ? (
-                          <Badge className="bg-tinerary-gold/20 text-tinerary-dark border-0 text-xs">
-                            Highlighted
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-xs">
-                            Not Highlighted
-                          </Badge>
-                        )}
+            {recentMentions.map((mention) => {
+              const isHighlighted = isEnt ? true : mention.highlighted
+              return (
+                <Card key={mention.itinerary} className="border-border">
+                  <CardContent className="pt-6">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="text-sm font-semibold text-foreground">{mention.itinerary}</h4>
+                          {isHighlighted ? (
+                            <Badge className={`border-0 text-xs ${isEnt ? "bg-tinerary-gold/20 text-tinerary-gold" : "bg-tinerary-gold/20 text-tinerary-dark"}`}>
+                              {isEnt ? "Auto-Highlighted" : "Highlighted"}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-xs">
+                              Not Highlighted
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          By @{mention.creator} &middot; {mention.date}
+                        </p>
+                        <p className="text-sm text-foreground mt-2 italic leading-relaxed">{mention.context}</p>
+                        <div className="flex items-center gap-3 mt-2">
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Eye className="size-3" /> {mention.views} views
+                          </span>
+                        </div>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        By @{mention.creator} &middot; {mention.date}
-                      </p>
-                      <p className="text-sm text-foreground mt-2 italic leading-relaxed">{mention.context}</p>
-                      <div className="flex items-center gap-3 mt-2">
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Eye className="size-3" /> {mention.views} views
-                        </span>
-                      </div>
+                      {!isHighlighted && (
+                        <button
+                          onClick={handleHighlight}
+                          className="shrink-0 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-medium hover:bg-primary/90 transition-colors"
+                        >
+                          {tier !== "basic" && canHighlight ? "Highlight (Included)" : "Highlight"}
+                        </button>
+                      )}
                     </div>
-                    {!mention.highlighted && (
-                      <button
-                        onClick={handleHighlight}
-                        className="shrink-0 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-medium hover:bg-primary/90 transition-colors"
-                      >
-                        {tier !== "basic" && canHighlight ? "Highlight (Included)" : "Highlight"}
-                      </button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         </TabsContent>
 
@@ -349,27 +378,40 @@ export function MentionsContent() {
             <CardHeader>
               <CardTitle>Highlight Pricing</CardTitle>
               <CardDescription>
-                Premium subscribers get 5 highlights/month included. Enterprise subscribers get unlimited.
+                {isEnt
+                  ? "Your Enterprise plan includes unlimited highlights — all mentions are auto-highlighted at no extra cost."
+                  : "Premium subscribers get 5 highlights/month included. Enterprise subscribers get unlimited."}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {MENTION_HIGHLIGHTS.map((plan) => (
-                  <div
-                    key={plan.name}
-                    className="flex flex-col items-center p-5 rounded-2xl bg-muted text-center border border-border"
-                  >
-                    <p className="text-2xl font-bold text-primary">${plan.price}</p>
-                    <p className="text-sm font-semibold text-foreground mt-1">{plan.name}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{plan.duration}</p>
-                    <div className="w-full h-px bg-border my-3" />
-                    <p className="text-xs text-muted-foreground leading-relaxed">{plan.includes}</p>
-                    <button className="mt-4 w-full px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-medium hover:bg-primary/90 transition-colors">
-                      Purchase
-                    </button>
-                  </div>
-                ))}
-              </div>
+              {isEnt ? (
+                <div className="p-6 rounded-2xl bg-gradient-to-r from-tinerary-gold/10 to-tinerary-peach/10 border border-tinerary-gold/20 text-center">
+                  <Infinity className="size-8 mx-auto text-tinerary-gold mb-3" />
+                  <h3 className="text-lg font-bold text-foreground">Unlimited Highlights Included</h3>
+                  <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+                    Your Enterprise plan automatically highlights every organic mention of your business
+                    with your branding, logo, and booking link — at no additional cost.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {MENTION_HIGHLIGHTS.map((plan) => (
+                    <div
+                      key={plan.name}
+                      className="flex flex-col items-center p-5 rounded-2xl bg-muted text-center border border-border"
+                    >
+                      <p className="text-2xl font-bold text-primary">${plan.price}</p>
+                      <p className="text-sm font-semibold text-foreground mt-1">{plan.name}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{plan.duration}</p>
+                      <div className="w-full h-px bg-border my-3" />
+                      <p className="text-xs text-muted-foreground leading-relaxed">{plan.includes}</p>
+                      <button className="mt-4 w-full px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-medium hover:bg-primary/90 transition-colors">
+                        Purchase
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

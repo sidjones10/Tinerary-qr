@@ -491,7 +491,17 @@ export interface Database {
           created_at: string
           updated_at: string
           user_id: string
-          business_tier: string
+          business_tier: "basic" | "premium" | "enterprise"
+          branding_config: Json | null
+          account_manager_id: string | null
+          report_config: Json | null
+          api_key: string | null
+          api_enabled: boolean
+          enterprise_badge_enabled: boolean
+          priority_placement: boolean
+          unlimited_mentions: boolean
+          mention_highlights_used: number
+          mention_highlights_reset_at: string | null
         }
         Insert: {
           id?: string
@@ -506,7 +516,17 @@ export interface Database {
           created_at?: string
           updated_at?: string
           user_id: string
-          business_tier?: string
+          business_tier?: "basic" | "premium" | "enterprise"
+          branding_config?: Json | null
+          account_manager_id?: string | null
+          report_config?: Json | null
+          api_key?: string | null
+          api_enabled?: boolean
+          enterprise_badge_enabled?: boolean
+          priority_placement?: boolean
+          unlimited_mentions?: boolean
+          mention_highlights_used?: number
+          mention_highlights_reset_at?: string | null
         }
         Update: {
           id?: string
@@ -521,7 +541,17 @@ export interface Database {
           created_at?: string
           updated_at?: string
           user_id?: string
-          business_tier?: string
+          business_tier?: "basic" | "premium" | "enterprise"
+          branding_config?: Json | null
+          account_manager_id?: string | null
+          report_config?: Json | null
+          api_key?: string | null
+          api_enabled?: boolean
+          enterprise_badge_enabled?: boolean
+          priority_placement?: boolean
+          unlimited_mentions?: boolean
+          mention_highlights_used?: number
+          mention_highlights_reset_at?: string | null
         }
       }
       promotions: {

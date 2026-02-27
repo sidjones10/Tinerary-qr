@@ -13,9 +13,9 @@ export default function TransactionsPage() {
       <AppHeader />
       <main className="flex-1">
         <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
-          <Link href="/pricing" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
+          <Link href="/business-profile" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Pricing
+            Back to Business Hub
           </Link>
           <PageHeader
             title="Transactions & Commission"
@@ -24,16 +24,6 @@ export default function TransactionsPage() {
           <PaywallGate gate="transactions">
             <TransactionsContent />
           </PaywallGate>
-          <nav className="mt-10 border-t pt-6">
-            <p className="text-xs text-muted-foreground mb-3">Related pages</p>
-            <div className="flex flex-wrap gap-2">
-              <Link href="/business-profile" className="text-sm text-primary hover:underline">Business Dashboard</Link>
-              <span className="text-muted-foreground">·</span>
-              <Link href="/mentions" className="text-sm text-primary hover:underline">Mention Highlights</Link>
-              <span className="text-muted-foreground">·</span>
-              <Link href="/affiliate" className="text-sm text-primary hover:underline">Affiliate Marketing</Link>
-            </div>
-          </nav>
         </div>
       </main>
     </div>

@@ -504,6 +504,80 @@ export async function getBusinessAnalytics() {
   }
 }
 
+export async function processBooking(formData: FormData) {
+  const supabase = await createClient()
+
+  try {
+    const promotionId = formData.get("promotionId") as string
+    const userId = formData.get("userId") as string
+    const quantity = Number.parseInt(formData.get("quantity") as string) || 1
+    const name = formData.get("name") as string
+    const email = formData.get("email") as string
+    const affiliateCode = formData.get("affiliateCode") as string | null
+
+    if (!promotionId || !name || !email) {
+      return { success: false, error: "Missing required booking information." }
+    }
+
+    // Get the promotion details to calculate total price
+    const { data: promotion, error: promotionError } = await supabase
+      .from("promotions")
+      .select("price, currency, business_id")
+      .eq("id", promotionId)
+      .single()
+
+    if (promotionError || !promotion) {
+      return { success: false, error: "Promotion not found." }
+    }
+
+    const totalPrice = (promotion.price || 0) * quantity
+
+    // Determine the user_id: use the authenticated user if available, otherwise use the provided userId
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    const bookingUserId = session?.user?.id || userId
+
+    const { data: booking, error } = await supabase
+      .from("bookings")
+      .insert([
+        {
+          user_id: bookingUserId,
+          promotion_id: promotionId,
+          quantity,
+          total_price: totalPrice,
+          currency: promotion.currency,
+          attendee_names: name,
+          attendee_emails: email,
+          status: "confirmed",
+        },
+      ])
+      .select()
+      .single()
+
+    if (error) throw error
+
+    // Track affiliate if code is present
+    if (affiliateCode) {
+      await supabase
+        .from("affiliate_clicks")
+        .insert([
+          {
+            affiliate_code: affiliateCode,
+            clicked_at: new Date().toISOString(),
+          },
+        ])
+    }
+
+    revalidatePath(`/promotion/${promotionId}`)
+    revalidatePath("/tickets")
+    return { success: true, data: booking }
+  } catch (error) {
+    console.error("Error processing booking:", error)
+    return { success: false, error: (error as Error).message }
+  }
+}
+
 export async function generatePerformanceReport() {
   const supabase = await createClient()
 

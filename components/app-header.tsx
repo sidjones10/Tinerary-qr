@@ -11,6 +11,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { MobileNav } from "@/components/mobile-nav"
 import { NotificationBell } from "@/components/notification-bell"
+import { CoinBalance } from "@/components/coin-balance"
 import { cn } from "@/lib/utils"
 import {
   DropdownMenu,
@@ -167,6 +168,7 @@ export function AppHeader() {
                 <Search className="h-5 w-5" />
                 <span className="sr-only">Search</span>
               </Button>
+              <CoinBalance />
               <NotificationBell />
               <Button variant="ghost" size="icon" className="mr-2" asChild>
                 <Link href="/create">

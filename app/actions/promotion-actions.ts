@@ -3,173 +3,271 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { createClient } from "@/utils/supabase/server"
-import type { Database } from "@/lib/database.types"
 
-type Promotion = Database["public"]["Tables"]["promotions"]["Row"]
-type NewPromotion = Omit<Promotion, "id" | "created_at" | "user_id">
+export async function createDeal(formData: FormData) {
+  const supabase = await createClient()
 
-export async function createPromotion(formData: FormData) {
-  const supabase = createClient()
-
-  // Check if user is authenticated
   const {
     data: { session },
   } = await supabase.auth.getSession()
 
-  // If not authenticated, redirect to login page
   if (!session) {
-    return redirect("/login?message=You must be logged in to publish an event&redirect=/app/create")
+    return redirect("/auth?message=You must be logged in to create a deal")
   }
 
   try {
-    const data: NewPromotion = {
-      title: formData.get("title") as string,
-      description: formData.get("description") as string,
-      location: formData.get("location") as string,
-      start_date: formData.get("start_date") as string,
-      end_date: formData.get("end_date") as string,
-      price: Number.parseFloat(formData.get("price") as string) || 0,
-      currency: (formData.get("currency") as string) || "USD",
-      capacity: Number.parseInt(formData.get("capacity") as string) || 0,
-      image_url: (formData.get("image_url") as string) || null,
-      itinerary_id: (formData.get("itinerary_id") as string) || null,
-      is_published: true,
+    // Find the business owned by this user
+    const { data: business, error: bizError } = await supabase
+      .from("businesses")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .single()
+
+    if (bizError || !business) {
+      return { success: false, error: "No business profile found. Please create a business profile first." }
     }
 
-    const { data: promotion, error } = await supabase
+    const title = formData.get("title") as string
+    const description = formData.get("description") as string
+    const type = formData.get("type") as string
+    const category = formData.get("category") as string
+    const location = formData.get("location") as string
+    const startDate = formData.get("start_date") as string
+    const endDate = formData.get("end_date") as string
+    const price = formData.get("price") ? Number.parseFloat(formData.get("price") as string) : null
+    const originalPrice = formData.get("original_price") ? Number.parseFloat(formData.get("original_price") as string) : null
+    const discount = formData.get("discount") ? Number.parseInt(formData.get("discount") as string) : null
+    const currency = (formData.get("currency") as string) || "USD"
+    const imageUrl = (formData.get("image_url") as string) || null
+    const tagsRaw = formData.get("tags") as string
+    const tags = tagsRaw ? tagsRaw.split(",").map((t) => t.trim()).filter(Boolean) : null
+
+    if (!title || !type || !category || !location || !startDate || !endDate) {
+      return { success: false, error: "Please fill in all required fields." }
+    }
+
+    const { data, error } = await supabase
       .from("promotions")
-      .insert([{ ...data, user_id: session.user.id }])
+      .insert([
+        {
+          title,
+          description,
+          type,
+          category,
+          location,
+          start_date: startDate,
+          end_date: endDate,
+          price,
+          original_price: originalPrice,
+          discount,
+          currency,
+          image: imageUrl,
+          tags,
+          business_id: business.id,
+          status: "active",
+          is_featured: false,
+          rank_score: 0,
+        },
+      ])
       .select()
       .single()
 
     if (error) throw error
 
-    revalidatePath("/app/promotions")
-    return { success: true, data: promotion }
+    revalidatePath("/business-profile")
+    revalidatePath("/deals")
+    return { success: true, data }
   } catch (error) {
-    console.error("Error creating promotion:", error)
+    console.error("Error creating deal:", error)
     return { success: false, error: (error as Error).message }
   }
 }
 
-export async function updatePromotion(id: string, formData: FormData) {
-  const supabase = createClient()
+export async function updateDeal(id: string, formData: FormData) {
+  const supabase = await createClient()
 
-  // Check if user is authenticated
   const {
     data: { session },
   } = await supabase.auth.getSession()
 
-  // If not authenticated, redirect to login page
   if (!session) {
-    return redirect("/login?message=You must be logged in to update an event&redirect=/app/promotions")
+    return redirect("/auth?message=You must be logged in to update a deal")
   }
 
   try {
-    const updates: Partial<NewPromotion> = {}
+    // Verify ownership: promotion -> business -> user
+    const { data: promotion, error: fetchError } = await supabase
+      .from("promotions")
+      .select("business_id, businesses!inner(user_id)")
+      .eq("id", id)
+      .single()
 
-    // Only add fields that are present in the form data
+    if (fetchError) throw fetchError
+
+    const businessUserId = (promotion as any).businesses?.user_id
+    if (businessUserId !== session.user.id) {
+      return { success: false, error: "You don't have permission to update this deal." }
+    }
+
+    const updates: Record<string, any> = {}
+
     if (formData.has("title")) updates.title = formData.get("title") as string
     if (formData.has("description")) updates.description = formData.get("description") as string
+    if (formData.has("type")) updates.type = formData.get("type") as string
+    if (formData.has("category")) updates.category = formData.get("category") as string
     if (formData.has("location")) updates.location = formData.get("location") as string
     if (formData.has("start_date")) updates.start_date = formData.get("start_date") as string
     if (formData.has("end_date")) updates.end_date = formData.get("end_date") as string
-    if (formData.has("price")) updates.price = Number.parseFloat(formData.get("price") as string) || 0
+    if (formData.has("price")) updates.price = Number.parseFloat(formData.get("price") as string) || null
+    if (formData.has("original_price")) updates.original_price = Number.parseFloat(formData.get("original_price") as string) || null
+    if (formData.has("discount")) updates.discount = Number.parseInt(formData.get("discount") as string) || null
     if (formData.has("currency")) updates.currency = formData.get("currency") as string
-    if (formData.has("capacity")) updates.capacity = Number.parseInt(formData.get("capacity") as string) || 0
-    if (formData.has("image_url")) updates.image_url = formData.get("image_url") as string
-    if (formData.has("is_published")) updates.is_published = formData.get("is_published") === "true"
+    if (formData.has("status")) updates.status = formData.get("status") as string
+    if (formData.has("image_url")) updates.image = formData.get("image_url") as string
 
-    // First check if the user owns this promotion
-    const { data: promotion, error: fetchError } = await supabase
+    const { data, error } = await supabase
       .from("promotions")
-      .select("user_id")
+      .update(updates)
       .eq("id", id)
+      .select()
       .single()
-
-    if (fetchError) throw fetchError
-
-    // If the user doesn't own this promotion, return an error
-    if (promotion.user_id !== session.user.id) {
-      return { success: false, error: "You don't have permission to update this promotion" }
-    }
-
-    const { data, error } = await supabase.from("promotions").update(updates).eq("id", id).select().single()
 
     if (error) throw error
 
+    revalidatePath("/business-profile")
+    revalidatePath("/deals")
     revalidatePath(`/promotion/${id}`)
-    revalidatePath("/app/promotions")
     return { success: true, data }
   } catch (error) {
-    console.error("Error updating promotion:", error)
+    console.error("Error updating deal:", error)
     return { success: false, error: (error as Error).message }
   }
 }
 
-export async function deletePromotion(id: string) {
-  const supabase = createClient()
+export async function deleteDeal(id: string) {
+  const supabase = await createClient()
 
-  // Check if user is authenticated
   const {
     data: { session },
   } = await supabase.auth.getSession()
 
-  // If not authenticated, redirect to login page
   if (!session) {
-    return redirect("/login?message=You must be logged in to delete an event&redirect=/app/promotions")
+    return redirect("/auth?message=You must be logged in to delete a deal")
   }
 
   try {
-    // First check if the user owns this promotion
+    // Verify ownership
     const { data: promotion, error: fetchError } = await supabase
       .from("promotions")
-      .select("user_id")
+      .select("business_id, businesses!inner(user_id)")
       .eq("id", id)
       .single()
 
     if (fetchError) throw fetchError
 
-    // If the user doesn't own this promotion, return an error
-    if (promotion.user_id !== session.user.id) {
-      return { success: false, error: "You don't have permission to delete this promotion" }
+    const businessUserId = (promotion as any).businesses?.user_id
+    if (businessUserId !== session.user.id) {
+      return { success: false, error: "You don't have permission to delete this deal." }
     }
 
     const { error } = await supabase.from("promotions").delete().eq("id", id)
 
     if (error) throw error
 
-    revalidatePath("/app/promotions")
+    revalidatePath("/business-profile")
+    revalidatePath("/deals")
     return { success: true }
   } catch (error) {
-    console.error("Error deleting promotion:", error)
+    console.error("Error deleting deal:", error)
     return { success: false, error: (error as Error).message }
   }
 }
 
-export async function getPromotionById(id: string) {
-  const supabase = createClient()
+export async function getBusinessDeals() {
+  const supabase = await createClient()
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  if (!session) {
+    return { success: true, data: [] }
+  }
+
+  try {
+    // Find the business owned by this user
+    const { data: business } = await supabase
+      .from("businesses")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .single()
+
+    if (!business) {
+      return { success: true, data: [] }
+    }
+
+    const { data, error } = await supabase
+      .from("promotions")
+      .select("*, promotion_metrics(*)")
+      .eq("business_id", business.id)
+      .order("created_at", { ascending: false })
+
+    if (error) throw error
+
+    return { success: true, data: data || [] }
+  } catch (error) {
+    console.error("Error fetching business deals:", error)
+    return { success: false, error: (error as Error).message, data: [] }
+  }
+}
+
+export async function getPublicDeals() {
+  const supabase = await createClient()
 
   try {
     const { data, error } = await supabase
       .from("promotions")
       .select(`
         *,
-        user:user_id (
+        businesses (
           id,
-          email,
-          full_name,
-          avatar_url
+          name,
+          logo,
+          website,
+          rating,
+          review_count
         ),
-        itinerary:itinerary_id (
+        promotion_metrics (*)
+      `)
+      .eq("status", "active")
+      .order("rank_score", { ascending: false })
+
+    if (error) throw error
+
+    return { success: true, data: data || [] }
+  } catch (error) {
+    console.error("Error fetching public deals:", error)
+    return { success: false, error: (error as Error).message, data: [] }
+  }
+}
+
+export async function getPromotionById(id: string) {
+  const supabase = await createClient()
+
+  try {
+    const { data, error } = await supabase
+      .from("promotions")
+      .select(`
+        *,
+        businesses (
           id,
-          title,
-          description,
-          location,
-          start_date,
-          end_date,
-          image_url
-        )
+          name,
+          logo,
+          website,
+          rating,
+          review_count
+        ),
+        promotion_metrics (*)
       `)
       .eq("id", id)
       .single()
@@ -183,201 +281,52 @@ export async function getPromotionById(id: string) {
   }
 }
 
-export async function getUserPromotions() {
-  const supabase = createClient()
-
-  // Check if user is authenticated
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  // If not authenticated, return empty array
-  if (!session) {
-    return { success: true, data: [] }
-  }
+export async function trackAffiliateLinkClick(code: string, ip: string, userAgent: string) {
+  const supabase = await createClient()
 
   try {
-    const { data, error } = await supabase
-      .from("promotions")
-      .select("*")
-      .eq("user_id", session.user.id)
-      .order("created_at", { ascending: false })
-
-    if (error) throw error
-
-    return { success: true, data }
-  } catch (error) {
-    console.error("Error fetching user promotions:", error)
-    return { success: false, error: (error as Error).message }
-  }
-}
-
-export async function getPublicPromotions() {
-  const supabase = createClient()
-
-  try {
-    const { data, error } = await supabase
-      .from("promotions")
-      .select(`
-        *,
-        user:user_id (
-          id,
-          email,
-          full_name,
-          avatar_url
-        )
-      `)
-      .eq("is_published", true)
-      .order("start_date", { ascending: true })
-
-    if (error) throw error
-
-    return { success: true, data }
-  } catch (error) {
-    console.error("Error fetching public promotions:", error)
-    return { success: false, error: (error as Error).message }
-  }
-}
-
-export async function rsvpToItinerary(formData: FormData) {
-  const supabase = createClient()
-
-  try {
-    const itineraryId = formData.get("itineraryId") as string
-    const userId = formData.get("userId") as string
-    const response = formData.get("response") as "yes" | "no" | "maybe"
-    const note = formData.get("note") as string
-
-    // Validate inputs
-    if (!itineraryId || !userId || !response) {
-      return { success: false, error: "Missing required fields" }
-    }
-
-    // Insert or update the RSVP in the database
-    const { data, error } = await supabase
-      .from("itinerary_rsvps")
-      .upsert({
-        itinerary_id: itineraryId,
-        user_id: userId,
-        response: response,
-        note: note || null,
-        updated_at: new Date().toISOString(),
-      })
-      .select()
-
-    if (error) {
-      console.error("Error submitting RSVP:", error)
-      return { success: false, error: error.message }
-    }
-
-    // Revalidate the itinerary page to show updated RSVP status
-    revalidatePath(`/trip/${itineraryId}`)
-    revalidatePath(`/itinerary/${itineraryId}`)
-
-    return { success: true, data }
-  } catch (error) {
-    console.error("Error in rsvpToItinerary:", error)
-    return { success: false, error: (error as Error).message }
-  }
-}
-
-export async function generateAffiliateLink(promotionId: string) {
-  const supabase = createClient()
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  if (!session) {
-    return { success: false, error: "Authentication required" }
-  }
-
-  try {
-    // Generate a unique affiliate code
-    const affiliateCode = `${session.user.id.slice(0, 8)}-${promotionId.slice(0, 8)}-${Date.now()}`
-
-    return {
-      success: true,
-      affiliateLink: `${process.env.NEXT_PUBLIC_SITE_URL}/promotion/${promotionId}?ref=${affiliateCode}`,
-      affiliateCode,
-    }
-  } catch (error) {
-    console.error("Error generating affiliate link:", error)
-    return { success: false, error: (error as Error).message }
-  }
-}
-
-export async function promoteUserItinerary(itineraryId: string, promotionData: any) {
-  const supabase = createClient()
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  if (!session) {
-    return { success: false, error: "Authentication required" }
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from("promotions")
-      .insert([
-        {
-          ...promotionData,
-          itinerary_id: itineraryId,
-          user_id: session.user.id,
-          is_published: true,
-        },
-      ])
-      .select()
-      .single()
-
-    if (error) throw error
-
-    revalidatePath("/app/promotions")
-    return { success: true, data }
-  } catch (error) {
-    console.error("Error promoting itinerary:", error)
-    return { success: false, error: (error as Error).message }
-  }
-}
-
-export async function processBooking(bookingData: any) {
-  const supabase = createClient()
-
-  try {
-    const { data, error } = await supabase.from("bookings").insert([bookingData]).select().single()
-
-    if (error) throw error
-
-    return { success: true, data }
-  } catch (error) {
-    console.error("Error processing booking:", error)
-    return { success: false, error: (error as Error).message }
-  }
-}
-
-export async function trackAffiliateLinkClick(affiliateCode: string, promotionId: string) {
-  const supabase = createClient()
-
-  try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("affiliate_clicks")
       .insert([
         {
-          affiliate_code: affiliateCode,
-          promotion_id: promotionId,
+          affiliate_code: code,
+          ip_address: ip,
+          user_agent: userAgent,
           clicked_at: new Date().toISOString(),
         },
       ])
-      .select()
-      .single()
 
     if (error) throw error
-
-    return { success: true, data }
+    return { success: true }
   } catch (error) {
     console.error("Error tracking affiliate click:", error)
     return { success: false, error: (error as Error).message }
+  }
+}
+
+export async function getUserBusiness() {
+  const supabase = await createClient()
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  if (!session) {
+    return { success: false, data: null }
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("businesses")
+      .select("*")
+      .eq("user_id", session.user.id)
+      .single()
+
+    if (error && error.code !== "PGRST116") throw error // PGRST116 = no rows
+
+    return { success: true, data }
+  } catch (error) {
+    console.error("Error fetching user business:", error)
+    return { success: false, error: (error as Error).message, data: null }
   }
 }

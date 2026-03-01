@@ -256,7 +256,7 @@ export function BusinessProfileContent() {
   const [profileData, setProfileData] = useState<ProfileData | null>(null)
   const [promoDetails, setPromoDetails] = useState<{ title: string; views: number; clicks: number; saves: number; status: string }[]>([])
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (retryCount = 0) => {
     const supabase = createClient()
     const { data: { session } } = await supabase.auth.getSession()
 
@@ -275,11 +275,23 @@ export function BusinessProfileContent() {
     if (profile) setProfileData(profile)
 
     // Fetch business
-    const { data: biz } = await supabase
+    let { data: biz } = await supabase
       .from("businesses")
       .select("*")
       .eq("user_id", session.user.id)
       .single()
+
+    // If business was just created (sessionStorage flag) but query returned
+    // nothing, retry once after a short delay — the row may not have propagated yet
+    if (!biz && retryCount === 0 && typeof window !== "undefined" && sessionStorage.getItem("business_created") === "true") {
+      await new Promise((r) => setTimeout(r, 1000))
+      const retry = await supabase
+        .from("businesses")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .single()
+      biz = retry.data
+    }
 
     if (biz) {
       setBusiness(biz)
@@ -344,6 +356,11 @@ export function BusinessProfileContent() {
   if (!business) {
     router.replace("/settings?section=business")
     return null
+  }
+
+  // Business loaded successfully — clear the sessionStorage flag
+  if (typeof window !== "undefined") {
+    sessionStorage.removeItem("business_created")
   }
 
   const theme = TIER_THEME[tier]

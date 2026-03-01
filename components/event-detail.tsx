@@ -477,10 +477,13 @@ export function EventDetail({ event }: EventDetailProps) {
         className="relative z-10 container px-4 py-6 md:py-10"
         style={{ fontFamily: getFontFamily((event.font as string) || "default") }}
       >
-        <Link href="/app" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
+        <button
+          onClick={() => router.back()}
+          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6"
+        >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Home
-        </Link>
+          Back
+        </button>
 
         <div className="max-w-4xl mx-auto">
           <div className="relative rounded-xl overflow-hidden mb-6 shadow-2xl">

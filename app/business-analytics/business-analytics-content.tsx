@@ -46,6 +46,7 @@ import {
   type BusinessSubscription,
 } from "@/lib/business-tier-service"
 import type { BusinessTierSlug } from "@/lib/tiers"
+import { EnterpriseAnalyticsDashboard } from "@/components/enterprise-analytics-dashboard"
 
 interface PromoAnalytics {
   id: string
@@ -458,6 +459,17 @@ export function BusinessAnalyticsContent() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Enterprise-grade analytics section for premium+ tiers */}
+      {(tier === "premium" || tier === "enterprise") && (
+        <div className="mt-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="size-4 text-tinerary-gold" />
+            <h2 className="text-lg font-bold text-foreground">Enterprise Intelligence</h2>
+          </div>
+          <EnterpriseAnalyticsDashboard tier={tier} />
+        </div>
+      )}
     </div>
   )
 }

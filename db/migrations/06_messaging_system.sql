@@ -131,9 +131,21 @@ CREATE INDEX IF NOT EXISTS idx_sponsorship_messages_sender
   ON sponsorship_messages(sender_id);
 
 -- Allow authenticated users to INSERT sponsorship messages
-CREATE POLICY IF NOT EXISTS "Authenticated users can send sponsorship messages"
-  ON sponsorship_messages FOR INSERT
-  WITH CHECK (auth.uid() IS NOT NULL);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'sponsorship_messages'
+      AND policyname = 'Authenticated users can send sponsorship messages'
+  ) THEN
+    CREATE POLICY "Authenticated users can send sponsorship messages"
+      ON sponsorship_messages FOR INSERT
+      WITH CHECK (auth.uid() IS NOT NULL);
+  END IF;
+END $$;
+
+-- Ensure RLS is enabled on sponsorship_messages
+ALTER TABLE sponsorship_messages ENABLE ROW LEVEL SECURITY;
 
 -- Grant INSERT on sponsorship_messages to authenticated role
 GRANT INSERT ON sponsorship_messages TO authenticated;

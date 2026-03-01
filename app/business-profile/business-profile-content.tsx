@@ -29,6 +29,9 @@ import {
   Zap,
   Loader2,
   Check,
+  CalendarCheck,
+  CalendarRange,
+  UserCheck,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { BUSINESS_TIERS } from "@/lib/tiers"
@@ -185,6 +188,9 @@ function getActivePerks(tier: BusinessTierSlug) {
       { label: "Unlimited Mentions", desc: "Auto-highlighted", icon: Megaphone },
       { label: "Dedicated Manager", desc: "Direct contact anytime", icon: Headphones },
       { label: "API Access", desc: "Programmatic integration", icon: Zap },
+      { label: "Custom Profile", desc: "Full branded profile", icon: UserCheck },
+      { label: "Daily Reports", desc: "Email & in-app delivery", icon: CalendarCheck },
+      { label: "Priority Booking", desc: "Top placement in feeds", icon: CalendarRange },
     ]
   }
   if (tier === "premium") {
@@ -195,6 +201,9 @@ function getActivePerks(tier: BusinessTierSlug) {
       { label: "Featured Placement", desc: "Priority in feeds", icon: Sparkles },
       { label: "5 Mentions/mo", desc: "Included highlights", icon: Megaphone },
       { label: "Priority Support", desc: "4-8 hour response", icon: Headphones },
+      { label: "Enhanced Profile", desc: "Upgraded business page", icon: UserCheck },
+      { label: "Weekly Reports", desc: "Email & in-app delivery", icon: CalendarCheck },
+      { label: "Booking Integration", desc: "Accept bookings directly", icon: CalendarRange },
     ]
   }
   return [

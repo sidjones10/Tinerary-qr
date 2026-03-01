@@ -17,6 +17,9 @@ import {
   Ticket,
   Link2,
   Crown,
+  Globe,
+  MapPin,
+  ExternalLink,
   Eye,
   MousePointerClick,
   Bookmark,
@@ -674,30 +677,75 @@ export function BusinessProfileContent() {
 
   return (
     <>
-      {/* Hero */}
+      {/* Business Header */}
       <div className={`bg-gradient-to-r ${theme.gradientCls} rounded-2xl p-6 mb-8`}>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row gap-5">
+          {/* Logo / Avatar */}
           {business.logo || profileData?.avatar_url ? (
             <img
               src={(business.logo || profileData?.avatar_url)!}
               alt={business.name}
-              className="size-14 rounded-xl object-cover shadow-md"
+              className="size-20 rounded-2xl object-cover shadow-md shrink-0"
             />
           ) : (
-            <div className={`size-14 rounded-xl ${theme.bg} flex items-center justify-center shadow-lg`}>
-              <TierIcon className="size-7 text-white" />
+            <div className={`size-20 rounded-2xl ${theme.bg} flex items-center justify-center shadow-lg shrink-0`}>
+              <TierIcon className="size-9 text-white" />
             </div>
           )}
-          <div>
-            <div className="flex items-center gap-2">
+
+          {/* Business Info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl font-bold">{business.name}</h1>
               <Badge className={`${theme.badgeCls} border-0 text-xs`}>
                 {tierConfig?.name || "Basic"}
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Manage your promotions, analytics, and tools
-            </p>
+
+            {business.category && (
+              <p className="text-sm font-medium text-primary mt-0.5">
+                {business.category}
+              </p>
+            )}
+
+            {/* Description — business description first, fallback to profile bio */}
+            {(business.description || profileData?.bio) && (
+              <p className="text-sm text-muted-foreground mt-2 line-clamp-2 max-w-xl">
+                {business.description || profileData?.bio}
+              </p>
+            )}
+
+            {/* Meta chips: website, location, owner */}
+            <div className="flex flex-wrap items-center gap-3 mt-3">
+              {(business.website || profileData?.website) && (
+                <a
+                  href={business.website || profileData?.website || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline bg-background/60 px-2.5 py-1 rounded-full"
+                >
+                  <Globe className="size-3" />
+                  {(business.website || profileData?.website || "")
+                    .replace(/^https?:\/\//, "")
+                    .replace(/\/$/, "")}
+                  <ExternalLink className="size-2.5 opacity-60" />
+                </a>
+              )}
+
+              {profileData?.location && (
+                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-background/60 px-2.5 py-1 rounded-full">
+                  <MapPin className="size-3" />
+                  {profileData.location}
+                </span>
+              )}
+
+              {profileData?.name && (
+                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-background/60 px-2.5 py-1 rounded-full">
+                  <Store className="size-3" />
+                  {profileData.name}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>

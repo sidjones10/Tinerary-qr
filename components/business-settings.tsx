@@ -5,6 +5,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/providers/auth-provider"
@@ -21,7 +31,7 @@ import {
   ArrowRight,
   Check,
   ChevronRight,
-  AlertCircle,
+  Lock,
   Clock,
   ArrowDown,
   ArrowUp,
@@ -41,6 +51,18 @@ import {
   getSubscriptionStatus,
 } from "@/lib/subscription-lifecycle"
 import { createBusiness } from "@/app/actions/business-actions"
+
+const CATEGORIES = [
+  "Accommodation",
+  "Activities & Tours",
+  "Food & Dining",
+  "Transportation",
+  "Shopping",
+  "Entertainment",
+  "Wellness & Spa",
+  "Travel Services",
+  "Other",
+]
 
 const accountTypes = [
   {
@@ -75,7 +97,6 @@ const dashboardLinks = [
     title: "Creator Dashboard",
     description: "Post boosts, benefits & tier management",
     forType: ["creator"],
-    forTier: null,
   },
   {
     href: "/business-profile",
@@ -83,7 +104,6 @@ const dashboardLinks = [
     title: "Business Hub",
     description: "Deals, analytics, mentions & all business tools",
     forType: ["business"],
-    forTier: null,
   },
   {
     href: "/affiliate",
@@ -91,7 +111,6 @@ const dashboardLinks = [
     title: "Affiliate Marketing",
     description: "Referral links & packing list commerce",
     forType: ["creator", "business"],
-    forTier: null,
   },
   {
     href: "/coins",
@@ -99,7 +118,6 @@ const dashboardLinks = [
     title: "Tinerary Coins",
     description: "Earn & spend rewards",
     forType: ["standard", "creator", "business"],
-    forTier: null,
   },
   {
     href: "/pricing",
@@ -107,7 +125,6 @@ const dashboardLinks = [
     title: "Plans & Pricing",
     description: "Compare all tiers and features",
     forType: ["standard", "creator", "business"],
-    forTier: null,
   },
 ]
 
@@ -118,17 +135,52 @@ export function BusinessSettings() {
   const [isBusinessMode, setIsBusinessMode] = useState(false)
   const [selectedBusinessTier, setSelectedBusinessTier] = useState<BusinessTierSlug>("basic")
   const [loaded, setLoaded] = useState(false)
+  const [hasBusinessRecord, setHasBusinessRecord] = useState(false)
   const [subscription, setSubscription] = useState<BusinessSubscription | null>(null)
   const [businessId, setBusinessId] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
 
-  // Load business preferences and subscription from database
+  // Setup dialog state
+  const [setupOpen, setSetupOpen] = useState(false)
+  const [setupName, setSetupName] = useState("")
+  const [setupCategory, setSetupCategory] = useState("")
+  const [setupDescription, setSetupDescription] = useState("")
+  const [setupWebsite, setSetupWebsite] = useState("")
+  const [setupSubmitting, setSetupSubmitting] = useState(false)
+  const [setupError, setSetupError] = useState<string | null>(null)
+
+  // Load business preferences, subscription, and check for existing business record
   useEffect(() => {
     const loadPreferences = async () => {
       if (!user) return
 
       try {
         const supabase = createClient()
+
+        // Check if a businesses row exists and load subscription
+        const { data: biz } = await supabase
+          .from("businesses")
+          .select("id")
+          .eq("user_id", user.id)
+          .single()
+
+        setHasBusinessRecord(!!biz)
+
+        if (biz) {
+          setBusinessId(biz.id)
+          const { data: sub } = await supabase
+            .from("business_subscriptions")
+            .select("*")
+            .eq("business_id", biz.id)
+            .single()
+
+          if (sub) {
+            setSubscription(sub as BusinessSubscription)
+            setSelectedBusinessTier(sub.tier as BusinessTierSlug)
+          }
+        }
+
+        // Load preferences
         const { data, error } = await supabase
           .from("user_preferences")
           .select("business_preferences")
@@ -147,30 +199,23 @@ export function BusinessSettings() {
             const type = prefs.isBusinessMode && prefs.selectedType === "standard" ? "creator" : prefs.selectedType
             setSelectedType(type)
           }
-          if (prefs.selectedBusinessTier) {
+          // Only use preference tier if no subscription overrides it
+          if (prefs.selectedBusinessTier && !subscription) {
             setSelectedBusinessTier(prefs.selectedBusinessTier)
           }
         }
 
-        // Load actual subscription data
-        const { data: biz } = await supabase
-          .from("businesses")
-          .select("id")
-          .eq("user_id", user.id)
+        // Pre-fill setup form from profile
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("name, bio, website")
+          .eq("id", user.id)
           .single()
 
-        if (biz) {
-          setBusinessId(biz.id)
-          const { data: sub } = await supabase
-            .from("business_subscriptions")
-            .select("*")
-            .eq("business_id", biz.id)
-            .single()
-
-          if (sub) {
-            setSubscription(sub as BusinessSubscription)
-            setSelectedBusinessTier(sub.tier as BusinessTierSlug)
-          }
+        if (profile) {
+          if (profile.name) setSetupName(profile.name)
+          if (profile.bio) setSetupDescription(profile.bio)
+          if (profile.website) setSetupWebsite(profile.website)
         }
       } catch (error) {
         console.error("Error loading business preferences:", error)
@@ -221,7 +266,6 @@ export function BusinessSettings() {
   const handleToggleBusinessMode = (checked: boolean) => {
     setIsBusinessMode(checked)
     if (checked) {
-      // Default to creator when enabling professional mode (Personal is not a professional type)
       const newType = selectedType === "standard" ? "creator" : selectedType
       setSelectedType(newType)
       savePreferences(checked, newType)
@@ -240,22 +284,11 @@ export function BusinessSettings() {
     if (!user) return
 
     if (!subscription) {
-      // No existing subscription — save preference and auto-create business if needed
+      // No existing subscription — just save preference.
+      // The user still needs to go through the setup dialog to create
+      // the actual business record.
       setSelectedBusinessTier(tier)
       savePreferences(isBusinessMode, selectedType, tier)
-
-      if (!businessId) {
-        // No business record yet — create one via the server action so
-        // the rest of the app (profile settings, business hub, etc.)
-        // picks up the tier immediately instead of showing a setup flow.
-        const displayName =
-          user.user_metadata?.name || user.user_metadata?.username || "My Business"
-        const formData = new FormData()
-        formData.set("name", displayName)
-        formData.set("category", "Other")
-        formData.set("tier", tier)
-        await createBusiness(formData)
-      }
       return
     }
 
@@ -389,7 +422,6 @@ export function BusinessSettings() {
     if (!subscription) return
     setActionLoading(true)
     try {
-      // Re-select the current tier to clear pending_tier
       const result = await changeTier(subscription.id, subscription.tier as BusinessTierSlug)
       if (result.success && result.subscription) {
         setSubscription(result.subscription)
@@ -405,15 +437,55 @@ export function BusinessSettings() {
     }
   }
 
-  // Filter dashboard links based on active account type and business tier
-  const visibleLinks = dashboardLinks.filter((l) => {
-    if (!l.forType.includes(selectedType)) return false
-    // If the link has tier restrictions and we're in business mode, filter by tier
-    if (l.forTier && selectedType === "business") {
-      return l.forTier.includes(selectedBusinessTier)
+  const handleSetupSubmit = async () => {
+    setSetupError(null)
+    setSetupSubmitting(true)
+
+    const formData = new FormData()
+    formData.set("name", setupName)
+    formData.set("category", setupCategory)
+    formData.set("description", setupDescription)
+    formData.set("website", setupWebsite)
+    formData.set("tier", selectedBusinessTier)
+
+    try {
+      const result = await createBusiness(formData)
+
+      if (result && "success" in result) {
+        if (result.success) {
+          setHasBusinessRecord(true)
+          setBusinessId(result.data?.id || null)
+          setSetupOpen(false)
+
+          // Reload subscription data for the newly created business
+          if (result.data?.id) {
+            const supabase = createClient()
+            const { data: sub } = await supabase
+              .from("business_subscriptions")
+              .select("*")
+              .eq("business_id", result.data.id)
+              .single()
+
+            if (sub) {
+              setSubscription(sub as BusinessSubscription)
+            }
+          }
+        } else {
+          setSetupError(result.error || "Something went wrong.")
+        }
+      }
+    } catch {
+      setSetupError("Something went wrong. Please try again.")
+    } finally {
+      setSetupSubmitting(false)
     }
-    return true
-  })
+  }
+
+  // Filter dashboard links based on active account type
+  const visibleLinks = dashboardLinks.filter((l) => l.forType.includes(selectedType))
+
+  // Whether tools should be locked (business type selected but no business record)
+  const toolsLocked = isBusinessMode && selectedType === "business" && !hasBusinessRecord
 
   return (
     <div className="space-y-6">
@@ -718,26 +790,153 @@ export function BusinessSettings() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-2">
-            {visibleLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-colors group"
+          {toolsLocked ? (
+            <div className="text-center py-6">
+              <div className="size-12 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
+                <Lock className="size-5 text-muted-foreground" />
+              </div>
+              <p className="text-sm font-medium text-foreground">
+                Set up your business to unlock tools
+              </p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
+                Create your business profile to access the Business Hub, analytics, deals, and more.
+              </p>
+              <Button
+                className="btn-sunset mt-4"
+                onClick={() => setSetupOpen(true)}
               >
-                <div className="size-9 rounded-lg bg-muted group-hover:bg-background flex items-center justify-center shrink-0">
-                  {link.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground">{link.title}</p>
-                  <p className="text-xs text-muted-foreground">{link.description}</p>
-                </div>
-                <ChevronRight className="size-4 text-muted-foreground shrink-0" />
-              </Link>
-            ))}
-          </div>
+                <Store className="size-4 mr-2" />
+                Set Up Your Business
+              </Button>
+            </div>
+          ) : (
+            <div className="grid gap-2">
+              {visibleLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-colors group"
+                >
+                  <div className="size-9 rounded-lg bg-muted group-hover:bg-background flex items-center justify-center shrink-0">
+                    {link.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">{link.title}</p>
+                    <p className="text-xs text-muted-foreground">{link.description}</p>
+                  </div>
+                  <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+                </Link>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* Business Setup Dialog */}
+      <Dialog open={setupOpen} onOpenChange={setSetupOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Set Up Your Business</DialogTitle>
+            <DialogDescription>
+              Tell us about your business to get started. You can update these details later.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4 mt-2">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="setup-name">
+                Business Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="setup-name"
+                value={setupName}
+                onChange={(e) => setSetupName(e.target.value)}
+                placeholder="e.g. Sunset Beach Resort"
+                maxLength={100}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="setup-category">
+                Category <span className="text-destructive">*</span>
+              </Label>
+              <select
+                id="setup-category"
+                value={setupCategory}
+                onChange={(e) => setSetupCategory(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value="">Select a category</option>
+                {CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="setup-desc">Description</Label>
+              <Textarea
+                id="setup-desc"
+                value={setupDescription}
+                onChange={(e) => setSetupDescription(e.target.value)}
+                placeholder="What your business offers to travelers..."
+                maxLength={500}
+                rows={3}
+              />
+              <p className="text-xs text-muted-foreground text-right">
+                {setupDescription.length}/500
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="setup-website">Website</Label>
+              <Input
+                id="setup-website"
+                value={setupWebsite}
+                onChange={(e) => setSetupWebsite(e.target.value)}
+                placeholder="https://yourbusiness.com"
+              />
+            </div>
+
+            {/* Selected tier badge */}
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-muted/50 border border-border">
+              <Crown className="size-4 text-tinerary-gold" />
+              <span className="text-xs text-muted-foreground">Plan:</span>
+              <Badge variant="secondary" className="text-xs">
+                {BUSINESS_TIERS.find((t) => t.slug === selectedBusinessTier)?.name || "Basic"} — $
+                {BUSINESS_TIERS.find((t) => t.slug === selectedBusinessTier)?.price || "49"}/
+                {BUSINESS_TIERS.find((t) => t.slug === selectedBusinessTier)?.priceSuffix || "mo"}
+              </Badge>
+            </div>
+
+            {setupError && (
+              <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+                {setupError}
+              </p>
+            )}
+
+            <Button
+              className="btn-sunset w-full"
+              disabled={!setupName.trim() || !setupCategory || setupSubmitting}
+              onClick={handleSetupSubmit}
+            >
+              {setupSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  Create Business
+                  <ArrowRight className="ml-2 size-4" />
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -21,7 +21,6 @@ import {
   getBusinessSubscription,
   getEffectiveTier,
 } from "@/lib/business-tier-service"
-import { createBusiness } from "@/app/actions/business-actions"
 
 export function ProfileSettings() {
   const { t } = useTranslation()
@@ -264,40 +263,15 @@ export function ProfileSettings() {
   }
 
   const handleSaveBranding = async (config: EnterpriseBrandingConfig) => {
-    if (!user) return
+    if (!user || !businessId) return
 
     setSavingBranding(true)
     try {
       const supabase = createClient()
-      let targetBusinessId = businessId
-
-      // Auto-create a business record via server action when the user
-      // doesn't have one yet (e.g. selected enterprise in Business
-      // settings but never completed the business-profile setup flow).
-      if (!targetBusinessId) {
-        const displayName =
-          user.user_metadata?.name || user.user_metadata?.username || "My Business"
-        const formData = new FormData()
-        formData.set("name", displayName)
-        formData.set("category", "Other")
-        formData.set("tier", businessTier || "enterprise")
-
-        const result = await createBusiness(formData)
-        if (!result || !("success" in result) || !result.success || !result.data) {
-          throw new Error(
-            (result && "error" in result ? result.error : null) ||
-              "Failed to create business profile."
-          )
-        }
-
-        targetBusinessId = result.data.id
-        setBusinessId(targetBusinessId)
-      }
-
       const { error } = await supabase
         .from("businesses")
         .update({ branding_config: config as any })
-        .eq("id", targetBusinessId)
+        .eq("id", businessId)
 
       if (error) throw error
 

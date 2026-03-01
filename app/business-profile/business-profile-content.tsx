@@ -33,8 +33,8 @@ import {
   Mail,
   Coins,
   Zap,
-  Palette,
   Loader2,
+  Pencil,
   Check,
   CalendarCheck,
   CalendarRange,
@@ -73,7 +73,6 @@ import {
 import { createBusiness } from "@/app/actions/business-actions"
 import type { EnterpriseBrandingConfig } from "@/lib/enterprise"
 import { DEFAULT_BRANDING_CONFIG } from "@/lib/enterprise"
-import { EnterpriseBrandedProfile } from "@/components/enterprise-branded-profile"
 
 interface BusinessData {
   id: string
@@ -229,17 +228,6 @@ function getBusinessTools(tier: BusinessTierSlug, activeDeals: number) {
       href: "/coins",
       color: "text-tinerary-gold",
       bgColor: "bg-tinerary-gold/10",
-    },
-    {
-      title: "Branded Profile",
-      description:
-        tier === "enterprise"
-          ? "Customize colors, cover & CTA"
-          : "Enterprise feature",
-      icon: Palette,
-      href: "#branding",
-      color: tier === "enterprise" ? "text-tinerary-peach" : "text-muted-foreground",
-      bgColor: tier === "enterprise" ? "bg-tinerary-peach/10" : "bg-muted",
     },
   ]
 }
@@ -520,27 +508,6 @@ export function BusinessProfileContent() {
   const [summaryStats, setSummaryStats] = useState({ views: 0, clicks: 0, saves: 0, activeDeals: 0 })
   const [profileData, setProfileData] = useState<ProfileData | null>(null)
   const [promoDetails, setPromoDetails] = useState<{ title: string; views: number; clicks: number; saves: number; status: string }[]>([])
-  const [savingBranding, setSavingBranding] = useState(false)
-
-  const handleSaveBranding = useCallback(async (config: EnterpriseBrandingConfig) => {
-    if (!business) return
-    setSavingBranding(true)
-    try {
-      const supabase = createClient()
-      const { error } = await supabase
-        .from("businesses")
-        .update({ branding_config: config as any })
-        .eq("id", business.id)
-
-      if (error) throw error
-
-      setBusiness((prev) => prev ? { ...prev, branding_config: config } : prev)
-    } catch (err) {
-      console.error("Error saving branding:", err)
-    } finally {
-      setSavingBranding(false)
-    }
-  }, [business])
 
   const loadData = useCallback(async () => {
     const supabase = createClient()
@@ -859,36 +826,41 @@ export function BusinessProfileContent() {
                     </div>
                   </div>
 
-                  {/* CTA Button */}
-                  {brandingConfig.ctaButtonUrl && (
-                    <a
-                      href={brandingConfig.ctaButtonUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shrink-0"
-                    >
-                      <Button
-                        size="sm"
-                        className={`text-xs shadow-md ${
-                          brandingConfig.ctaButtonStyle === "outline"
-                            ? "bg-transparent border-2"
-                            : brandingConfig.ctaButtonStyle === "gradient"
-                            ? ""
-                            : ""
-                        }`}
-                        style={
-                          brandingConfig.ctaButtonStyle === "outline"
-                            ? { borderColor: brandingConfig.accentColor, color: brandingConfig.accentColor }
-                            : brandingConfig.ctaButtonStyle === "gradient"
-                            ? { background: `linear-gradient(135deg, ${brandingConfig.primaryColor}, ${brandingConfig.accentColor})`, color: "white" }
-                            : { backgroundColor: brandingConfig.accentColor, color: "white" }
-                        }
+                  {/* CTA + Edit Profile */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {brandingConfig.ctaButtonUrl && (
+                      <a
+                        href={brandingConfig.ctaButtonUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
                       >
-                        <ExternalLink className="size-3 mr-1.5" />
-                        {brandingConfig.ctaButtonText || "Book Now"}
-                      </Button>
-                    </a>
-                  )}
+                        <Button
+                          size="sm"
+                          className={`text-xs shadow-md ${
+                            brandingConfig.ctaButtonStyle === "outline"
+                              ? "bg-transparent border-2"
+                              : ""
+                          }`}
+                          style={
+                            brandingConfig.ctaButtonStyle === "outline"
+                              ? { borderColor: brandingConfig.accentColor, color: brandingConfig.accentColor }
+                              : brandingConfig.ctaButtonStyle === "gradient"
+                              ? { background: `linear-gradient(135deg, ${brandingConfig.primaryColor}, ${brandingConfig.accentColor})`, color: "white" }
+                              : { backgroundColor: brandingConfig.accentColor, color: "white" }
+                          }
+                        >
+                          <ExternalLink className="size-3 mr-1.5" />
+                          {brandingConfig.ctaButtonText || "Book Now"}
+                        </Button>
+                      </a>
+                    )}
+                    <Button asChild size="sm" variant="outline" className="text-xs">
+                      <Link href="/settings?section=profile">
+                        <Pencil className="size-3 mr-1.5" />
+                        Edit Profile
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -929,61 +901,70 @@ export function BusinessProfileContent() {
                   )}
                 </div>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h1 className="text-2xl font-bold">{business.name}</h1>
-                    <CheckCircle2 className="size-5 text-primary shrink-0" />
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h1 className="text-2xl font-bold">{business.name}</h1>
+                      <CheckCircle2 className="size-5 text-primary shrink-0" />
+                    </div>
+
+                    {business.category && (
+                      <p className="text-sm font-medium text-primary mt-0.5">
+                        {business.category}
+                      </p>
+                    )}
+
+                    {displayDescription && (
+                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2 max-w-xl">
+                        {displayDescription}
+                      </p>
+                    )}
+
+                    {/* Meta chips */}
+                    <div className="flex flex-wrap items-center gap-3 mt-3">
+                      {displayWebsite && (
+                        <a
+                          href={displayWebsite}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline bg-primary/5 px-2.5 py-1 rounded-full"
+                        >
+                          <Globe className="size-3" />
+                          {displayWebsite.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                          <ExternalLink className="size-2.5 opacity-60" />
+                        </a>
+                      )}
+
+                      {profileData?.location && (
+                        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                          <MapPin className="size-3" />
+                          {profileData.location}
+                        </span>
+                      )}
+
+                      {business.rating != null && business.rating > 0 && (
+                        <span className="inline-flex items-center gap-1.5 text-xs text-tinerary-gold bg-tinerary-gold/10 px-2.5 py-1 rounded-full font-medium">
+                          <Star className="size-3 fill-tinerary-gold" />
+                          {business.rating.toFixed(1)}
+                          {business.review_count ? ` (${business.review_count})` : ""}
+                        </span>
+                      )}
+
+                      {profileData?.name && (
+                        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                          <Store className="size-3" />
+                          {profileData.name}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  {business.category && (
-                    <p className="text-sm font-medium text-primary mt-0.5">
-                      {business.category}
-                    </p>
-                  )}
-
-                  {displayDescription && (
-                    <p className="text-sm text-muted-foreground mt-2 line-clamp-2 max-w-xl">
-                      {displayDescription}
-                    </p>
-                  )}
-
-                  {/* Meta chips */}
-                  <div className="flex flex-wrap items-center gap-3 mt-3">
-                    {displayWebsite && (
-                      <a
-                        href={displayWebsite}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline bg-primary/5 px-2.5 py-1 rounded-full"
-                      >
-                        <Globe className="size-3" />
-                        {displayWebsite.replace(/^https?:\/\//, "").replace(/\/$/, "")}
-                        <ExternalLink className="size-2.5 opacity-60" />
-                      </a>
-                    )}
-
-                    {profileData?.location && (
-                      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-                        <MapPin className="size-3" />
-                        {profileData.location}
-                      </span>
-                    )}
-
-                    {business.rating != null && business.rating > 0 && (
-                      <span className="inline-flex items-center gap-1.5 text-xs text-tinerary-gold bg-tinerary-gold/10 px-2.5 py-1 rounded-full font-medium">
-                        <Star className="size-3 fill-tinerary-gold" />
-                        {business.rating.toFixed(1)}
-                        {business.review_count ? ` (${business.review_count})` : ""}
-                      </span>
-                    )}
-
-                    {profileData?.name && (
-                      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-                        <Store className="size-3" />
-                        {profileData.name}
-                      </span>
-                    )}
-                  </div>
+                  <Button asChild size="sm" variant="outline" className="text-xs shrink-0">
+                    <Link href="/settings?section=profile">
+                      <Pencil className="size-3 mr-1.5" />
+                      Edit Profile
+                    </Link>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -1007,18 +988,29 @@ export function BusinessProfileContent() {
               )}
 
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-2xl font-bold">{business.name}</h1>
-                  <Badge className={`${theme.badgeCls} border-0 text-xs`}>
-                    {tierConfig?.name || "Basic"}
-                  </Badge>
-                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h1 className="text-2xl font-bold">{business.name}</h1>
+                      <Badge className={`${theme.badgeCls} border-0 text-xs`}>
+                        {tierConfig?.name || "Basic"}
+                      </Badge>
+                    </div>
 
-                {business.category && (
-                  <p className="text-sm font-medium text-primary mt-0.5">
-                    {business.category}
-                  </p>
-                )}
+                    {business.category && (
+                      <p className="text-sm font-medium text-primary mt-0.5">
+                        {business.category}
+                      </p>
+                    )}
+                  </div>
+
+                  <Button asChild size="sm" variant="outline" className="text-xs shrink-0">
+                    <Link href="/settings?section=profile">
+                      <Pencil className="size-3 mr-1.5" />
+                      Edit Profile
+                    </Link>
+                  </Button>
+                </div>
 
                 {displayDescription && (
                   <p className="text-sm text-muted-foreground mt-2 line-clamp-2 max-w-xl">
@@ -1245,16 +1237,6 @@ export function BusinessProfileContent() {
             </Card>
           </Link>
         ))}
-      </div>
-
-      {/* Custom Branded Profile Editor */}
-      <div id="branding" className="mb-8">
-        <EnterpriseBrandedProfile
-          tier={tier}
-          brandingConfig={business.branding_config}
-          onSave={handleSaveBranding}
-          saving={savingBranding}
-        />
       </div>
 
       {/* Active Perks */}

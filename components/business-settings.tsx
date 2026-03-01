@@ -22,6 +22,7 @@ import {
 } from "lucide-react"
 import { USER_TIERS, BUSINESS_TIERS } from "@/lib/tiers"
 import type { BusinessTierSlug } from "@/lib/tiers"
+import { createBusiness } from "@/app/actions/business-actions"
 
 const accountTypes = [
   {
@@ -207,7 +208,19 @@ export function BusinessSettings() {
         .eq("user_id", user.id)
         .single()
 
-      if (!biz) return
+      if (!biz) {
+        // No business record yet — create one via the server action so
+        // the rest of the app (profile settings, business hub, etc.)
+        // picks up the tier immediately instead of showing a setup flow.
+        const displayName =
+          user.user_metadata?.name || user.user_metadata?.username || "My Business"
+        const formData = new FormData()
+        formData.set("name", displayName)
+        formData.set("category", "Other")
+        formData.set("tier", tier)
+        await createBusiness(formData)
+        return
+      }
 
       // Update businesses.business_tier
       await supabase

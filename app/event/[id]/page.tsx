@@ -12,6 +12,7 @@ import { EventNotFound } from "@/components/event-not-found"
 import { EventPrivate } from "@/components/event-private"
 import { Button } from "@/components/ui/button"
 import { DiscoveryFeed } from "@/components/discovery-feed"
+import { censorText } from "@/lib/content-moderation"
 
 // Add these helper functions at the top of the file, after the imports:
 const formatDate = (dateString: string) => {
@@ -207,11 +208,16 @@ const getEventById = async (id: string) => {
     // Extract metrics
     const metrics = Array.isArray(itineraryData.metrics) ? itineraryData.metrics[0] : itineraryData.metrics
 
+    // Apply content censoring on public itineraries for display
+    const censor = itineraryData.is_public
+      ? (text: string | null) => (text ? censorText(text) : text)
+      : (text: string | null) => text
+
     // Format the data to match the expected structure
     return {
       id: itineraryData.id,
       user_id: itineraryData.user_id,
-      title: itineraryData.title,
+      title: censor(itineraryData.title) || itineraryData.title,
       type: isTrip ? "Trip" : "Event",
       image: itineraryData.image_url || "/placeholder.svg?height=400&width=800",
       image_url: itineraryData.image_url,
@@ -241,7 +247,7 @@ const getEventById = async (id: string) => {
       comment_count: metrics?.comment_count || 0,
       save_count: metrics?.save_count || 0,
       view_count: metrics?.view_count || 0,
-      description: itineraryData.description,
+      description: censor(itineraryData.description),
       days: days,
       activities: activitiesData || [], // Include raw activities data for the EventDetail component
       // Format packing items

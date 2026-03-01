@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Bookmark, Calendar, Heart, MapPin, MessageCircle, Share2, Star, Sparkles } from "lucide-react"
+import { Bookmark, Calendar, ExternalLink, Heart, MapPin, MessageCircle, Share2, Star, Sparkles, Tag } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -73,6 +73,61 @@ export function DiscoveryFeed() {
     setMounted(true)
   }, [])
 
+  // Fetch deals from promotions table to mix into feed
+  const fetchDeals = async () => {
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("promotions")
+        .select(`
+          id, title, type, category, image, location,
+          price, original_price, discount,
+          start_date, end_date, description, external_url,
+          businesses (name, rating, website, logo)
+        `)
+        .eq("status", "active")
+        .order("rank_score", { ascending: false })
+        .limit(5)
+
+      if (error || !data || data.length === 0) return []
+
+      return data.map((p: any) => ({
+        id: `deal-${p.id}`,
+        _isDeal: true,
+        _dealData: {
+          id: p.id,
+          title: p.title,
+          category: p.category,
+          price: p.price,
+          original_price: p.original_price,
+          discount: p.discount,
+          location: p.location,
+          description: p.description,
+          image: p.image,
+          external_url: p.external_url || null,
+          business_name: p.businesses?.name || null,
+          business_website: p.businesses?.website || null,
+          business_logo: p.businesses?.logo || null,
+          business_rating: p.businesses?.rating || null,
+        },
+        title: p.title,
+        description: p.description,
+        destination: p.location,
+        is_public: true,
+        user_id: "business",
+        image_url: p.image,
+        owner: {
+          name: p.businesses?.name || "Business",
+          avatar_url: p.businesses?.logo || null,
+          username: p.businesses?.name?.toLowerCase().replace(/\s+/g, "") || "business",
+        },
+        metrics: [{ view_count: 0, save_count: 0, like_count: 0, comment_count: 0 }],
+      }))
+    } catch {
+      return []
+    }
+  }
+
   // Fetch discovery feed and saved items
   const fetchDiscovery = async (isRefresh = false) => {
     if (isRefresh) {
@@ -82,9 +137,19 @@ export function DiscoveryFeed() {
     }
 
     try {
-      const result = await getTrendingItineraries(user?.id || null, 30)
+      const [result, dealItems] = await Promise.all([
+        getTrendingItineraries(user?.id || null, 30),
+        fetchDeals(),
+      ])
+
       if (result.success && result.items) {
-        setDiscoveryItems(result.items)
+        // Interleave deals among itineraries (every 5th item)
+        const combined = [...result.items]
+        dealItems.forEach((deal: any, idx: number) => {
+          const insertAt = Math.min((idx + 1) * 5, combined.length)
+          combined.splice(insertAt, 0, deal)
+        })
+        setDiscoveryItems(combined)
 
         // Show success toast on refresh
         if (isRefresh) {
@@ -425,6 +490,45 @@ export function DiscoveryFeed() {
 
   // Format sample data for display
   const formatDiscoveryItem = (item: any) => {
+    // Handle deal items
+    if (item._isDeal && item._dealData) {
+      const deal = item._dealData
+      const outboundUrl = deal.external_url || deal.business_website
+      return {
+        id: item.id,
+        title: deal.title,
+        type: "deal" as const,
+        date: deal.price != null
+          ? `$${deal.price}${deal.original_price ? ` (was $${deal.original_price})` : ""}`
+          : "Special Offer",
+        image: deal.image || null,
+        defaultBackground: !deal.image ? "linear-gradient(135deg, #f97316 0%, #ec4899 100%)" : null,
+        location: deal.location || "Available now",
+        likes: 0,
+        comments: 0,
+        saves: 0,
+        views: 0,
+        description: deal.description || "",
+        theme: null,
+        font: null,
+        user: {
+          name: deal.business_name || "Local Business",
+          username: `@${(deal.business_name || "business").toLowerCase().replace(/\s+/g, "")}`,
+          avatar: deal.business_logo || "/placeholder.svg?height=40&width=40",
+        },
+        highlights: [
+          deal.discount ? `${deal.discount}% OFF` : null,
+          deal.category ? deal.category.charAt(0).toUpperCase() + deal.category.slice(1) : null,
+          deal.business_rating ? `${deal.business_rating} stars` : null,
+          "Limited Time",
+        ].filter(Boolean),
+        promoted: true,
+        _isDeal: true,
+        _outboundUrl: outboundUrl,
+        _dealId: deal.id,
+      }
+    }
+
     const startDate = new Date(item.start_date)
     const endDate = new Date(item.end_date)
 
@@ -713,14 +817,18 @@ export function DiscoveryFeed() {
                   <div className="max-w-[80%]">
                     <Badge
                       className={
-                        item.type === "trip"
-                          ? "bg-gradient-to-r from-blue-400 to-cyan-300 hover:from-blue-500 hover:to-cyan-400 border-0 text-sm px-3 py-1"
-                          : item.type === "business"
-                            ? "bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 border-0 text-sm px-3 py-1"
-                            : "bg-gradient-to-r from-purple-400 to-pink-300 hover:from-purple-500 hover:to-pink-400 border-0 text-sm px-3 py-1"
+                        item.type === "deal"
+                          ? "bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 border-0 text-sm px-3 py-1"
+                          : item.type === "trip"
+                            ? "bg-gradient-to-r from-blue-400 to-cyan-300 hover:from-blue-500 hover:to-cyan-400 border-0 text-sm px-3 py-1"
+                            : item.type === "business"
+                              ? "bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 border-0 text-sm px-3 py-1"
+                              : "bg-gradient-to-r from-purple-400 to-pink-300 hover:from-purple-500 hover:to-pink-400 border-0 text-sm px-3 py-1"
                       }
                     >
-                      {item.type === "trip" ? t("discover.trip") : item.type === "business" ? t("discover.business") : t("discover.event")}
+                      {item.type === "deal" ? (
+                        <><Tag className="h-3 w-3 mr-1" />Deal</>
+                      ) : item.type === "trip" ? t("discover.trip") : item.type === "business" ? t("discover.business") : t("discover.event")}
                     </Badge>
                     <h2 className="text-2xl md:text-3xl font-bold mt-3" style={{ fontFamily }}>{item.title}</h2>
                     <div className="flex items-center text-sm md:text-base mt-2 opacity-90">
@@ -760,15 +868,44 @@ export function DiscoveryFeed() {
                     </div>
                   </div>
 
-                  <Link href={`/event/${item.id}`}>
+                  {(item as any)._isDeal && (item as any)._outboundUrl ? (
                     <Button
                       variant="outline"
                       size="sm"
-                      className="bg-gradient-to-r from-orange-500 to-pink-500 backdrop-blur-sm border-white/20 text-white hover:from-orange-600 hover:to-pink-600 font-semibold shadow-lg transition-all hover:scale-105"
+                      className="bg-gradient-to-r from-orange-500 to-red-500 backdrop-blur-sm border-white/20 text-white hover:from-orange-600 hover:to-red-600 font-semibold shadow-lg transition-all hover:scale-105"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        window.open(
+                          `/api/affiliate/track?code=feed-${((item as any)._dealId || item.id).substring(0, 8)}&url=${encodeURIComponent((item as any)._outboundUrl)}`,
+                          "_blank",
+                          "noopener,noreferrer"
+                        )
+                      }}
                     >
-                      {item.type === "business" ? t("discover.learnMore") : t("discover.viewTrip")}
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      View Deal
                     </Button>
-                  </Link>
+                  ) : (item as any)._isDeal ? (
+                    <Link href={`/promotion/${(item as any)._dealId || item.id}`}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="bg-gradient-to-r from-orange-500 to-red-500 backdrop-blur-sm border-white/20 text-white hover:from-orange-600 hover:to-red-600 font-semibold shadow-lg transition-all hover:scale-105"
+                      >
+                        View Deal
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Link href={`/event/${item.id}`}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="bg-gradient-to-r from-orange-500 to-pink-500 backdrop-blur-sm border-white/20 text-white hover:from-orange-600 hover:to-pink-600 font-semibold shadow-lg transition-all hover:scale-105"
+                      >
+                        {item.type === "business" ? t("discover.learnMore") : t("discover.viewTrip")}
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               </div>
 

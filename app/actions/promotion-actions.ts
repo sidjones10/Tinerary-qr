@@ -55,6 +55,7 @@ export async function createDeal(formData: FormData) {
     const discount = formData.get("discount") ? Number.parseInt(formData.get("discount") as string) : null
     const currency = (formData.get("currency") as string) || "USD"
     const imageUrl = (formData.get("image_url") as string) || null
+    const externalUrl = (formData.get("external_url") as string) || null
     const tagsRaw = formData.get("tags") as string
     const tags = tagsRaw ? tagsRaw.split(",").map((t) => t.trim()).filter(Boolean) : null
 
@@ -62,29 +63,34 @@ export async function createDeal(formData: FormData) {
       return { success: false, error: "Please fill in all required fields." }
     }
 
+    const insertData: Record<string, unknown> = {
+      title,
+      description,
+      type,
+      category,
+      location,
+      start_date: startDate,
+      end_date: endDate,
+      price,
+      original_price: originalPrice,
+      discount,
+      currency,
+      image: imageUrl,
+      tags,
+      business_id: business.id,
+      status: "active",
+      is_featured: false,
+      rank_score: 0,
+    }
+
+    // Only include external_url if the column exists (graceful handling)
+    if (externalUrl) {
+      insertData.external_url = externalUrl
+    }
+
     const { data, error } = await supabase
       .from("promotions")
-      .insert([
-        {
-          title,
-          description,
-          type,
-          category,
-          location,
-          start_date: startDate,
-          end_date: endDate,
-          price,
-          original_price: originalPrice,
-          discount,
-          currency,
-          image: imageUrl,
-          tags,
-          business_id: business.id,
-          status: "active",
-          is_featured: false,
-          rank_score: 0,
-        },
-      ])
+      .insert([insertData])
       .select()
       .single()
 
@@ -93,6 +99,7 @@ export async function createDeal(formData: FormData) {
     revalidatePath("/business-profile")
     revalidatePath("/deals")
     revalidatePath("/deals/manage")
+    revalidatePath("/explore")
     return { success: true, data }
   } catch (error) {
     console.error("Error creating deal:", error)
@@ -532,6 +539,23 @@ export async function processBooking(formData: FormData) {
 
     if (promotionError || !promotion) {
       return { success: false, error: "Promotion not found." }
+    }
+
+    // Check if the business has booking integration enabled (premium/enterprise)
+    const { data: sub } = await supabase
+      .from("business_subscriptions")
+      .select("tier, status")
+      .eq("business_id", promotion.business_id)
+      .eq("status", "active")
+      .single()
+
+    const businessTier = (sub?.tier as "basic" | "premium" | "enterprise") || "basic"
+
+    if (businessTier === "basic") {
+      return {
+        success: false,
+        error: "This business has not enabled booking integration. They need to upgrade to a Premium or Enterprise plan.",
+      }
     }
 
     const totalPrice = (promotion.price || 0) * quantity

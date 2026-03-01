@@ -10,6 +10,12 @@ export interface BusinessSubscription {
   mention_highlights_used: number
   mention_highlights_reset_at: string
   pricing_override: PricingOverride | null
+  current_period_start: string
+  current_period_end: string
+  cancel_at_period_end: boolean
+  pending_tier: BusinessTierSlug | null
+  paid_amount: number | null
+  canceled_at: string | null
   created_at: string
   updated_at: string
 }
@@ -62,18 +68,35 @@ export async function getBusinessSubscription(
 ): Promise<BusinessSubscription | null> {
   try {
     const supabase = createClient()
-    const { data, error } = await supabase
+
+    // First try to find an active subscription
+    const { data: activeSub, error: activeError } = await supabase
       .from("business_subscriptions")
       .select("*")
       .eq("business_id", businessId)
       .eq("status", "active")
       .single()
 
-    if (error && error.code !== "PGRST116") {
-      console.error("Error fetching business subscription:", error)
+    if (activeSub) return activeSub
+
+    if (activeError && activeError.code !== "PGRST116") {
+      console.error("Error fetching active business subscription:", activeError)
     }
 
-    return data || null
+    // Fall back to a canceled subscription that is still within its paid period
+    const { data: canceledSub, error: canceledError } = await supabase
+      .from("business_subscriptions")
+      .select("*")
+      .eq("business_id", businessId)
+      .eq("status", "canceled")
+      .gte("current_period_end", new Date().toISOString())
+      .single()
+
+    if (canceledError && canceledError.code !== "PGRST116") {
+      console.error("Error fetching canceled business subscription:", canceledError)
+    }
+
+    return canceledSub || null
   } catch {
     return null
   }
@@ -103,11 +126,29 @@ export async function getBusinessSubscriptionByUserId(
   }
 }
 
+/**
+ * Returns the tier the user should currently have access to.
+ * - Active subscriptions return their tier.
+ * - Canceled subscriptions still return their paid tier if within the billing period.
+ * - After the period ends, falls back to the fallback tier.
+ */
 export function getEffectiveTier(
   subscription: BusinessSubscription | null,
   fallbackTier?: BusinessTierSlug | null
 ): BusinessTierSlug {
-  if (subscription && subscription.status === "active") return subscription.tier
+  if (!subscription) return fallbackTier || "basic"
+
+  if (subscription.status === "active") return subscription.tier
+
+  // Canceled but still within the paid period — keep access to the paid tier
+  if (
+    subscription.status === "canceled" &&
+    subscription.current_period_end &&
+    new Date(subscription.current_period_end) > new Date()
+  ) {
+    return subscription.tier
+  }
+
   return fallbackTier || "basic"
 }
 

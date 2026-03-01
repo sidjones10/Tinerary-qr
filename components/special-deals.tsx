@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { ArrowRight, Clock, Hotel, MapPin, Plane, Tag, Ticket, Utensils, Star } from "lucide-react"
+import { Clock, ExternalLink, Hotel, MapPin, Plane, Tag, Ticket, Utensils, Star } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,6 +25,8 @@ interface Deal {
   description: string | null
   business_name: string | null
   business_rating: number | null
+  business_website: string | null
+  external_url: string | null
 }
 
 const DEMO_DEALS: Deal[] = [
@@ -38,11 +40,13 @@ const DEMO_DEALS: Deal[] = [
     price: 249,
     original_price: 399,
     discount: 38,
-    start_date: "2025-06-01",
-    end_date: "2025-08-31",
+    start_date: "2026-06-01",
+    end_date: "2026-08-31",
     description: "Ocean view rooms with private balconies. Includes breakfast and spa access.",
     business_name: "Coastal Luxury Hotels",
     business_rating: 4.8,
+    business_website: null,
+    external_url: null,
   },
   {
     id: "demo-2",
@@ -54,11 +58,13 @@ const DEMO_DEALS: Deal[] = [
     price: 129,
     original_price: 179,
     discount: 28,
-    start_date: "2025-04-01",
-    end_date: "2025-10-31",
+    start_date: "2026-04-01",
+    end_date: "2026-10-31",
     description: "Full-day tour of 4 premium wineries with tastings and lunch included.",
     business_name: "Wine Country Explorers",
     business_rating: 4.9,
+    business_website: null,
+    external_url: null,
   },
   {
     id: "demo-3",
@@ -70,11 +76,13 @@ const DEMO_DEALS: Deal[] = [
     price: 95,
     original_price: 145,
     discount: 34,
-    start_date: "2025-03-01",
-    end_date: "2025-06-30",
+    start_date: "2026-03-01",
+    end_date: "2026-06-30",
     description: "5-course tasting menu with wine pairing option at award-winning restaurant.",
     business_name: "Stellar Dining Group",
     business_rating: 4.7,
+    business_website: null,
+    external_url: null,
   },
   {
     id: "demo-4",
@@ -86,11 +94,13 @@ const DEMO_DEALS: Deal[] = [
     price: 199,
     original_price: 299,
     discount: 33,
-    start_date: "2025-05-01",
-    end_date: "2025-09-30",
+    start_date: "2026-05-01",
+    end_date: "2026-09-30",
     description: "Stylish rooms in the heart of SoHo. Walking distance to major attractions.",
     business_name: "Urban Retreats",
     business_rating: 4.6,
+    business_website: null,
+    external_url: null,
   },
 ]
 
@@ -114,8 +124,8 @@ export function SpecialDeals() {
           .select(`
             id, title, type, category, image, location,
             price, original_price, discount,
-            start_date, end_date, description,
-            businesses (name, rating)
+            start_date, end_date, description, external_url,
+            businesses (name, rating, website)
           `)
           .eq("status", "active")
           .order("rank_score", { ascending: false })
@@ -139,6 +149,8 @@ export function SpecialDeals() {
               description: p.description,
               business_name: p.businesses?.name || null,
               business_rating: p.businesses?.rating || null,
+              business_website: p.businesses?.website || null,
+              external_url: p.external_url || null,
             }))
           )
         } else {
@@ -177,6 +189,11 @@ export function SpecialDeals() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight">Special Deals</h2>
+        <Link href="/explore">
+          <Button variant="ghost" size="sm" className="text-muted-foreground">
+            View all on Explore
+          </Button>
+        </Link>
       </div>
 
       <Tabs defaultValue="all">
@@ -248,7 +265,21 @@ function DealCard({ deal }: { deal: Deal }) {
   })()
 
   const isDemo = deal.id.startsWith("demo-")
-  const href = isDemo ? "#" : `/promotion/${deal.id}`
+  const detailHref = isDemo ? "#" : `/promotion/${deal.id}`
+
+  // External outbound link: prefer external_url, fall back to business website
+  const outboundUrl = deal.external_url || deal.business_website
+  const hasOutboundLink = !!outboundUrl && !isDemo
+
+  const handleViewDeal = () => {
+    if (hasOutboundLink) {
+      window.open(
+        `/api/affiliate/track?code=deal-${deal.id.substring(0, 8)}&url=${encodeURIComponent(outboundUrl!)}`,
+        "_blank",
+        "noopener,noreferrer"
+      )
+    }
+  }
 
   return (
     <Card className="overflow-hidden transition-all duration-200 hover:shadow-lg">
@@ -326,14 +357,23 @@ function DealCard({ deal }: { deal: Deal }) {
         </div>
 
         <div className="flex gap-2">
-          <Link href={href}>
+          <Link href={detailHref}>
             <Button variant="outline" size="sm">
               Details
             </Button>
           </Link>
-          <Button size="sm" className="btn-sunset">
-            Add to Trip
-          </Button>
+          {hasOutboundLink ? (
+            <Button size="sm" className="btn-sunset" onClick={handleViewDeal}>
+              <ExternalLink className="h-3 w-3 mr-1" />
+              View Deal
+            </Button>
+          ) : (
+            <Link href={detailHref}>
+              <Button size="sm" className="btn-sunset">
+                View Deal
+              </Button>
+            </Link>
+          )}
         </div>
       </CardFooter>
     </Card>

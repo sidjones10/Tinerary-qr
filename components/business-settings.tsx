@@ -15,8 +15,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/providers/auth-provider"
+import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
 import {
   Briefcase,
@@ -30,10 +32,24 @@ import {
   Check,
   ChevronRight,
   Lock,
+  Clock,
+  ArrowDown,
+  ArrowUp,
+  RotateCcw,
+  XCircle,
   Loader2,
 } from "lucide-react"
 import { USER_TIERS, BUSINESS_TIERS } from "@/lib/tiers"
+import { STANDARD_PRICES } from "@/lib/paywall"
 import type { BusinessTierSlug } from "@/lib/tiers"
+import type { BusinessSubscription } from "@/lib/business-tier-service"
+import {
+  cancelSubscription,
+  resubscribe,
+  changeTier,
+  calculateProratedAmount,
+  getSubscriptionStatus,
+} from "@/lib/subscription-lifecycle"
 import { createBusiness } from "@/app/actions/business-actions"
 
 const CATEGORIES = [
@@ -114,11 +130,15 @@ const dashboardLinks = [
 
 export function BusinessSettings() {
   const { user } = useAuth()
+  const { toast } = useToast()
   const [selectedType, setSelectedType] = useState("standard")
   const [isBusinessMode, setIsBusinessMode] = useState(false)
   const [selectedBusinessTier, setSelectedBusinessTier] = useState<BusinessTierSlug>("basic")
   const [loaded, setLoaded] = useState(false)
   const [hasBusinessRecord, setHasBusinessRecord] = useState(false)
+  const [subscription, setSubscription] = useState<BusinessSubscription | null>(null)
+  const [businessId, setBusinessId] = useState<string | null>(null)
+  const [actionLoading, setActionLoading] = useState(false)
 
   // Setup dialog state
   const [setupOpen, setSetupOpen] = useState(false)
@@ -129,7 +149,7 @@ export function BusinessSettings() {
   const [setupSubmitting, setSetupSubmitting] = useState(false)
   const [setupError, setSetupError] = useState<string | null>(null)
 
-  // Load business preferences and check for existing business record
+  // Load business preferences, subscription, and check for existing business record
   useEffect(() => {
     const loadPreferences = async () => {
       if (!user) return
@@ -137,7 +157,7 @@ export function BusinessSettings() {
       try {
         const supabase = createClient()
 
-        // Check if a businesses row exists
+        // Check if a businesses row exists and load subscription
         const { data: biz } = await supabase
           .from("businesses")
           .select("id")
@@ -145,6 +165,20 @@ export function BusinessSettings() {
           .single()
 
         setHasBusinessRecord(!!biz)
+
+        if (biz) {
+          setBusinessId(biz.id)
+          const { data: sub } = await supabase
+            .from("business_subscriptions")
+            .select("*")
+            .eq("business_id", biz.id)
+            .single()
+
+          if (sub) {
+            setSubscription(sub as BusinessSubscription)
+            setSelectedBusinessTier(sub.tier as BusinessTierSlug)
+          }
+        }
 
         // Load preferences
         const { data, error } = await supabase
@@ -165,7 +199,8 @@ export function BusinessSettings() {
             const type = prefs.isBusinessMode && prefs.selectedType === "standard" ? "creator" : prefs.selectedType
             setSelectedType(type)
           }
-          if (prefs.selectedBusinessTier) {
+          // Only use preference tier if no subscription overrides it
+          if (prefs.selectedBusinessTier && !subscription) {
             setSelectedBusinessTier(prefs.selectedBusinessTier)
           }
         }
@@ -246,48 +281,159 @@ export function BusinessSettings() {
   }
 
   const handleSelectBusinessTier = async (tier: BusinessTierSlug) => {
-    setSelectedBusinessTier(tier)
-    savePreferences(isBusinessMode, selectedType, tier)
+    if (!user) return
 
-    // If a business record already exists, update it
-    if (!user || !hasBusinessRecord) return
+    if (!subscription) {
+      // No existing subscription — just save preference.
+      // The user still needs to go through the setup dialog to create
+      // the actual business record.
+      setSelectedBusinessTier(tier)
+      savePreferences(isBusinessMode, selectedType, tier)
+      return
+    }
+
+    if (tier === subscription.tier && !subscription.pending_tier) return
+
+    setActionLoading(true)
     try {
-      const supabase = createClient()
-      const { data: biz } = await supabase
-        .from("businesses")
-        .select("id")
-        .eq("user_id", user.id)
-        .single()
+      const result = await changeTier(subscription.id, tier)
 
-      if (!biz) return
+      if (!result.success) {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to change plan.",
+          variant: "destructive",
+        })
+        return
+      }
 
-      await supabase
-        .from("businesses")
-        .update({ business_tier: tier })
-        .eq("id", biz.id)
+      if (result.subscription) {
+        setSubscription(result.subscription)
+        setSelectedBusinessTier(result.subscription.tier as BusinessTierSlug)
+        savePreferences(isBusinessMode, selectedType, result.subscription.tier as BusinessTierSlug)
+      }
 
-      const { data: existingSub } = await supabase
-        .from("business_subscriptions")
-        .select("id")
-        .eq("business_id", biz.id)
-        .eq("status", "active")
-        .single()
+      const subStatus = result.subscription ? getSubscriptionStatus(result.subscription) : null
 
-      if (existingSub) {
-        await supabase
-          .from("business_subscriptions")
-          .update({ tier, updated_at: new Date().toISOString() })
-          .eq("id", existingSub.id)
+      if (subStatus?.pendingDowngradeTo) {
+        const downTier = BUSINESS_TIERS.find(t => t.slug === subStatus.pendingDowngradeTo)
+        toast({
+          title: "Downgrade scheduled",
+          description: `Your plan will switch to ${downTier?.name || tier} at the start of your next billing period. You keep all current features until then.`,
+        })
+      } else if (result.chargeAmount && result.chargeAmount > 0) {
+        toast({
+          title: "Plan upgraded",
+          description: `Upgraded successfully. Prorated charge: $${result.chargeAmount.toFixed(2)} for the remainder of this billing period.`,
+        })
       } else {
-        await supabase.from("business_subscriptions").insert({
-          business_id: biz.id,
-          tier,
-          status: "active",
-          updated_at: new Date().toISOString(),
+        toast({
+          title: "Plan updated",
+          description: "Your subscription has been updated.",
+        })
+      }
+
+      // Update the businesses table to reflect upgrades (immediate tier changes)
+      if (result.subscription && !subStatus?.pendingDowngradeTo) {
+        const supabase = createClient()
+        const { data: biz } = await supabase
+          .from("businesses")
+          .select("id")
+          .eq("user_id", user.id)
+          .single()
+
+        if (biz) {
+          await supabase
+            .from("businesses")
+            .update({ business_tier: result.subscription.tier })
+            .eq("id", biz.id)
+        }
+      }
+    } catch (error) {
+      console.error("Error changing business tier:", error)
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleCancelSubscription = async () => {
+    if (!subscription) return
+    setActionLoading(true)
+    try {
+      const result = await cancelSubscription(subscription.id)
+      if (!result.success) {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to cancel subscription.",
+          variant: "destructive",
+        })
+        return
+      }
+      if (result.subscription) {
+        setSubscription(result.subscription)
+      }
+      const periodEnd = subscription.current_period_end
+        ? new Date(subscription.current_period_end).toLocaleDateString()
+        : "the end of your billing period"
+      toast({
+        title: "Subscription canceled",
+        description: `You'll keep access to all features until ${periodEnd}. You can resubscribe anytime before then without being charged again.`,
+      })
+    } catch (error) {
+      console.error("Error canceling subscription:", error)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleResubscribe = async () => {
+    if (!subscription) return
+    setActionLoading(true)
+    try {
+      const result = await resubscribe(subscription.id)
+      if (!result.success) {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to resubscribe.",
+          variant: "destructive",
+        })
+        return
+      }
+      if (result.subscription) {
+        setSubscription(result.subscription)
+      }
+      toast({
+        title: "Welcome back!",
+        description: "Your subscription has been reactivated. No additional charge for this billing period.",
+      })
+    } catch (error) {
+      console.error("Error resubscribing:", error)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleCancelPendingDowngrade = async () => {
+    if (!subscription) return
+    setActionLoading(true)
+    try {
+      const result = await changeTier(subscription.id, subscription.tier as BusinessTierSlug)
+      if (result.success && result.subscription) {
+        setSubscription(result.subscription)
+        toast({
+          title: "Downgrade canceled",
+          description: `You'll stay on the ${BUSINESS_TIERS.find(t => t.slug === subscription.tier)?.name || subscription.tier} plan.`,
         })
       }
     } catch (error) {
-      console.error("Error updating business tier:", error)
+      console.error("Error canceling downgrade:", error)
+    } finally {
+      setActionLoading(false)
     }
   }
 
@@ -308,7 +454,22 @@ export function BusinessSettings() {
       if (result && "success" in result) {
         if (result.success) {
           setHasBusinessRecord(true)
+          setBusinessId(result.data?.id || null)
           setSetupOpen(false)
+
+          // Reload subscription data for the newly created business
+          if (result.data?.id) {
+            const supabase = createClient()
+            const { data: sub } = await supabase
+              .from("business_subscriptions")
+              .select("*")
+              .eq("business_id", result.data.id)
+              .single()
+
+            if (sub) {
+              setSubscription(sub as BusinessSubscription)
+            }
+          }
         } else {
           setSetupError(result.error || "Something went wrong.")
         }
@@ -435,15 +596,78 @@ export function BusinessSettings() {
               </div>
             ) : (
               <div className="grid gap-3">
+                {/* Subscription status banners */}
+                {subscription?.cancel_at_period_end && (
+                  <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
+                    <Clock className="h-4 w-4 text-amber-600" />
+                    <AlertDescription className="text-amber-800 dark:text-amber-200">
+                      <span className="font-medium">Cancellation pending.</span>{" "}
+                      You have access to all {BUSINESS_TIERS.find(t => t.slug === subscription.tier)?.name} features until{" "}
+                      {new Date(subscription.current_period_end).toLocaleDateString()}.
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="text-amber-800 dark:text-amber-200 underline p-0 h-auto ml-1"
+                        onClick={handleResubscribe}
+                        disabled={actionLoading}
+                      >
+                        Resubscribe (no charge)
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {subscription?.pending_tier && !subscription.cancel_at_period_end && (
+                  <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800">
+                    <ArrowDown className="h-4 w-4 text-blue-600" />
+                    <AlertDescription className="text-blue-800 dark:text-blue-200">
+                      <span className="font-medium">Downgrade scheduled.</span>{" "}
+                      Your plan will switch to {BUSINESS_TIERS.find(t => t.slug === subscription.pending_tier)?.name} on{" "}
+                      {new Date(subscription.current_period_end).toLocaleDateString()}.
+                      You keep all {BUSINESS_TIERS.find(t => t.slug === subscription.tier)?.name} features until then.
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="text-blue-800 dark:text-blue-200 underline p-0 h-auto ml-1"
+                        onClick={handleCancelPendingDowngrade}
+                        disabled={actionLoading}
+                      >
+                        Cancel downgrade
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 {BUSINESS_TIERS.map((tier) => {
-                  const isSelected = selectedBusinessTier === tier.slug
+                  const isCurrent = subscription?.tier === tier.slug
+                  const isPendingDowngrade = subscription?.pending_tier === tier.slug
+                  const isUpgradeFromCurrent = subscription && STANDARD_PRICES[tier.slug] > STANDARD_PRICES[subscription.tier as BusinessTierSlug]
+                  const isDowngradeFromCurrent = subscription && STANDARD_PRICES[tier.slug] < STANDARD_PRICES[subscription.tier as BusinessTierSlug]
+
+                  // Calculate proration preview for upgrades
+                  let prorationPreview: string | null = null
+                  if (isUpgradeFromCurrent && subscription?.current_period_start && subscription?.current_period_end) {
+                    const { proratedAmount, daysRemaining } = calculateProratedAmount(
+                      subscription.tier as BusinessTierSlug,
+                      tier.slug,
+                      subscription.current_period_start,
+                      subscription.current_period_end
+                    )
+                    if (proratedAmount > 0) {
+                      prorationPreview = `$${proratedAmount.toFixed(2)} prorated for ${daysRemaining} days remaining`
+                    }
+                  }
+
                   return (
                     <button
                       key={tier.slug}
                       onClick={() => handleSelectBusinessTier(tier.slug)}
+                      disabled={actionLoading || (isCurrent && !subscription?.pending_tier && !subscription?.cancel_at_period_end)}
                       className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
-                        isSelected
+                        isCurrent
                           ? "border-primary bg-primary/5 shadow-sm"
+                          : isPendingDowngrade
+                          ? "border-blue-300 bg-blue-50/50 dark:border-blue-700 dark:bg-blue-950/20"
                           : "border-border hover:border-primary/30 hover:bg-muted/50"
                       }`}
                     >
@@ -453,13 +677,33 @@ export function BusinessSettings() {
                           {tier.highlighted && (
                             <Badge className="bg-tinerary-peach text-tinerary-dark border-0 text-xs">Popular</Badge>
                           )}
-                          {isSelected && (
+                          {isCurrent && (
                             <Badge className="bg-primary text-primary-foreground text-xs">Current</Badge>
+                          )}
+                          {isPendingDowngrade && (
+                            <Badge variant="outline" className="text-blue-600 border-blue-300 text-xs">
+                              <Clock className="size-3 mr-1" />
+                              Scheduled
+                            </Badge>
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground">${tier.price}/{tier.priceSuffix}</p>
+                        {isUpgradeFromCurrent && prorationPreview && (
+                          <p className="text-xs text-green-600 mt-0.5 flex items-center gap-1">
+                            <ArrowUp className="size-3" />
+                            Upgrade: {prorationPreview}
+                          </p>
+                        )}
+                        {isDowngradeFromCurrent && !isPendingDowngrade && (
+                          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                            <ArrowDown className="size-3" />
+                            Takes effect next billing period
+                          </p>
+                        )}
                       </div>
-                      {isSelected ? (
+                      {actionLoading ? (
+                        <Loader2 className="size-4 animate-spin text-muted-foreground shrink-0" />
+                      ) : isCurrent ? (
                         <Check className="size-5 text-primary shrink-0" />
                       ) : (
                         <ChevronRight className="size-4 text-muted-foreground shrink-0" />
@@ -487,7 +731,43 @@ export function BusinessSettings() {
                     </div>
                   )
                 })()}
-                <Button variant="outline" size="sm" className="mt-3 w-full" asChild>
+
+                {/* Cancel / Resubscribe button */}
+                {subscription && subscription.status === "active" && !subscription.cancel_at_period_end && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 w-full text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                    onClick={handleCancelSubscription}
+                    disabled={actionLoading}
+                  >
+                    {actionLoading ? (
+                      <Loader2 className="mr-2 size-3 animate-spin" />
+                    ) : (
+                      <XCircle className="mr-2 size-3" />
+                    )}
+                    Cancel subscription
+                  </Button>
+                )}
+
+                {subscription?.cancel_at_period_end && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 w-full text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
+                    onClick={handleResubscribe}
+                    disabled={actionLoading}
+                  >
+                    {actionLoading ? (
+                      <Loader2 className="mr-2 size-3 animate-spin" />
+                    ) : (
+                      <RotateCcw className="mr-2 size-3" />
+                    )}
+                    Resubscribe (no additional charge)
+                  </Button>
+                )}
+
+                <Button variant="outline" size="sm" className="mt-1 w-full" asChild>
                   <Link href="/business">
                     Compare all business plans
                     <ArrowRight className="ml-2 size-3" />

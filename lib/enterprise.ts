@@ -342,6 +342,7 @@ export function getApiAccessConfig(tier: BusinessTierSlug): ApiAccessConfig {
       "/api/enterprise/mentions",
       "/api/enterprise/bookings",
       "/api/enterprise/profile",
+      "/api/enterprise/webhooks",
     ],
     webhooksEnabled: true,
     maxWebhooks: 10,

@@ -1,5 +1,6 @@
 "use client"
 
+import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -40,6 +41,7 @@ import {
   Brain,
   Award,
   MapPin,
+  Webhook,
 } from "lucide-react"
 import {
   AreaChart,
@@ -60,6 +62,7 @@ import {
   Legend,
 } from "recharts"
 import type { BusinessTierSlug } from "@/lib/tiers"
+import { WebhookManagement } from "@/components/webhook-management"
 
 interface EnterpriseAnalyticsDashboardProps {
   tier: BusinessTierSlug
@@ -341,18 +344,36 @@ const tooltipStyle = {
 // ─── Component ──────────────────────────────────────────────────────
 
 export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashboardProps) {
+  const searchParams = useSearchParams()
+  const tabParam = searchParams.get("tab")
   const isEnterprise = tier === "enterprise"
   const isPremium = tier === "premium"
+
+  // ── Premium: "Advanced analytics + insights" ──────────────
+  // KPIs, secondary metrics, revenue trend (no forecast), funnel,
+  // audience segments, channel breakdown, geography, promotions table, weekly trends
+  const showKpiCards = isEnterprise || isPremium
+  const showSecondaryMetrics = isEnterprise || isPremium
+  const showRevenueTrend = isEnterprise || isPremium
+  const showFunnel = isEnterprise || isPremium
+  const showAudienceDemographics = isEnterprise || isPremium
+  const showGeography = isEnterprise || isPremium
+
+  // ── Enterprise: "Real-time analytics dashboard + full API access" ──
+  // Everything above, PLUS real-time live data, API badge, revenue
+  // intelligence (MRR/ARR/LTV/CAC), AI forecast overlay, AI insights,
+  // competitor benchmarks, cohort retention, customer health/NPS,
+  // daily performance reports, hourly traffic, week-over-week comparison
   const showRealtimeMetrics = isEnterprise
   const showApiAccess = isEnterprise
-  const showCompetitorBenchmarks = isEnterprise
-  const showDailyReports = isEnterprise
-  const showAudienceDemographics = isEnterprise || isPremium
   const showRevenueIntelligence = isEnterprise
+  const showAiForecast = isEnterprise
   const showAiInsights = isEnterprise
+  const showCompetitorBenchmarks = isEnterprise
   const showCohortRetention = isEnterprise
-  const showFunnel = isEnterprise || isPremium
-  const showGeography = isEnterprise || isPremium
+  const showCustomerHealth = isEnterprise
+  const showDailyReports = isEnterprise
+  const showWebhooks = isEnterprise
 
   if (tier === "basic") {
     return (
@@ -603,18 +624,24 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
       )}
 
       {/* ── Revenue Trend + Forecast Chart ───────────────────────── */}
-      {showRevenueIntelligence && (
+      {showRevenueTrend && (
         <Card className="border-border">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base">Revenue Trend & Forecast</CardTitle>
-                <CardDescription>30-day revenue with 7-day AI-powered forecast</CardDescription>
+                <CardTitle className="text-base">
+                  {showAiForecast ? "Revenue Trend & Forecast" : "Revenue Trend"}
+                </CardTitle>
+                <CardDescription>
+                  {showAiForecast ? "30-day revenue with 7-day AI-powered forecast" : "30-day revenue performance"}
+                </CardDescription>
               </div>
-              <Badge variant="secondary" className="text-[10px] gap-1">
-                <Brain className="size-2.5" />
-                AI Forecast
-              </Badge>
+              {showAiForecast && (
+                <Badge variant="secondary" className="text-[10px] gap-1">
+                  <Brain className="size-2.5" />
+                  AI Forecast
+                </Badge>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -635,7 +662,9 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
                 <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}K`} />
                 <Tooltip contentStyle={tooltipStyle} formatter={(value: number | null) => value ? [`$${value.toLocaleString()}`, ""] : ["-", ""]} />
                 <Area type="monotone" dataKey="revenue" stroke="#22c55e" strokeWidth={2} fill="url(#revenueGradient)" name="Revenue" connectNulls={false} />
-                <Area type="monotone" dataKey="forecast" stroke="#7C3AED" strokeWidth={2} strokeDasharray="6 3" fill="url(#forecastGradient)" name="Forecast" connectNulls />
+                {showAiForecast && (
+                  <Area type="monotone" dataKey="forecast" stroke="#7C3AED" strokeWidth={2} strokeDasharray="6 3" fill="url(#forecastGradient)" name="Forecast" connectNulls />
+                )}
               </ComposedChart>
             </ResponsiveContainer>
           </CardContent>
@@ -700,7 +729,7 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
       )}
 
       {/* ── Tabbed Deep-Dive Analytics ───────────────────────────── */}
-      <Tabs defaultValue="performance">
+      <Tabs defaultValue={tabParam || "performance"}>
         <TabsList className="w-full sm:w-auto bg-secondary flex-wrap h-auto gap-1 p-1">
           {showDailyReports && (
             <TabsTrigger value="performance" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs">
@@ -733,6 +762,11 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
           {showCohortRetention && (
             <TabsTrigger value="retention" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs">
               Retention
+            </TabsTrigger>
+          )}
+          {showWebhooks && (
+            <TabsTrigger value="webhooks" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs">
+              Webhooks
             </TabsTrigger>
           )}
         </TabsList>
@@ -1045,7 +1079,7 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
             </div>
 
             {/* Customer Health Metrics */}
-            {isEnterprise && (
+            {showCustomerHealth && (
               <Card className="border-border">
                 <CardHeader className="pb-2">
                   <div className="flex items-center gap-2">
@@ -1176,8 +1210,8 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
                     <Award className="size-4 text-amber-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-base">Competitor Benchmarking</CardTitle>
-                    <CardDescription>How your business compares to category averages</CardDescription>
+                    <CardTitle className="text-base">Competitor Benchmarking & Recommendations</CardTitle>
+                    <CardDescription>How your business compares to category averages with actionable recommendations</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -1219,13 +1253,34 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
                   </TableBody>
                 </Table>
                 <div className="mt-4 p-3 rounded-xl bg-green-50/50 border border-green-200 dark:border-green-900/30 dark:bg-green-900/10">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1.5">
                     <Award className="size-3.5 text-green-600" />
                     <p className="text-xs font-semibold text-green-700 dark:text-green-400">Performance Summary</p>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    You outperform category averages in 7 of 8 key metrics. Focus area: Customer Return Rate is 20% below benchmark — consider implementing a loyalty program or post-booking re-engagement email sequence.
+                    You outperform category averages in 7 of 8 key metrics. Your strongest differentiators are views (+107%) and session duration (+54%).
                   </p>
+                </div>
+
+                <div className="mt-3 p-3 rounded-xl bg-muted">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="size-3.5 text-purple-500" />
+                    <p className="text-xs font-semibold text-foreground">Recommendations</p>
+                  </div>
+                  <ul className="space-y-2 text-xs text-muted-foreground">
+                    <li className="flex gap-2">
+                      <span className="text-primary font-bold shrink-0">1.</span>
+                      <span><strong className="text-foreground">Improve Customer Return Rate.</strong> You&apos;re 20% below benchmark. Implement a post-booking re-engagement email sequence at Day 7, 14, and 30 with personalized recommendations.</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-primary font-bold shrink-0">2.</span>
+                      <span><strong className="text-foreground">Capitalize on high CTR.</strong> Your 18.5% CTR is 50% above average — test increasing pricing by 5-8% on your top-performing promotions without conversion loss.</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-primary font-bold shrink-0">3.</span>
+                      <span><strong className="text-foreground">Launch a loyalty program.</strong> Your NPS (72) and session duration suggest high brand affinity. A points-based loyalty system could lift return rate by 15-25%.</span>
+                    </li>
+                  </ul>
                 </div>
               </CardContent>
             </Card>
@@ -1304,7 +1359,39 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
             </Card>
           </TabsContent>
         )}
+
+        {/* ── Webhooks (Enterprise) ──────────────────────────── */}
+        {showWebhooks && (
+          <TabsContent value="webhooks" className="mt-4">
+            <WebhookManagement />
+          </TabsContent>
+        )}
       </Tabs>
+
+      {/* ── Premium → Enterprise Upgrade Banner ──────────────────── */}
+      {isPremium && (
+        <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-tinerary-salmon/5">
+          <CardContent className="py-5">
+            <div className="flex items-start gap-4">
+              <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Zap className="size-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-foreground">Upgrade to Enterprise for the full real-time analytics dashboard</h3>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Get real-time live metrics, full API access, AI-powered insights with revenue impact estimates,
+                  revenue intelligence (MRR, ARR, LTV, CAC), competitor benchmarking &amp; recommendations, cohort retention analysis,
+                  customer health scoring (NPS &amp; CSAT), daily performance reports with ROAS, hourly traffic patterns,
+                  and webhook integrations (up to 10).
+                </p>
+              </div>
+              <Button size="sm" className="btn-sunset shrink-0 text-xs" asChild>
+                <a href="/business">Upgrade</a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

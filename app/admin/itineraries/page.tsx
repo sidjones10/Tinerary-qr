@@ -31,7 +31,7 @@ export default function AdminItinerariesPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [page, setPage] = useState(1)
   const limit = 20
-  const { itineraries, total, isLoading } = useAdminItineraries(page, limit, debouncedSearch)
+  const { itineraries, total, isLoading, refetch } = useAdminItineraries(page, limit, debouncedSearch)
 
   // Debounce search
   useEffect(() => {
@@ -55,6 +55,7 @@ export default function AdminItinerariesPage() {
       toast({ title: "Error", description: "Failed to update visibility", variant: "destructive" })
     } else {
       toast({ title: "Success", description: `Itinerary is now ${!currentIsPublic ? "public" : "private"}` })
+      refetch()
     }
   }
 

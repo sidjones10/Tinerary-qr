@@ -69,27 +69,30 @@ export async function getOrCreateConversation(
     }
 
     // Create new conversation
-    const { data: newConvo, error: convoErr } = await supabase
-      .from("conversations")
-      .insert({})
-      .select("id")
-      .single()
+    // Generate UUID client-side so we can insert without .select(),
+    // avoiding the RLS SELECT policy (which requires participants that
+    // don't exist yet).
+    const conversationId = crypto.randomUUID()
 
-    if (convoErr || !newConvo) {
-      throw convoErr || new Error("Failed to create conversation")
+    const { error: convoErr } = await supabase
+      .from("conversations")
+      .insert({ id: conversationId })
+
+    if (convoErr) {
+      throw convoErr
     }
 
     // Add both participants
     const { error: partErr } = await supabase
       .from("conversation_participants")
       .insert([
-        { conversation_id: newConvo.id, user_id: currentUserId },
-        { conversation_id: newConvo.id, user_id: otherUserId },
+        { conversation_id: conversationId, user_id: currentUserId },
+        { conversation_id: conversationId, user_id: otherUserId },
       ])
 
     if (partErr) throw partErr
 
-    return { success: true, conversationId: newConvo.id }
+    return { success: true, conversationId }
   } catch (error) {
     console.error("Error getting/creating conversation:", error)
     return {

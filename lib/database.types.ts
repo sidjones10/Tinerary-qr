@@ -703,6 +703,12 @@ export interface Database {
           status: "active" | "canceled" | "past_due"
           mention_highlights_used: number
           mention_highlights_reset_at: string
+          current_period_start: string
+          current_period_end: string
+          cancel_at_period_end: boolean
+          pending_tier: "basic" | "premium" | "enterprise" | null
+          paid_amount: number | null
+          canceled_at: string | null
           created_at: string
           updated_at: string
         }
@@ -713,6 +719,12 @@ export interface Database {
           status?: "active" | "canceled" | "past_due"
           mention_highlights_used?: number
           mention_highlights_reset_at?: string
+          current_period_start?: string
+          current_period_end?: string
+          cancel_at_period_end?: boolean
+          pending_tier?: "basic" | "premium" | "enterprise" | null
+          paid_amount?: number | null
+          canceled_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -723,6 +735,12 @@ export interface Database {
           status?: "active" | "canceled" | "past_due"
           mention_highlights_used?: number
           mention_highlights_reset_at?: string
+          current_period_start?: string
+          current_period_end?: string
+          cancel_at_period_end?: boolean
+          pending_tier?: "basic" | "premium" | "enterprise" | null
+          paid_amount?: number | null
+          canceled_at?: string | null
           created_at?: string
           updated_at?: string
         }

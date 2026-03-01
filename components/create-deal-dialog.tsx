@@ -216,6 +216,15 @@ export function CreateDealDialog({ onDealCreated, disabled, activeCount, maxCoun
             <Input id="tags" name="tags" placeholder="e.g. Sunset, Tour, Wine (comma-separated)" />
           </div>
 
+          {/* External Listing URL */}
+          <div className="space-y-2">
+            <Label htmlFor="external_url">External Listing URL</Label>
+            <Input id="external_url" name="external_url" type="url" placeholder="https://your-website.com/listing" />
+            <p className="text-xs text-muted-foreground">
+              Link to your original listing. Users clicking &quot;View Deal&quot; will be taken to this page.
+            </p>
+          </div>
+
           {/* Image URL */}
           <div className="space-y-2">
             <Label htmlFor="image_url">Image URL</Label>

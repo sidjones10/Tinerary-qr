@@ -253,7 +253,7 @@ const customerHealthMetrics = {
   repeatChange: 3.1,
 }
 
-const aiInsights = [
+const dataInsights = [
   {
     type: "opportunity" as const,
     title: "Weekend bookings surge detected",
@@ -361,14 +361,14 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
 
   // ── Enterprise: "Real-time analytics dashboard + full API access" ──
   // Everything above, PLUS real-time live data, API badge, revenue
-  // intelligence (MRR/ARR/LTV/CAC), AI forecast overlay, AI insights,
+  // intelligence (MRR/ARR/LTV/CAC), forecast overlay, data insights,
   // competitor benchmarks, cohort retention, customer health/NPS,
   // daily performance reports, hourly traffic, week-over-week comparison
   const showRealtimeMetrics = isEnterprise
   const showApiAccess = isEnterprise
   const showRevenueIntelligence = isEnterprise
-  const showAiForecast = isEnterprise
-  const showAiInsights = isEnterprise
+  const showForecast = isEnterprise
+  const showInsights = isEnterprise
   const showCompetitorBenchmarks = isEnterprise
   const showCohortRetention = isEnterprise
   const showCustomerHealth = isEnterprise
@@ -630,16 +630,16 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-base">
-                  {showAiForecast ? "Revenue Trend & Forecast" : "Revenue Trend"}
+                  {showForecast ? "Revenue Trend & Forecast" : "Revenue Trend"}
                 </CardTitle>
                 <CardDescription>
-                  {showAiForecast ? "30-day revenue with 7-day AI-powered forecast" : "30-day revenue performance"}
+                  {showForecast ? "30-day revenue with 7-day projected forecast" : "30-day revenue performance"}
                 </CardDescription>
               </div>
-              {showAiForecast && (
+              {showForecast && (
                 <Badge variant="secondary" className="text-[10px] gap-1">
-                  <Brain className="size-2.5" />
-                  AI Forecast
+                  <TrendingUp className="size-2.5" />
+                  Forecast
                 </Badge>
               )}
             </div>
@@ -662,7 +662,7 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
                 <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}K`} />
                 <Tooltip contentStyle={tooltipStyle} formatter={(value: number | null) => value ? [`$${value.toLocaleString()}`, ""] : ["-", ""]} />
                 <Area type="monotone" dataKey="revenue" stroke="#22c55e" strokeWidth={2} fill="url(#revenueGradient)" name="Revenue" connectNulls={false} />
-                {showAiForecast && (
+                {showForecast && (
                   <Area type="monotone" dataKey="forecast" stroke="#7C3AED" strokeWidth={2} strokeDasharray="6 3" fill="url(#forecastGradient)" name="Forecast" connectNulls />
                 )}
               </ComposedChart>
@@ -671,8 +671,8 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
         </Card>
       )}
 
-      {/* ── AI-Powered Insights (Enterprise) ─────────────────────── */}
-      {showAiInsights && (
+      {/* ── Data-Driven Insights (Enterprise) ─────────────────────── */}
+      {showInsights && (
         <Card className="border-border">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
@@ -680,14 +680,14 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
                 <Sparkles className="size-4 text-purple-600" />
               </div>
               <div>
-                <CardTitle className="text-base">AI-Powered Insights</CardTitle>
+                <CardTitle className="text-base">Data-Driven Insights</CardTitle>
                 <CardDescription>Actionable recommendations based on your data patterns</CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {aiInsights.map((insight, i) => (
+              {dataInsights.map((insight, i) => (
                 <div
                   key={i}
                   className={`p-3 rounded-xl border ${
@@ -1379,7 +1379,7 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
               <div className="flex-1">
                 <h3 className="text-sm font-bold text-foreground">Upgrade to Enterprise for the full real-time analytics dashboard</h3>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Get real-time live metrics, full API access, AI-powered insights with revenue impact estimates,
+                  Get real-time live metrics, full API access, data-driven insights with revenue impact estimates,
                   revenue intelligence (MRR, ARR, LTV, CAC), competitor benchmarking &amp; recommendations, cohort retention analysis,
                   customer health scoring (NPS &amp; CSAT), daily performance reports with ROAS, hourly traffic patterns,
                   and webhook integrations (up to 10).

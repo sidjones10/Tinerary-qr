@@ -78,6 +78,7 @@ function MessagesPageContent() {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [messagesLoading, setMessagesLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Get active conversation's other user
@@ -128,9 +129,11 @@ function MessagesPageContent() {
         const result = await getOrCreateConversation(session.user.id, withUserId)
         if (result.success && result.conversationId) {
           // Reload conversations to include the new one
-          const updatedConvos = await loadConversations(session.user.id)
+          await loadConversations(session.user.id)
           setActiveConvoId(result.conversationId)
           await loadMessages(result.conversationId)
+        } else {
+          setError(result.error || "Failed to open conversation")
         }
       } else if (convos.length > 0) {
         // Auto-select first conversation
@@ -252,6 +255,14 @@ function MessagesPageContent() {
               </p>
             </div>
           </div>
+
+          {error && (
+            <Card className="border-destructive/50 bg-destructive/5 mb-4">
+              <CardContent className="py-4 text-center">
+                <p className="text-sm text-destructive">{error}</p>
+              </CardContent>
+            </Card>
+          )}
 
           {conversations.length === 0 && !withUserId ? (
             /* Empty state */

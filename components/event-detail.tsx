@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
-import { ArrowLeft, Calendar, MapPin, Clock, Share2, Heart, Users, Edit, Trash2, Loader2 } from "lucide-react"
+import { ArrowLeft, Calendar, MapPin, Clock, Share2, Heart, Users, Edit, Trash2, Loader2, Flag } from "lucide-react"
 import { MentionHighlightBadge } from "@/components/mention-highlight-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -28,6 +28,7 @@ import { ThemeIcon } from "@/components/theme-selector"
 import { getFontFamily } from "@/components/font-selector"
 import { PostEventCoverPrompt } from "@/components/post-event-cover-prompt"
 import { shouldPromptCoverUpdate } from "@/lib/reminder-utils"
+import { ReportDialog } from "@/components/report-dialog"
 
 interface Activity {
   id: string
@@ -564,6 +565,23 @@ export function EventDetail({ event }: EventDetailProps) {
                   showLabel={false}
                   variant="outline"
                 />
+
+                {!isOwner && event.is_public && user && (
+                  <ReportDialog
+                    itineraryId={event.id}
+                    itineraryTitle={event.title}
+                    trigger={
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="bg-white/20 backdrop-blur-sm border-white/40 text-white hover:bg-red-500/30"
+                      >
+                        <Flag className="h-4 w-4" />
+                        <span className="hidden sm:inline ml-2">Report</span>
+                      </Button>
+                    }
+                  />
+                )}
 
                 {isOwner && (
                   <>

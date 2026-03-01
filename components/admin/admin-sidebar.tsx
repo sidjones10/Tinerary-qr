@@ -15,6 +15,7 @@ import {
   FileText,
   Mail,
   Send,
+  Flag,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/providers/auth-provider"
@@ -25,6 +26,7 @@ const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/itineraries", label: "Itineraries", icon: Map },
+  { href: "/admin/reports", label: "Reports", icon: Flag },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/errors", label: "Errors", icon: FileText },
   { href: "/admin/communications", label: "Communications", icon: Send },

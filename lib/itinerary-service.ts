@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/client"
 import { createNotification, notifyFirstPost } from "@/lib/notification-service"
 import { awardCoins, hasAlreadyEarned } from "@/lib/coins-service"
+import { moderateItineraryContent, censorText } from "@/lib/content-moderation"
 
 /**
  * Ensure user profile exists in the profiles table
@@ -111,6 +112,42 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
 
     // Ensure user profile exists (for foreign key constraint)
     await ensureUserProfile(userId, supabase)
+
+    // Content moderation: check and censor profanity for public itineraries
+    const isPublic = data.isPublic !== undefined ? data.isPublic : true
+    if (isPublic) {
+      const moderation = moderateItineraryContent({
+        title: data.title,
+        description: data.description,
+        location: data.location,
+        activityTitles: data.activities?.map((a) => a.title).filter(Boolean),
+        activityDescriptions: data.activities?.map((a) => a.description || "").filter(Boolean),
+      })
+
+      // Block severe content from being published publicly
+      const hasSevere = moderation.issues.some((i) => i.severity === "severe")
+      if (hasSevere) {
+        return {
+          success: false,
+          error: "This content contains language that violates our community guidelines. Please revise before publishing publicly.",
+        }
+      }
+
+      // Auto-censor mild/moderate profanity
+      if (!moderation.isClean) {
+        if (moderation.censoredFields.title) data.title = moderation.censoredFields.title
+        if (moderation.censoredFields.description) data.description = moderation.censoredFields.description
+        if (moderation.censoredFields.location) data.location = moderation.censoredFields.location
+        // Censor activity titles/descriptions
+        if (data.activities) {
+          data.activities = data.activities.map((a) => ({
+            ...a,
+            title: censorText(a.title),
+            description: a.description ? censorText(a.description) : a.description,
+          }))
+        }
+      }
+    }
 
     // 1. Create the main itinerary
     const { data: itinerary, error: itineraryError } = await supabase

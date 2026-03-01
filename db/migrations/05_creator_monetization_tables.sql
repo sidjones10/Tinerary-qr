@@ -114,54 +114,86 @@ END $$;
 -- RLS policies for boost_campaigns
 ALTER TABLE boost_campaigns ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "Users can view own boost campaigns"
-  ON boost_campaigns FOR SELECT
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'boost_campaigns' AND policyname = 'Users can view own boost campaigns') THEN
+    CREATE POLICY "Users can view own boost campaigns"
+      ON boost_campaigns FOR SELECT
+      USING (auth.uid() = user_id);
+  END IF;
 
-CREATE POLICY IF NOT EXISTS "Users can create own boost campaigns"
-  ON boost_campaigns FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'boost_campaigns' AND policyname = 'Users can create own boost campaigns') THEN
+    CREATE POLICY "Users can create own boost campaigns"
+      ON boost_campaigns FOR INSERT
+      WITH CHECK (auth.uid() = user_id);
+  END IF;
 
-CREATE POLICY IF NOT EXISTS "Users can update own boost campaigns"
-  ON boost_campaigns FOR UPDATE
-  USING (auth.uid() = user_id);
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'boost_campaigns' AND policyname = 'Users can update own boost campaigns') THEN
+    CREATE POLICY "Users can update own boost campaigns"
+      ON boost_campaigns FOR UPDATE
+      USING (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- RLS policies for itinerary_templates
 ALTER TABLE itinerary_templates ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "Anyone can view active templates"
-  ON itinerary_templates FOR SELECT
-  USING (status = 'active' OR auth.uid() = creator_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'itinerary_templates' AND policyname = 'Anyone can view active templates') THEN
+    CREATE POLICY "Anyone can view active templates"
+      ON itinerary_templates FOR SELECT
+      USING (status = 'active' OR auth.uid() = creator_id);
+  END IF;
 
-CREATE POLICY IF NOT EXISTS "Creators can manage own templates"
-  ON itinerary_templates FOR INSERT
-  WITH CHECK (auth.uid() = creator_id);
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'itinerary_templates' AND policyname = 'Creators can manage own templates') THEN
+    CREATE POLICY "Creators can manage own templates"
+      ON itinerary_templates FOR INSERT
+      WITH CHECK (auth.uid() = creator_id);
+  END IF;
 
-CREATE POLICY IF NOT EXISTS "Creators can update own templates"
-  ON itinerary_templates FOR UPDATE
-  USING (auth.uid() = creator_id);
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'itinerary_templates' AND policyname = 'Creators can update own templates') THEN
+    CREATE POLICY "Creators can update own templates"
+      ON itinerary_templates FOR UPDATE
+      USING (auth.uid() = creator_id);
+  END IF;
+END $$;
 
 -- RLS policies for sponsorship_messages
 ALTER TABLE sponsorship_messages ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "Creators can view own sponsorship messages"
-  ON sponsorship_messages FOR SELECT
-  USING (auth.uid() = creator_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'sponsorship_messages' AND policyname = 'Creators can view own sponsorship messages') THEN
+    CREATE POLICY "Creators can view own sponsorship messages"
+      ON sponsorship_messages FOR SELECT
+      USING (auth.uid() = creator_id);
+  END IF;
 
-CREATE POLICY IF NOT EXISTS "Creators can update own sponsorship messages"
-  ON sponsorship_messages FOR UPDATE
-  USING (auth.uid() = creator_id);
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'sponsorship_messages' AND policyname = 'Creators can update own sponsorship messages') THEN
+    CREATE POLICY "Creators can update own sponsorship messages"
+      ON sponsorship_messages FOR UPDATE
+      USING (auth.uid() = creator_id);
+  END IF;
+END $$;
 
 -- RLS policies for coin_transactions
 ALTER TABLE coin_transactions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "Users can view own coin transactions"
-  ON coin_transactions FOR SELECT
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'coin_transactions' AND policyname = 'Users can view own coin transactions') THEN
+    CREATE POLICY "Users can view own coin transactions"
+      ON coin_transactions FOR SELECT
+      USING (auth.uid() = user_id);
+  END IF;
 
-CREATE POLICY IF NOT EXISTS "Users can create own coin transactions"
-  ON coin_transactions FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'coin_transactions' AND policyname = 'Users can create own coin transactions') THEN
+    CREATE POLICY "Users can create own coin transactions"
+      ON coin_transactions FOR INSERT
+      WITH CHECK (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- Grant permissions
 GRANT SELECT, INSERT, UPDATE ON boost_campaigns TO authenticated;

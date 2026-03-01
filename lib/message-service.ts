@@ -61,7 +61,7 @@ export async function getOrCreateConversation(
         .eq("user_id", otherUserId)
         .in("conversation_id", myConvoIds)
         .limit(1)
-        .single()
+        .maybeSingle()
 
       if (sharedConvo) {
         return { success: true, conversationId: sharedConvo.conversation_id }
@@ -175,24 +175,37 @@ export async function getConversations(userId: string): Promise<Conversation[]> 
 
     if (!convos || convos.length === 0) return []
 
-    // Get other participants for each conversation
-    const { data: allParticipants } = await supabase
+    // Get other participants for each conversation (without FK join)
+    const { data: otherParticipants } = await supabase
       .from("conversation_participants")
-      .select("conversation_id, user_id, profiles:user_id(id, name, username, avatar_url, tier, is_verified)")
+      .select("conversation_id, user_id")
       .in("conversation_id", convoIds)
       .neq("user_id", userId)
 
-    // Get latest message for each conversation
+    if (!otherParticipants || otherParticipants.length === 0) return []
+
+    // Fetch profiles for the other users explicitly
+    const otherUserIds = [...new Set(otherParticipants.map((p: any) => p.user_id))]
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, name, username, avatar_url, tier, is_verified")
+      .in("id", otherUserIds)
+
+    const profileMap = new Map(
+      (profiles || []).map((p: any) => [p.id, p])
+    )
+
+    // Build conversation list
     const conversations: Conversation[] = []
 
     for (const convo of convos) {
-      const otherParticipant = allParticipants?.find(
+      const otherParticipant = otherParticipants.find(
         (p: any) => p.conversation_id === convo.id
       )
 
       if (!otherParticipant) continue
 
-      const profile = otherParticipant.profiles as any
+      const profile = profileMap.get(otherParticipant.user_id)
 
       // Get latest message
       const { data: latestMsg } = await supabase
@@ -201,7 +214,7 @@ export async function getConversations(userId: string): Promise<Conversation[]> 
         .eq("conversation_id", convo.id)
         .order("created_at", { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
 
       // Get unread count
       const { count: unread } = await supabase
@@ -253,31 +266,44 @@ export async function getMessages(
 
     const { data, error } = await supabase
       .from("messages")
-      .select(
-        "id, conversation_id, sender_id, content, is_read, created_at, profiles:sender_id(id, name, username, avatar_url)"
-      )
+      .select("id, conversation_id, sender_id, content, is_read, created_at")
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: true })
       .range(offset, offset + limit - 1)
 
     if (error) throw error
+    if (!data || data.length === 0) return []
 
-    return (data || []).map((m: any) => ({
-      id: m.id,
-      conversationId: m.conversation_id,
-      senderId: m.sender_id,
-      content: m.content,
-      isRead: m.is_read,
-      createdAt: m.created_at,
-      sender: m.profiles
-        ? {
-            id: m.profiles.id,
-            name: m.profiles.name,
-            username: m.profiles.username,
-            avatar_url: m.profiles.avatar_url,
-          }
-        : undefined,
-    }))
+    // Fetch sender profiles explicitly (avoids PostgREST FK join issues)
+    const senderIds = [...new Set(data.map((m: any) => m.sender_id))]
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, name, username, avatar_url")
+      .in("id", senderIds)
+
+    const profileMap = new Map(
+      (profiles || []).map((p: any) => [p.id, p])
+    )
+
+    return data.map((m: any) => {
+      const profile = profileMap.get(m.sender_id)
+      return {
+        id: m.id,
+        conversationId: m.conversation_id,
+        senderId: m.sender_id,
+        content: m.content,
+        isRead: m.is_read,
+        createdAt: m.created_at,
+        sender: profile
+          ? {
+              id: profile.id,
+              name: profile.name,
+              username: profile.username,
+              avatar_url: profile.avatar_url,
+            }
+          : undefined,
+      }
+    })
   } catch (error) {
     console.error("Error fetching messages:", error)
     return []

@@ -534,6 +534,23 @@ export async function processBooking(formData: FormData) {
       return { success: false, error: "Promotion not found." }
     }
 
+    // Check if the business has booking integration enabled (premium/enterprise)
+    const { data: sub } = await supabase
+      .from("business_subscriptions")
+      .select("tier, status")
+      .eq("business_id", promotion.business_id)
+      .eq("status", "active")
+      .single()
+
+    const businessTier = (sub?.tier as "basic" | "premium" | "enterprise") || "basic"
+
+    if (businessTier === "basic") {
+      return {
+        success: false,
+        error: "This business has not enabled booking integration. They need to upgrade to a Premium or Enterprise plan.",
+      }
+    }
+
     const totalPrice = (promotion.price || 0) * quantity
 
     // Determine the user_id: use the authenticated user if available, otherwise use the provided userId

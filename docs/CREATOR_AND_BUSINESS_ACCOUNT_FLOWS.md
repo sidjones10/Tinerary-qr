@@ -157,7 +157,6 @@ Each dashboard link in settings has a `forTier` property that controls visibilit
 ```
 User discovers Creator tier via:
   /pricing ──────────► "Learn More" ──► /creators (landing page)
-  /creator-tier ──────► Tier comparison cards
   /creator ───────────► Creator Hub (if already creator)
 
 ┌───────────────────────────────────────────────────────────┐
@@ -639,7 +638,6 @@ CREATOR DASHBOARD
   /creator/boost        → Post boost campaigns (create, track) — auth required
   /creator/templates    → Template marketplace (create, sell) — auth required
   /creator/sponsorships → Brand sponsorship inbox (receive, accept/decline) — auth required
-  /creator-tier         → Tier comparison + boost metrics view
 
 BUSINESS DASHBOARD (Hub + Spokes pattern)
   /business-profile     → Business hub: profile card, summary stats, tier-gated tool links — auth required

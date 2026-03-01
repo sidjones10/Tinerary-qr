@@ -103,7 +103,7 @@ export default function PricingPage() {
             <h2 className="text-2xl font-bold text-center mb-8">Explore the Platform</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
-                { href: "/creator-tier", icon: <Sparkles className="size-5 text-[#7C3AED]" />, title: "Creator Dashboard", desc: "Manage boosts, track benefits" },
+                { href: "/creator", icon: <Sparkles className="size-5 text-[#7C3AED]" />, title: "Creator Dashboard", desc: "Manage boosts, track benefits" },
                 { href: "/business-profile", icon: <Store className="size-5 text-primary" />, title: "Business Profile", desc: "Listings, branding & analytics" },
                 { href: "/mentions", icon: <Megaphone className="size-5 text-tinerary-salmon" />, title: "Mention Highlights", desc: "Highlight organic mentions" },
                 { href: "/transactions", icon: <Crown className="size-5 text-tinerary-gold" />, title: "Transactions", desc: "Bookings & commission tracking" },

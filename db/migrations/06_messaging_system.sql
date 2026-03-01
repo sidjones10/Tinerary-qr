@@ -106,33 +106,87 @@ CREATE POLICY "Users can update own messages"
   ON messages FOR UPDATE
   USING (sender_id = auth.uid());
 
--- ─── Sponsorship sender tracking ────────────────────────────
+-- ─── Sponsorship messages (create if missing, alter if exists) ──
 
 DO $$
 BEGIN
+  -- If the table doesn't exist yet (migration 05 not run), create it
   IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'sponsorship_messages' AND column_name = 'sender_id'
+    SELECT 1 FROM information_schema.tables
+    WHERE table_name = 'sponsorship_messages'
   ) THEN
-    ALTER TABLE sponsorship_messages
-      ADD COLUMN sender_id UUID REFERENCES profiles(id) ON DELETE SET NULL;
-  END IF;
+    CREATE TABLE sponsorship_messages (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      creator_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+      sender_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+      brand_name TEXT NOT NULL,
+      brand_logo TEXT,
+      subject TEXT NOT NULL,
+      message TEXT NOT NULL,
+      budget TEXT,
+      campaign_type TEXT DEFAULT 'Collaboration',
+      status TEXT NOT NULL DEFAULT 'new'
+        CHECK (status IN ('new', 'read', 'replied', 'accepted', 'declined')),
+      sender_is_verified_business BOOLEAN NOT NULL DEFAULT false,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
 
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'sponsorship_messages' AND column_name = 'sender_is_verified_business'
-  ) THEN
-    ALTER TABLE sponsorship_messages
-      ADD COLUMN sender_is_verified_business BOOLEAN NOT NULL DEFAULT false;
+    CREATE INDEX idx_sponsorship_messages_creator_id
+      ON sponsorship_messages(creator_id);
+    CREATE INDEX idx_sponsorship_messages_status
+      ON sponsorship_messages(status);
+  ELSE
+    -- Table exists — add new columns if missing
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_name = 'sponsorship_messages' AND column_name = 'sender_id'
+    ) THEN
+      ALTER TABLE sponsorship_messages
+        ADD COLUMN sender_id UUID REFERENCES profiles(id) ON DELETE SET NULL;
+    END IF;
+
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_name = 'sponsorship_messages' AND column_name = 'sender_is_verified_business'
+    ) THEN
+      ALTER TABLE sponsorship_messages
+        ADD COLUMN sender_is_verified_business BOOLEAN NOT NULL DEFAULT false;
+    END IF;
   END IF;
 END $$;
 
 CREATE INDEX IF NOT EXISTS idx_sponsorship_messages_sender
   ON sponsorship_messages(sender_id);
 
--- Allow authenticated users to INSERT sponsorship messages
+-- RLS + policies for sponsorship_messages
+ALTER TABLE sponsorship_messages ENABLE ROW LEVEL SECURITY;
+
 DO $$
 BEGIN
+  -- SELECT policy for creators to read their own messages
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'sponsorship_messages'
+      AND policyname = 'Creators can view own sponsorship messages'
+  ) THEN
+    CREATE POLICY "Creators can view own sponsorship messages"
+      ON sponsorship_messages FOR SELECT
+      USING (creator_id = auth.uid());
+  END IF;
+
+  -- UPDATE policy for creators to update status
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'sponsorship_messages'
+      AND policyname = 'Creators can update own sponsorship messages'
+  ) THEN
+    CREATE POLICY "Creators can update own sponsorship messages"
+      ON sponsorship_messages FOR UPDATE
+      USING (creator_id = auth.uid());
+  END IF;
+
+  -- INSERT policy for any authenticated user to send
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies
     WHERE tablename = 'sponsorship_messages'
@@ -144,11 +198,7 @@ BEGIN
   END IF;
 END $$;
 
--- Ensure RLS is enabled on sponsorship_messages
-ALTER TABLE sponsorship_messages ENABLE ROW LEVEL SECURITY;
-
--- Grant INSERT on sponsorship_messages to authenticated role
-GRANT INSERT ON sponsorship_messages TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON sponsorship_messages TO authenticated;
 
 -- ─── Grants for new tables ──────────────────────────────────
 

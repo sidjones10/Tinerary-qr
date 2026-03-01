@@ -1,6 +1,8 @@
 -- ============================================================
--- 057: Messaging system tables
+-- 057: Messaging system tables (idempotent)
 -- Creates conversations, conversation_participants, and messages
+-- if they do not already exist. Wraps policies in existence checks
+-- to avoid "already exists" errors on re-run.
 -- ============================================================
 
 -- Conversations table
@@ -52,76 +54,64 @@ ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE conversation_participants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 
--- Conversations: users can see conversations they participate in
-CREATE POLICY "Users can view own conversations"
-  ON conversations FOR SELECT
-  USING (
-    id IN (
-      SELECT conversation_id FROM conversation_participants
-      WHERE user_id = auth.uid()
-    )
-  );
+-- ─── Policies (wrapped in existence checks) ──────────────────
 
--- Conversations: authenticated users can create conversations
-CREATE POLICY "Authenticated users can create conversations"
-  ON conversations FOR INSERT
-  WITH CHECK (auth.uid() IS NOT NULL);
+DO $$
+BEGIN
+  -- conversations policies
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'conversations' AND policyname = 'Users can view own conversations') THEN
+    CREATE POLICY "Users can view own conversations"
+      ON conversations FOR SELECT
+      USING (id IN (SELECT conversation_id FROM conversation_participants WHERE user_id = auth.uid()));
+  END IF;
 
--- Conversations: participants can update their conversations (e.g. updated_at)
-CREATE POLICY "Users can update own conversations"
-  ON conversations FOR UPDATE
-  USING (
-    id IN (
-      SELECT conversation_id FROM conversation_participants
-      WHERE user_id = auth.uid()
-    )
-  );
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'conversations' AND policyname = 'Authenticated users can create conversations') THEN
+    CREATE POLICY "Authenticated users can create conversations"
+      ON conversations FOR INSERT
+      WITH CHECK (auth.uid() IS NOT NULL);
+  END IF;
 
--- Conversation participants: users can see participants in their conversations
-CREATE POLICY "Users can view participants of own conversations"
-  ON conversation_participants FOR SELECT
-  USING (
-    conversation_id IN (
-      SELECT conversation_id FROM conversation_participants cp
-      WHERE cp.user_id = auth.uid()
-    )
-  );
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'conversations' AND policyname = 'Users can update own conversations') THEN
+    CREATE POLICY "Users can update own conversations"
+      ON conversations FOR UPDATE
+      USING (id IN (SELECT conversation_id FROM conversation_participants WHERE user_id = auth.uid()));
+  END IF;
 
--- Conversation participants: authenticated users can add participants
-CREATE POLICY "Authenticated users can add participants"
-  ON conversation_participants FOR INSERT
-  WITH CHECK (auth.uid() IS NOT NULL);
+  -- conversation_participants policies
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'conversation_participants' AND policyname = 'Users can view participants of own conversations') THEN
+    CREATE POLICY "Users can view participants of own conversations"
+      ON conversation_participants FOR SELECT
+      USING (conversation_id IN (SELECT conversation_id FROM conversation_participants cp WHERE cp.user_id = auth.uid()));
+  END IF;
 
--- Messages: users can see messages in their conversations
-CREATE POLICY "Users can view messages in own conversations"
-  ON messages FOR SELECT
-  USING (
-    conversation_id IN (
-      SELECT conversation_id FROM conversation_participants
-      WHERE user_id = auth.uid()
-    )
-  );
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'conversation_participants' AND policyname = 'Authenticated users can add participants') THEN
+    CREATE POLICY "Authenticated users can add participants"
+      ON conversation_participants FOR INSERT
+      WITH CHECK (auth.uid() IS NOT NULL);
+  END IF;
 
--- Messages: participants can send messages to their conversations
-CREATE POLICY "Users can send messages to own conversations"
-  ON messages FOR INSERT
-  WITH CHECK (
-    auth.uid() = sender_id
-    AND conversation_id IN (
-      SELECT conversation_id FROM conversation_participants
-      WHERE user_id = auth.uid()
-    )
-  );
+  -- messages policies
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'messages' AND policyname = 'Users can view messages in own conversations') THEN
+    CREATE POLICY "Users can view messages in own conversations"
+      ON messages FOR SELECT
+      USING (conversation_id IN (SELECT conversation_id FROM conversation_participants WHERE user_id = auth.uid()));
+  END IF;
 
--- Messages: participants can mark messages as read
-CREATE POLICY "Users can update own messages"
-  ON messages FOR UPDATE
-  USING (
-    conversation_id IN (
-      SELECT conversation_id FROM conversation_participants
-      WHERE user_id = auth.uid()
-    )
-  );
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'messages' AND policyname = 'Users can send messages to own conversations') THEN
+    CREATE POLICY "Users can send messages to own conversations"
+      ON messages FOR INSERT
+      WITH CHECK (
+        auth.uid() = sender_id
+        AND conversation_id IN (SELECT conversation_id FROM conversation_participants WHERE user_id = auth.uid())
+      );
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'messages' AND policyname = 'Users can update own messages') THEN
+    CREATE POLICY "Users can update own messages"
+      ON messages FOR UPDATE
+      USING (conversation_id IN (SELECT conversation_id FROM conversation_participants WHERE user_id = auth.uid()));
+  END IF;
+END $$;
 
 -- ─── Grants ──────────────────────────────────────────────────
 
@@ -130,5 +120,13 @@ GRANT SELECT, INSERT ON conversation_participants TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON messages TO authenticated;
 
 -- ─── Enable realtime for messages ────────────────────────────
-
-ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+-- Only add if not already in the publication
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'messages'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+  END IF;
+END $$;

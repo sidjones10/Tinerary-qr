@@ -81,27 +81,34 @@ export async function getBusinessSubscription(
 
 export async function getBusinessSubscriptionByUserId(
   userId: string
-): Promise<{ subscription: BusinessSubscription | null; businessId: string | null }> {
+): Promise<{ subscription: BusinessSubscription | null; businessId: string | null; businessTier: BusinessTierSlug | null }> {
   try {
     const supabase = createClient()
     const { data: business } = await supabase
       .from("businesses")
-      .select("id")
+      .select("id, business_tier")
       .eq("user_id", userId)
       .single()
 
-    if (!business) return { subscription: null, businessId: null }
+    if (!business) return { subscription: null, businessId: null, businessTier: null }
 
     const subscription = await getBusinessSubscription(business.id)
-    return { subscription, businessId: business.id }
+    return {
+      subscription,
+      businessId: business.id,
+      businessTier: (business.business_tier as BusinessTierSlug) || null,
+    }
   } catch {
-    return { subscription: null, businessId: null }
+    return { subscription: null, businessId: null, businessTier: null }
   }
 }
 
-export function getEffectiveTier(subscription: BusinessSubscription | null): BusinessTierSlug {
-  if (!subscription || subscription.status !== "active") return "basic"
-  return subscription.tier
+export function getEffectiveTier(
+  subscription: BusinessSubscription | null,
+  fallbackTier?: BusinessTierSlug | null
+): BusinessTierSlug {
+  if (subscription && subscription.status === "active") return subscription.tier
+  return fallbackTier || "basic"
 }
 
 export function canCreatePromotion(tier: BusinessTierSlug, currentCount: number): boolean {

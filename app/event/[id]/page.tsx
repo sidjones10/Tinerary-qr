@@ -518,16 +518,8 @@ export default function EventPage() {
   // Track view when event loads successfully
   useEffect(() => {
     if (!event || !id) return
-    const supabase = createClient()
-    // Increment view count in metrics (non-blocking)
-    supabase.rpc("increment_view_count", { itinerary_id: id }).then(() => {}, () => {})
-    // Track in user_interactions for analytics (non-blocking)
-    if (user?.id) {
-      supabase
-        .from("user_interactions")
-        .insert({ user_id: user.id, itinerary_id: id, interaction_type: "view" })
-        .then(({ error }) => { if (error) console.error("Failed to track view:", error) })
-    }
+    // Use the view API route which handles incrementing, interaction tracking, and coin milestones
+    fetch(`/api/itineraries/${id}/view`, { method: "POST" }).catch(() => {})
   }, [event?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {

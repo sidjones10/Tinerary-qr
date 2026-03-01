@@ -70,6 +70,10 @@ function MessagesPageContent() {
   const searchParams = useSearchParams()
   const withUserId = searchParams.get("with")
 
+  // Single shared Supabase client — ensures all calls use the same
+  // authenticated session instead of creating new clients each time
+  const supabaseRef = useRef(createClient())
+
   const [userId, setUserId] = useState<string | null>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConvoId, setActiveConvoId] = useState<string | null>(null)
@@ -81,38 +85,42 @@ function MessagesPageContent() {
   const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  const supabase = supabaseRef.current
+
   // Get active conversation's other user
   const activeConvo = conversations.find((c) => c.id === activeConvoId)
 
   // Load conversations
-  const loadConversations = useCallback(async (uid: string) => {
-    const data = await getConversations(uid)
-    setConversations(data)
-    return data
-  }, [])
+  const loadConversations = useCallback(
+    async (uid: string) => {
+      const data = await getConversations(uid, supabase)
+      setConversations(data)
+      return data
+    },
+    [supabase]
+  )
 
   // Load messages for a conversation
   const loadMessages = useCallback(
     async (convoId: string) => {
       setMessagesLoading(true)
-      const data = await getMessages(convoId)
+      const data = await getMessages(convoId, 50, 0, supabase)
       setMessages(data)
       setMessagesLoading(false)
       if (userId) {
-        await markMessagesAsRead(convoId, userId)
+        await markMessagesAsRead(convoId, userId, supabase)
         // Update unread count in conversation list
         setConversations((prev) =>
           prev.map((c) => (c.id === convoId ? { ...c, unreadCount: 0 } : c))
         )
       }
     },
-    [userId]
+    [userId, supabase]
   )
 
   // Initial load
   useEffect(() => {
     async function init() {
-      const supabase = createClient()
       const {
         data: { session },
       } = await supabase.auth.getSession()
@@ -121,26 +129,33 @@ function MessagesPageContent() {
         return
       }
 
-      setUserId(session.user.id)
-      const convos = await loadConversations(session.user.id)
+      const uid = session.user.id
+      setUserId(uid)
+      const convos = await loadConversations(uid)
 
       // If ?with= param, open or create that conversation
-      if (withUserId && withUserId !== session.user.id) {
-        const result = await getOrCreateConversation(session.user.id, withUserId)
-        if (result.success && result.conversationId) {
-          // Reload conversations to include the new one
-          const updatedConvos = await loadConversations(session.user.id)
+      if (withUserId && withUserId !== uid) {
+        // Check if we already have a conversation with this user
+        const existingConvo = convos.find(
+          (c) => c.otherUser.id === withUserId
+        )
 
-          // If the conversation didn't appear in the list (e.g. FK join
-          // or RLS edge case), build a minimal entry so the UI still works
-          if (!updatedConvos.find((c) => c.id === result.conversationId)) {
+        if (existingConvo) {
+          // Already have a conversation — just open it
+          setActiveConvoId(existingConvo.id)
+          await loadMessages(existingConvo.id)
+        } else {
+          // Create new conversation
+          const result = await getOrCreateConversation(uid, withUserId, supabase)
+          if (result.success && result.conversationId) {
+            // Fetch the other user's profile for the conversation entry
             const { data: otherProfile } = await supabase
               .from("profiles")
               .select("id, name, username, avatar_url, tier, is_verified")
               .eq("id", withUserId)
               .maybeSingle()
 
-            const fallbackConvo: Conversation = {
+            const newConvo: Conversation = {
               id: result.conversationId,
               otherUser: {
                 id: withUserId,
@@ -154,13 +169,12 @@ function MessagesPageContent() {
               unreadCount: 0,
               updatedAt: new Date().toISOString(),
             }
-            setConversations((prev) => [fallbackConvo, ...prev])
+            setConversations((prev) => [newConvo, ...prev])
+            setActiveConvoId(result.conversationId)
+            await loadMessages(result.conversationId)
+          } else {
+            setError(result.error || "Failed to open conversation")
           }
-
-          setActiveConvoId(result.conversationId)
-          await loadMessages(result.conversationId)
-        } else {
-          setError(result.error || "Failed to open conversation")
         }
       } else if (convos.length > 0) {
         // Auto-select first conversation
@@ -171,7 +185,7 @@ function MessagesPageContent() {
       setLoading(false)
     }
     init()
-  }, [router, withUserId, loadConversations, loadMessages])
+  }, [router, withUserId, loadConversations, loadMessages, supabase])
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -181,7 +195,6 @@ function MessagesPageContent() {
   // Real-time subscription
   useEffect(() => {
     if (!activeConvoId) return
-    const supabase = createClient()
     const channel = supabase
       .channel(`messages:${activeConvoId}`)
       .on(
@@ -210,7 +223,7 @@ function MessagesPageContent() {
           })
           // Mark as read if from other user
           if (userId && newMsg.sender_id !== userId) {
-            markMessagesAsRead(activeConvoId, userId)
+            markMessagesAsRead(activeConvoId, userId, supabase)
           }
         }
       )
@@ -219,12 +232,12 @@ function MessagesPageContent() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [activeConvoId, userId])
+  }, [activeConvoId, userId, supabase])
 
   async function handleSend() {
     if (!newMessage.trim() || !activeConvoId || !userId || sending) return
     setSending(true)
-    const result = await sendMessage(activeConvoId, userId, newMessage.trim())
+    const result = await sendMessage(activeConvoId, userId, newMessage.trim(), supabase)
     if (result.success && result.message) {
       setMessages((prev) => [...prev, result.message!])
       setNewMessage("")
@@ -245,6 +258,8 @@ function MessagesPageContent() {
             : c
         )
       )
+    } else {
+      setError(result.error || "Failed to send message")
     }
     setSending(false)
   }

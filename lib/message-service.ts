@@ -41,10 +41,11 @@ export interface Message {
 
 export async function getOrCreateConversation(
   currentUserId: string,
-  otherUserId: string
+  otherUserId: string,
+  supabaseClient?: any
 ): Promise<{ success: boolean; conversationId?: string; error?: string }> {
   try {
-    const supabase = createClient()
+    const supabase = supabaseClient || createClient()
 
     // Find existing conversation between these two users
     const { data: myConversations } = await supabase
@@ -107,38 +108,43 @@ export async function getOrCreateConversation(
 export async function sendMessage(
   conversationId: string,
   senderId: string,
-  content: string
+  content: string,
+  supabaseClient?: any
 ): Promise<{ success: boolean; message?: Message; error?: string }> {
   try {
-    const supabase = createClient()
+    const supabase = supabaseClient || createClient()
 
-    const { data, error } = await supabase
+    // Generate ID client-side to avoid .select() after .insert()
+    // (the SELECT RLS policy can fail due to nested participant checks)
+    const messageId = crypto.randomUUID()
+    const now = new Date().toISOString()
+
+    const { error } = await supabase
       .from("messages")
       .insert({
+        id: messageId,
         conversation_id: conversationId,
         sender_id: senderId,
         content,
       })
-      .select("id, conversation_id, sender_id, content, is_read, created_at")
-      .single()
 
     if (error) throw error
 
     // Update conversation timestamp
     await supabase
       .from("conversations")
-      .update({ updated_at: new Date().toISOString() })
+      .update({ updated_at: now })
       .eq("id", conversationId)
 
     return {
       success: true,
       message: {
-        id: data.id,
-        conversationId: data.conversation_id,
-        senderId: data.sender_id,
-        content: data.content,
-        isRead: data.is_read,
-        createdAt: data.created_at,
+        id: messageId,
+        conversationId,
+        senderId,
+        content,
+        isRead: false,
+        createdAt: now,
       },
     }
   } catch (error) {
@@ -152,9 +158,9 @@ export async function sendMessage(
 
 // ─── Get conversations list ─────────────────────────────────
 
-export async function getConversations(userId: string): Promise<Conversation[]> {
+export async function getConversations(userId: string, supabaseClient?: any): Promise<Conversation[]> {
   try {
-    const supabase = createClient()
+    const supabase = supabaseClient || createClient()
 
     // Get all conversation IDs for this user
     const { data: participations } = await supabase
@@ -259,10 +265,11 @@ export async function getConversations(userId: string): Promise<Conversation[]> 
 export async function getMessages(
   conversationId: string,
   limit = 50,
-  offset = 0
+  offset = 0,
+  supabaseClient?: any
 ): Promise<Message[]> {
   try {
-    const supabase = createClient()
+    const supabase = supabaseClient || createClient()
 
     const { data, error } = await supabase
       .from("messages")
@@ -314,10 +321,11 @@ export async function getMessages(
 
 export async function markMessagesAsRead(
   conversationId: string,
-  userId: string
+  userId: string,
+  supabaseClient?: any
 ): Promise<void> {
   try {
-    const supabase = createClient()
+    const supabase = supabaseClient || createClient()
     await supabase
       .from("messages")
       .update({ is_read: true })

@@ -5,9 +5,12 @@ import { ArrowLeft } from "lucide-react"
 import { AppHeader } from "@/components/app-header"
 import { PageHeader } from "@/components/page-header"
 import { PaywallGate } from "@/components/paywall-gate"
+import { useAuth } from "@/providers/auth-provider"
 import { AffiliateContent } from "./affiliate-content"
 
 export default function AffiliatePage() {
+  const { user } = useAuth()
+
   return (
     <div className="flex min-h-screen flex-col">
       <AppHeader />
@@ -22,7 +25,7 @@ export default function AffiliatePage() {
             description="Earn through referral links, experience promotions, and auto-matched packing list product links."
           />
           <PaywallGate gate="affiliate">
-            <AffiliateContent />
+            <AffiliateContent userId={user?.id} />
           </PaywallGate>
           <nav className="mt-10 border-t pt-6">
             <p className="text-xs text-muted-foreground mb-3">Related pages</p>

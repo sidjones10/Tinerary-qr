@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useTransition, useOptimistic } from "react"
-import { Briefcase, Trash2, Plus, LinkIcon, Edit, AlertCircle, Loader2 } from "lucide-react"
+import { useState, useEffect, useTransition, useOptimistic } from "react"
+import { Briefcase, Trash2, Plus, LinkIcon, Edit, AlertCircle, Loader2, ShoppingBag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { toast } from "@/components/ui/use-toast"
 import { createPackingItem, updatePackingItem, togglePackingItem, deletePackingItem } from "@/app/actions/packing-items"
+import { getProductSuggestions, type ProductSuggestion } from "@/app/actions/product-match-actions"
 import { PackingTemplateSelector } from "@/components/packing-template-selector"
 
 interface PackingItem {
@@ -55,6 +56,16 @@ export function PackingList({ simplified = false, items, tripId, onItemsChange }
   const [isPending, startTransition] = useTransition()
   const [isAddingItem, setIsAddingItem] = useState(false)
   const [isDeletingItem, setIsDeletingItem] = useState<string | null>(null)
+
+  // Product suggestions from auto-matching
+  const [productSuggestions, setProductSuggestions] = useState<Record<string, ProductSuggestion>>({})
+
+  useEffect(() => {
+    const itemNames = items.map((item) => item.name)
+    if (itemNames.length === 0) return
+
+    getProductSuggestions(itemNames).then(setProductSuggestions).catch(console.error)
+  }, [items])
 
   // Optimistic updates
   const [optimisticItems, addOptimisticItem] = useOptimistic(
@@ -575,6 +586,18 @@ export function PackingList({ simplified = false, items, tripId, onItemsChange }
                                 View product
                               </a>
                             )}
+                            {!item.url && productSuggestions[item.name] && (
+                              <a
+                                href={productSuggestions[item.name].affiliateUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-orange-500 hover:underline flex items-center"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ShoppingBag className="h-3 w-3 mr-1" />
+                                Shop: {productSuggestions[item.name].name}
+                              </a>
+                            )}
                           </div>
                         </div>
                         {!simplified && (
@@ -659,6 +682,18 @@ export function PackingList({ simplified = false, items, tripId, onItemsChange }
                                 View product
                               </a>
                             )}
+                            {!item.url && productSuggestions[item.name] && (
+                              <a
+                                href={productSuggestions[item.name].affiliateUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-orange-500 hover:underline flex items-center"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ShoppingBag className="h-3 w-3 mr-1" />
+                                Shop: {productSuggestions[item.name].name}
+                              </a>
+                            )}
                           </div>
                         </div>
                         {!simplified && (
@@ -741,6 +776,18 @@ export function PackingList({ simplified = false, items, tripId, onItemsChange }
                               >
                                 <LinkIcon className="h-3 w-3 mr-1" />
                                 View product
+                              </a>
+                            )}
+                            {!item.url && productSuggestions[item.name] && (
+                              <a
+                                href={productSuggestions[item.name].affiliateUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-orange-500 hover:underline flex items-center"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ShoppingBag className="h-3 w-3 mr-1" />
+                                Shop: {productSuggestions[item.name].name}
                               </a>
                             )}
                           </div>

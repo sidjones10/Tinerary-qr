@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -24,12 +25,15 @@ import {
   Users,
 } from "lucide-react"
 import { AFFILIATE_COMMISSIONS } from "@/lib/tiers"
+import { PRODUCT_CATALOG } from "@/lib/product-catalog"
+import { getAffiliateStats } from "@/app/actions/promotion-actions"
 
-const affiliateStats = [
-  { label: "Affiliate Revenue", value: "$1,240", change: "+22%", icon: DollarSign },
-  { label: "Active Links", value: "34", change: "+5 new", icon: Link2 },
-  { label: "Click-through Rate", value: "8.3%", change: "+1.2%", icon: ArrowUpRight },
-  { label: "Conversions", value: "89", change: "+18", icon: ShoppingCart },
+// Fallback stats shown until real data is available
+const fallbackStats = [
+  { label: "Affiliate Revenue", value: "$0", change: "--", icon: DollarSign },
+  { label: "Active Links", value: "0", change: "--", icon: Link2 },
+  { label: "Click-through Rate", value: "0%", change: "--", icon: ArrowUpRight },
+  { label: "Conversions", value: "0", change: "--", icon: ShoppingCart },
 ]
 
 const topAffiliateProducts = [
@@ -110,45 +114,41 @@ const experienceReferrals = [
   },
 ]
 
-const packingListItems = [
-  {
-    item: "portable charger",
-    matched: "Anker PowerCore 10000mAh",
-    partner: "Amazon",
+// Build packing list matches from the live product catalog
+const packingListItems = PRODUCT_CATALOG.map((entry) => {
+  const primaryKeyword = entry.itemKeywords[0]
+  return {
+    item: primaryKeyword,
+    matched: entry.product.name,
+    partner: entry.product.partner,
     autoLinked: true,
-    mentions: 128,
-  },
-  {
-    item: "reef-safe sunscreen",
-    matched: "Sun Bum SPF 50",
-    partner: "Amazon",
-    autoLinked: true,
-    mentions: 94,
-  },
-  {
-    item: "travel pillow",
-    matched: "Trtl Pillow Plus",
-    partner: "REI",
-    autoLinked: true,
-    mentions: 76,
-  },
-  {
-    item: "hiking boots",
-    matched: "Salomon X Ultra 4",
-    partner: "REI",
-    autoLinked: false,
-    mentions: 62,
-  },
-  {
-    item: "dry bag",
-    matched: "Sea to Summit 20L",
-    partner: "Amazon",
-    autoLinked: true,
-    mentions: 51,
-  },
-]
+    mentions: 0,
+  }
+}).slice(0, 10) // Show top 10
 
-export function AffiliateContent() {
+export function AffiliateContent({ userId }: { userId?: string }) {
+  const [affiliateStats, setAffiliateStats] = useState(fallbackStats)
+
+  useEffect(() => {
+    if (!userId) return
+
+    getAffiliateStats(userId).then((result) => {
+      if (result.success && result.data) {
+        const { totalLinks, totalClicks, totalConversions, totalRevenue } = result.data
+        const ctr = totalClicks > 0 && totalLinks > 0
+          ? `${((totalConversions / totalClicks) * 100).toFixed(1)}%`
+          : "0%"
+
+        setAffiliateStats([
+          { label: "Affiliate Revenue", value: `$${totalRevenue.toFixed(2)}`, change: "--", icon: DollarSign },
+          { label: "Active Links", value: String(totalLinks), change: "--", icon: Link2 },
+          { label: "Click-through Rate", value: ctr, change: "--", icon: ArrowUpRight },
+          { label: "Conversions", value: String(totalConversions), change: "--", icon: ShoppingCart },
+        ])
+      }
+    }).catch(console.error)
+  }, [userId])
+
   return (
     <div className="mt-6 flex flex-col gap-6">
       {/* Stats */}

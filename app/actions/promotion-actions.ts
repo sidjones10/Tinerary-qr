@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/utils/supabase/server"
 import { canCreatePromotion, getDefaultTier } from "@/lib/business-plan"
 import type { BusinessTierSlug } from "@/lib/tiers"
+import { recordAffiliateEarning } from "@/lib/commission"
 
 export async function createDeal(formData: FormData) {
   const supabase = await createClient()
@@ -560,7 +561,7 @@ export async function processBooking(formData: FormData) {
 
     if (error) throw error
 
-    // Track affiliate if code is present
+    // Track affiliate conversion if code is present
     if (affiliateCode) {
       await supabase
         .from("affiliate_clicks")
@@ -570,6 +571,33 @@ export async function processBooking(formData: FormData) {
             clicked_at: new Date().toISOString(),
           },
         ])
+
+      // Look up who owns this affiliate code and record their earning
+      const { data: affiliateLink } = await supabase
+        .from("affiliate_links")
+        .select("user_id")
+        .eq("affiliate_code", affiliateCode)
+        .single()
+
+      if (affiliateLink?.user_id) {
+        // Determine user tier for commission split
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("account_tier")
+          .eq("id", affiliateLink.user_id)
+          .single()
+
+        const userTier = (profile?.account_tier as "user" | "creator" | "business") || "user"
+
+        await recordAffiliateEarning({
+          userId: affiliateLink.user_id,
+          affiliateCode,
+          grossAmount: totalPrice,
+          userTier,
+          bookingId: booking.id,
+          supabaseClient: supabase,
+        })
+      }
     }
 
     revalidatePath(`/promotion/${promotionId}`)
@@ -578,6 +606,171 @@ export async function processBooking(formData: FormData) {
   } catch (error) {
     console.error("Error processing booking:", error)
     return { success: false, error: (error as Error).message }
+  }
+}
+
+export async function generateAffiliateLink(formData: FormData) {
+  const supabase = await createClient()
+
+  try {
+    const userId = formData.get("userId") as string
+    const type = formData.get("type") as "promotion" | "itinerary" | "external"
+    const externalUrl = formData.get("externalUrl") as string | null
+    const promotionId = formData.get("promotionId") as string | null
+
+    if (!userId) {
+      return { success: false, error: "User ID is required." }
+    }
+
+    // Build the target URL based on link type
+    let targetUrl: string
+
+    if (type === "external") {
+      if (!externalUrl) {
+        return { success: false, error: "External URL is required." }
+      }
+      targetUrl = externalUrl
+    } else if (type === "promotion") {
+      if (!promotionId) {
+        return { success: false, error: "Promotion ID is required." }
+      }
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary.app"
+      targetUrl = `${appUrl}/promotion/${promotionId}`
+    } else if (type === "itinerary") {
+      if (!promotionId) {
+        return { success: false, error: "Itinerary ID is required." }
+      }
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary.app"
+      targetUrl = `${appUrl}/trip/${promotionId}`
+    } else {
+      return { success: false, error: "Invalid link type." }
+    }
+
+    // Generate a unique affiliate code: short user prefix + random suffix
+    const userPrefix = userId.substring(0, 8)
+    const randomSuffix = Math.random().toString(36).substring(2, 8)
+    const affiliateCode = `${userPrefix}-${randomSuffix}`
+
+    // Store the affiliate link
+    const { error: insertError } = await supabase
+      .from("affiliate_links")
+      .insert({
+        user_id: userId,
+        affiliate_code: affiliateCode,
+        type,
+        target_url: targetUrl,
+        promotion_id: type === "promotion" ? promotionId : null,
+        created_at: new Date().toISOString(),
+      })
+
+    // If the table doesn't exist yet, still return the link (it will work via click tracking)
+    if (insertError) {
+      console.warn("Could not store affiliate link (table may not exist yet):", insertError.message)
+    }
+
+    // Build the affiliate tracking URL
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary.app"
+    const affiliateUrl = `${appUrl}/api/affiliate/track?code=${encodeURIComponent(affiliateCode)}&url=${encodeURIComponent(targetUrl)}`
+
+    return {
+      success: true,
+      affiliateUrl,
+      affiliateCode,
+    }
+  } catch (error) {
+    console.error("Error generating affiliate link:", error)
+    return { success: false, error: (error as Error).message }
+  }
+}
+
+export async function getAffiliateLinksByUser(userId: string) {
+  const supabase = await createClient()
+
+  try {
+    const { data, error } = await supabase
+      .from("affiliate_links")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      // Table may not exist yet
+      console.warn("Could not fetch affiliate links:", error.message)
+      return { success: true, data: [] }
+    }
+
+    return { success: true, data: data || [] }
+  } catch (error) {
+    console.error("Error fetching affiliate links:", error)
+    return { success: false, error: (error as Error).message, data: [] }
+  }
+}
+
+export async function getAffiliateStats(userId: string) {
+  const supabase = await createClient()
+
+  try {
+    // Get all affiliate links for this user
+    const { data: links } = await supabase
+      .from("affiliate_links")
+      .select("affiliate_code")
+      .eq("user_id", userId)
+
+    const codes = (links || []).map((l: any) => l.affiliate_code)
+
+    if (codes.length === 0) {
+      return {
+        success: true,
+        data: {
+          totalLinks: 0,
+          totalClicks: 0,
+          totalConversions: 0,
+          totalRevenue: 0,
+        },
+      }
+    }
+
+    // Count clicks across all affiliate codes
+    const { count: totalClicks } = await supabase
+      .from("affiliate_clicks")
+      .select("*", { count: "exact", head: true })
+      .in("affiliate_code", codes)
+
+    // Count earnings
+    const { data: earnings } = await supabase
+      .from("affiliate_earnings")
+      .select("user_commission, status")
+      .eq("user_id", userId)
+
+    const totalRevenue = (earnings || []).reduce(
+      (sum: number, e: any) => sum + (e.user_commission || 0),
+      0
+    )
+    const totalConversions = (earnings || []).filter(
+      (e: any) => e.status === "approved" || e.status === "paid"
+    ).length
+
+    return {
+      success: true,
+      data: {
+        totalLinks: codes.length,
+        totalClicks: totalClicks || 0,
+        totalConversions,
+        totalRevenue,
+      },
+    }
+  } catch (error) {
+    // Tables may not exist yet — return zeroes
+    console.warn("Could not fetch affiliate stats:", error)
+    return {
+      success: true,
+      data: {
+        totalLinks: 0,
+        totalClicks: 0,
+        totalConversions: 0,
+        totalRevenue: 0,
+      },
+    }
   }
 }
 

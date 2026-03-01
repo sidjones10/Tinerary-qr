@@ -1,5 +1,6 @@
 "use client"
 
+import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -343,6 +344,8 @@ const tooltipStyle = {
 // ─── Component ──────────────────────────────────────────────────────
 
 export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashboardProps) {
+  const searchParams = useSearchParams()
+  const tabParam = searchParams.get("tab")
   const isEnterprise = tier === "enterprise"
   const isPremium = tier === "premium"
 
@@ -726,7 +729,7 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
       )}
 
       {/* ── Tabbed Deep-Dive Analytics ───────────────────────────── */}
-      <Tabs defaultValue="performance">
+      <Tabs defaultValue={tabParam || "performance"}>
         <TabsList className="w-full sm:w-auto bg-secondary flex-wrap h-auto gap-1 p-1">
           {showDailyReports && (
             <TabsTrigger value="performance" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs">

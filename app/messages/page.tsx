@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import {
@@ -49,6 +49,23 @@ function timeAgo(dateStr: string) {
 }
 
 export default function MessagesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen flex-col">
+          <AppHeader />
+          <main className="flex-1 flex items-center justify-center">
+            <Loader2 className="size-8 animate-spin text-muted-foreground" />
+          </main>
+        </div>
+      }
+    >
+      <MessagesPageContent />
+    </Suspense>
+  )
+}
+
+function MessagesPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const withUserId = searchParams.get("with")

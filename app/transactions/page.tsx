@@ -12,7 +12,7 @@ export default function TransactionsPage() {
     <div className="flex min-h-screen flex-col">
       <AppHeader />
       <main className="flex-1">
-        <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
+        <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
           <Link href="/business-profile" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Business Hub

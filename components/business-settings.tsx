@@ -150,8 +150,6 @@ export function BusinessSettings() {
   const [setupWebsite, setSetupWebsite] = useState("")
   const [setupSubmitting, setSetupSubmitting] = useState(false)
   const [setupError, setSetupError] = useState<string | null>(null)
-  const [refreshKey, setRefreshKey] = useState(0)
-
   // Load business preferences, subscription, and check for existing business record
   useEffect(() => {
     const loadPreferences = async () => {
@@ -167,7 +165,10 @@ export function BusinessSettings() {
           .eq("user_id", user.id)
           .single()
 
-        setHasBusinessRecord(!!biz)
+        // Also check sessionStorage — if business was just created this session,
+        // trust that even if the DB query hasn't propagated yet
+        const justCreated = typeof window !== "undefined" && sessionStorage.getItem("business_created") === "true"
+        setHasBusinessRecord(!!biz || justCreated)
 
         if (biz) {
           setBusinessId(biz.id)
@@ -228,7 +229,7 @@ export function BusinessSettings() {
     }
 
     loadPreferences()
-  }, [user, refreshKey])
+  }, [user])
 
   // Auto-open setup dialog when arriving with a tier query param (e.g. from /business plans page)
   useEffect(() => {
@@ -450,6 +451,21 @@ export function BusinessSettings() {
     }
   }
 
+  // Mark business as created and unlock tools immediately
+  const markBusinessCreated = (bizId?: string) => {
+    setHasBusinessRecord(true)
+    if (bizId) setBusinessId(bizId)
+    setSetupOpen(false)
+    // Persist across re-mounts caused by revalidatePath
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("business_created", "true")
+    }
+    toast({
+      title: "Business created",
+      description: "Your business profile is ready. You can now access the Business Hub.",
+    })
+  }
+
   const handleSetupSubmit = async () => {
     setSetupError(null)
     setSetupSubmitting(true)
@@ -465,11 +481,7 @@ export function BusinessSettings() {
       const result = await createBusiness(formData)
 
       if (result && "success" in result && result.success) {
-        // Immediately unlock tools and close dialog
-        setHasBusinessRecord(true)
-        setBusinessId(result.data?.id || null)
-        setSetupOpen(false)
-        setSetupSubmitting(false)
+        markBusinessCreated(result.data?.id)
 
         // Also load subscription for the new business
         if (result.data?.id) {
@@ -485,19 +497,13 @@ export function BusinessSettings() {
             setSelectedBusinessTier(sub.tier as BusinessTierSlug)
           }
         }
-
-        toast({
-          title: "Business created",
-          description: "Your business profile is ready. You can now access the Business Hub.",
-        })
         return
       }
 
       if (result && "success" in result && !result.success) {
         setSetupError(result.error || "Something went wrong.")
       } else {
-        // Unexpected result shape — the business may still have been created.
-        // Re-check the DB directly.
+        // Unexpected result shape — check DB directly
         const supabase = createClient()
         const { data: biz } = await supabase
           .from("businesses")
@@ -506,20 +512,13 @@ export function BusinessSettings() {
           .single()
 
         if (biz) {
-          setHasBusinessRecord(true)
-          setBusinessId(biz.id)
-          setSetupOpen(false)
-          toast({
-            title: "Business created",
-            description: "Your business profile is ready. You can now access the Business Hub.",
-          })
+          markBusinessCreated(biz.id)
         } else {
           setSetupError("Something went wrong. Please try again.")
         }
       }
     } catch {
-      // Server action may have thrown (e.g. redirect or revalidation side-effect).
-      // Check the DB to see if the business was actually created.
+      // Server action may have thrown — check DB to see if it succeeded
       try {
         const supabase = createClient()
         const { data: biz } = await supabase
@@ -529,13 +528,7 @@ export function BusinessSettings() {
           .single()
 
         if (biz) {
-          setHasBusinessRecord(true)
-          setBusinessId(biz.id)
-          setSetupOpen(false)
-          toast({
-            title: "Business created",
-            description: "Your business profile is ready. You can now access the Business Hub.",
-          })
+          markBusinessCreated(biz.id)
         } else {
           setSetupError("Something went wrong. Please try again.")
         }
@@ -550,8 +543,11 @@ export function BusinessSettings() {
   // Filter dashboard links based on active account type
   const visibleLinks = dashboardLinks.filter((l) => l.forType.includes(selectedType))
 
-  // Whether tools should be locked (business type selected but no business record)
-  const toolsLocked = isBusinessMode && selectedType === "business" && !hasBusinessRecord
+  // Whether tools should be locked — only after data has loaded (to prevent
+  // flash of locked state during initial fetch) AND only when there's genuinely
+  // no business record. Once a business is created, this stays unlocked unless
+  // the account switches back to personal.
+  const toolsLocked = loaded && isBusinessMode && selectedType === "business" && !hasBusinessRecord
 
   return (
     <div className="space-y-6">

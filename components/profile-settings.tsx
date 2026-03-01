@@ -94,6 +94,23 @@ export function ProfileSettings() {
             const sub = await getBusinessSubscription(biz.id)
             setBusinessTier(getEffectiveTier(sub, biz.business_tier as BusinessTierSlug))
             setBrandingConfig(biz.branding_config as EnterpriseBrandingConfig | null)
+          } else {
+            // No businesses row yet — check user_preferences for the tier
+            // the user selected in Business settings so the branding editor
+            // still renders for enterprise users who haven't formally created
+            // a business record.
+            const { data: prefs } = await supabase
+              .from("user_preferences")
+              .select("business_preferences")
+              .eq("user_id", user.id)
+              .single()
+
+            const prefTier = (prefs?.business_preferences as any)?.selectedBusinessTier as
+              | BusinessTierSlug
+              | undefined
+            if (prefTier) {
+              setBusinessTier(prefTier)
+            }
           }
         } finally {
           setIsLoading(false)
@@ -246,15 +263,48 @@ export function ProfileSettings() {
   }
 
   const handleSaveBranding = async (config: EnterpriseBrandingConfig) => {
-    if (!user || !businessId) return
+    if (!user) return
 
     setSavingBranding(true)
     try {
       const supabase = createClient()
+      let targetBusinessId = businessId
+
+      // Auto-create a business record when the user doesn't have one yet
+      // (e.g. they selected enterprise in Business settings but never went
+      // through the full business creation form).
+      if (!targetBusinessId) {
+        const displayName =
+          user.user_metadata?.name || user.user_metadata?.username || "My Business"
+        const { data: newBiz, error: createErr } = await supabase
+          .from("businesses")
+          .insert({
+            user_id: user.id,
+            name: displayName,
+            category: "Other",
+            business_tier: businessTier || "enterprise",
+          })
+          .select("id")
+          .single()
+
+        if (createErr) throw createErr
+
+        targetBusinessId = newBiz.id
+        setBusinessId(targetBusinessId)
+
+        // Create a matching subscription row
+        await supabase.from("business_subscriptions").insert({
+          business_id: targetBusinessId,
+          tier: businessTier || "enterprise",
+          status: "active",
+          mention_highlights_used: 0,
+        })
+      }
+
       const { error } = await supabase
         .from("businesses")
         .update({ branding_config: config as any })
-        .eq("id", businessId)
+        .eq("id", targetBusinessId)
 
       if (error) throw error
 

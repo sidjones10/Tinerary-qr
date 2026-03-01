@@ -336,21 +336,18 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
       if (existingCount === 1) {
         const alreadyGotFirst = await hasAlreadyEarned(userId, "first_itinerary")
         if (!alreadyGotFirst) {
-          awardCoins(userId, "first_itinerary", "itinerary", itineraryId)
-            .catch(err => console.warn("First itinerary coin award skipped:", err))
+          await awardCoins(userId, "first_itinerary", "itinerary", itineraryId)
         }
       }
 
       // Public itinerary bonus (50 coins)
       if (data.isPublic !== false) {
-        awardCoins(userId, "publish_public_itinerary", "itinerary", itineraryId)
-          .catch(err => console.warn("Publish coin award skipped:", err))
+        await awardCoins(userId, "publish_public_itinerary", "itinerary", itineraryId)
       }
 
       // 5+ activities bonus (15 coins)
       if (data.activities && data.activities.length >= 5) {
-        awardCoins(userId, "add_5_activities", "itinerary", itineraryId)
-          .catch(err => console.warn("Activities coin award skipped:", err))
+        await awardCoins(userId, "add_5_activities", "itinerary", itineraryId)
       }
     } catch (error: any) {
       console.warn("Coin awarding skipped:", error.message || "Unknown error")

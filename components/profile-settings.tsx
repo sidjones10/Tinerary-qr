@@ -21,6 +21,7 @@ import {
   getBusinessSubscription,
   getEffectiveTier,
 } from "@/lib/business-tier-service"
+import { createBusiness } from "@/app/actions/business-actions"
 
 export function ProfileSettings() {
   const { t } = useTranslation()
@@ -270,35 +271,27 @@ export function ProfileSettings() {
       const supabase = createClient()
       let targetBusinessId = businessId
 
-      // Auto-create a business record when the user doesn't have one yet
-      // (e.g. they selected enterprise in Business settings but never went
-      // through the full business creation form).
+      // Auto-create a business record via server action when the user
+      // doesn't have one yet (e.g. selected enterprise in Business
+      // settings but never completed the business-profile setup flow).
       if (!targetBusinessId) {
         const displayName =
           user.user_metadata?.name || user.user_metadata?.username || "My Business"
-        const { data: newBiz, error: createErr } = await supabase
-          .from("businesses")
-          .insert({
-            user_id: user.id,
-            name: displayName,
-            category: "Other",
-            business_tier: businessTier || "enterprise",
-          })
-          .select("id")
-          .single()
+        const formData = new FormData()
+        formData.set("name", displayName)
+        formData.set("category", "Other")
+        formData.set("tier", businessTier || "enterprise")
 
-        if (createErr) throw createErr
+        const result = await createBusiness(formData)
+        if (!result || !("success" in result) || !result.success || !result.data) {
+          throw new Error(
+            (result && "error" in result ? result.error : null) ||
+              "Failed to create business profile."
+          )
+        }
 
-        targetBusinessId = newBiz.id
+        targetBusinessId = result.data.id
         setBusinessId(targetBusinessId)
-
-        // Create a matching subscription row
-        await supabase.from("business_subscriptions").insert({
-          business_id: targetBusinessId,
-          tier: businessTier || "enterprise",
-          status: "active",
-          mention_highlights_used: 0,
-        })
       }
 
       const { error } = await supabase

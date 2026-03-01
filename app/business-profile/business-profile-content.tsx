@@ -60,7 +60,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts"
-import { createClient } from "@/lib/supabase/client"
+import { getBusinessProfileData } from "@/app/actions/business-actions"
 import { BUSINESS_TIERS } from "@/lib/tiers"
 import type { BusinessTierSlug } from "@/lib/tiers"
 import {
@@ -264,38 +264,11 @@ export function BusinessProfileContent() {
     let cancelled = false
 
     const loadData = async () => {
-      const supabase = createClient()
-
-      // Fetch profile data (for pre-filling setup + avatar fallback)
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("name, username, bio, location, website, avatar_url")
-        .eq("id", user.id)
-        .single()
+      // Use server action (cookie-based auth) to fetch business data
+      const { profile, business: biz, promos } = await getBusinessProfileData()
 
       if (cancelled) return
       if (profile) setProfileData(profile)
-
-      // Fetch business
-      let { data: biz } = await supabase
-        .from("businesses")
-        .select("*")
-        .eq("user_id", user.id)
-        .single()
-
-      // If business was just created (sessionStorage flag) but query returned
-      // nothing, retry once after a short delay
-      if (!biz && typeof window !== "undefined" && sessionStorage.getItem("business_created") === "true") {
-        await new Promise((r) => setTimeout(r, 1000))
-        const retry = await supabase
-          .from("businesses")
-          .select("*")
-          .eq("user_id", user.id)
-          .single()
-        biz = retry.data
-      }
-
-      if (cancelled) return
 
       if (biz) {
         setBusiness(biz)
@@ -303,14 +276,6 @@ export function BusinessProfileContent() {
         const sub = await getBusinessSubscription(biz.id)
         if (cancelled) return
         setTier(getEffectiveTier(sub, biz.business_tier as BusinessTierSlug))
-
-        const { data: promos } = await supabase
-          .from("promotions")
-          .select("title, status, promotion_metrics(views, clicks, saves)")
-          .eq("business_id", biz.id)
-          .order("created_at", { ascending: false })
-
-        if (cancelled) return
 
         if (promos) {
           const activeDeals = promos.filter((p: any) => p.status === "active").length

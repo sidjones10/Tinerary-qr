@@ -19,6 +19,50 @@ const BUSINESS_CATEGORIES = [
   "Other",
 ] as const
 
+/**
+ * Fetch the current user's business profile data for the dashboard.
+ * Uses server-side Supabase (cookie auth) to avoid client-side RLS issues.
+ */
+export async function getBusinessProfileData() {
+  const supabase = await createClient()
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  if (!session) {
+    return { profile: null, business: null, promos: null }
+  }
+
+  const [profileResult, bizResult] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("name, username, bio, location, website, avatar_url")
+      .eq("id", session.user.id)
+      .single(),
+    supabase
+      .from("businesses")
+      .select("*")
+      .eq("user_id", session.user.id)
+      .single(),
+  ])
+
+  const profile = profileResult.data
+  const business = bizResult.data
+
+  let promos: any[] | null = null
+  if (business) {
+    const { data } = await supabase
+      .from("promotions")
+      .select("title, status, promotion_metrics(views, clicks, saves)")
+      .eq("business_id", business.id)
+      .order("created_at", { ascending: false })
+    promos = data
+  }
+
+  return { profile, business, promos }
+}
+
 export async function createBusiness(formData: FormData) {
   const supabase = await createClient()
 

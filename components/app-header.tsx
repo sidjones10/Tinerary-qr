@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Bell, Menu, Search, X, User, Settings, LogOut, PlusCircle, Crown, Store } from "lucide-react"
+import { Bell, Menu, Search, X, User, Settings, LogOut, PlusCircle, Crown, Store, MessageCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -135,9 +135,6 @@ export function AppHeader() {
             <Link href="/explore" className="transition-colors hover:text-foreground/80">
               {t("header.explore", "Explore")}
             </Link>
-            <Link href="/messages" className="transition-colors hover:text-foreground/80">
-              Messages
-            </Link>
             <Link href="/notifications" className="transition-colors hover:text-foreground/80">
               {t("header.notifications")}
             </Link>
@@ -226,6 +223,12 @@ export function AppHeader() {
                       </Link>
                     </DropdownMenuItem>
                   )}
+                  <DropdownMenuItem asChild>
+                    <Link href="/messages" className="flex items-center">
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      Messages
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/settings" className="flex items-center">
                       <Settings className="mr-2 h-4 w-4" />

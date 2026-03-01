@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, MapPin, Calendar, Grid3X3, Bookmark, Share2, MoreHorizontal, ExternalLink, FileEdit, Settings, Loader2, Trash2, Edit, MessageCircle, Lock, Users, CheckCircle2 } from "lucide-react"
+import { ArrowLeft, MapPin, Calendar, Grid3X3, Bookmark, Share2, MoreHorizontal, ExternalLink, FileEdit, Settings, Loader2, Trash2, Edit, MessageCircle, Lock, Users, CheckCircle2, Mail, Briefcase, ChevronDown, Send } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -27,6 +27,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/components/ui/use-toast"
 
 interface UserProfile {
   id: string
@@ -71,6 +75,16 @@ export default function UnifiedProfilePage() {
   const [followCounts, setFollowCounts] = useState({ followers: 0, following: 0 })
   const [profilePrivacy, setProfilePrivacy] = useState<string>("public")
   const [viewerIsFollowing, setViewerIsFollowing] = useState(false)
+  const [sponsorshipOpen, setSponsorshipOpen] = useState(false)
+  const [sponsorshipForm, setSponsorshipForm] = useState({
+    brandName: "",
+    subject: "",
+    message: "",
+    budget: "",
+    campaignType: "Collaboration",
+  })
+  const [sponsorshipSending, setSponsorshipSending] = useState(false)
+  const { toast } = useToast()
 
   const isOwnProfile = currentUserId === userId
   const isProfileRestricted = !isOwnProfile && (
@@ -188,6 +202,37 @@ export default function UnifiedProfilePage() {
     } else {
       await navigator.clipboard.writeText(url)
       alert("Profile link copied to clipboard!")
+    }
+  }
+
+  const handleSendSponsorship = async () => {
+    if (!sponsorshipForm.brandName.trim() || !sponsorshipForm.subject.trim() || !sponsorshipForm.message.trim()) return
+    setSponsorshipSending(true)
+    try {
+      const res = await fetch("/api/creator/sponsorships", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          creatorId: userId,
+          brandName: sponsorshipForm.brandName,
+          subject: sponsorshipForm.subject,
+          message: sponsorshipForm.message,
+          budget: sponsorshipForm.budget || undefined,
+          campaignType: sponsorshipForm.campaignType,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast({ title: "Sponsorship inquiry sent!" })
+        setSponsorshipOpen(false)
+        setSponsorshipForm({ brandName: "", subject: "", message: "", budget: "", campaignType: "Collaboration" })
+      } else {
+        toast({ title: "Error", description: data.error, variant: "destructive" })
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to send", variant: "destructive" })
+    } finally {
+      setSponsorshipSending(false)
     }
   }
 
@@ -424,13 +469,45 @@ export default function UnifiedProfilePage() {
                   }
                 }}
               />
-              <Button
-                variant="outline"
-                className="flex-1 rounded-full h-11 border-orange-200 hover:bg-orange-50 hover:border-orange-300"
-              >
-                <MessageCircle className="h-4 w-4 mr-2" />
-                Message
-              </Button>
+              {(profile.tier === "creator" || profile.tier === "business") ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="flex-1 rounded-full h-11 border-orange-200 hover:bg-orange-50 hover:border-orange-300"
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Message
+                      <ChevronDown className="h-3 w-3 ml-1 opacity-60" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="center" className="rounded-xl w-56">
+                    <DropdownMenuItem
+                      className="rounded-lg py-2.5"
+                      onClick={() => router.push(`/messages?with=${userId}`)}
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Direct Message
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="rounded-lg py-2.5"
+                      onClick={() => setSponsorshipOpen(true)}
+                    >
+                      <Briefcase className="h-4 w-4 mr-2" />
+                      Sponsorship Inquiry
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="flex-1 rounded-full h-11 border-orange-200 hover:bg-orange-50 hover:border-orange-300"
+                  onClick={() => router.push(`/messages?with=${userId}`)}
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Message
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="icon"
@@ -678,6 +755,103 @@ export default function UnifiedProfilePage() {
               }}
             >
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sponsorship Inquiry Dialog */}
+      <Dialog open={sponsorshipOpen} onOpenChange={setSponsorshipOpen}>
+        <DialogContent className="rounded-2xl max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Briefcase className="h-5 w-5 text-[#7C3AED]" />
+              Sponsorship Inquiry
+            </DialogTitle>
+            <DialogDescription>
+              Send a collaboration proposal to {displayName}. This will appear in their sponsorship inbox.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-2">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="sp-brand">Brand / Company Name <span className="text-destructive">*</span></Label>
+              <Input
+                id="sp-brand"
+                placeholder="Your brand or company name"
+                value={sponsorshipForm.brandName}
+                onChange={(e) => setSponsorshipForm((p) => ({ ...p, brandName: e.target.value }))}
+                maxLength={100}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="sp-subject">Subject <span className="text-destructive">*</span></Label>
+              <Input
+                id="sp-subject"
+                placeholder="e.g. Partnership for Summer Campaign"
+                value={sponsorshipForm.subject}
+                onChange={(e) => setSponsorshipForm((p) => ({ ...p, subject: e.target.value }))}
+                maxLength={200}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="sp-message">Message <span className="text-destructive">*</span></Label>
+              <Textarea
+                id="sp-message"
+                placeholder="Tell the creator about the collaboration opportunity..."
+                value={sponsorshipForm.message}
+                onChange={(e) => setSponsorshipForm((p) => ({ ...p, message: e.target.value }))}
+                maxLength={2000}
+                rows={4}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="sp-budget">Budget</Label>
+                <Input
+                  id="sp-budget"
+                  placeholder="e.g. $1,000-$5,000"
+                  value={sponsorshipForm.budget}
+                  onChange={(e) => setSponsorshipForm((p) => ({ ...p, budget: e.target.value }))}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="sp-type">Campaign Type</Label>
+                <select
+                  id="sp-type"
+                  value={sponsorshipForm.campaignType}
+                  onChange={(e) => setSponsorshipForm((p) => ({ ...p, campaignType: e.target.value }))}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="Collaboration">Collaboration</option>
+                  <option value="Sponsored Content">Sponsored Content</option>
+                  <option value="Brand Ambassador">Brand Ambassador</option>
+                  <option value="Affiliate">Affiliate</option>
+                  <option value="Event">Event</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setSponsorshipOpen(false)} className="rounded-full">
+              Cancel
+            </Button>
+            <Button
+              className="rounded-full bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] text-white"
+              disabled={
+                !sponsorshipForm.brandName.trim() ||
+                !sponsorshipForm.subject.trim() ||
+                !sponsorshipForm.message.trim() ||
+                sponsorshipSending
+              }
+              onClick={handleSendSponsorship}
+            >
+              {sponsorshipSending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4 mr-2" />
+              )}
+              Send Inquiry
             </Button>
           </DialogFooter>
         </DialogContent>

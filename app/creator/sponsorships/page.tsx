@@ -241,6 +241,12 @@ export default function CreatorSponsorshipsPage() {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
                                   <p className="text-sm font-bold text-foreground">{msg.brandName}</p>
+                                  {msg.senderIsVerifiedBusiness && (
+                                    <Badge className="bg-primary/10 text-primary border-0 text-[10px] gap-0.5 px-1.5 py-0">
+                                      <CheckCircle2 className="size-2.5" />
+                                      Verified Business
+                                    </Badge>
+                                  )}
                                   <Badge
                                     variant="secondary"
                                     className={`${config.color} border-0 text-xs`}

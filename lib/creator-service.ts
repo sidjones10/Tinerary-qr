@@ -76,6 +76,8 @@ export interface SponsorshipMessage {
   status: "new" | "read" | "replied" | "accepted" | "declined"
   createdAt: string
   campaignType: string
+  senderId: string | null
+  senderIsVerifiedBusiness: boolean
 }
 
 // ─── Creator Tier Check ──────────────────────────────────────
@@ -412,6 +414,8 @@ export async function getSponsorshipMessages(userId: string): Promise<Sponsorshi
       status: m.status || "new",
       createdAt: m.created_at,
       campaignType: m.campaign_type || "Collaboration",
+      senderId: m.sender_id || null,
+      senderIsVerifiedBusiness: m.sender_is_verified_business || false,
     }))
   } catch (error) {
     console.error("Error fetching sponsorship messages:", error)
@@ -439,6 +443,63 @@ export async function updateSponsorshipStatus(
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to update status",
+    }
+  }
+}
+
+// ─── Send Sponsorship Message ────────────────────────────────
+
+export async function sendSponsorshipMessage(
+  senderId: string,
+  creatorId: string,
+  data: {
+    brandName: string
+    subject: string
+    message: string
+    budget?: string
+    campaignType?: string
+  }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = createClient()
+
+    // Look up sender profile to check if they are a verified business
+    const { data: senderProfile } = await supabase
+      .from("profiles")
+      .select("tier, is_verified, avatar_url")
+      .eq("id", senderId)
+      .single()
+
+    // Check if sender has a business account
+    const { data: senderBusiness } = await supabase
+      .from("businesses")
+      .select("id, logo")
+      .eq("user_id", senderId)
+      .single()
+
+    const isVerifiedBusiness =
+      senderProfile?.tier === "business" || !!senderBusiness
+
+    const { error } = await supabase.from("sponsorship_messages").insert({
+      creator_id: creatorId,
+      sender_id: senderId,
+      brand_name: data.brandName,
+      brand_logo: senderBusiness?.logo || senderProfile?.avatar_url || null,
+      subject: data.subject,
+      message: data.message,
+      budget: data.budget || null,
+      campaign_type: data.campaignType || "Collaboration",
+      sender_is_verified_business: isVerifiedBusiness,
+      status: "new",
+    })
+
+    if (error) throw error
+    return { success: true }
+  } catch (error) {
+    console.error("Error sending sponsorship message:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to send sponsorship message",
     }
   }
 }

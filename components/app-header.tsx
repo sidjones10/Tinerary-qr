@@ -135,6 +135,9 @@ export function AppHeader() {
             <Link href="/explore" className="transition-colors hover:text-foreground/80">
               {t("header.explore", "Explore")}
             </Link>
+            <Link href="/messages" className="transition-colors hover:text-foreground/80">
+              Messages
+            </Link>
             <Link href="/notifications" className="transition-colors hover:text-foreground/80">
               {t("header.notifications")}
             </Link>

@@ -40,6 +40,7 @@ import {
   Brain,
   Award,
   MapPin,
+  Webhook,
 } from "lucide-react"
 import {
   AreaChart,
@@ -60,6 +61,7 @@ import {
   Legend,
 } from "recharts"
 import type { BusinessTierSlug } from "@/lib/tiers"
+import { WebhookManagement } from "@/components/webhook-management"
 
 interface EnterpriseAnalyticsDashboardProps {
   tier: BusinessTierSlug
@@ -368,6 +370,7 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
   const showCohortRetention = isEnterprise
   const showCustomerHealth = isEnterprise
   const showDailyReports = isEnterprise
+  const showWebhooks = isEnterprise
 
   if (tier === "basic") {
     return (
@@ -756,6 +759,11 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
           {showCohortRetention && (
             <TabsTrigger value="retention" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs">
               Retention
+            </TabsTrigger>
+          )}
+          {showWebhooks && (
+            <TabsTrigger value="webhooks" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs">
+              Webhooks
             </TabsTrigger>
           )}
         </TabsList>
@@ -1199,8 +1207,8 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
                     <Award className="size-4 text-amber-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-base">Competitor Benchmarking</CardTitle>
-                    <CardDescription>How your business compares to category averages</CardDescription>
+                    <CardTitle className="text-base">Competitor Benchmarking & Recommendations</CardTitle>
+                    <CardDescription>How your business compares to category averages with actionable recommendations</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -1242,13 +1250,34 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
                   </TableBody>
                 </Table>
                 <div className="mt-4 p-3 rounded-xl bg-green-50/50 border border-green-200 dark:border-green-900/30 dark:bg-green-900/10">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1.5">
                     <Award className="size-3.5 text-green-600" />
                     <p className="text-xs font-semibold text-green-700 dark:text-green-400">Performance Summary</p>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    You outperform category averages in 7 of 8 key metrics. Focus area: Customer Return Rate is 20% below benchmark — consider implementing a loyalty program or post-booking re-engagement email sequence.
+                    You outperform category averages in 7 of 8 key metrics. Your strongest differentiators are views (+107%) and session duration (+54%).
                   </p>
+                </div>
+
+                <div className="mt-3 p-3 rounded-xl bg-muted">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="size-3.5 text-purple-500" />
+                    <p className="text-xs font-semibold text-foreground">Recommendations</p>
+                  </div>
+                  <ul className="space-y-2 text-xs text-muted-foreground">
+                    <li className="flex gap-2">
+                      <span className="text-primary font-bold shrink-0">1.</span>
+                      <span><strong className="text-foreground">Improve Customer Return Rate.</strong> You&apos;re 20% below benchmark. Implement a post-booking re-engagement email sequence at Day 7, 14, and 30 with personalized recommendations.</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-primary font-bold shrink-0">2.</span>
+                      <span><strong className="text-foreground">Capitalize on high CTR.</strong> Your 18.5% CTR is 50% above average — test increasing pricing by 5-8% on your top-performing promotions without conversion loss.</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-primary font-bold shrink-0">3.</span>
+                      <span><strong className="text-foreground">Launch a loyalty program.</strong> Your NPS (72) and session duration suggest high brand affinity. A points-based loyalty system could lift return rate by 15-25%.</span>
+                    </li>
+                  </ul>
                 </div>
               </CardContent>
             </Card>
@@ -1327,6 +1356,13 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
             </Card>
           </TabsContent>
         )}
+
+        {/* ── Webhooks (Enterprise) ──────────────────────────── */}
+        {showWebhooks && (
+          <TabsContent value="webhooks" className="mt-4">
+            <WebhookManagement />
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* ── Premium → Enterprise Upgrade Banner ──────────────────── */}
@@ -1341,8 +1377,9 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
                 <h3 className="text-sm font-bold text-foreground">Upgrade to Enterprise for the full real-time analytics dashboard</h3>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                   Get real-time live metrics, full API access, AI-powered insights with revenue impact estimates,
-                  revenue intelligence (MRR, ARR, LTV, CAC), competitor benchmarking, cohort retention analysis,
-                  customer health scoring (NPS &amp; CSAT), daily performance reports with ROAS, and hourly traffic patterns.
+                  revenue intelligence (MRR, ARR, LTV, CAC), competitor benchmarking &amp; recommendations, cohort retention analysis,
+                  customer health scoring (NPS &amp; CSAT), daily performance reports with ROAS, hourly traffic patterns,
+                  and webhook integrations (up to 10).
                 </p>
               </div>
               <Button size="sm" className="btn-sunset shrink-0 text-xs" asChild>

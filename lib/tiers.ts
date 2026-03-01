@@ -130,7 +130,6 @@ export const BUSINESS_TIERS: BusinessTier[] = [
     features: [
       "Top-tier placement + enterprise badge",
       "Custom branded profile (colors, cover, logo, CTA, video banner)",
-      "Unlimited promotions, locations, team members & uploads",
       "Real-time analytics dashboard + full API access",
       "Dedicated account manager with direct contact",
       "Daily performance reports with trend analysis",
@@ -150,15 +149,12 @@ export interface FeatureComparison {
   basic: string
   premium: string
   enterprise: string
-  category: "placement" | "profile" | "analytics" | "support" | "mentions" | "booking" | "limits"
+  category: "placement" | "profile" | "analytics" | "support" | "mentions" | "booking"
 }
 
 export const ENTERPRISE_FEATURE_COMPARISON: FeatureComparison[] = [
   { feature: "Listing placement", basic: "Standard", premium: "Featured", enterprise: "Top-tier + enterprise badge", category: "placement" },
   { feature: "Profile badge", basic: "\u2014", premium: "Verified", enterprise: "Enterprise badge", category: "placement" },
-  { feature: "Active promotions", basic: "Up to 5", premium: "Unlimited", enterprise: "Unlimited", category: "limits" },
-  { feature: "Business locations", basic: "1", premium: "Up to 5", enterprise: "Unlimited", category: "limits" },
-  { feature: "Team members", basic: "2", premium: "10", enterprise: "Unlimited", category: "limits" },
   { feature: "Custom branded profile", basic: "\u2014", premium: "\u2014", enterprise: "\u2713 Full branding suite", category: "profile" },
   { feature: "Analytics", basic: "Basic dashboard", premium: "Advanced + insights", enterprise: "Real-time + API access", category: "analytics" },
   { feature: "API access", basic: "\u2014", premium: "\u2014", enterprise: "\u2713 Full REST API", category: "analytics" },

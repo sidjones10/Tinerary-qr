@@ -14,6 +14,9 @@ import { Loader2, Pencil, Upload } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
 import { compressImage, deleteImage } from "@/lib/storage-service"
+import { EnterpriseBrandedProfile } from "@/components/enterprise-branded-profile"
+import type { BusinessTierSlug } from "@/lib/tiers"
+import type { EnterpriseBrandingConfig } from "@/lib/enterprise"
 
 export function ProfileSettings() {
   const { t } = useTranslation()
@@ -36,6 +39,10 @@ export function ProfileSettings() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [avatarPath, setAvatarPath] = useState<string | null>(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [businessTier, setBusinessTier] = useState<BusinessTierSlug | null>(null)
+  const [brandingConfig, setBrandingConfig] = useState<EnterpriseBrandingConfig | null>(null)
+  const [businessId, setBusinessId] = useState<string | null>(null)
+  const [savingBranding, setSavingBranding] = useState(false)
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -57,8 +64,6 @@ export function ProfileSettings() {
               variant: "destructive",
             })
           } else if (data) {
-            console.log("Profile data loaded:", data)
-            console.log("Avatar URL from DB:", data.avatar_url)
             setFormData({
               fullName: data.name || "",
               username: data.username || "",
@@ -71,6 +76,19 @@ export function ProfileSettings() {
             setOriginalUsername(data.username || "")
             setAvatarUrl(data.avatar_url || null)
             setAvatarPath(data.avatar_path || null)
+          }
+
+          // Fetch business data for tier-aware profile editing
+          const { data: biz } = await supabase
+            .from("businesses")
+            .select("id, business_tier, branding_config")
+            .eq("user_id", user.id)
+            .single()
+
+          if (biz) {
+            setBusinessId(biz.id)
+            setBusinessTier((biz.business_tier as BusinessTierSlug) || "basic")
+            setBrandingConfig(biz.branding_config as EnterpriseBrandingConfig | null)
           }
         } finally {
           setIsLoading(false)
@@ -222,6 +240,36 @@ export function ProfileSettings() {
     }
   }
 
+  const handleSaveBranding = async (config: EnterpriseBrandingConfig) => {
+    if (!user || !businessId) return
+
+    setSavingBranding(true)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from("businesses")
+        .update({ branding_config: config as any })
+        .eq("id", businessId)
+
+      if (error) throw error
+
+      setBrandingConfig(config)
+      toast({
+        title: "Branding saved",
+        description: "Your branded profile has been updated.",
+      })
+    } catch (error: any) {
+      console.error("Error saving branding:", error)
+      toast({
+        title: t("common.error"),
+        description: error.message || "Failed to save branding configuration.",
+        variant: "destructive",
+      })
+    } finally {
+      setSavingBranding(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -327,6 +375,7 @@ export function ProfileSettings() {
   }
 
   return (
+    <div className="space-y-6">
     <Card>
       <CardHeader>
         <CardTitle>{t("settings.profile.title")}</CardTitle>
@@ -511,5 +560,16 @@ export function ProfileSettings() {
         </form>
       </CardContent>
     </Card>
+
+    {/* Enterprise Branding Editor — only shown for business accounts */}
+    {businessTier && (
+      <EnterpriseBrandedProfile
+        tier={businessTier}
+        brandingConfig={brandingConfig}
+        onSave={handleSaveBranding}
+        saving={savingBranding}
+      />
+    )}
+    </div>
   )
 }

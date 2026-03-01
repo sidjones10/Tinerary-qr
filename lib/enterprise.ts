@@ -349,19 +349,3 @@ export function getApiAccessConfig(tier: BusinessTierSlug): ApiAccessConfig {
   }
 }
 
-// ─── Enterprise "Unlimited" Definitions ─────────────────────────
-
-export const ENTERPRISE_UNLIMITED_FEATURES = {
-  promotions: "Create and manage unlimited active promotions across all locations",
-  mentionHighlights: "Automatically highlight all organic mentions with your branding",
-  locations: "Add unlimited business locations to your profile",
-  teamMembers: "Invite unlimited team members to manage your account",
-  apiRequests: "No rate limits on API requests for data access and integration",
-  imageUploads: "Upload unlimited images for promotions and profile",
-  analyticsHistory: "Access full historical analytics data with no time limits",
-  reportExports: "Export unlimited reports in CSV, PDF, and JSON formats",
-  customDashboards: "Create unlimited custom analytics dashboard views",
-  webhooks: "Set up to 10 real-time webhook integrations",
-} as const
-
-export type UnlimitedFeatureKey = keyof typeof ENTERPRISE_UNLIMITED_FEATURES

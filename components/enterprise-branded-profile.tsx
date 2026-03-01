@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -13,6 +14,7 @@ import {
   QrCode,
   Video,
   Lock,
+  Loader2,
 } from "lucide-react"
 import type { BusinessTierSlug } from "@/lib/tiers"
 import type { EnterpriseBrandingConfig } from "@/lib/enterprise"
@@ -21,7 +23,8 @@ import { DEFAULT_BRANDING_CONFIG } from "@/lib/enterprise"
 interface EnterpriseBrandedProfileProps {
   tier: BusinessTierSlug
   brandingConfig?: EnterpriseBrandingConfig | null
-  onSave?: (config: EnterpriseBrandingConfig) => void
+  onSave?: (config: EnterpriseBrandingConfig) => Promise<void> | void
+  saving?: boolean
 }
 
 const brandingFeatures = [
@@ -63,13 +66,35 @@ const brandingFeatures = [
   },
 ]
 
+const CTA_STYLES: { value: EnterpriseBrandingConfig["ctaButtonStyle"]; label: string }[] = [
+  { value: "solid", label: "Solid" },
+  { value: "outline", label: "Outline" },
+  { value: "gradient", label: "Gradient" },
+]
+
+const LOGO_POSITIONS: { value: EnterpriseBrandingConfig["logoPosition"]; label: string }[] = [
+  { value: "left", label: "Left" },
+  { value: "center", label: "Center" },
+  { value: "right", label: "Right" },
+]
+
 export function EnterpriseBrandedProfile({
   tier,
   brandingConfig,
   onSave,
+  saving = false,
 }: EnterpriseBrandedProfileProps) {
   const isEnterprise = tier === "enterprise"
-  const config = brandingConfig || DEFAULT_BRANDING_CONFIG
+  const [config, setConfig] = useState<EnterpriseBrandingConfig>(
+    () => ({ ...DEFAULT_BRANDING_CONFIG, ...(brandingConfig || {}) })
+  )
+
+  const updateField = <K extends keyof EnterpriseBrandingConfig>(
+    key: K,
+    value: EnterpriseBrandingConfig[K]
+  ) => {
+    setConfig((prev) => ({ ...prev, [key]: value }))
+  }
 
   if (!isEnterprise) {
     return (
@@ -136,21 +161,24 @@ export function EnterpriseBrandedProfile({
         </div>
       </CardHeader>
       <CardContent>
-        {/* Brand Colors */}
-        <div className="space-y-4">
+        <div className="space-y-5">
+          {/* Brand Colors */}
           <div>
             <Label className="text-sm font-medium mb-2 block">Brand Colors</Label>
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <Label className="text-xs text-muted-foreground">Primary</Label>
                 <div className="flex items-center gap-2 mt-1">
-                  <div
-                    className="size-8 rounded-lg border border-border"
-                    style={{ backgroundColor: config.primaryColor }}
+                  <input
+                    type="color"
+                    value={config.primaryColor}
+                    onChange={(e) => updateField("primaryColor", e.target.value)}
+                    className="size-8 rounded-lg border border-border cursor-pointer p-0"
                   />
                   <Input
                     type="text"
-                    defaultValue={config.primaryColor}
+                    value={config.primaryColor}
+                    onChange={(e) => updateField("primaryColor", e.target.value)}
                     className="h-8 text-xs font-mono"
                   />
                 </div>
@@ -158,13 +186,16 @@ export function EnterpriseBrandedProfile({
               <div>
                 <Label className="text-xs text-muted-foreground">Secondary</Label>
                 <div className="flex items-center gap-2 mt-1">
-                  <div
-                    className="size-8 rounded-lg border border-border"
-                    style={{ backgroundColor: config.secondaryColor }}
+                  <input
+                    type="color"
+                    value={config.secondaryColor}
+                    onChange={(e) => updateField("secondaryColor", e.target.value)}
+                    className="size-8 rounded-lg border border-border cursor-pointer p-0"
                   />
                   <Input
                     type="text"
-                    defaultValue={config.secondaryColor}
+                    value={config.secondaryColor}
+                    onChange={(e) => updateField("secondaryColor", e.target.value)}
                     className="h-8 text-xs font-mono"
                   />
                 </div>
@@ -172,13 +203,16 @@ export function EnterpriseBrandedProfile({
               <div>
                 <Label className="text-xs text-muted-foreground">Accent</Label>
                 <div className="flex items-center gap-2 mt-1">
-                  <div
-                    className="size-8 rounded-lg border border-border"
-                    style={{ backgroundColor: config.accentColor }}
+                  <input
+                    type="color"
+                    value={config.accentColor}
+                    onChange={(e) => updateField("accentColor", e.target.value)}
+                    className="size-8 rounded-lg border border-border cursor-pointer p-0"
                   />
                   <Input
                     type="text"
-                    defaultValue={config.accentColor}
+                    value={config.accentColor}
+                    onChange={(e) => updateField("accentColor", e.target.value)}
                     className="h-8 text-xs font-mono"
                   />
                 </div>
@@ -186,25 +220,68 @@ export function EnterpriseBrandedProfile({
             </div>
           </div>
 
-          {/* Feature Grid */}
-          <div className="grid sm:grid-cols-2 gap-3">
-            {brandingFeatures.map((feature) => {
-              const Icon = feature.icon
-              return (
-                <div
-                  key={feature.id}
-                  className="flex items-start gap-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
-                >
-                  <div className="size-8 rounded-lg bg-card flex items-center justify-center shrink-0 border border-border">
-                    <Icon className="size-3.5 text-foreground" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-foreground">{feature.label}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{feature.description}</p>
-                  </div>
+          {/* Cover Image URL */}
+          <div>
+            <Label className="text-sm font-medium mb-2 block">Cover Image</Label>
+            <Input
+              type="url"
+              value={config.coverImageUrl || ""}
+              onChange={(e) => updateField("coverImageUrl", e.target.value || null)}
+              placeholder="https://example.com/cover.jpg"
+              className="h-8 text-xs"
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Recommended size: 1200x400px. Displayed behind your profile header.
+            </p>
+          </div>
+
+          {/* Video Banner URL */}
+          <div>
+            <Label className="text-sm font-medium mb-2 block">Video Banner</Label>
+            <Input
+              type="url"
+              value={config.videoBannerUrl || ""}
+              onChange={(e) => updateField("videoBannerUrl", e.target.value || null)}
+              placeholder="https://example.com/banner.mp4"
+              className="h-8 text-xs"
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              MP4 format, max 15 seconds. Replaces cover image when set.
+            </p>
+          </div>
+
+          {/* Logo */}
+          <div>
+            <Label className="text-sm font-medium mb-2 block">Logo</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Logo URL</Label>
+                <Input
+                  type="url"
+                  value={config.logoUrl || ""}
+                  onChange={(e) => updateField("logoUrl", e.target.value || null)}
+                  placeholder="https://example.com/logo.png"
+                  className="h-8 text-xs mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Logo Position</Label>
+                <div className="flex gap-1 mt-1">
+                  {LOGO_POSITIONS.map((pos) => (
+                    <Button
+                      key={pos.value}
+                      type="button"
+                      size="sm"
+                      variant={config.logoPosition === pos.value ? "default" : "outline"}
+                      className="h-8 text-xs flex-1"
+                      onClick={() => updateField("logoPosition", pos.value)}
+                    >
+                      {pos.label}
+                    </Button>
+                  ))}
                 </div>
-              )
-            })}
+              </div>
+            </div>
           </div>
 
           {/* CTA Button Config */}
@@ -215,7 +292,8 @@ export function EnterpriseBrandedProfile({
                 <Label className="text-xs text-muted-foreground">Button Text</Label>
                 <Input
                   type="text"
-                  defaultValue={config.ctaButtonText}
+                  value={config.ctaButtonText}
+                  onChange={(e) => updateField("ctaButtonText", e.target.value)}
                   className="h-8 text-xs mt-1"
                 />
               </div>
@@ -223,15 +301,33 @@ export function EnterpriseBrandedProfile({
                 <Label className="text-xs text-muted-foreground">Button URL</Label>
                 <Input
                   type="url"
-                  defaultValue={config.ctaButtonUrl}
+                  value={config.ctaButtonUrl}
+                  onChange={(e) => updateField("ctaButtonUrl", e.target.value)}
                   placeholder="https://..."
                   className="h-8 text-xs mt-1"
                 />
               </div>
             </div>
+            <div className="mt-2">
+              <Label className="text-xs text-muted-foreground">Button Style</Label>
+              <div className="flex gap-1 mt-1">
+                {CTA_STYLES.map((style) => (
+                  <Button
+                    key={style.value}
+                    type="button"
+                    size="sm"
+                    variant={config.ctaButtonStyle === style.value ? "default" : "outline"}
+                    className="h-8 text-xs flex-1"
+                    onClick={() => updateField("ctaButtonStyle", style.value)}
+                  >
+                    {style.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
           </div>
 
-          {/* Preview */}
+          {/* Live Preview */}
           <div>
             <Label className="text-sm font-medium mb-2 block">Profile Preview</Label>
             <div className="rounded-xl border border-border overflow-hidden">
@@ -250,33 +346,51 @@ export function EnterpriseBrandedProfile({
                 )}
               </div>
               <div className="p-4 bg-card relative -mt-6">
-                <div className="size-12 rounded-xl bg-white border-2 border-card shadow-sm flex items-center justify-center">
-                  {config.logoUrl ? (
-                    <img src={config.logoUrl} alt="Logo" className="size-full rounded-xl object-cover" />
-                  ) : (
-                    <span className="text-lg font-bold" style={{ color: config.accentColor }}>B</span>
-                  )}
+                <div className={`flex ${config.logoPosition === "center" ? "justify-center" : ""}`}>
+                  <div className="size-12 rounded-xl bg-white border-2 border-card shadow-sm flex items-center justify-center">
+                    {config.logoUrl ? (
+                      <img src={config.logoUrl} alt="Logo" className="size-full rounded-xl object-cover" />
+                    ) : (
+                      <span className="text-lg font-bold" style={{ color: config.accentColor }}>B</span>
+                    )}
+                  </div>
                 </div>
                 <div className="mt-2">
                   <p className="text-sm font-bold text-foreground">Your Business Name</p>
                   <p className="text-xs text-muted-foreground mt-0.5">Your custom branded profile</p>
                 </div>
-                <Button
-                  size="sm"
-                  className="mt-3 text-xs"
-                  style={{
-                    backgroundColor: config.accentColor,
-                    color: "white",
-                  }}
-                >
-                  {config.ctaButtonText || "Book Now"}
-                </Button>
+                {config.ctaButtonUrl && (
+                  <Button
+                    size="sm"
+                    className="mt-3 text-xs"
+                    style={
+                      config.ctaButtonStyle === "outline"
+                        ? { borderColor: config.accentColor, color: config.accentColor, backgroundColor: "transparent", border: `2px solid ${config.accentColor}` }
+                        : config.ctaButtonStyle === "gradient"
+                        ? { background: `linear-gradient(135deg, ${config.primaryColor}, ${config.accentColor})`, color: "white" }
+                        : { backgroundColor: config.accentColor, color: "white" }
+                    }
+                  >
+                    {config.ctaButtonText || "Book Now"}
+                  </Button>
+                )}
               </div>
             </div>
           </div>
 
-          <Button className="w-full btn-sunset" onClick={() => onSave?.(config)}>
-            Save Branding
+          <Button
+            className="w-full btn-sunset"
+            onClick={() => onSave?.(config)}
+            disabled={saving}
+          >
+            {saving ? (
+              <>
+                <Loader2 className="size-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save Branding"
+            )}
           </Button>
         </div>
       </CardContent>

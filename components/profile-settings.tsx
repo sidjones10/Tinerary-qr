@@ -17,6 +17,10 @@ import { compressImage, deleteImage } from "@/lib/storage-service"
 import { EnterpriseBrandedProfile } from "@/components/enterprise-branded-profile"
 import type { BusinessTierSlug } from "@/lib/tiers"
 import type { EnterpriseBrandingConfig } from "@/lib/enterprise"
+import {
+  getBusinessSubscription,
+  getEffectiveTier,
+} from "@/lib/business-tier-service"
 
 export function ProfileSettings() {
   const { t } = useTranslation()
@@ -78,7 +82,7 @@ export function ProfileSettings() {
             setAvatarPath(data.avatar_path || null)
           }
 
-          // Fetch business data for tier-aware profile editing
+          // Fetch business data + subscription for tier-aware profile editing
           const { data: biz } = await supabase
             .from("businesses")
             .select("id, business_tier, branding_config")
@@ -87,7 +91,8 @@ export function ProfileSettings() {
 
           if (biz) {
             setBusinessId(biz.id)
-            setBusinessTier((biz.business_tier as BusinessTierSlug) || "basic")
+            const sub = await getBusinessSubscription(biz.id)
+            setBusinessTier(getEffectiveTier(sub, biz.business_tier as BusinessTierSlug))
             setBrandingConfig(biz.branding_config as EnterpriseBrandingConfig | null)
           }
         } finally {

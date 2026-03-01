@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Home, Calendar, Heart, Bell, Compass, Settings, PlusCircle, LogOut } from "lucide-react"
+import { Home, Calendar, Heart, Bell, Compass, Settings, PlusCircle, LogOut, MessageCircle } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -27,6 +27,11 @@ const navItems = [
     title: "Explore",
     href: "/explore",
     icon: <Compass className="h-5 w-5" />,
+  },
+  {
+    title: "Messages",
+    href: "/messages",
+    icon: <MessageCircle className="h-5 w-5" />,
   },
   {
     title: "Notifications",

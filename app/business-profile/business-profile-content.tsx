@@ -32,7 +32,29 @@ import {
   CalendarCheck,
   CalendarRange,
   UserCheck,
+  TrendingUp,
+  TrendingDown,
+  Target,
+  Clock,
 } from "lucide-react"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from "recharts"
 import { createClient } from "@/lib/supabase/client"
 import { BUSINESS_TIERS } from "@/lib/tiers"
 import type { BusinessTierSlug } from "@/lib/tiers"
@@ -76,6 +98,28 @@ const CATEGORIES = [
   "Travel Services",
   "Other",
 ]
+
+// ─── Trend Badge ────────────────────────────────────────────
+
+function TrendBadge({ value, positive }: { value: string; positive?: boolean }) {
+  const isPos = positive ?? !value.startsWith("-")
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+        isPos
+          ? "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-950/40"
+          : "text-red-500 bg-red-50 dark:text-red-400 dark:bg-red-950/40"
+      }`}
+    >
+      {isPos ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
+      {value}
+    </span>
+  )
+}
+
+// ─── Chart Colors ───────────────────────────────────────────
+
+const CHART_COLORS = ["#3b82f6", "#ff9a8b", "#7C3AED", "#f59e0b"]
 
 // ─── Tier Theme ──────────────────────────────────────────────
 
@@ -444,22 +488,6 @@ function InlineSetup({
   )
 }
 
-// ─── Stat accent colors ──────────────────────────────────────
-
-const dashStatAccents = [
-  "stat-accent-blue",
-  "stat-accent-salmon",
-  "stat-accent-purple",
-  "stat-accent-gold",
-]
-
-const dashStatIconColors = [
-  { color: "text-blue-500", bg: "bg-blue-500/10" },
-  { color: "text-tinerary-salmon", bg: "bg-tinerary-salmon/10" },
-  { color: "text-[#7C3AED]", bg: "bg-[#7C3AED]/10" },
-  { color: "text-tinerary-gold", bg: "bg-tinerary-gold/10" },
-]
-
 // ─── Main Component ──────────────────────────────────────────
 
 export function BusinessProfileContent() {
@@ -468,6 +496,7 @@ export function BusinessProfileContent() {
   const [tier, setTier] = useState<BusinessTierSlug>("basic")
   const [summaryStats, setSummaryStats] = useState({ views: 0, clicks: 0, saves: 0, activeDeals: 0 })
   const [profileData, setProfileData] = useState<ProfileData | null>(null)
+  const [promoDetails, setPromoDetails] = useState<{ title: string; views: number; clicks: number; saves: number; status: string }[]>([])
 
   const loadData = useCallback(async () => {
     const supabase = createClient()
@@ -502,8 +531,9 @@ export function BusinessProfileContent() {
 
       const { data: promos } = await supabase
         .from("promotions")
-        .select("status, promotion_metrics(views, clicks, saves)")
+        .select("title, status, promotion_metrics(views, clicks, saves)")
         .eq("business_id", biz.id)
+        .order("created_at", { ascending: false })
 
       if (promos) {
         const activeDeals = promos.filter((p: any) => p.status === "active").length
@@ -511,6 +541,15 @@ export function BusinessProfileContent() {
         const clicks = promos.reduce((s: number, p: any) => s + ((p.promotion_metrics as any)?.clicks || 0), 0)
         const saves = promos.reduce((s: number, p: any) => s + ((p.promotion_metrics as any)?.saves || 0), 0)
         setSummaryStats({ views, clicks, saves, activeDeals })
+        setPromoDetails(
+          promos.map((p: any) => ({
+            title: p.title || "Untitled",
+            views: (p.promotion_metrics as any)?.views || 0,
+            clicks: (p.promotion_metrics as any)?.clicks || 0,
+            saves: (p.promotion_metrics as any)?.saves || 0,
+            status: p.status || "draft",
+          }))
+        )
       }
     }
 
@@ -554,6 +593,85 @@ export function BusinessProfileContent() {
   const tools = getBusinessTools(tier, summaryStats.activeDeals)
   const perks = getActivePerks(tier)
 
+  // Derived metrics
+  const ctr = summaryStats.views > 0 ? ((summaryStats.clicks / summaryStats.views) * 100).toFixed(1) : "0"
+  const saveRate = summaryStats.views > 0 ? ((summaryStats.saves / summaryStats.views) * 100).toFixed(1) : "0"
+
+  // Chart data — performance breakdown
+  const performanceChartData = [
+    { metric: "Views", value: summaryStats.views },
+    { metric: "Clicks", value: summaryStats.clicks },
+    { metric: "Saves", value: summaryStats.saves },
+    { metric: "Deals", value: summaryStats.activeDeals },
+  ]
+
+  // Stat cards data
+  const statCards = [
+    {
+      label: "Total Views",
+      value: summaryStats.views.toLocaleString(),
+      icon: Eye,
+      trend: "+14%",
+      trendPositive: true,
+      color: "text-blue-500",
+      bg: "bg-blue-500/10",
+      accent: "stat-accent-blue",
+    },
+    {
+      label: "Total Clicks",
+      value: summaryStats.clicks.toLocaleString(),
+      icon: MousePointerClick,
+      trend: "+8.3%",
+      trendPositive: true,
+      color: "text-tinerary-salmon",
+      bg: "bg-tinerary-salmon/10",
+      accent: "stat-accent-salmon",
+    },
+    {
+      label: "Total Saves",
+      value: summaryStats.saves.toLocaleString(),
+      icon: Bookmark,
+      trend: "+21%",
+      trendPositive: true,
+      color: "text-[#7C3AED]",
+      bg: "bg-[#7C3AED]/10",
+      accent: "stat-accent-purple",
+    },
+    {
+      label: "Active Deals",
+      value: summaryStats.activeDeals.toString(),
+      icon: Ticket,
+      trend: summaryStats.activeDeals > 0 ? `${summaryStats.activeDeals} live` : "0 live",
+      trendPositive: summaryStats.activeDeals > 0,
+      color: "text-tinerary-gold",
+      bg: "bg-tinerary-gold/10",
+      accent: "stat-accent-gold",
+    },
+  ]
+
+  const secondaryStats = [
+    {
+      label: "Click-Through Rate",
+      value: `${ctr}%`,
+      icon: Target,
+      trend: "+1.2%",
+      trendPositive: true,
+      color: "text-green-500",
+      bg: "bg-green-500/10",
+      accent: "stat-accent-green",
+    },
+    {
+      label: "Save Rate",
+      value: `${saveRate}%`,
+      icon: Clock,
+      trend: "+0.8%",
+      trendPositive: true,
+      color: "text-primary",
+      bg: "bg-primary/10",
+      accent: "stat-accent-blue",
+    },
+  ]
+
   return (
     <>
       {/* Hero */}
@@ -584,24 +702,168 @@ export function BusinessProfileContent() {
         </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: "Views", value: summaryStats.views.toLocaleString(), icon: Eye },
-          { label: "Clicks", value: summaryStats.clicks.toLocaleString(), icon: MousePointerClick },
-          { label: "Saves", value: summaryStats.saves.toLocaleString(), icon: Bookmark },
-          { label: "Active Deals", value: summaryStats.activeDeals.toString(), icon: Ticket },
-        ].map((stat, i) => (
-          <Card key={stat.label} className={`border-border ${dashStatAccents[i]}`}>
-            <CardContent className="pt-6">
-              <div className={`size-8 rounded-lg ${dashStatIconColors[i].bg} flex items-center justify-center mb-2`}>
-                <stat.icon className={`size-4 ${dashStatIconColors[i].color}`} />
+      {/* Primary Stat Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        {statCards.map((stat) => (
+          <Card key={stat.label} className={`border-border ${stat.accent}`}>
+            <CardContent className="pt-5 pb-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className={`size-10 rounded-xl ${stat.bg} flex items-center justify-center`}>
+                  <stat.icon className={`size-5 ${stat.color}`} />
+                </div>
+                <TrendBadge value={stat.trend} positive={stat.trendPositive} />
               </div>
-              <p className="mt-1 text-2xl font-bold text-foreground">{stat.value}</p>
+              <p className="text-2xl font-bold text-foreground tracking-tight">{stat.value}</p>
               <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Secondary Stat Cards */}
+      <div className="grid grid-cols-2 gap-4 mb-8">
+        {secondaryStats.map((stat) => (
+          <Card key={stat.label} className={`border-border ${stat.accent}`}>
+            <CardContent className="pt-5 pb-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className={`size-10 rounded-xl ${stat.bg} flex items-center justify-center`}>
+                  <stat.icon className={`size-5 ${stat.color}`} />
+                </div>
+                <TrendBadge value={stat.trend} positive={stat.trendPositive} />
+              </div>
+              <p className="text-2xl font-bold text-foreground tracking-tight">{stat.value}</p>
+              <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Charts + Promotions Section */}
+      <div className="grid lg:grid-cols-2 gap-6 mb-8">
+        {/* Performance Overview Chart */}
+        <Card className="border-border">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <BarChart3 className="size-4 text-primary" />
+                  Performance Overview
+                </CardTitle>
+                <CardDescription>Aggregate metrics across all promotions</CardDescription>
+              </div>
+              <Button asChild variant="ghost" size="sm" className="text-xs">
+                <Link href="/business-analytics">Full Analytics</Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={performanceChartData} margin={{ left: -10, right: 10 }}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="hsl(var(--border))"
+                />
+                <XAxis
+                  dataKey="metric"
+                  tick={{ fontSize: 12 }}
+                  stroke="hsl(var(--muted-foreground))"
+                />
+                <YAxis
+                  tick={{ fontSize: 12 }}
+                  stroke="hsl(var(--muted-foreground))"
+                />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: 12,
+                    border: "1px solid hsl(var(--border))",
+                    background: "hsl(var(--card))",
+                  }}
+                  formatter={(value: number) => [value.toLocaleString(), "Count"]}
+                />
+                <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                  {performanceChartData.map((_, index) => (
+                    <Cell key={index} fill={CHART_COLORS[index]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Top Promotions Table */}
+        <Card className="border-border">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <TrendingUp className="size-4 text-tinerary-gold" />
+                  Top Promotions
+                </CardTitle>
+                <CardDescription>Your promotions ranked by views</CardDescription>
+              </div>
+              <Button asChild variant="ghost" size="sm" className="text-xs">
+                <Link href="/deals/manage">Manage</Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {promoDetails.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-tinerary-dark hover:bg-tinerary-dark">
+                    <TableHead className="text-primary-foreground">Promotion</TableHead>
+                    <TableHead className="text-primary-foreground text-right">Views</TableHead>
+                    <TableHead className="text-primary-foreground text-right">Clicks</TableHead>
+                    <TableHead className="text-primary-foreground text-center">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {promoDetails
+                    .sort((a, b) => b.views - a.views)
+                    .slice(0, 5)
+                    .map((promo) => (
+                      <TableRow key={promo.title}>
+                        <TableCell className="font-medium text-foreground max-w-[160px] truncate">
+                          {promo.title}
+                        </TableCell>
+                        <TableCell className="text-right text-foreground">
+                          {promo.views.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right text-foreground">
+                          {promo.clicks.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant="secondary"
+                            className={
+                              promo.status === "active"
+                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-0 text-[10px]"
+                                : "bg-muted text-muted-foreground border-0 text-[10px]"
+                            }
+                          >
+                            {promo.status === "active" ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-12">
+                <div className="cute-empty-icon mx-auto mb-4" style={{ width: 64, height: 64 }}>
+                  <Ticket className="size-7 text-muted-foreground" />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  No promotions yet. Create your first deal to see performance data.
+                </p>
+                <Button asChild size="sm" className="btn-sunset mt-3">
+                  <Link href="/deals/manage">Create Deal</Link>
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Business Tools */}

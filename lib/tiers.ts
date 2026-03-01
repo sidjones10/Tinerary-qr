@@ -155,7 +155,7 @@ export interface FeatureComparison {
 export const ENTERPRISE_FEATURE_COMPARISON: FeatureComparison[] = [
   { feature: "Listing placement", basic: "Standard", premium: "Featured", enterprise: "Top-tier + enterprise badge", category: "placement" },
   { feature: "Profile badge", basic: "\u2014", premium: "Verified", enterprise: "Enterprise badge", category: "placement" },
-  { feature: "Custom branded profile", basic: "\u2014", premium: "\u2014", enterprise: "\u2713 Full branding suite", category: "profile" },
+  { feature: "Business profile", basic: "Standard", premium: "Enhanced", enterprise: "\u2713 Full branding suite", category: "profile" },
   { feature: "Analytics", basic: "Basic dashboard", premium: "Advanced + insights", enterprise: "Real-time + API access", category: "analytics" },
   { feature: "API access", basic: "\u2014", premium: "\u2014", enterprise: "\u2713 Full REST API", category: "analytics" },
   { feature: "Support", basic: "Email", premium: "Priority", enterprise: "Dedicated account manager", category: "support" },

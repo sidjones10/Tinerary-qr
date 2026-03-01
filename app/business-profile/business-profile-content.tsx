@@ -33,6 +33,7 @@ import {
   Mail,
   Coins,
   Zap,
+  Palette,
   Loader2,
   Check,
   CalendarCheck,
@@ -72,6 +73,7 @@ import {
 import { createBusiness } from "@/app/actions/business-actions"
 import type { EnterpriseBrandingConfig } from "@/lib/enterprise"
 import { DEFAULT_BRANDING_CONFIG } from "@/lib/enterprise"
+import { EnterpriseBrandedProfile } from "@/components/enterprise-branded-profile"
 
 interface BusinessData {
   id: string
@@ -227,6 +229,17 @@ function getBusinessTools(tier: BusinessTierSlug, activeDeals: number) {
       href: "/coins",
       color: "text-tinerary-gold",
       bgColor: "bg-tinerary-gold/10",
+    },
+    {
+      title: "Branded Profile",
+      description:
+        tier === "enterprise"
+          ? "Customize colors, cover & CTA"
+          : "Enterprise feature",
+      icon: Palette,
+      href: "#branding",
+      color: tier === "enterprise" ? "text-tinerary-peach" : "text-muted-foreground",
+      bgColor: tier === "enterprise" ? "bg-tinerary-peach/10" : "bg-muted",
     },
   ]
 }
@@ -507,6 +520,27 @@ export function BusinessProfileContent() {
   const [summaryStats, setSummaryStats] = useState({ views: 0, clicks: 0, saves: 0, activeDeals: 0 })
   const [profileData, setProfileData] = useState<ProfileData | null>(null)
   const [promoDetails, setPromoDetails] = useState<{ title: string; views: number; clicks: number; saves: number; status: string }[]>([])
+  const [savingBranding, setSavingBranding] = useState(false)
+
+  const handleSaveBranding = useCallback(async (config: EnterpriseBrandingConfig) => {
+    if (!business) return
+    setSavingBranding(true)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from("businesses")
+        .update({ branding_config: config as any })
+        .eq("id", business.id)
+
+      if (error) throw error
+
+      setBusiness((prev) => prev ? { ...prev, branding_config: config } : prev)
+    } catch (err) {
+      console.error("Error saving branding:", err)
+    } finally {
+      setSavingBranding(false)
+    }
+  }, [business])
 
   const loadData = useCallback(async () => {
     const supabase = createClient()
@@ -1211,6 +1245,16 @@ export function BusinessProfileContent() {
             </Card>
           </Link>
         ))}
+      </div>
+
+      {/* Custom Branded Profile Editor */}
+      <div id="branding" className="mb-8">
+        <EnterpriseBrandedProfile
+          tier={tier}
+          brandingConfig={business.branding_config}
+          onSave={handleSaveBranding}
+          saving={savingBranding}
+        />
       </div>
 
       {/* Active Perks */}

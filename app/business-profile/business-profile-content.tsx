@@ -2,13 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Store,
   BarChart3,
@@ -34,7 +31,6 @@ import {
   Mail,
   Coins,
   Zap,
-  Loader2,
   Pencil,
   Check,
   CalendarCheck,
@@ -71,7 +67,6 @@ import {
   getEffectiveTier,
   getTierLimits,
 } from "@/lib/business-tier-service"
-import { createBusiness } from "@/app/actions/business-actions"
 import type { EnterpriseBrandingConfig } from "@/lib/enterprise"
 import { DEFAULT_BRANDING_CONFIG } from "@/lib/enterprise"
 
@@ -98,18 +93,6 @@ interface ProfileData {
   website: string | null
   avatar_url: string | null
 }
-
-const CATEGORIES = [
-  "Accommodation",
-  "Activities & Tours",
-  "Food & Dining",
-  "Transportation",
-  "Shopping",
-  "Entertainment",
-  "Wellness & Spa",
-  "Travel Services",
-  "Other",
-]
 
 // ─── Trend Badge ────────────────────────────────────────────
 
@@ -157,14 +140,6 @@ const TIER_ICON: Record<BusinessTierSlug, React.ComponentType<{ className?: stri
   basic: Store,
   premium: Crown,
   enterprise: Shield,
-}
-
-// ─── Tier feature summaries for setup ────────────────────────
-
-const TIER_SUMMARIES: Record<BusinessTierSlug, string> = {
-  basic: "5 deals, basic analytics, email support",
-  premium: "Unlimited deals, advanced analytics, featured placement",
-  enterprise: "API access, real-time analytics, dedicated manager",
 }
 
 // ─── Tool Cards ──────────────────────────────────────────────
@@ -270,239 +245,10 @@ function getActivePerks(tier: BusinessTierSlug) {
   ]
 }
 
-// ─── Setup Steps ─────────────────────────────────────────────
-
-const SETUP_STEPS = [
-  { label: "Business Info", icon: Store },
-  { label: "Details", icon: Sparkles },
-  { label: "Choose Plan", icon: Crown },
-]
-
-// ─── Inline Setup (replaces separate onboarding page) ────────
-
-function InlineSetup({
-  profileData,
-  onCreated,
-}: {
-  profileData: ProfileData | null
-  onCreated: () => void
-}) {
-  const searchParams = useSearchParams()
-  const preselectedTier = searchParams.get("tier") as BusinessTierSlug | null
-
-  const [name, setName] = useState("")
-  const [category, setCategory] = useState("")
-  const [description, setDescription] = useState("")
-  const [website, setWebsite] = useState("")
-  const [selectedTier, setSelectedTier] = useState<BusinessTierSlug>(
-    preselectedTier && ["basic", "premium", "enterprise"].includes(preselectedTier)
-      ? preselectedTier
-      : "basic"
-  )
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  // Pre-fill from profile data
-  useEffect(() => {
-    if (profileData) {
-      if (profileData.name) setName(profileData.name)
-      if (profileData.website) setWebsite(profileData.website)
-      if (profileData.bio) setDescription(profileData.bio)
-    }
-  }, [profileData])
-
-  // Determine which "step" is active based on form completion
-  const currentStep = !name.trim() || !category ? 0 : !description && !website ? 1 : 2
-
-  async function handleSubmit() {
-    setError(null)
-    setSubmitting(true)
-
-    const formData = new FormData()
-    formData.set("name", name)
-    formData.set("category", category)
-    formData.set("description", description)
-    formData.set("website", website)
-    formData.set("tier", selectedTier)
-
-    const result = await createBusiness(formData)
-
-    if (result && "success" in result) {
-      if (result.success) {
-        onCreated()
-      } else {
-        setError(result.error || "Something went wrong.")
-        setSubmitting(false)
-      }
-    }
-  }
-
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="text-center">
-        <div className="size-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-          <Store className="size-8 text-primary" />
-        </div>
-        <h2 className="text-2xl font-bold text-foreground">Set Up Your Business</h2>
-        <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
-          {profileData?.name
-            ? "We\u2019ve pulled in your profile info as a starting point. Pick a category and you\u2019re ready to go."
-            : "Tell us about your business to get started."}
-        </p>
-      </div>
-
-      {/* Step Indicator */}
-      <div className="flex items-center justify-center gap-2 max-w-xl mx-auto w-full">
-        {SETUP_STEPS.map((step, i) => (
-          <div key={step.label} className="flex items-center gap-2">
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-              i <= currentStep
-                ? "bg-primary/10 text-primary"
-                : "bg-muted text-muted-foreground"
-            }`}>
-              <step.icon className="size-3" />
-              <span className="hidden sm:inline">{step.label}</span>
-            </div>
-            {i < SETUP_STEPS.length - 1 && (
-              <div className={`w-6 h-px transition-colors ${i < currentStep ? "bg-primary" : "bg-border"}`} />
-            )}
-          </div>
-        ))}
-      </div>
-
-      <Card className="border-border max-w-xl mx-auto w-full cute-card">
-        <CardContent className="pt-6">
-          <div className="flex flex-col gap-5">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="biz-name">
-                Business Name <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="biz-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Sunset Beach Resort"
-                maxLength={100}
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="biz-category">
-                Category <span className="text-destructive">*</span>
-              </Label>
-              <select
-                id="biz-category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                <option value="">Select a category</option>
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="biz-desc">Description</Label>
-              <Textarea
-                id="biz-desc"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="What your business offers to travelers..."
-                maxLength={500}
-                rows={3}
-              />
-              <p className="text-xs text-muted-foreground text-right">
-                {description.length}/500
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="biz-website">Website</Label>
-              <Input
-                id="biz-website"
-                value={website}
-                onChange={(e) => setWebsite(e.target.value)}
-                placeholder="https://yourbusiness.com"
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label>Plan</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {BUSINESS_TIERS.map((tier) => (
-                  <button
-                    key={tier.slug}
-                    type="button"
-                    onClick={() => setSelectedTier(tier.slug)}
-                    className={`relative p-3 rounded-xl border text-center transition-all ${
-                      selectedTier === tier.slug
-                        ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                        : "border-border hover:border-primary/30"
-                    }`}
-                  >
-                    <p className="text-sm font-bold text-foreground">{tier.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      ${tier.price}/{tier.priceSuffix}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
-                      {TIER_SUMMARIES[tier.slug]}
-                    </p>
-                    {tier.highlighted && (
-                      <Badge className="absolute -top-2 right-2 bg-tinerary-peach text-tinerary-dark border-0 text-[9px]">
-                        Popular
-                      </Badge>
-                    )}
-                  </button>
-                ))}
-              </div>
-              <Button
-                variant="link"
-                size="sm"
-                className="self-end text-xs p-0 h-auto"
-                asChild
-              >
-                <Link href="/business">Compare plans in detail</Link>
-              </Button>
-            </div>
-
-            {error && (
-              <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
-                {error}
-              </p>
-            )}
-
-            <Button
-              className="btn-sunset w-full"
-              size="lg"
-              disabled={!name.trim() || !category || submitting}
-              onClick={handleSubmit}
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="mr-2 size-4 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  Create Business
-                  <ArrowRight className="ml-2 size-4" />
-                </>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
 // ─── Main Component ──────────────────────────────────────────
 
 export function BusinessProfileContent() {
+  const router = useRouter()
   const [business, setBusiness] = useState<BusinessData | null>(null)
   const [loading, setLoading] = useState(true)
   const [tier, setTier] = useState<BusinessTierSlug>("basic")
@@ -596,7 +342,8 @@ export function BusinessProfileContent() {
   }
 
   if (!business) {
-    return <InlineSetup profileData={profileData} onCreated={loadData} />
+    router.replace("/settings?section=business")
+    return null
   }
 
   const theme = TIER_THEME[tier]

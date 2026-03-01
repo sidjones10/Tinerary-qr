@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useState, useEffect, useCallback } from "react"
+import { useSearchParams } from "next/navigation"
 import { useAuth } from "@/providers/auth-provider"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
@@ -131,6 +132,7 @@ const dashboardLinks = [
 export function BusinessSettings() {
   const { user } = useAuth()
   const { toast } = useToast()
+  const searchParams = useSearchParams()
   const [selectedType, setSelectedType] = useState("standard")
   const [isBusinessMode, setIsBusinessMode] = useState(false)
   const [selectedBusinessTier, setSelectedBusinessTier] = useState<BusinessTierSlug>("basic")
@@ -226,6 +228,16 @@ export function BusinessSettings() {
 
     loadPreferences()
   }, [user])
+
+  // Auto-open setup dialog when arriving with a tier query param (e.g. from /business plans page)
+  useEffect(() => {
+    if (!loaded) return
+    const tierParam = searchParams.get("tier") as BusinessTierSlug | null
+    if (tierParam && ["basic", "premium", "enterprise"].includes(tierParam) && !hasBusinessRecord) {
+      setSelectedBusinessTier(tierParam)
+      setSetupOpen(true)
+    }
+  }, [loaded, searchParams, hasBusinessRecord])
 
   // Persist business preferences whenever they change
   const savePreferences = useCallback(

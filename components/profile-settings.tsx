@@ -21,6 +21,7 @@ import {
   getBusinessSubscription,
   getEffectiveTier,
 } from "@/lib/business-tier-service"
+import { createBusiness } from "@/app/actions/business-actions"
 
 export function ProfileSettings() {
   const { t } = useTranslation()
@@ -94,6 +95,23 @@ export function ProfileSettings() {
             const sub = await getBusinessSubscription(biz.id)
             setBusinessTier(getEffectiveTier(sub, biz.business_tier as BusinessTierSlug))
             setBrandingConfig(biz.branding_config as EnterpriseBrandingConfig | null)
+          } else {
+            // No businesses row yet — check user_preferences for the tier
+            // the user selected in Business settings so the branding editor
+            // still renders for enterprise users who haven't formally created
+            // a business record.
+            const { data: prefs } = await supabase
+              .from("user_preferences")
+              .select("business_preferences")
+              .eq("user_id", user.id)
+              .single()
+
+            const prefTier = (prefs?.business_preferences as any)?.selectedBusinessTier as
+              | BusinessTierSlug
+              | undefined
+            if (prefTier) {
+              setBusinessTier(prefTier)
+            }
           }
         } finally {
           setIsLoading(false)
@@ -246,15 +264,40 @@ export function ProfileSettings() {
   }
 
   const handleSaveBranding = async (config: EnterpriseBrandingConfig) => {
-    if (!user || !businessId) return
+    if (!user) return
 
     setSavingBranding(true)
     try {
       const supabase = createClient()
+      let targetBusinessId = businessId
+
+      // Auto-create a business record via server action when the user
+      // doesn't have one yet (e.g. selected enterprise in Business
+      // settings but never completed the business-profile setup flow).
+      if (!targetBusinessId) {
+        const displayName =
+          user.user_metadata?.name || user.user_metadata?.username || "My Business"
+        const formData = new FormData()
+        formData.set("name", displayName)
+        formData.set("category", "Other")
+        formData.set("tier", businessTier || "enterprise")
+
+        const result = await createBusiness(formData)
+        if (!result || !("success" in result) || !result.success || !result.data) {
+          throw new Error(
+            (result && "error" in result ? result.error : null) ||
+              "Failed to create business profile."
+          )
+        }
+
+        targetBusinessId = result.data.id
+        setBusinessId(targetBusinessId)
+      }
+
       const { error } = await supabase
         .from("businesses")
         .update({ branding_config: config as any })
-        .eq("id", businessId)
+        .eq("id", targetBusinessId)
 
       if (error) throw error
 

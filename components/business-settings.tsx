@@ -40,6 +40,7 @@ import {
   calculateProratedAmount,
   getSubscriptionStatus,
 } from "@/lib/subscription-lifecycle"
+import { createBusiness } from "@/app/actions/business-actions"
 
 const accountTypes = [
   {
@@ -236,10 +237,25 @@ export function BusinessSettings() {
   }
 
   const handleSelectBusinessTier = async (tier: BusinessTierSlug) => {
-    if (!user || !subscription) {
-      // No existing subscription — just save preference (original fallback)
+    if (!user) return
+
+    if (!subscription) {
+      // No existing subscription — save preference and auto-create business if needed
       setSelectedBusinessTier(tier)
       savePreferences(isBusinessMode, selectedType, tier)
+
+      if (!businessId) {
+        // No business record yet — create one via the server action so
+        // the rest of the app (profile settings, business hub, etc.)
+        // picks up the tier immediately instead of showing a setup flow.
+        const displayName =
+          user.user_metadata?.name || user.user_metadata?.username || "My Business"
+        const formData = new FormData()
+        formData.set("name", displayName)
+        formData.set("category", "Other")
+        formData.set("tier", tier)
+        await createBusiness(formData)
+      }
       return
     }
 

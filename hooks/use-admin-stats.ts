@@ -345,6 +345,9 @@ export function useAdminItineraries(page = 1, limit = 20, search = "") {
   const [itineraries, setItineraries] = useState<any[]>([])
   const [total, setTotal] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  const refetch = () => setRefreshKey(k => k + 1)
 
   useEffect(() => {
     async function fetchItineraries() {
@@ -383,7 +386,7 @@ export function useAdminItineraries(page = 1, limit = 20, search = "") {
     }
 
     fetchItineraries()
-  }, [page, limit, search])
+  }, [page, limit, search, refreshKey])
 
-  return { itineraries, total, isLoading }
+  return { itineraries, total, isLoading, refetch }
 }

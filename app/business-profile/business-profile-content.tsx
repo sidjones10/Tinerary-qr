@@ -489,7 +489,7 @@ export function BusinessProfileContent() {
       setBusiness(biz)
 
       const sub = await getBusinessSubscription(biz.id)
-      setTier(getEffectiveTier(sub))
+      setTier(getEffectiveTier(sub, biz.business_tier as BusinessTierSlug))
 
       const { data: promos } = await supabase
         .from("promotions")

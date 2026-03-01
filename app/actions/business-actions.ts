@@ -88,6 +88,16 @@ export async function createBusiness(formData: FormData) {
 
     if (error) throw error
 
+    // Create a matching subscription record so the dashboard picks up the tier
+    if (data) {
+      await supabase.from("business_subscriptions").insert({
+        business_id: data.id,
+        tier: tier as BusinessTierSlug,
+        status: "active",
+        mention_highlights_used: 0,
+      })
+    }
+
     revalidatePath("/business-profile")
     revalidatePath("/business")
     return { success: true, data }

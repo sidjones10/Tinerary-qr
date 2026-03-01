@@ -133,7 +133,7 @@ export function BusinessAnalyticsContent() {
 
     const { data: biz } = await supabase
       .from("businesses")
-      .select("id")
+      .select("id, business_tier")
       .eq("user_id", session.user.id)
       .single()
 
@@ -141,7 +141,7 @@ export function BusinessAnalyticsContent() {
 
     const sub = await getBusinessSubscription(biz.id)
     setSubscription(sub)
-    setTier(getEffectiveTier(sub))
+    setTier(getEffectiveTier(sub, biz.business_tier as BusinessTierSlug))
 
     const { data: promotions } = await supabase
       .from("promotions")

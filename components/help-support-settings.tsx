@@ -35,8 +35,8 @@ export function HelpSupportSettings() {
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
-      const { subscription } = await getBusinessSubscriptionByUserId(session.user.id)
-      const effectiveTier = getEffectiveTier(subscription)
+      const { subscription, businessTier } = await getBusinessSubscriptionByUserId(session.user.id)
+      const effectiveTier = getEffectiveTier(subscription, businessTier)
       setTier(effectiveTier)
       setSupportLevel(getSupportLevel(effectiveTier))
     }

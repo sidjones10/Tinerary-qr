@@ -39,8 +39,8 @@ export function PerformanceReportSettings() {
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { setLoading(false); return }
-      const { subscription } = await getBusinessSubscriptionByUserId(session.user.id)
-      setTier(getEffectiveTier(subscription))
+      const { subscription, businessTier } = await getBusinessSubscriptionByUserId(session.user.id)
+      setTier(getEffectiveTier(subscription, businessTier))
       setLoading(false)
     }
     load()

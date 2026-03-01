@@ -155,9 +155,9 @@ export function MentionsContent() {
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
-        const { subscription: sub } = await getBusinessSubscriptionByUserId(session.user.id)
+        const { subscription: sub, businessTier } = await getBusinessSubscriptionByUserId(session.user.id)
         setSubscription(sub)
-        const effectiveTier = getEffectiveTier(sub)
+        const effectiveTier = getEffectiveTier(sub, businessTier)
         setTier(effectiveTier)
         setHighlightsUsed(sub?.mention_highlights_used || 0)
       }

@@ -464,25 +464,84 @@ export function BusinessSettings() {
     try {
       const result = await createBusiness(formData)
 
-      if (result && "success" in result) {
-        if (result.success) {
+      if (result && "success" in result && result.success) {
+        // Immediately unlock tools and close dialog
+        setHasBusinessRecord(true)
+        setBusinessId(result.data?.id || null)
+        setSetupOpen(false)
+        setSetupSubmitting(false)
+
+        // Also load subscription for the new business
+        if (result.data?.id) {
+          const supabase = createClient()
+          const { data: sub } = await supabase
+            .from("business_subscriptions")
+            .select("*")
+            .eq("business_id", result.data.id)
+            .single()
+
+          if (sub) {
+            setSubscription(sub as BusinessSubscription)
+            setSelectedBusinessTier(sub.tier as BusinessTierSlug)
+          }
+        }
+
+        toast({
+          title: "Business created",
+          description: "Your business profile is ready. You can now access the Business Hub.",
+        })
+        return
+      }
+
+      if (result && "success" in result && !result.success) {
+        setSetupError(result.error || "Something went wrong.")
+      } else {
+        // Unexpected result shape — the business may still have been created.
+        // Re-check the DB directly.
+        const supabase = createClient()
+        const { data: biz } = await supabase
+          .from("businesses")
+          .select("id")
+          .eq("user_id", user!.id)
+          .single()
+
+        if (biz) {
+          setHasBusinessRecord(true)
+          setBusinessId(biz.id)
           setSetupOpen(false)
-
-          // Bump refreshKey to re-run the load effect which fetches
-          // the business record, subscription, and preferences fresh
-          // from the DB. This is resilient to revalidatePath resets.
-          setRefreshKey((k) => k + 1)
-
           toast({
             title: "Business created",
             description: "Your business profile is ready. You can now access the Business Hub.",
           })
         } else {
-          setSetupError(result.error || "Something went wrong.")
+          setSetupError("Something went wrong. Please try again.")
         }
       }
     } catch {
-      setSetupError("Something went wrong. Please try again.")
+      // Server action may have thrown (e.g. redirect or revalidation side-effect).
+      // Check the DB to see if the business was actually created.
+      try {
+        const supabase = createClient()
+        const { data: biz } = await supabase
+          .from("businesses")
+          .select("id")
+          .eq("user_id", user!.id)
+          .single()
+
+        if (biz) {
+          setHasBusinessRecord(true)
+          setBusinessId(biz.id)
+          setSetupOpen(false)
+          toast({
+            title: "Business created",
+            description: "Your business profile is ready. You can now access the Business Hub.",
+          })
+        } else {
+          setSetupError("Something went wrong. Please try again.")
+        }
+      } catch {
+        setSetupError("Something went wrong. Please try again.")
+      }
     } finally {
       setSetupSubmitting(false)
     }

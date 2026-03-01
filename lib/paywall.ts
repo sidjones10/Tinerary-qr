@@ -16,6 +16,11 @@ import type { BusinessTierSlug } from "./tiers"
 // While false, every PaywallGate renders its children directly.
 export const PAYWALL_ENABLED = false
 
+// ─── Admin Paywall Testing ──────────────────────────────────
+// localStorage key used by admin accounts to toggle paywalls
+// on/off for their own session (testing purposes only).
+export const ADMIN_PAYWALL_STORAGE_KEY = "tinerary_admin_paywall_enabled"
+
 // ─── Gate Definitions ────────────────────────────────────────
 // Each protected page / feature references a gate by id.
 

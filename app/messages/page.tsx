@@ -129,7 +129,34 @@ function MessagesPageContent() {
         const result = await getOrCreateConversation(session.user.id, withUserId)
         if (result.success && result.conversationId) {
           // Reload conversations to include the new one
-          await loadConversations(session.user.id)
+          const updatedConvos = await loadConversations(session.user.id)
+
+          // If the conversation didn't appear in the list (e.g. FK join
+          // or RLS edge case), build a minimal entry so the UI still works
+          if (!updatedConvos.find((c) => c.id === result.conversationId)) {
+            const { data: otherProfile } = await supabase
+              .from("profiles")
+              .select("id, name, username, avatar_url, tier, is_verified")
+              .eq("id", withUserId)
+              .maybeSingle()
+
+            const fallbackConvo: Conversation = {
+              id: result.conversationId,
+              otherUser: {
+                id: withUserId,
+                name: otherProfile?.name || null,
+                username: otherProfile?.username || null,
+                avatar_url: otherProfile?.avatar_url || null,
+                tier: otherProfile?.tier || null,
+                is_verified: otherProfile?.is_verified || false,
+              },
+              lastMessage: null,
+              unreadCount: 0,
+              updatedAt: new Date().toISOString(),
+            }
+            setConversations((prev) => [fallbackConvo, ...prev])
+          }
+
           setActiveConvoId(result.conversationId)
           await loadMessages(result.conversationId)
         } else {

@@ -150,6 +150,7 @@ export function BusinessSettings() {
   const [setupWebsite, setSetupWebsite] = useState("")
   const [setupSubmitting, setSetupSubmitting] = useState(false)
   const [setupError, setSetupError] = useState<string | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   // Load business preferences, subscription, and check for existing business record
   useEffect(() => {
@@ -227,7 +228,7 @@ export function BusinessSettings() {
     }
 
     loadPreferences()
-  }, [user])
+  }, [user, refreshKey])
 
   // Auto-open setup dialog when arriving with a tier query param (e.g. from /business plans page)
   useEffect(() => {
@@ -467,31 +468,10 @@ export function BusinessSettings() {
         if (result.success) {
           setSetupOpen(false)
 
-          // Re-fetch business & subscription from DB to ensure state is fully in sync
-          // (revalidatePath in the server action can reset client state)
-          const supabase = createClient()
-
-          const { data: biz } = await supabase
-            .from("businesses")
-            .select("id")
-            .eq("user_id", user!.id)
-            .single()
-
-          if (biz) {
-            setHasBusinessRecord(true)
-            setBusinessId(biz.id)
-
-            const { data: sub } = await supabase
-              .from("business_subscriptions")
-              .select("*")
-              .eq("business_id", biz.id)
-              .single()
-
-            if (sub) {
-              setSubscription(sub as BusinessSubscription)
-              setSelectedBusinessTier(sub.tier as BusinessTierSlug)
-            }
-          }
+          // Bump refreshKey to re-run the load effect which fetches
+          // the business record, subscription, and preferences fresh
+          // from the DB. This is resilient to revalidatePath resets.
+          setRefreshKey((k) => k + 1)
 
           toast({
             title: "Business created",

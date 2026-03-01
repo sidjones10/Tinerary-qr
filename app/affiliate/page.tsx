@@ -27,7 +27,7 @@ export default function AffiliatePage() {
           <nav className="mt-10 border-t pt-6">
             <p className="text-xs text-muted-foreground mb-3">Related pages</p>
             <div className="flex flex-wrap gap-2">
-              <Link href="/creator-tier" className="text-sm text-primary hover:underline">Creator Dashboard</Link>
+              <Link href="/creator" className="text-sm text-primary hover:underline">Creator Dashboard</Link>
               <span className="text-muted-foreground">·</span>
               <Link href="/transactions" className="text-sm text-primary hover:underline">Transactions</Link>
               <span className="text-muted-foreground">·</span>

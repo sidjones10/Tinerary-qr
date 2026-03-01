@@ -51,7 +51,7 @@ const accountTypes = [
 
 const dashboardLinks = [
   {
-    href: "/creator-tier",
+    href: "/creator",
     icon: <Sparkles className="size-4 text-[#7C3AED]" />,
     title: "Creator Dashboard",
     description: "Post boosts, benefits & tier management",

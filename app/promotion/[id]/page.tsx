@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Clock, Globe, MapPin, Star, Users } from "lucide-react"
 import { getPromotionById, recordPromotionView } from "@/lib/supabase-client"
+import { createClient } from "@/lib/supabase/client"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -127,7 +128,20 @@ export default function PromotionPage({ params }: { params: { id: string } }) {
   const [liked, setLiked] = useState(false)
   const [selectedImage, setSelectedImage] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
+  const [userId, setUserId] = useState<string | undefined>(undefined)
   const { toast } = useToast()
+
+  // Get the authenticated user's ID
+  useEffect(() => {
+    async function loadUser() {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user?.id) {
+        setUserId(session.user.id)
+      }
+    }
+    loadUser()
+  }, [])
 
   useEffect(() => {
     async function loadPromotion() {
@@ -497,7 +511,7 @@ export default function PromotionPage({ params }: { params: { id: string } }) {
         <div>
           <PromotionBookingPanel
             promotion={promotion || fallbackData}
-            userId="current-user-id" // In a real app, this would be the actual user ID
+            userId={userId}
           />
         </div>
       </div>

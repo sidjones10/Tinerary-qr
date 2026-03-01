@@ -577,6 +577,8 @@ export interface Database {
           rank_score: number
           is_featured: boolean
           status: string
+          max_capacity: number | null
+          available_capacity: number | null
           created_at: string
           updated_at: string
         }
@@ -602,6 +604,8 @@ export interface Database {
           rank_score?: number
           is_featured?: boolean
           status?: string
+          max_capacity?: number | null
+          available_capacity?: number | null
           created_at?: string
           updated_at?: string
         }
@@ -627,6 +631,8 @@ export interface Database {
           rank_score?: number
           is_featured?: boolean
           status?: string
+          max_capacity?: number | null
+          available_capacity?: number | null
           created_at?: string
           updated_at?: string
         }

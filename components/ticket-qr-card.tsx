@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Calendar, Clock, MapPin, Share2, Download } from "lucide-react"
+import QRCode from "qrcode"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,7 +11,6 @@ import { Separator } from "@/components/ui/separator"
 
 interface TicketQRCardProps {
   ticketId: string
-  qrCodeUrl: string
   title: string
   date: string
   time?: string
@@ -23,7 +23,6 @@ interface TicketQRCardProps {
 
 export function TicketQRCard({
   ticketId,
-  qrCodeUrl,
   title,
   date,
   time,
@@ -34,6 +33,30 @@ export function TicketQRCard({
   currency,
 }: TicketQRCardProps) {
   const [showShareOptions, setShowShareOptions] = useState(false)
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
+
+  // Generate QR code from booking ID
+  useEffect(() => {
+    async function generateQR() {
+      try {
+        const qrPayload = JSON.stringify({
+          type: "tinerary-ticket",
+          bookingId: ticketId,
+          title,
+          date,
+        })
+        const dataUrl = await QRCode.toDataURL(qrPayload, {
+          width: 200,
+          margin: 2,
+          color: { dark: "#000000", light: "#ffffff" },
+        })
+        setQrDataUrl(dataUrl)
+      } catch (err) {
+        console.error("Failed to generate QR code:", err)
+      }
+    }
+    generateQR()
+  }, [ticketId, title, date])
 
   // Format date
   const formattedDate = new Date(date).toLocaleDateString("en-US", {
@@ -67,10 +90,10 @@ export function TicketQRCard({
   }
 
   const handleDownload = () => {
-    // Create a temporary link
+    if (!qrDataUrl) return
     const link = document.createElement("a")
-    link.href = qrCodeUrl
-    link.download = `ticket-${ticketId}.png`
+    link.href = qrDataUrl
+    link.download = `ticket-${ticketId.slice(0, 8)}.png`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -122,7 +145,7 @@ export function TicketQRCard({
 
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Ticket ID</span>
-                <span className="font-medium text-xs">{ticketId}</span>
+                <span className="font-medium text-xs">{ticketId.slice(0, 8)}</span>
               </div>
             </div>
 
@@ -131,7 +154,7 @@ export function TicketQRCard({
                 <Share2 className="mr-2 h-4 w-4" />
                 Share
               </Button>
-              <Button variant="outline" size="sm" className="flex-1" onClick={handleDownload}>
+              <Button variant="outline" size="sm" className="flex-1" onClick={handleDownload} disabled={!qrDataUrl}>
                 <Download className="mr-2 h-4 w-4" />
                 Download
               </Button>
@@ -141,13 +164,17 @@ export function TicketQRCard({
           <div className="bg-gray-50 dark:bg-background p-6 flex flex-col items-center justify-center">
             <p className="text-sm font-medium text-center mb-2">Scan at the venue</p>
             <div className="bg-white dark:bg-card p-2 rounded-lg shadow-sm">
-              <Image
-                src={qrCodeUrl || "/placeholder.svg"}
-                alt="Ticket QR Code"
-                width={180}
-                height={180}
-                className="rounded"
-              />
+              {qrDataUrl ? (
+                <Image
+                  src={qrDataUrl}
+                  alt="Ticket QR Code"
+                  width={180}
+                  height={180}
+                  className="rounded"
+                />
+              ) : (
+                <div className="w-[180px] h-[180px] animate-pulse bg-gray-200 rounded" />
+              )}
             </div>
             <p className="text-xs text-muted-foreground mt-2">Valid for entry on event date</p>
           </div>

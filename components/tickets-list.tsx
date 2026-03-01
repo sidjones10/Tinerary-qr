@@ -7,48 +7,47 @@ import { Ticket } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { TicketQRCard } from "./ticket-qr-card"
-import { createClient } from "@/lib/supabase-client"
+import { createClient } from "@/lib/supabase/client"
 
 interface TicketsListProps {
   upcoming?: boolean
   limit?: number
 }
 
-interface TicketData {
+interface BookingData {
   id: string
   user_id: string
-  booking_id: string
-  qr_code: string
+  promotion_id: string
+  quantity: number
+  total_price: number
+  currency: string | null
+  attendee_names: string | null
+  attendee_emails: string | null
   status: string
   created_at: string
-  booking: {
+  promotion: {
     id: string
-    promotion_id: string
-    booking_date: string
-    status: string
-    promotion: {
-      id: string
-      title: string
-      description: string | null
-      location: string
-      start_date: string
-      end_date: string
-      image: string | null
-      [key: string]: unknown
+    title: string
+    description: string | null
+    location: string
+    start_date: string
+    end_date: string
+    image: string | null
+    business_id: string
+    businesses?: {
+      name: string
     } | null
-    [key: string]: unknown
   } | null
-  [key: string]: unknown
 }
 
 export function TicketsList({ upcoming = true, limit = 20 }: TicketsListProps) {
   const router = useRouter()
-  const [tickets, setTickets] = useState<TicketData[]>([])
+  const [bookings, setBookings] = useState<BookingData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    async function fetchTickets() {
+    async function fetchBookings() {
       try {
         setLoading(true)
 
@@ -64,20 +63,23 @@ export function TicketsList({ upcoming = true, limit = 20 }: TicketsListProps) {
         }
 
         const userId = session.user.id
-        const today = new Date().toISOString()
+        const now = new Date().toISOString()
 
-        const { data, error: fetchError } = await supabase
-          .from("tickets")
+        let query = supabase
+          .from("bookings")
           .select(`
             *,
-            booking:booking_id(
-              *,
-              promotion:promotion_id(*)
+            promotion:promotion_id(
+              id, title, description, location, start_date, end_date, image, business_id,
+              businesses(name)
             )
           `)
           .eq("user_id", userId)
+          .neq("status", "cancelled")
           .order("created_at", { ascending: false })
           .limit(limit)
+
+        const { data, error: fetchError } = await query
 
         if (fetchError) {
           setError("Failed to load tickets")
@@ -85,20 +87,20 @@ export function TicketsList({ upcoming = true, limit = 20 }: TicketsListProps) {
           return
         }
 
-        // Filter tickets based on date
-        const filteredTickets =
-          data?.filter((ticket) => {
-            const bookingDate = ticket.booking?.date
-            if (!bookingDate) return false
+        // Filter bookings based on upcoming/past using promotion end_date
+        const filteredBookings =
+          data?.filter((booking: BookingData) => {
+            const endDate = booking.promotion?.end_date
+            if (!endDate) return upcoming // show bookings without dates in upcoming
 
             if (upcoming) {
-              return new Date(bookingDate) >= new Date(today)
+              return new Date(endDate) >= new Date(now)
             } else {
-              return new Date(bookingDate) < new Date(today)
+              return new Date(endDate) < new Date(now)
             }
           }) || []
 
-        setTickets(filteredTickets)
+        setBookings(filteredBookings)
       } catch (err) {
         setError("An error occurred while loading tickets")
         console.error(err)
@@ -107,7 +109,7 @@ export function TicketsList({ upcoming = true, limit = 20 }: TicketsListProps) {
       }
     }
 
-    fetchTickets()
+    fetchBookings()
   }, [upcoming, limit, router])
 
   if (loading) {
@@ -131,7 +133,7 @@ export function TicketsList({ upcoming = true, limit = 20 }: TicketsListProps) {
     )
   }
 
-  if (tickets.length === 0) {
+  if (bookings.length === 0) {
     return (
       <div className="text-center py-10">
         <Ticket className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -152,22 +154,21 @@ export function TicketsList({ upcoming = true, limit = 20 }: TicketsListProps) {
 
   return (
     <div className="space-y-6">
-      {tickets.map((ticket) => {
-        const promotion = ticket.booking?.promotion
+      {bookings.map((booking) => {
+        const promotion = booking.promotion
         if (!promotion) return null
 
         return (
           <TicketQRCard
-            key={ticket.id}
-            ticketId={ticket.ticket_number}
-            qrCodeUrl={ticket.qr_code_url}
+            key={booking.id}
+            ticketId={booking.id}
             title={promotion.title}
-            date={ticket.booking.date}
+            date={promotion.start_date}
             location={promotion.location || "TBD"}
-            quantity={1}
-            businessName={promotion.business_name}
-            totalAmount={ticket.booking.total_amount / ticket.booking.quantity}
-            currency={ticket.booking.currency || "USD"}
+            quantity={booking.quantity}
+            businessName={promotion.businesses?.name}
+            totalAmount={booking.total_price}
+            currency={booking.currency || "USD"}
           />
         )
       })}

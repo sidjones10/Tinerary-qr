@@ -465,23 +465,38 @@ export function BusinessSettings() {
 
       if (result && "success" in result) {
         if (result.success) {
-          setHasBusinessRecord(true)
-          setBusinessId(result.data?.id || null)
           setSetupOpen(false)
 
-          // Reload subscription data for the newly created business
-          if (result.data?.id) {
-            const supabase = createClient()
+          // Re-fetch business & subscription from DB to ensure state is fully in sync
+          // (revalidatePath in the server action can reset client state)
+          const supabase = createClient()
+
+          const { data: biz } = await supabase
+            .from("businesses")
+            .select("id")
+            .eq("user_id", user!.id)
+            .single()
+
+          if (biz) {
+            setHasBusinessRecord(true)
+            setBusinessId(biz.id)
+
             const { data: sub } = await supabase
               .from("business_subscriptions")
               .select("*")
-              .eq("business_id", result.data.id)
+              .eq("business_id", biz.id)
               .single()
 
             if (sub) {
               setSubscription(sub as BusinessSubscription)
+              setSelectedBusinessTier(sub.tier as BusinessTierSlug)
             }
           }
+
+          toast({
+            title: "Business created",
+            description: "Your business profile is ready. You can now access the Business Hub.",
+          })
         } else {
           setSetupError(result.error || "Something went wrong.")
         }
@@ -652,9 +667,11 @@ export function BusinessSettings() {
 
                 {BUSINESS_TIERS.map((tier) => {
                   const isCurrent = subscription?.tier === tier.slug
+                  const isSelected = !subscription && selectedBusinessTier === tier.slug
                   const isPendingDowngrade = subscription?.pending_tier === tier.slug
                   const isUpgradeFromCurrent = subscription && STANDARD_PRICES[tier.slug] > STANDARD_PRICES[subscription.tier as BusinessTierSlug]
                   const isDowngradeFromCurrent = subscription && STANDARD_PRICES[tier.slug] < STANDARD_PRICES[subscription.tier as BusinessTierSlug]
+                  const isHighlighted = isCurrent || isSelected
 
                   // Calculate proration preview for upgrades
                   let prorationPreview: string | null = null
@@ -676,7 +693,7 @@ export function BusinessSettings() {
                       onClick={() => handleSelectBusinessTier(tier.slug)}
                       disabled={actionLoading || (isCurrent && !subscription?.pending_tier && !subscription?.cancel_at_period_end)}
                       className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
-                        isCurrent
+                        isHighlighted
                           ? "border-primary bg-primary/5 shadow-sm"
                           : isPendingDowngrade
                           ? "border-blue-300 bg-blue-50/50 dark:border-blue-700 dark:bg-blue-950/20"
@@ -691,6 +708,9 @@ export function BusinessSettings() {
                           )}
                           {isCurrent && (
                             <Badge className="bg-primary text-primary-foreground text-xs">Current</Badge>
+                          )}
+                          {isSelected && (
+                            <Badge variant="outline" className="border-primary text-primary text-xs">Selected</Badge>
                           )}
                           {isPendingDowngrade && (
                             <Badge variant="outline" className="text-blue-600 border-blue-300 text-xs">
@@ -715,7 +735,7 @@ export function BusinessSettings() {
                       </div>
                       {actionLoading ? (
                         <Loader2 className="size-4 animate-spin text-muted-foreground shrink-0" />
-                      ) : isCurrent ? (
+                      ) : isHighlighted ? (
                         <Check className="size-5 text-primary shrink-0" />
                       ) : (
                         <ChevronRight className="size-4 text-muted-foreground shrink-0" />

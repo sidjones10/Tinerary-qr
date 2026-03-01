@@ -20,6 +20,9 @@ import {
   Globe,
   MapPin,
   ExternalLink,
+  Play,
+  CheckCircle2,
+  Star,
   Eye,
   MousePointerClick,
   Bookmark,
@@ -67,6 +70,8 @@ import {
   getTierLimits,
 } from "@/lib/business-tier-service"
 import { createBusiness } from "@/app/actions/business-actions"
+import type { EnterpriseBrandingConfig } from "@/lib/enterprise"
+import { DEFAULT_BRANDING_CONFIG } from "@/lib/enterprise"
 
 interface BusinessData {
   id: string
@@ -79,6 +84,8 @@ interface BusinessData {
   review_count: number | null
   created_at: string
   business_tier?: string
+  branding_config?: EnterpriseBrandingConfig | null
+  enterprise_badge_enabled?: boolean
 }
 
 interface ProfileData {
@@ -677,78 +684,347 @@ export function BusinessProfileContent() {
 
   return (
     <>
-      {/* Business Header */}
-      <div className={`bg-gradient-to-r ${theme.gradientCls} rounded-2xl p-6 mb-8`}>
-        <div className="flex flex-col sm:flex-row gap-5">
-          {/* Logo / Avatar */}
-          {business.logo || profileData?.avatar_url ? (
-            <img
-              src={(business.logo || profileData?.avatar_url)!}
-              alt={business.name}
-              className="size-20 rounded-2xl object-cover shadow-md shrink-0"
-            />
-          ) : (
-            <div className={`size-20 rounded-2xl ${theme.bg} flex items-center justify-center shadow-lg shrink-0`}>
-              <TierIcon className="size-9 text-white" />
+      {/* Business Header — tier-aware */}
+      {(() => {
+        const brandingConfig: EnterpriseBrandingConfig =
+          tier === "enterprise" && business.branding_config
+            ? { ...DEFAULT_BRANDING_CONFIG, ...business.branding_config }
+            : DEFAULT_BRANDING_CONFIG
+
+        const displayWebsite = business.website || profileData?.website || ""
+        const displayDescription = business.description || profileData?.bio || ""
+        const logoSrc = business.logo || profileData?.avatar_url
+
+        // ── Enterprise: Full custom branded header ──
+        if (tier === "enterprise") {
+          return (
+            <div className="rounded-2xl overflow-hidden mb-8 border border-tinerary-gold/20 shadow-lg">
+              {/* Cover: video banner or cover image or branded gradient */}
+              <div className="relative h-40 sm:h-48">
+                {brandingConfig.videoBannerUrl ? (
+                  <div className="absolute inset-0">
+                    <video
+                      src={brandingConfig.videoBannerUrl}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/30" />
+                    <div className="absolute bottom-3 right-3">
+                      <span className="inline-flex items-center gap-1 text-[10px] text-white/80 bg-black/40 px-2 py-0.5 rounded-full backdrop-blur-sm">
+                        <Play className="size-2.5" /> Video Banner
+                      </span>
+                    </div>
+                  </div>
+                ) : brandingConfig.coverImageUrl ? (
+                  <div className="absolute inset-0">
+                    <img
+                      src={brandingConfig.coverImageUrl}
+                      alt="Cover"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                  </div>
+                ) : (
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background: `linear-gradient(135deg, ${brandingConfig.primaryColor}, ${brandingConfig.secondaryColor})`,
+                    }}
+                  />
+                )}
+
+                {/* Enterprise badge overlay */}
+                <div className="absolute top-4 right-4">
+                  <Badge className="bg-gradient-to-r from-tinerary-gold to-tinerary-peach text-tinerary-dark border-0 text-xs shadow-md">
+                    <Shield className="size-3 mr-1" /> Enterprise
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Profile info below cover */}
+              <div className="bg-card p-6 pt-0 relative">
+                {/* Logo — overlaps the cover */}
+                <div className={`-mt-10 mb-4 flex items-end gap-4 ${
+                  brandingConfig.logoPosition === "center" ? "justify-center" : ""
+                }`}>
+                  {logoSrc ? (
+                    <img
+                      src={brandingConfig.logoUrl || logoSrc}
+                      alt={business.name}
+                      className="size-20 rounded-2xl object-cover shadow-lg border-4 border-card"
+                    />
+                  ) : (
+                    <div
+                      className="size-20 rounded-2xl flex items-center justify-center shadow-lg border-4 border-card"
+                      style={{ backgroundColor: brandingConfig.accentColor }}
+                    >
+                      <Shield className="size-9 text-white" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h1 className="text-2xl font-bold">{business.name}</h1>
+                      <CheckCircle2 className="size-5 text-tinerary-gold shrink-0" />
+                    </div>
+
+                    {business.category && (
+                      <p className="text-sm font-medium mt-0.5" style={{ color: brandingConfig.accentColor }}>
+                        {business.category}
+                      </p>
+                    )}
+
+                    {displayDescription && (
+                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2 max-w-xl">
+                        {displayDescription}
+                      </p>
+                    )}
+
+                    {/* Meta chips */}
+                    <div className="flex flex-wrap items-center gap-3 mt-3">
+                      {displayWebsite && (
+                        <a
+                          href={displayWebsite}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs font-medium hover:underline bg-muted px-2.5 py-1 rounded-full"
+                          style={{ color: brandingConfig.accentColor }}
+                        >
+                          <Globe className="size-3" />
+                          {displayWebsite.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                          <ExternalLink className="size-2.5 opacity-60" />
+                        </a>
+                      )}
+
+                      {profileData?.location && (
+                        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                          <MapPin className="size-3" />
+                          {profileData.location}
+                        </span>
+                      )}
+
+                      {business.rating != null && business.rating > 0 && (
+                        <span className="inline-flex items-center gap-1.5 text-xs text-tinerary-gold bg-tinerary-gold/10 px-2.5 py-1 rounded-full font-medium">
+                          <Star className="size-3 fill-tinerary-gold" />
+                          {business.rating.toFixed(1)}
+                          {business.review_count ? ` (${business.review_count})` : ""}
+                        </span>
+                      )}
+
+                      {profileData?.name && (
+                        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                          <Store className="size-3" />
+                          {profileData.name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* CTA Button */}
+                  {brandingConfig.ctaButtonUrl && (
+                    <a
+                      href={brandingConfig.ctaButtonUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0"
+                    >
+                      <Button
+                        size="sm"
+                        className={`text-xs shadow-md ${
+                          brandingConfig.ctaButtonStyle === "outline"
+                            ? "bg-transparent border-2"
+                            : brandingConfig.ctaButtonStyle === "gradient"
+                            ? ""
+                            : ""
+                        }`}
+                        style={
+                          brandingConfig.ctaButtonStyle === "outline"
+                            ? { borderColor: brandingConfig.accentColor, color: brandingConfig.accentColor }
+                            : brandingConfig.ctaButtonStyle === "gradient"
+                            ? { background: `linear-gradient(135deg, ${brandingConfig.primaryColor}, ${brandingConfig.accentColor})`, color: "white" }
+                            : { backgroundColor: brandingConfig.accentColor, color: "white" }
+                        }
+                      >
+                        <ExternalLink className="size-3 mr-1.5" />
+                        {brandingConfig.ctaButtonText || "Book Now"}
+                      </Button>
+                    </a>
+                  )}
+                </div>
+              </div>
             </div>
-          )}
+          )
+        }
 
-          {/* Business Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl font-bold">{business.name}</h1>
-              <Badge className={`${theme.badgeCls} border-0 text-xs`}>
-                {tierConfig?.name || "Basic"}
-              </Badge>
+        // ── Premium: Enhanced business profile ──
+        if (tier === "premium") {
+          return (
+            <div className="rounded-2xl overflow-hidden mb-8 border border-primary/20 shadow-md">
+              {/* Gradient cover banner */}
+              <div className="relative h-28 sm:h-32 bg-gradient-to-br from-primary/80 via-blue-500/60 to-tinerary-peach/50">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.1),transparent_70%)]" />
+                <div className="absolute top-4 right-4">
+                  <Badge className="bg-primary/90 text-primary-foreground border-0 text-xs shadow-sm backdrop-blur-sm">
+                    <Crown className="size-3 mr-1" /> Premium
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Profile info below cover */}
+              <div className="bg-card p-6 pt-0">
+                {/* Logo overlapping the banner */}
+                <div className="-mt-10 mb-4 flex items-end gap-4">
+                  {logoSrc ? (
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary to-blue-500 rounded-2xl -m-0.5" />
+                      <img
+                        src={logoSrc}
+                        alt={business.name}
+                        className="size-20 rounded-2xl object-cover shadow-md border-4 border-card relative"
+                      />
+                    </div>
+                  ) : (
+                    <div className="size-20 rounded-2xl bg-primary flex items-center justify-center shadow-lg border-4 border-card">
+                      <Crown className="size-9 text-white" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="text-2xl font-bold">{business.name}</h1>
+                    <CheckCircle2 className="size-5 text-primary shrink-0" />
+                  </div>
+
+                  {business.category && (
+                    <p className="text-sm font-medium text-primary mt-0.5">
+                      {business.category}
+                    </p>
+                  )}
+
+                  {displayDescription && (
+                    <p className="text-sm text-muted-foreground mt-2 line-clamp-2 max-w-xl">
+                      {displayDescription}
+                    </p>
+                  )}
+
+                  {/* Meta chips */}
+                  <div className="flex flex-wrap items-center gap-3 mt-3">
+                    {displayWebsite && (
+                      <a
+                        href={displayWebsite}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline bg-primary/5 px-2.5 py-1 rounded-full"
+                      >
+                        <Globe className="size-3" />
+                        {displayWebsite.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                        <ExternalLink className="size-2.5 opacity-60" />
+                      </a>
+                    )}
+
+                    {profileData?.location && (
+                      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                        <MapPin className="size-3" />
+                        {profileData.location}
+                      </span>
+                    )}
+
+                    {business.rating != null && business.rating > 0 && (
+                      <span className="inline-flex items-center gap-1.5 text-xs text-tinerary-gold bg-tinerary-gold/10 px-2.5 py-1 rounded-full font-medium">
+                        <Star className="size-3 fill-tinerary-gold" />
+                        {business.rating.toFixed(1)}
+                        {business.review_count ? ` (${business.review_count})` : ""}
+                      </span>
+                    )}
+
+                    {profileData?.name && (
+                      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                        <Store className="size-3" />
+                        {profileData.name}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
+          )
+        }
 
-            {business.category && (
-              <p className="text-sm font-medium text-primary mt-0.5">
-                {business.category}
-              </p>
-            )}
-
-            {/* Description — business description first, fallback to profile bio */}
-            {(business.description || profileData?.bio) && (
-              <p className="text-sm text-muted-foreground mt-2 line-clamp-2 max-w-xl">
-                {business.description || profileData?.bio}
-              </p>
-            )}
-
-            {/* Meta chips: website, location, owner */}
-            <div className="flex flex-wrap items-center gap-3 mt-3">
-              {(business.website || profileData?.website) && (
-                <a
-                  href={business.website || profileData?.website || "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline bg-background/60 px-2.5 py-1 rounded-full"
-                >
-                  <Globe className="size-3" />
-                  {(business.website || profileData?.website || "")
-                    .replace(/^https?:\/\//, "")
-                    .replace(/\/$/, "")}
-                  <ExternalLink className="size-2.5 opacity-60" />
-                </a>
+        // ── Basic: Standard business header ──
+        return (
+          <div className={`bg-gradient-to-r ${theme.gradientCls} rounded-2xl p-6 mb-8`}>
+            <div className="flex flex-col sm:flex-row gap-5">
+              {logoSrc ? (
+                <img
+                  src={logoSrc}
+                  alt={business.name}
+                  className="size-20 rounded-2xl object-cover shadow-md shrink-0"
+                />
+              ) : (
+                <div className={`size-20 rounded-2xl ${theme.bg} flex items-center justify-center shadow-lg shrink-0`}>
+                  <TierIcon className="size-9 text-white" />
+                </div>
               )}
 
-              {profileData?.location && (
-                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-background/60 px-2.5 py-1 rounded-full">
-                  <MapPin className="size-3" />
-                  {profileData.location}
-                </span>
-              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-2xl font-bold">{business.name}</h1>
+                  <Badge className={`${theme.badgeCls} border-0 text-xs`}>
+                    {tierConfig?.name || "Basic"}
+                  </Badge>
+                </div>
 
-              {profileData?.name && (
-                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-background/60 px-2.5 py-1 rounded-full">
-                  <Store className="size-3" />
-                  {profileData.name}
-                </span>
-              )}
+                {business.category && (
+                  <p className="text-sm font-medium text-primary mt-0.5">
+                    {business.category}
+                  </p>
+                )}
+
+                {displayDescription && (
+                  <p className="text-sm text-muted-foreground mt-2 line-clamp-2 max-w-xl">
+                    {displayDescription}
+                  </p>
+                )}
+
+                <div className="flex flex-wrap items-center gap-3 mt-3">
+                  {displayWebsite && (
+                    <a
+                      href={displayWebsite}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline bg-background/60 px-2.5 py-1 rounded-full"
+                    >
+                      <Globe className="size-3" />
+                      {displayWebsite.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                      <ExternalLink className="size-2.5 opacity-60" />
+                    </a>
+                  )}
+
+                  {profileData?.location && (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-background/60 px-2.5 py-1 rounded-full">
+                      <MapPin className="size-3" />
+                      {profileData.location}
+                    </span>
+                  )}
+
+                  {profileData?.name && (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-background/60 px-2.5 py-1 rounded-full">
+                      <Store className="size-3" />
+                      {profileData.name}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        )
+      })()}
 
       {/* Primary Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">

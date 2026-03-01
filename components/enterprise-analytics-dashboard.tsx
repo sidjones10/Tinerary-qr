@@ -343,16 +343,31 @@ const tooltipStyle = {
 export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashboardProps) {
   const isEnterprise = tier === "enterprise"
   const isPremium = tier === "premium"
+
+  // ── Premium: "Advanced analytics + insights" ──────────────
+  // KPIs, secondary metrics, revenue trend (no forecast), funnel,
+  // audience segments, channel breakdown, geography, promotions table, weekly trends
+  const showKpiCards = isEnterprise || isPremium
+  const showSecondaryMetrics = isEnterprise || isPremium
+  const showRevenueTrend = isEnterprise || isPremium
+  const showFunnel = isEnterprise || isPremium
+  const showAudienceDemographics = isEnterprise || isPremium
+  const showGeography = isEnterprise || isPremium
+
+  // ── Enterprise: "Real-time analytics dashboard + full API access" ──
+  // Everything above, PLUS real-time live data, API badge, revenue
+  // intelligence (MRR/ARR/LTV/CAC), AI forecast overlay, AI insights,
+  // competitor benchmarks, cohort retention, customer health/NPS,
+  // daily performance reports, hourly traffic, week-over-week comparison
   const showRealtimeMetrics = isEnterprise
   const showApiAccess = isEnterprise
-  const showCompetitorBenchmarks = isEnterprise
-  const showDailyReports = isEnterprise
-  const showAudienceDemographics = isEnterprise || isPremium
   const showRevenueIntelligence = isEnterprise
+  const showAiForecast = isEnterprise
   const showAiInsights = isEnterprise
+  const showCompetitorBenchmarks = isEnterprise
   const showCohortRetention = isEnterprise
-  const showFunnel = isEnterprise || isPremium
-  const showGeography = isEnterprise || isPremium
+  const showCustomerHealth = isEnterprise
+  const showDailyReports = isEnterprise
 
   if (tier === "basic") {
     return (
@@ -603,18 +618,24 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
       )}
 
       {/* ── Revenue Trend + Forecast Chart ───────────────────────── */}
-      {showRevenueIntelligence && (
+      {showRevenueTrend && (
         <Card className="border-border">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base">Revenue Trend & Forecast</CardTitle>
-                <CardDescription>30-day revenue with 7-day AI-powered forecast</CardDescription>
+                <CardTitle className="text-base">
+                  {showAiForecast ? "Revenue Trend & Forecast" : "Revenue Trend"}
+                </CardTitle>
+                <CardDescription>
+                  {showAiForecast ? "30-day revenue with 7-day AI-powered forecast" : "30-day revenue performance"}
+                </CardDescription>
               </div>
-              <Badge variant="secondary" className="text-[10px] gap-1">
-                <Brain className="size-2.5" />
-                AI Forecast
-              </Badge>
+              {showAiForecast && (
+                <Badge variant="secondary" className="text-[10px] gap-1">
+                  <Brain className="size-2.5" />
+                  AI Forecast
+                </Badge>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -635,7 +656,9 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
                 <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}K`} />
                 <Tooltip contentStyle={tooltipStyle} formatter={(value: number | null) => value ? [`$${value.toLocaleString()}`, ""] : ["-", ""]} />
                 <Area type="monotone" dataKey="revenue" stroke="#22c55e" strokeWidth={2} fill="url(#revenueGradient)" name="Revenue" connectNulls={false} />
-                <Area type="monotone" dataKey="forecast" stroke="#7C3AED" strokeWidth={2} strokeDasharray="6 3" fill="url(#forecastGradient)" name="Forecast" connectNulls />
+                {showAiForecast && (
+                  <Area type="monotone" dataKey="forecast" stroke="#7C3AED" strokeWidth={2} strokeDasharray="6 3" fill="url(#forecastGradient)" name="Forecast" connectNulls />
+                )}
               </ComposedChart>
             </ResponsiveContainer>
           </CardContent>
@@ -1045,7 +1068,7 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
             </div>
 
             {/* Customer Health Metrics */}
-            {isEnterprise && (
+            {showCustomerHealth && (
               <Card className="border-border">
                 <CardHeader className="pb-2">
                   <div className="flex items-center gap-2">
@@ -1305,6 +1328,30 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
           </TabsContent>
         )}
       </Tabs>
+
+      {/* ── Premium → Enterprise Upgrade Banner ──────────────────── */}
+      {isPremium && (
+        <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-tinerary-salmon/5">
+          <CardContent className="py-5">
+            <div className="flex items-start gap-4">
+              <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Zap className="size-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-foreground">Upgrade to Enterprise for the full real-time analytics dashboard</h3>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Get real-time live metrics, full API access, AI-powered insights with revenue impact estimates,
+                  revenue intelligence (MRR, ARR, LTV, CAC), competitor benchmarking, cohort retention analysis,
+                  customer health scoring (NPS &amp; CSAT), daily performance reports with ROAS, and hourly traffic patterns.
+                </p>
+              </div>
+              <Button size="sm" className="btn-sunset shrink-0 text-xs" asChild>
+                <a href="/business">Upgrade</a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

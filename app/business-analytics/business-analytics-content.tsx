@@ -460,12 +460,19 @@ export function BusinessAnalyticsContent() {
         </TabsContent>
       </Tabs>
 
-      {/* Enterprise-grade analytics section for premium+ tiers */}
+      {/* Advanced / Real-time analytics section for premium+ tiers */}
       {(tier === "premium" || tier === "enterprise") && (
         <div className="mt-8">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="size-4 text-tinerary-gold" />
-            <h2 className="text-lg font-bold text-foreground">Enterprise Intelligence</h2>
+            <h2 className="text-lg font-bold text-foreground">
+              {tier === "enterprise" ? "Real-time Analytics Dashboard" : "Advanced Analytics & Insights"}
+            </h2>
+            {tier === "enterprise" && (
+              <Badge className="bg-tinerary-gold/20 text-tinerary-dark border-0 text-[10px]">
+                Full API Access
+              </Badge>
+            )}
           </div>
           <EnterpriseAnalyticsDashboard tier={tier} />
         </div>

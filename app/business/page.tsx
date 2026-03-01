@@ -80,7 +80,7 @@ export default function BusinessPage() {
                     variant={tier.highlighted ? "default" : "outline"}
                     asChild
                   >
-                    <Link href={`/business-profile?tier=${tier.slug}`}>
+                    <Link href={`/settings?section=business&tier=${tier.slug}`}>
                       Get Started
                     </Link>
                   </Button>

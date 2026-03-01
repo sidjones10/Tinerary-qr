@@ -36,6 +36,8 @@ import {
   TrendingDown,
   Target,
   Clock,
+  Award,
+  Webhook,
 } from "lucide-react"
 import {
   Table,
@@ -218,6 +220,27 @@ function getBusinessTools(tier: BusinessTierSlug, activeDeals: number) {
       color: "text-tinerary-gold",
       bgColor: "bg-tinerary-gold/10",
     },
+    // Enterprise-only tools
+    ...(tier === "enterprise"
+      ? [
+          {
+            title: "Competitor Benchmarking",
+            description: "Benchmarks & recommendations",
+            icon: Award,
+            href: "/business-analytics?tab=benchmarks",
+            color: "text-green-600",
+            bgColor: "bg-green-600/10",
+          },
+          {
+            title: "Webhook Integrations",
+            description: "Up to 10 real-time webhooks",
+            icon: Webhook,
+            href: "/business-analytics?tab=webhooks",
+            color: "text-purple-600",
+            bgColor: "bg-purple-600/10",
+          },
+        ]
+      : []),
   ]
 }
 
@@ -232,6 +255,8 @@ function getActivePerks(tier: BusinessTierSlug) {
       { label: "Unlimited Mentions", desc: "Auto-highlighted", icon: Megaphone },
       { label: "Dedicated Manager", desc: "Direct contact anytime", icon: Headphones },
       { label: "API Access", desc: "Programmatic integration", icon: Zap },
+      { label: "Benchmarks", desc: "Competitor insights & recs", icon: Award },
+      { label: "Webhooks", desc: "Up to 10 integrations", icon: Webhook },
       { label: "Custom Profile", desc: "Full branded profile", icon: UserCheck },
       { label: "Daily Reports", desc: "Email & in-app delivery", icon: CalendarCheck },
       { label: "Priority Booking", desc: "Top placement in feeds", icon: CalendarRange },

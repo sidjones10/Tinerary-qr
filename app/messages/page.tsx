@@ -9,6 +9,7 @@ import {
   Send,
   CheckCircle2,
   Loader2,
+  Trash2,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -22,6 +23,7 @@ import {
   getMessages,
   sendMessage,
   markMessagesAsRead,
+  deleteConversation,
   type Conversation,
   type Message,
 } from "@/lib/message-service"
@@ -267,7 +269,20 @@ function MessagesPageContent() {
   function handleSelectConvo(convoId: string) {
     setActiveConvoId(convoId)
     loadMessages(convoId)
-    // On mobile, could scroll to messages pane
+  }
+
+  async function handleDeleteConvo(convoId: string) {
+    if (!confirm("Delete this conversation? This cannot be undone.")) return
+    const result = await deleteConversation(convoId, supabase)
+    if (result.success) {
+      setConversations((prev) => prev.filter((c) => c.id !== convoId))
+      if (activeConvoId === convoId) {
+        setActiveConvoId(null)
+        setMessages([])
+      }
+    } else {
+      setError(result.error || "Failed to delete conversation")
+    }
   }
 
   if (loading) {
@@ -410,7 +425,7 @@ function MessagesPageContent() {
                           </AvatarFallback>
                         </Avatar>
                       </Link>
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
                           <p className="text-sm font-semibold text-foreground">
                             {activeConvo.otherUser.name ||
@@ -429,6 +444,14 @@ function MessagesPageContent() {
                           </p>
                         )}
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 text-muted-foreground hover:text-destructive shrink-0"
+                        onClick={() => handleDeleteConvo(activeConvo.id)}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
                     </div>
 
                     {/* Messages */}

@@ -26,6 +26,7 @@ import {
   Eye,
   MousePointerClick,
   Bookmark,
+  ArrowLeft,
   ArrowRight,
   Sparkles,
   Shield,
@@ -685,6 +686,11 @@ export function BusinessProfileContent() {
 
   return (
     <>
+      <Link href="/settings?section=business" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6">
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to Business Settings
+      </Link>
+
       {/* Business Header — tier-aware */}
       {(() => {
         const brandingConfig: EnterpriseBrandingConfig =

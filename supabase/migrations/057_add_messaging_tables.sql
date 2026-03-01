@@ -12,19 +12,18 @@ CREATE TABLE IF NOT EXISTS conversations (
 
 -- Conversation participants (links users to conversations)
 CREATE TABLE IF NOT EXISTS conversation_participants (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(conversation_id, user_id)
+  PRIMARY KEY (conversation_id, user_id)
 );
 
 -- Messages table
 CREATE TABLE IF NOT EXISTS messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-  sender_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  content TEXT NOT NULL CHECK (char_length(content) <= 5000),
+  sender_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
   is_read BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -34,11 +33,8 @@ CREATE TABLE IF NOT EXISTS messages (
 CREATE INDEX IF NOT EXISTS idx_conversation_participants_user
   ON conversation_participants(user_id);
 
-CREATE INDEX IF NOT EXISTS idx_conversation_participants_convo
-  ON conversation_participants(conversation_id);
-
 CREATE INDEX IF NOT EXISTS idx_messages_conversation
-  ON messages(conversation_id, created_at);
+  ON messages(conversation_id, created_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_messages_sender
   ON messages(sender_id);
@@ -72,7 +68,7 @@ CREATE POLICY "Authenticated users can create conversations"
   WITH CHECK (auth.uid() IS NOT NULL);
 
 -- Conversations: participants can update their conversations (e.g. updated_at)
-CREATE POLICY "Participants can update conversations"
+CREATE POLICY "Users can update own conversations"
   ON conversations FOR UPDATE
   USING (
     id IN (
@@ -82,12 +78,12 @@ CREATE POLICY "Participants can update conversations"
   );
 
 -- Conversation participants: users can see participants in their conversations
-CREATE POLICY "Users can view participants in own conversations"
+CREATE POLICY "Users can view participants of own conversations"
   ON conversation_participants FOR SELECT
   USING (
     conversation_id IN (
-      SELECT conversation_id FROM conversation_participants
-      WHERE user_id = auth.uid()
+      SELECT conversation_id FROM conversation_participants cp
+      WHERE cp.user_id = auth.uid()
     )
   );
 
@@ -107,26 +103,20 @@ CREATE POLICY "Users can view messages in own conversations"
   );
 
 -- Messages: participants can send messages to their conversations
-CREATE POLICY "Participants can send messages"
+CREATE POLICY "Users can send messages to own conversations"
   ON messages FOR INSERT
   WITH CHECK (
-    sender_id = auth.uid()
+    auth.uid() = sender_id
     AND conversation_id IN (
       SELECT conversation_id FROM conversation_participants
       WHERE user_id = auth.uid()
     )
   );
 
--- Messages: recipients can mark messages as read
-CREATE POLICY "Recipients can mark messages as read"
+-- Messages: participants can mark messages as read
+CREATE POLICY "Users can update own messages"
   ON messages FOR UPDATE
   USING (
-    conversation_id IN (
-      SELECT conversation_id FROM conversation_participants
-      WHERE user_id = auth.uid()
-    )
-  )
-  WITH CHECK (
     conversation_id IN (
       SELECT conversation_id FROM conversation_participants
       WHERE user_id = auth.uid()

@@ -1,8 +1,9 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/providers/auth-provider"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -249,6 +250,7 @@ function getActivePerks(tier: BusinessTierSlug) {
 
 export function BusinessProfileContent() {
   const router = useRouter()
+  const { user } = useAuth()
   const [business, setBusiness] = useState<BusinessData | null>(null)
   const [loading, setLoading] = useState(true)
   const [tier, setTier] = useState<BusinessTierSlug>("basic")
@@ -256,79 +258,84 @@ export function BusinessProfileContent() {
   const [profileData, setProfileData] = useState<ProfileData | null>(null)
   const [promoDetails, setPromoDetails] = useState<{ title: string; views: number; clicks: number; saves: number; status: string }[]>([])
 
-  const loadData = useCallback(async (retryCount = 0) => {
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
+  useEffect(() => {
+    if (!user) return
 
-    if (!session) {
-      setLoading(false)
-      return
-    }
+    let cancelled = false
 
-    // Fetch profile data (for pre-filling setup + avatar fallback)
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("name, username, bio, location, website, avatar_url")
-      .eq("id", session.user.id)
-      .single()
+    const loadData = async () => {
+      const supabase = createClient()
 
-    if (profile) setProfileData(profile)
+      // Fetch profile data (for pre-filling setup + avatar fallback)
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("name, username, bio, location, website, avatar_url")
+        .eq("id", user.id)
+        .single()
 
-    // Fetch business
-    let { data: biz } = await supabase
-      .from("businesses")
-      .select("*")
-      .eq("user_id", session.user.id)
-      .single()
+      if (cancelled) return
+      if (profile) setProfileData(profile)
 
-    // If business was just created (sessionStorage flag) but query returned
-    // nothing, retry once after a short delay — the row may not have propagated yet
-    if (!biz && retryCount === 0 && typeof window !== "undefined" && sessionStorage.getItem("business_created") === "true") {
-      await new Promise((r) => setTimeout(r, 1000))
-      const retry = await supabase
+      // Fetch business
+      let { data: biz } = await supabase
         .from("businesses")
         .select("*")
-        .eq("user_id", session.user.id)
+        .eq("user_id", user.id)
         .single()
-      biz = retry.data
-    }
 
-    if (biz) {
-      setBusiness(biz)
-
-      const sub = await getBusinessSubscription(biz.id)
-      setTier(getEffectiveTier(sub, biz.business_tier as BusinessTierSlug))
-
-      const { data: promos } = await supabase
-        .from("promotions")
-        .select("title, status, promotion_metrics(views, clicks, saves)")
-        .eq("business_id", biz.id)
-        .order("created_at", { ascending: false })
-
-      if (promos) {
-        const activeDeals = promos.filter((p: any) => p.status === "active").length
-        const views = promos.reduce((s: number, p: any) => s + ((p.promotion_metrics as any)?.views || 0), 0)
-        const clicks = promos.reduce((s: number, p: any) => s + ((p.promotion_metrics as any)?.clicks || 0), 0)
-        const saves = promos.reduce((s: number, p: any) => s + ((p.promotion_metrics as any)?.saves || 0), 0)
-        setSummaryStats({ views, clicks, saves, activeDeals })
-        setPromoDetails(
-          promos.map((p: any) => ({
-            title: p.title || "Untitled",
-            views: (p.promotion_metrics as any)?.views || 0,
-            clicks: (p.promotion_metrics as any)?.clicks || 0,
-            saves: (p.promotion_metrics as any)?.saves || 0,
-            status: p.status || "draft",
-          }))
-        )
+      // If business was just created (sessionStorage flag) but query returned
+      // nothing, retry once after a short delay
+      if (!biz && typeof window !== "undefined" && sessionStorage.getItem("business_created") === "true") {
+        await new Promise((r) => setTimeout(r, 1000))
+        const retry = await supabase
+          .from("businesses")
+          .select("*")
+          .eq("user_id", user.id)
+          .single()
+        biz = retry.data
       }
+
+      if (cancelled) return
+
+      if (biz) {
+        setBusiness(biz)
+
+        const sub = await getBusinessSubscription(biz.id)
+        if (cancelled) return
+        setTier(getEffectiveTier(sub, biz.business_tier as BusinessTierSlug))
+
+        const { data: promos } = await supabase
+          .from("promotions")
+          .select("title, status, promotion_metrics(views, clicks, saves)")
+          .eq("business_id", biz.id)
+          .order("created_at", { ascending: false })
+
+        if (cancelled) return
+
+        if (promos) {
+          const activeDeals = promos.filter((p: any) => p.status === "active").length
+          const views = promos.reduce((s: number, p: any) => s + ((p.promotion_metrics as any)?.views || 0), 0)
+          const clicks = promos.reduce((s: number, p: any) => s + ((p.promotion_metrics as any)?.clicks || 0), 0)
+          const saves = promos.reduce((s: number, p: any) => s + ((p.promotion_metrics as any)?.saves || 0), 0)
+          setSummaryStats({ views, clicks, saves, activeDeals })
+          setPromoDetails(
+            promos.map((p: any) => ({
+              title: p.title || "Untitled",
+              views: (p.promotion_metrics as any)?.views || 0,
+              clicks: (p.promotion_metrics as any)?.clicks || 0,
+              saves: (p.promotion_metrics as any)?.saves || 0,
+              status: p.status || "draft",
+            }))
+          )
+        }
+      }
+
+      if (!cancelled) setLoading(false)
     }
 
-    setLoading(false)
-  }, [])
-
-  useEffect(() => {
     loadData()
-  }, [loadData])
+    return () => { cancelled = true }
+  }, [user])
 
   if (loading) {
     return (

@@ -86,6 +86,7 @@ function MessagesPageContent() {
   const [messagesLoading, setMessagesLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const initDone = useRef(false)
 
   const supabase = supabaseRef.current
 
@@ -103,15 +104,18 @@ function MessagesPageContent() {
   )
 
   // Load messages for a conversation
+  // Accepts an optional uid param so the init effect can call this without
+  // depending on the userId state (which would destabilise the callback ref
+  // and re-trigger the effect, causing duplicate conversations).
   const loadMessages = useCallback(
-    async (convoId: string) => {
+    async (convoId: string, uid?: string) => {
       setMessagesLoading(true)
       const data = await getMessages(convoId, 50, 0, supabase)
       setMessages(data)
       setMessagesLoading(false)
-      if (userId) {
-        await markMessagesAsRead(convoId, userId, supabase)
-        // Update unread count in conversation list
+      const resolvedUid = uid ?? userId
+      if (resolvedUid) {
+        await markMessagesAsRead(convoId, resolvedUid, supabase)
         setConversations((prev) =>
           prev.map((c) => (c.id === convoId ? { ...c, unreadCount: 0 } : c))
         )
@@ -120,8 +124,14 @@ function MessagesPageContent() {
     [userId, supabase]
   )
 
-  // Initial load
+  // Initial load — runs exactly once thanks to the initDone ref guard.
+  // Without the guard, changing userId (null → real id) would recreate
+  // loadMessages, which would re-trigger this effect and race with the
+  // first run, producing duplicate conversations.
   useEffect(() => {
+    if (initDone.current) return
+    initDone.current = true
+
     async function init() {
       const {
         data: { session },
@@ -143,14 +153,11 @@ function MessagesPageContent() {
         )
 
         if (existingConvo) {
-          // Already have a conversation — just open it
           setActiveConvoId(existingConvo.id)
-          await loadMessages(existingConvo.id)
+          await loadMessages(existingConvo.id, uid)
         } else {
-          // Create new conversation
           const result = await getOrCreateConversation(uid, withUserId, supabase)
           if (result.success && result.conversationId) {
-            // Fetch the other user's profile for the conversation entry
             const { data: otherProfile } = await supabase
               .from("profiles")
               .select("id, name, username, avatar_url, tier, is_verified")
@@ -173,21 +180,21 @@ function MessagesPageContent() {
             }
             setConversations((prev) => [newConvo, ...prev])
             setActiveConvoId(result.conversationId)
-            await loadMessages(result.conversationId)
+            await loadMessages(result.conversationId, uid)
           } else {
             setError(result.error || "Failed to open conversation")
           }
         }
       } else if (convos.length > 0) {
-        // Auto-select first conversation
         setActiveConvoId(convos[0].id)
-        await loadMessages(convos[0].id)
+        await loadMessages(convos[0].id, uid)
       }
 
       setLoading(false)
     }
     init()
-  }, [router, withUserId, loadConversations, loadMessages, supabase])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Scroll to bottom on new messages
   useEffect(() => {

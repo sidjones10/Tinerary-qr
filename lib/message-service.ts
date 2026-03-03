@@ -337,6 +337,32 @@ export async function markMessagesAsRead(
   }
 }
 
+// ─── Delete a conversation ───────────────────────────────────
+
+export async function deleteConversation(
+  conversationId: string,
+  supabaseClient?: any
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = supabaseClient || createClient()
+
+    const { error } = await supabase
+      .from("conversations")
+      .delete()
+      .eq("id", conversationId)
+
+    if (error) throw error
+
+    return { success: true }
+  } catch (error) {
+    console.error("Error deleting conversation:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to delete conversation",
+    }
+  }
+}
+
 // ─── Get total unread count across all conversations ────────
 
 export async function getTotalUnreadCount(userId: string): Promise<number> {

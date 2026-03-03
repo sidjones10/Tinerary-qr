@@ -64,7 +64,6 @@ import { getBusinessProfileData } from "@/app/actions/business-actions"
 import { BUSINESS_TIERS } from "@/lib/tiers"
 import type { BusinessTierSlug } from "@/lib/tiers"
 import {
-  getBusinessSubscription,
   getEffectiveTier,
   getTierLimits,
 } from "@/lib/business-tier-service"
@@ -264,18 +263,15 @@ export function BusinessProfileContent() {
     let cancelled = false
 
     const loadData = async () => {
-      // Use server action (cookie-based auth) to fetch business data
-      const { profile, business: biz, promos } = await getBusinessProfileData()
+      // Use server action (service-role, bypasses RLS) to fetch all business data
+      const { profile, business: biz, promos, subscription } = await getBusinessProfileData()
 
       if (cancelled) return
       if (profile) setProfileData(profile)
 
       if (biz) {
         setBusiness(biz)
-
-        const sub = await getBusinessSubscription(biz.id)
-        if (cancelled) return
-        setTier(getEffectiveTier(sub, biz.business_tier as BusinessTierSlug))
+        setTier(getEffectiveTier(subscription, biz.business_tier as BusinessTierSlug))
 
         if (promos) {
           const activeDeals = promos.filter((p: any) => p.status === "active").length

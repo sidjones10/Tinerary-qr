@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { createClient } from "@/utils/supabase/server"
+import { createServiceRoleClient } from "@/lib/supabase/server"
 import type { BusinessTierSlug } from "@/lib/tiers"
 
 const VALID_TIERS: BusinessTierSlug[] = ["basic", "premium", "enterprise"]
@@ -21,7 +22,8 @@ const BUSINESS_CATEGORIES = [
 
 /**
  * Fetch the current user's business profile data for the dashboard.
- * Uses server-side Supabase (cookie auth) to avoid client-side RLS issues.
+ * Uses the service-role client to bypass RLS on the businesses table
+ * (which may lack a SELECT policy for authenticated users).
  */
 export async function getBusinessProfileData() {
   const supabase = await createClient()
@@ -34,13 +36,17 @@ export async function getBusinessProfileData() {
     return { profile: null, business: null, promos: null }
   }
 
+  // Use service role to bypass RLS — the businesses table may not have
+  // a SELECT policy for authenticated users via the anon key.
+  const admin = createServiceRoleClient()
+
   const [profileResult, bizResult] = await Promise.all([
-    supabase
+    admin
       .from("profiles")
       .select("name, username, bio, location, website, avatar_url")
       .eq("id", session.user.id)
       .single(),
-    supabase
+    admin
       .from("businesses")
       .select("*")
       .eq("user_id", session.user.id)
@@ -51,16 +57,26 @@ export async function getBusinessProfileData() {
   const business = bizResult.data
 
   let promos: any[] | null = null
+  let subscription: any | null = null
   if (business) {
-    const { data } = await supabase
-      .from("promotions")
-      .select("title, status, promotion_metrics(views, clicks, saves)")
-      .eq("business_id", business.id)
-      .order("created_at", { ascending: false })
-    promos = data
+    const [promosResult, subResult] = await Promise.all([
+      admin
+        .from("promotions")
+        .select("title, status, promotion_metrics(views, clicks, saves)")
+        .eq("business_id", business.id)
+        .order("created_at", { ascending: false }),
+      admin
+        .from("business_subscriptions")
+        .select("*")
+        .eq("business_id", business.id)
+        .eq("status", "active")
+        .single(),
+    ])
+    promos = promosResult.data
+    subscription = subResult.data
   }
 
-  return { profile, business, promos }
+  return { profile, business, promos, subscription }
 }
 
 export async function createBusiness(formData: FormData) {

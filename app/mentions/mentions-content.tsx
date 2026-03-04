@@ -152,15 +152,19 @@ export function MentionsContent() {
   const loadData = useCallback(async () => {
     try {
       // Load tier info
+      let currentTier: BusinessTierSlug = "basic"
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
         const { subscription: sub, businessTier } = await getBusinessSubscriptionByUserId(session.user.id)
         setSubscription(sub)
-        const effectiveTier = getEffectiveTier(sub, businessTier)
-        setTier(effectiveTier)
+        currentTier = getEffectiveTier(sub, businessTier)
+        setTier(currentTier)
         setHighlightsUsed(sub?.mention_highlights_used || 0)
       }
+
+      const currentLimits = getTierLimits(currentTier)
+      const currentHighlightsIncluded = currentLimits.mentionHighlightsIncluded
 
       // Load real mentions data
       const [mentionsResult, statsResult] = await Promise.all([
@@ -181,13 +185,13 @@ export function MentionsContent() {
             value: s.highlightedCount.toString(),
             change: s.hasUnlimited
               ? "Unlimited"
-              : highlightsIncluded === Infinity
+              : currentHighlightsIncluded === Infinity
               ? "Unlimited"
-              : tier === "basic" && s.remainingHighlights <= 0
+              : currentTier === "basic" && s.remainingHighlights <= 0
               ? "Upgrade for included"
               : s.remainingHighlights > 0
               ? `${s.remainingHighlights} remaining`
-              : `of ${highlightsIncluded} included`,
+              : `of ${currentHighlightsIncluded} included`,
             icon: Sparkles,
           },
           { label: "Highlight Views", value: s.totalViews.toLocaleString(), change: "+24%", icon: Eye },
@@ -201,11 +205,11 @@ export function MentionsContent() {
           {
             label: "Highlighted",
             value: `${highlightedCount}`,
-            change: highlightsIncluded === Infinity
+            change: currentHighlightsIncluded === Infinity
               ? "Unlimited"
-              : tier === "basic"
+              : currentTier === "basic"
                 ? "Upgrade for included"
-                : `of ${highlightsIncluded} included`,
+                : `of ${currentHighlightsIncluded} included`,
             icon: Sparkles,
           },
           { label: "Highlight Views", value: "3,690", change: "+24%", icon: Eye },
@@ -248,7 +252,7 @@ export function MentionsContent() {
     } finally {
       setLoading(false)
     }
-  }, [tier, highlightsIncluded])
+  }, [])
 
   useEffect(() => {
     loadData()
@@ -257,7 +261,7 @@ export function MentionsContent() {
   const handleDismiss = async (mentionId: string) => {
     const result = await dismissMention(mentionId)
     if (result.success) {
-      setMentions((prev) => prev.filter((m) => m.id !== mentionId))
+      setMentions((prev: MentionData[]) => prev.filter((m: MentionData) => m.id !== mentionId))
       toast({ title: "Mention dismissed" })
     }
   }

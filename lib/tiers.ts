@@ -255,47 +255,47 @@ export interface CoinAction {
 export const COIN_EARNING_ACTIONS: CoinAction[] = [
   {
     action: "Publish a public itinerary",
-    coins: 50,
+    coins: 25,
     reason: "Adds content to discovery feed",
   },
   {
     action: "Itinerary gets 10+ views",
-    coins: 25,
+    coins: 10,
     reason: "Rewards quality content",
   },
   {
     action: "Itinerary gets saved by others",
-    coins: 15,
+    coins: 5,
     reason: "Signals high-value content",
   },
   {
     action: "Leave a review on a business",
-    coins: 10,
+    coins: 5,
     reason: "Builds trust layer for businesses",
   },
   {
     action: "Refer a new user who signs up",
-    coins: 100,
+    coins: 50,
     reason: "Direct growth driver",
   },
   {
     action: "Complete a booking",
-    coins: 20,
+    coins: 10,
     reason: "Drives transaction revenue",
   },
   {
     action: "Share itinerary to social media",
-    coins: 10,
+    coins: 5,
     reason: "Expands reach beyond platform",
   },
   {
     action: "Add 5+ activities to an itinerary",
-    coins: 15,
+    coins: 10,
     reason: "Creates richer, more useful content",
   },
   {
     action: "First itinerary ever created",
-    coins: 75,
+    coins: 40,
     reason: "Onboarding milestone reward",
   },
 ]
@@ -311,42 +311,37 @@ export interface CoinReward {
 export const COIN_SPENDING_REWARDS: CoinReward[] = [
   {
     reward: "Tinerary Shop discount (10%)",
-    cost: 200,
+    cost: 300,
     details: "Applies to any Shop product",
   },
   {
     reward: "Tinerary Shop discount (25%)",
-    cost: 500,
+    cost: 750,
     details: "Applies to any Shop product",
   },
   {
     reward: "Free shipping on Shop order",
-    cost: 150,
+    cost: 200,
     details: "Domestic orders only",
   },
   {
     reward: "Exclusive itinerary templates",
-    cost: 100,
+    cost: 150,
     details: "Premium templates from Creators",
   },
   {
-    reward: "Custom cover photo for itinerary",
-    cost: 50,
-    details: "AI-generated or curated options",
-  },
-  {
     reward: "Profile badge (Traveler, Explorer, etc.)",
-    cost: 300,
+    cost: 500,
     details: "Visible on profile and posts",
   },
   {
     reward: "Early access to new features",
-    cost: 250,
+    cost: 400,
     details: "Beta feature previews",
   },
   {
     reward: "Single post boost (mini)",
-    cost: 400,
+    cost: 600,
     details: "~500 impressions, 12-hour boost",
   },
 ]

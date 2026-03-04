@@ -369,7 +369,7 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
         .select("*", { count: "exact", head: true })
         .eq("user_id", userId)
 
-      // First itinerary bonus (75 coins)
+      // First itinerary bonus
       if (existingCount === 1) {
         const alreadyGotFirst = await hasAlreadyEarned(userId, "first_itinerary")
         if (!alreadyGotFirst) {
@@ -377,12 +377,12 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
         }
       }
 
-      // Public itinerary bonus (50 coins)
+      // Public itinerary bonus
       if (data.isPublic !== false) {
         await awardCoins(userId, "publish_public_itinerary", "itinerary", itineraryId)
       }
 
-      // 5+ activities bonus (15 coins)
+      // 5+ activities bonus
       if (data.activities && data.activities.length >= 5) {
         await awardCoins(userId, "add_5_activities", "itinerary", itineraryId)
       }

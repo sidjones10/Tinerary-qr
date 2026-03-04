@@ -18,7 +18,6 @@ export type CoinSpendAction =
   | "shop_discount_25"
   | "free_shipping"
   | "exclusive_templates"
-  | "custom_cover"
   | "profile_badge"
   | "early_access"
   | "mini_boost"
@@ -26,26 +25,25 @@ export type CoinSpendAction =
 // ─── Coin amounts (matching tiers.ts config) ────────────────────
 
 export const COIN_AMOUNTS: Record<CoinEarnAction, number> = {
-  publish_public_itinerary: 50,
-  itinerary_10_views: 25,
-  itinerary_saved: 15,
-  leave_review: 10,
-  refer_user: 100,
-  complete_booking: 20,
-  share_social: 10,
-  add_5_activities: 15,
-  first_itinerary: 75,
+  publish_public_itinerary: 25,
+  itinerary_10_views: 10,
+  itinerary_saved: 5,
+  leave_review: 5,
+  refer_user: 50,
+  complete_booking: 10,
+  share_social: 5,
+  add_5_activities: 10,
+  first_itinerary: 40,
 }
 
 export const REWARD_COSTS: Record<CoinSpendAction, number> = {
-  shop_discount_10: 200,
-  shop_discount_25: 500,
-  free_shipping: 150,
-  exclusive_templates: 100,
-  custom_cover: 50,
-  profile_badge: 300,
-  early_access: 250,
-  mini_boost: 400,
+  shop_discount_10: 300,
+  shop_discount_25: 750,
+  free_shipping: 200,
+  exclusive_templates: 150,
+  profile_badge: 500,
+  early_access: 400,
+  mini_boost: 600,
 }
 
 export const REWARD_NAMES: Record<CoinSpendAction, string> = {
@@ -53,7 +51,6 @@ export const REWARD_NAMES: Record<CoinSpendAction, string> = {
   shop_discount_25: "Tinerary Shop discount (25%)",
   free_shipping: "Free shipping on Shop order",
   exclusive_templates: "Exclusive itinerary templates",
-  custom_cover: "Custom cover photo for itinerary",
   profile_badge: "Profile badge (Traveler, Explorer, etc.)",
   early_access: "Early access to new features",
   mini_boost: "Single post boost (mini)",

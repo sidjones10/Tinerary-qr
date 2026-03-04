@@ -103,8 +103,7 @@ const getEventById = async (id: string) => {
       { data: activitiesData, error: activitiesError },
       { data: packingData, error: packingError },
       { data: expensesData, error: expensesError },
-      { data: attendeesData, error: attendeesError },
-      { data: invitationsData, error: invitationsError }
+      { data: attendeesData, error: attendeesError }
     ] = await Promise.all([
       supabase
         .from("activities")
@@ -131,21 +130,7 @@ const getEventById = async (id: string) => {
             avatar_url
           )
         `)
-        .eq("itinerary_id", id),
-      supabase
-        .from("itinerary_invitations")
-        .select(`
-          invitee_id,
-          status,
-          invitee:profiles!invitee_id (
-            id,
-            name,
-            username,
-            avatar_url
-          )
-        `)
         .eq("itinerary_id", id)
-        .in("status", ["pending", "tentative"])
     ])
 
     if (activitiesError) {
@@ -162,10 +147,6 @@ const getEventById = async (id: string) => {
 
     if (attendeesError) {
       console.error("Error fetching attendees:", attendeesError)
-    }
-
-    if (invitationsError) {
-      console.error("Error fetching invitations:", invitationsError)
     }
 
     // Determine if this is a trip or event based on date fields
@@ -317,37 +298,17 @@ const getEventById = async (id: string) => {
           total,
         }
       })(),
-      // Format attendees/participants - include both confirmed attendees and invited users
-      attendees: (() => {
-        const attendees = attendeesData ? attendeesData.map((attendee: any) => {
-          const profile = Array.isArray(attendee.profiles) ? attendee.profiles[0] : attendee.profiles
-          return {
-            id: profile?.id || attendee.user_id,
-            name: profile?.name || profile?.username || "Unknown",
-            avatar_url: profile?.avatar_url,
-            role: attendee.role || 'member'
-          }
-        }) : []
-
-        // Also include invited users (pending/tentative) who aren't already in attendees
-        const attendeeIds = new Set(attendees.map((a: any) => a.id))
-        if (invitationsData) {
-          invitationsData.forEach((inv: any) => {
-            const profile = Array.isArray(inv.invitee) ? inv.invitee[0] : inv.invitee
-            const inviteeId = profile?.id || inv.invitee_id
-            if (!attendeeIds.has(inviteeId)) {
-              attendees.push({
-                id: inviteeId,
-                name: profile?.name || profile?.username || "Invited User",
-                avatar_url: profile?.avatar_url,
-                role: inv.status === 'tentative' ? 'tentative' : 'invited'
-              })
-            }
-          })
+      // Format attendees/participants (confirmed attendees from itinerary_attendees)
+      // Invited users are merged in by event-detail.tsx from its own invitations fetch
+      attendees: attendeesData ? attendeesData.map((attendee: any) => {
+        const profile = Array.isArray(attendee.profiles) ? attendee.profiles[0] : attendee.profiles
+        return {
+          id: profile?.id || attendee.user_id,
+          name: profile?.name || profile?.username || "Unknown",
+          avatar_url: profile?.avatar_url,
+          role: attendee.role || 'member'
         }
-
-        return attendees
-      })(),
+      }) : [],
       people: [],
       discussion: [],
     }

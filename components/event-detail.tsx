@@ -73,6 +73,7 @@ interface Attendee {
 
 interface InvitationInfo {
   id: string
+  invitee_id?: string // the invitee's profile/user ID
   status: "pending" | "accepted" | "declined" | "tentative"
   created_at: string
   invitee_name?: string
@@ -220,6 +221,7 @@ export function EventDetail({ event }: EventDetailProps) {
           const invitee = inv.invitee as any
           allInvitations.push({
             id: inv.id,
+            invitee_id: invitee?.id,
             status: inv.status as "pending" | "accepted" | "declined",
             created_at: inv.created_at,
             invitee_name: invitee?.name || "Unknown",
@@ -1051,13 +1053,37 @@ export function EventDetail({ event }: EventDetailProps) {
             ) : canAccessExpenses ? (
               <EnhancedExpenseTracker
                 itineraryId={event.id}
-                participants={(event.attendees as Attendee[] || []).length > 0 ? (event.attendees as Attendee[]) : [
-                  {
-                    id: event.user_id,
-                    name: event.host_name || "Host",
-                    avatar_url: event.host_avatar,
-                  },
-                ]}
+                participants={(() => {
+                  // Start with confirmed attendees
+                  const attendees = (event.attendees as Attendee[] || []).length > 0
+                    ? [...(event.attendees as Attendee[])]
+                    : [{
+                        id: event.user_id,
+                        name: event.host_name || "Host",
+                        avatar_url: event.host_avatar,
+                      }]
+
+                  // Add invited users from invitations state (registered users only)
+                  const attendeeIds = new Set(attendees.map(a => a.id))
+                  invitations.forEach(inv => {
+                    // Skip non-user pending invitations (no profile/id to reference)
+                    if (inv.is_pending_invitation || !inv.invitee_id) return
+                    // Skip declined invitations
+                    if (inv.status === "declined") return
+                    // Skip if already in attendees list
+                    if (attendeeIds.has(inv.invitee_id)) return
+
+                    attendees.push({
+                      id: inv.invitee_id,
+                      name: inv.invitee_name || "Invited User",
+                      avatar_url: inv.invitee_avatar,
+                      role: inv.status === "tentative" ? "tentative" : "invited",
+                    })
+                    attendeeIds.add(inv.invitee_id)
+                  })
+
+                  return attendees
+                })()}
                 currentUserId={user?.id}
               />
             ) : (

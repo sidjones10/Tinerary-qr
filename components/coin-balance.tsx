@@ -19,16 +19,17 @@ export function CoinBalance() {
 
       setUserId(session.user.id)
 
-      // Ensure balance row exists
-      await supabase.rpc("ensure_coin_balance", { p_user_id: session.user.id })
-
-      const { data } = await supabase
-        .from("coin_balances")
-        .select("balance")
-        .eq("user_id", session.user.id)
-        .single()
-
-      setBalance(data?.balance ?? 0)
+      try {
+        const res = await fetch("/api/coins")
+        if (res.ok) {
+          const data = await res.json()
+          setBalance(data.balance ?? 0)
+        } else {
+          setBalance(0)
+        }
+      } catch {
+        setBalance(0)
+      }
     }
 
     fetchBalance()

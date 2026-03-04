@@ -11,7 +11,7 @@ type Booking = Database["public"]["Tables"]["bookings"]["Row"]
 type NewBooking = Omit<Booking, "id" | "created_at" | "user_id" | "status">
 
 export async function createBooking(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Check if user is authenticated
   const {
@@ -90,6 +90,21 @@ export async function createBooking(formData: FormData) {
       p_quantity: quantity,
     })
 
+    // Award coins for completing a booking (20 coins, once per booking)
+    try {
+      await supabase.rpc("award_coins", {
+        p_user_id: session.user.id,
+        p_amount: 20, // COIN_AMOUNTS.complete_booking
+        p_action: "complete_booking",
+        p_description: "Completed a booking",
+        p_reference_type: "booking",
+        p_reference_id: booking.id,
+        p_metadata: {},
+      })
+    } catch (coinError) {
+      console.warn("Coin award for booking skipped:", coinError)
+    }
+
     revalidatePath(`/promotion/${promotionId}`)
     return { success: true, data: booking }
   } catch (error) {
@@ -99,7 +114,7 @@ export async function createBooking(formData: FormData) {
 }
 
 export async function getUserBookings() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Check if user is authenticated
   const {
@@ -139,7 +154,7 @@ export async function getUserBookings() {
 }
 
 export async function cancelBooking(id: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Check if user is authenticated
   const {
@@ -190,7 +205,7 @@ export async function cancelBooking(id: string) {
 }
 
 export async function getBookingById(id: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Check if user is authenticated
   const {

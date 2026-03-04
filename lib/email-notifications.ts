@@ -1216,3 +1216,108 @@ export async function sendAccountDeletionWarningEmail(params: {
     return { success: false, error: error.message }
   }
 }
+
+/**
+ * Send plan change receipt email (upgrade or downgrade confirmation)
+ */
+export async function sendPlanChangeReceiptEmail(
+  email: string,
+  changeType: "upgrade" | "downgrade",
+  fromTier: string,
+  toTier: string,
+  chargeAmount: number,
+  periodEnd: string | null
+) {
+  const TIER_NAMES: Record<string, string> = { basic: "Basic", premium: "Premium", enterprise: "Enterprise" }
+  const TIER_PRICES: Record<string, number> = { basic: 49, premium: 149, enterprise: 399 }
+
+  const fromName = TIER_NAMES[fromTier] || fromTier
+  const toName = TIER_NAMES[toTier] || toTier
+  const newPrice = TIER_PRICES[toTier] || 0
+  const isUpgrade = changeType === "upgrade"
+
+  const subject = isUpgrade
+    ? `Plan upgraded to ${toName} — receipt`
+    : `Downgrade to ${toName} scheduled`
+
+  const effectDate = periodEnd
+    ? new Date(periodEnd).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+    : "the start of your next billing period"
+
+  try {
+    const resend = getResendClient()
+    const { data: resendData } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject,
+      html: postcardEmail(`
+        <div class="masthead">
+          <div class="stamp">${isUpgrade ? "UPGRADE RECEIPT" : "PLAN CHANGE"}</div>
+          <h1>${isUpgrade ? "You've been upgraded!" : "Downgrade scheduled"}</h1>
+          <p class="subtitle">${isUpgrade ? `Welcome to the ${escapeHtml(toName)} plan` : `Switching from ${escapeHtml(fromName)} to ${escapeHtml(toName)}`}</p>
+        </div>
+
+        <div class="body-content">
+          <h2>Plan Change Summary</h2>
+
+          <div class="info-card">
+            <div class="detail-row">
+              <span class="detail-label">Previous plan:</span> ${escapeHtml(fromName)} ($${TIER_PRICES[fromTier] || 0}/mo)
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">New plan:</span> ${escapeHtml(toName)} ($${newPrice}/mo)
+            </div>
+            ${isUpgrade && chargeAmount > 0 ? `
+              <hr class="divider" style="margin: 14px 0;">
+              <div class="detail-row">
+                <span class="detail-label">Prorated charge today:</span> $${chargeAmount.toFixed(2)}
+              </div>
+            ` : ""}
+            <div class="detail-row">
+              <span class="detail-label">${isUpgrade ? "Effective:" : "Takes effect:"}</span> ${isUpgrade ? "Immediately" : escapeHtml(effectDate)}
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Next monthly bill:</span> $${newPrice.toFixed(2)}/mo
+            </div>
+          </div>
+
+          ${!isUpgrade ? `
+            <p style="font-size: 14px; color: #6B6B6B;">
+              You'll continue to enjoy all ${escapeHtml(fromName)} features until <strong>${escapeHtml(effectDate)}</strong>.
+              After that, your plan will switch to ${escapeHtml(toName)} and your next bill will be $${newPrice}/mo.
+            </p>
+            <p style="font-size: 14px; color: #6B6B6B;">
+              Changed your mind? You can cancel the downgrade anytime from your
+              <a href="${APP_URL}/settings?section=business">account settings</a>.
+            </p>
+          ` : `
+            <p style="font-size: 14px; color: #6B6B6B;">
+              Your ${escapeHtml(toName)} features are now active. Explore your new capabilities from your
+              <a href="${APP_URL}/business-profile">business dashboard</a>.
+            </p>
+          `}
+        </div>
+      `, "This is a confirmation of your plan change. If you did not make this change, please contact support."),
+    })
+
+    await logEmail({
+      recipientEmail: email,
+      emailType: "plan_change_receipt",
+      subject,
+      status: "sent",
+      resendId: resendData?.id,
+      metadata: { changeType, fromTier, toTier, chargeAmount },
+    })
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error sending plan change receipt email:", error)
+    await logEmail({
+      recipientEmail: email,
+      emailType: "plan_change_receipt",
+      subject,
+      status: "failed",
+      errorMessage: error.message,
+    })
+    return { success: false, error: error.message }
+  }
+}

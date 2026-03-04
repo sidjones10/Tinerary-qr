@@ -248,7 +248,10 @@ function MessagesPageContent() {
     setSending(true)
     const result = await sendMessage(activeConvoId, userId, newMessage.trim(), supabase)
     if (result.success && result.message) {
-      setMessages((prev) => [...prev, result.message!])
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === result.message!.id)) return prev
+        return [...prev, result.message!]
+      })
       setNewMessage("")
       // Update last message in conversation list
       setConversations((prev) =>

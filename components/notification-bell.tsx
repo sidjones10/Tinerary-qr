@@ -15,7 +15,6 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAuth } from "@/providers/auth-provider"
 import { useNotifications, requestNotificationPermission } from "@/hooks/use-notifications"
-import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 
 export function NotificationBell() {
@@ -97,6 +96,9 @@ export function NotificationBell() {
     return `${Math.floor(diffInMinutes / 1440)}d ago`
   }
 
+  // Only show unread notifications in the dropdown — read ones are cleared
+  const unreadNotifications = notifications.filter((n) => !n.is_read)
+
   if (!user) return null
 
   return (
@@ -136,19 +138,16 @@ export function NotificationBell() {
             <div className="flex items-center justify-center py-8 text-muted-foreground">
               Loading...
             </div>
-          ) : notifications.length === 0 ? (
+          ) : unreadNotifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
               <Bell className="h-12 w-12 mb-2 opacity-50" />
-              <p className="text-sm">No notifications yet</p>
+              <p className="text-sm">No new notifications</p>
             </div>
           ) : (
-            notifications.map((notification) => (
+            unreadNotifications.map((notification) => (
               <DropdownMenuItem
                 key={notification.id}
-                className={cn(
-                  "flex flex-col items-start gap-1 p-3 cursor-pointer",
-                  !notification.is_read && "bg-muted/50"
-                )}
+                className="flex flex-col items-start gap-1 p-3 cursor-pointer bg-muted/50"
                 onClick={() => handleNotificationClick(notification)}
               >
                 <div className="flex items-start gap-2 w-full">
@@ -158,9 +157,7 @@ export function NotificationBell() {
                       <p className="text-sm font-medium leading-tight">
                         {notification.title}
                       </p>
-                      {!notification.is_read && (
-                        <Badge variant="secondary" className="h-2 w-2 p-0 rounded-full" />
-                      )}
+                      <Badge variant="secondary" className="h-2 w-2 p-0 rounded-full" />
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
                       {notification.message}
@@ -175,20 +172,16 @@ export function NotificationBell() {
           )}
         </ScrollArea>
 
-        {notifications.length > 0 && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="justify-center text-center cursor-pointer"
-              onClick={() => {
-                router.push("/notifications")
-                setIsOpen(false)
-              }}
-            >
-              View all notifications
-            </DropdownMenuItem>
-          </>
-        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          className="justify-center text-center cursor-pointer"
+          onClick={() => {
+            router.push("/notifications")
+            setIsOpen(false)
+          }}
+        >
+          View all notifications
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

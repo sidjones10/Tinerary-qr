@@ -64,8 +64,16 @@ import {
 import type { BusinessTierSlug } from "@/lib/tiers"
 import { WebhookManagement } from "@/components/webhook-management"
 
+interface PromotionMetrics {
+  views: number
+  clicks: number
+  saves: number
+  shares: number
+}
+
 interface EnterpriseAnalyticsDashboardProps {
   tier: BusinessTierSlug
+  promotionMetrics?: PromotionMetrics
 }
 
 // ─── Demo Data ─────────────────────────────────────────────────────
@@ -343,11 +351,19 @@ const tooltipStyle = {
 
 // ─── Component ──────────────────────────────────────────────────────
 
-export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashboardProps) {
+export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics }: EnterpriseAnalyticsDashboardProps) {
   const searchParams = useSearchParams()
   const tabParam = searchParams.get("tab")
   const isEnterprise = tier === "enterprise"
   const isPremium = tier === "premium"
+
+  // Use real data when available, fall back to demo data
+  const realViews = promotionMetrics?.views ?? realtimeMetrics.viewsToday
+  const realClicks = promotionMetrics?.clicks ?? realtimeMetrics.clicksToday
+  const realSaves = promotionMetrics?.saves ?? realtimeMetrics.savesToday
+  const realShares = promotionMetrics?.shares ?? 0
+  const realCtr = realViews > 0 ? Math.round((realClicks / realViews) * 10000) / 100 : 0
+  const realSaveRate = realViews > 0 ? Math.round((realSaves / realViews) * 10000) / 100 : 0
 
   // ── Premium: "Advanced analytics + insights" ──────────────
   // KPIs, secondary metrics, revenue trend (no forecast), funnel,
@@ -386,12 +402,12 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 rounded-xl bg-muted text-center">
               <Eye className="size-5 mx-auto text-muted-foreground mb-2" />
-              <p className="text-2xl font-bold text-foreground">1,234</p>
+              <p className="text-2xl font-bold text-foreground">{realViews.toLocaleString()}</p>
               <p className="text-xs text-muted-foreground">Total Views</p>
             </div>
             <div className="p-4 rounded-xl bg-muted text-center">
               <MousePointerClick className="size-5 mx-auto text-muted-foreground mb-2" />
-              <p className="text-2xl font-bold text-foreground">187</p>
+              <p className="text-2xl font-bold text-foreground">{realClicks.toLocaleString()}</p>
               <p className="text-xs text-muted-foreground">Total Clicks</p>
             </div>
           </div>
@@ -450,10 +466,9 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
               <Eye className="size-4 text-muted-foreground" />
               {showRealtimeMetrics && <Badge variant="secondary" className="text-[10px]">Live</Badge>}
             </div>
-            <p className="mt-2 text-2xl font-bold text-foreground">{realtimeMetrics.viewsToday.toLocaleString()}</p>
+            <p className="mt-2 text-2xl font-bold text-foreground">{realViews.toLocaleString()}</p>
             <div className="flex items-center justify-between mt-1">
-              <p className="text-xs text-muted-foreground">Views Today</p>
-              <MetricChange value={realtimeMetrics.viewsChange} />
+              <p className="text-xs text-muted-foreground">Total Views</p>
             </div>
           </CardContent>
         </Card>
@@ -461,32 +476,29 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
         <Card className="border-border">
           <CardContent className="pt-5">
             <MousePointerClick className="size-4 text-muted-foreground" />
-            <p className="mt-2 text-2xl font-bold text-foreground">{realtimeMetrics.clicksToday.toLocaleString()}</p>
+            <p className="mt-2 text-2xl font-bold text-foreground">{realClicks.toLocaleString()}</p>
             <div className="flex items-center justify-between mt-1">
-              <p className="text-xs text-muted-foreground">Clicks Today</p>
-              <MetricChange value={realtimeMetrics.clicksChange} />
+              <p className="text-xs text-muted-foreground">Total Clicks</p>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-border">
           <CardContent className="pt-5">
-            <Activity className="size-4 text-muted-foreground" />
-            <p className="mt-2 text-2xl font-bold text-foreground">{realtimeMetrics.bookingsToday}</p>
+            <Target className="size-4 text-muted-foreground" />
+            <p className="mt-2 text-2xl font-bold text-foreground">{realCtr}%</p>
             <div className="flex items-center justify-between mt-1">
-              <p className="text-xs text-muted-foreground">Bookings Today</p>
-              <MetricChange value={realtimeMetrics.bookingsChange} />
+              <p className="text-xs text-muted-foreground">Click-Through Rate</p>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-border">
           <CardContent className="pt-5">
-            <DollarSign className="size-4 text-muted-foreground" />
-            <p className="mt-2 text-2xl font-bold text-foreground">${realtimeMetrics.revenueToday.toLocaleString()}</p>
+            <Bookmark className="size-4 text-muted-foreground" />
+            <p className="mt-2 text-2xl font-bold text-foreground">{realSaveRate}%</p>
             <div className="flex items-center justify-between mt-1">
-              <p className="text-xs text-muted-foreground">Revenue Today</p>
-              <MetricChange value={realtimeMetrics.revenueChange} />
+              <p className="text-xs text-muted-foreground">Save Rate</p>
             </div>
           </CardContent>
         </Card>
@@ -496,43 +508,30 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card className="border-border">
           <CardContent className="pt-4 pb-4">
+            <Eye className="size-3.5 text-muted-foreground" />
+            <p className="mt-1.5 text-lg font-bold text-foreground">{realViews.toLocaleString()}</p>
+            <div className="flex items-center justify-between mt-0.5">
+              <p className="text-[11px] text-muted-foreground">Views</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border">
+          <CardContent className="pt-4 pb-4">
+            <MousePointerClick className="size-3.5 text-muted-foreground" />
+            <p className="mt-1.5 text-lg font-bold text-foreground">{realClicks.toLocaleString()}</p>
+            <div className="flex items-center justify-between mt-0.5">
+              <p className="text-[11px] text-muted-foreground">Clicks</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border">
+          <CardContent className="pt-4 pb-4">
             <Target className="size-3.5 text-muted-foreground" />
-            <p className="mt-1.5 text-lg font-bold text-foreground">{realtimeMetrics.ctrToday}%</p>
+            <p className="mt-1.5 text-lg font-bold text-foreground">{realCtr}%</p>
             <div className="flex items-center justify-between mt-0.5">
               <p className="text-[11px] text-muted-foreground">CTR</p>
-              <MetricChange value={realtimeMetrics.ctrChange} />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border">
-          <CardContent className="pt-4 pb-4">
-            <ArrowUpRight className="size-3.5 text-muted-foreground" />
-            <p className="mt-1.5 text-lg font-bold text-foreground">{realtimeMetrics.conversionRate}%</p>
-            <div className="flex items-center justify-between mt-0.5">
-              <p className="text-[11px] text-muted-foreground">Conversion</p>
-              <MetricChange value={realtimeMetrics.conversionChange} />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border">
-          <CardContent className="pt-4 pb-4">
-            <DollarSign className="size-3.5 text-muted-foreground" />
-            <p className="mt-1.5 text-lg font-bold text-foreground">${realtimeMetrics.avgOrderValue.toFixed(0)}</p>
-            <div className="flex items-center justify-between mt-0.5">
-              <p className="text-[11px] text-muted-foreground">Avg Order</p>
-              <MetricChange value={realtimeMetrics.aovChange} />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border">
-          <CardContent className="pt-4 pb-4">
-            <Clock className="size-3.5 text-muted-foreground" />
-            <p className="mt-1.5 text-lg font-bold text-foreground">{realtimeMetrics.avgTimeOnPage}</p>
-            <div className="flex items-center justify-between mt-0.5">
-              <p className="text-[11px] text-muted-foreground">Avg Time</p>
             </div>
           </CardContent>
         </Card>
@@ -540,10 +539,19 @@ export function EnterpriseAnalyticsDashboard({ tier }: EnterpriseAnalyticsDashbo
         <Card className="border-border">
           <CardContent className="pt-4 pb-4">
             <Bookmark className="size-3.5 text-muted-foreground" />
-            <p className="mt-1.5 text-lg font-bold text-foreground">{realtimeMetrics.savesToday}</p>
+            <p className="mt-1.5 text-lg font-bold text-foreground">{realSaves.toLocaleString()}</p>
             <div className="flex items-center justify-between mt-0.5">
               <p className="text-[11px] text-muted-foreground">Saves</p>
-              <MetricChange value={realtimeMetrics.savesChange} />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border">
+          <CardContent className="pt-4 pb-4">
+            <ArrowUpRight className="size-3.5 text-muted-foreground" />
+            <p className="mt-1.5 text-lg font-bold text-foreground">{realSaveRate}%</p>
+            <div className="flex items-center justify-between mt-0.5">
+              <p className="text-[11px] text-muted-foreground">Save Rate</p>
             </div>
           </CardContent>
         </Card>

@@ -78,6 +78,7 @@ export async function GET(request: NextRequest) {
     }
 
     const ctr = totalViews > 0 ? Math.round((totalClicks / totalViews) * 10000) / 100 : 0
+    const saveRate = totalViews > 0 ? Math.round((totalSaves / totalViews) * 10000) / 100 : 0
 
     const response: Record<string, any> = {
       business: {
@@ -93,6 +94,7 @@ export async function GET(request: NextRequest) {
         total_saves: totalSaves,
         total_shares: totalShares,
         ctr_percentage: ctr,
+        save_rate_percentage: saveRate,
         active_promotions: activePromos.length,
         total_promotions: allPromos.length,
       },
@@ -115,8 +117,16 @@ export async function GET(request: NextRequest) {
 
     // Enterprise gets real-time and additional fields
     if (isEnterprise(tier)) {
+      // Count views from the last hour as a proxy for active viewers
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+      const { count: recentViewCount } = await supabase
+        .from("promotion_metrics")
+        .select("id", { count: "exact", head: true })
+        .in("promotion_id", allPromos.map((p) => p.id))
+        .gte("updated_at", oneHourAgo)
+
       response.realtime = {
-        active_viewers: Math.floor(Math.random() * 50) + 5,
+        active_viewers: recentViewCount ?? 0,
         last_updated: new Date().toISOString(),
       }
     }

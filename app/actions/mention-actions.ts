@@ -193,7 +193,7 @@ export async function highlightMention(
       .order("created_at", { ascending: true })
 
     const activePlan = plans?.find(
-      (p) => p.highlights_total === -1 || p.highlights_used < p.highlights_total
+      (p: any) => p.highlights_total === -1 || p.highlights_used < p.highlights_total
     )
 
     if (!activePlan) {
@@ -333,8 +333,8 @@ export async function getMentionStats() {
       .select("view_count, click_count")
       .eq("business_id", business.id)
 
-    const totalViews = highlights?.reduce((sum, h) => sum + (h.view_count || 0), 0) || 0
-    const totalClicks = highlights?.reduce((sum, h) => sum + (h.click_count || 0), 0) || 0
+    const totalViews = highlights?.reduce((sum: number, h: any) => sum + (h.view_count || 0), 0) || 0
+    const totalClicks = highlights?.reduce((sum: number, h: any) => sum + (h.click_count || 0), 0) || 0
 
     // Get active plans
     const { data: activePlans } = await supabase
@@ -347,7 +347,7 @@ export async function getMentionStats() {
     // Calculate remaining highlights
     let remainingHighlights = 0
     let hasUnlimited = false
-    activePlans?.forEach((plan) => {
+    activePlans?.forEach((plan: any) => {
       if (plan.highlights_total === -1) {
         hasUnlimited = true
       } else {
@@ -395,7 +395,7 @@ async function autoHighlightMentions(businessId: string, planId: string, expires
     if (!mentions || mentions.length === 0) return
 
     // Create highlights for each
-    const highlights = mentions.map((m) => ({
+    const highlights = mentions.map((m: any) => ({
       mention_id: m.id,
       plan_id: planId,
       business_id: businessId,
@@ -408,7 +408,7 @@ async function autoHighlightMentions(businessId: string, planId: string, expires
     await supabase.from("mention_highlights").insert(highlights)
 
     // Update mention statuses
-    const mentionIds = mentions.map((m) => m.id)
+    const mentionIds = mentions.map((m: any) => m.id)
     await supabase
       .from("business_mentions")
       .update({ status: "highlighted", updated_at: new Date().toISOString() })

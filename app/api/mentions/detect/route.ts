@@ -118,16 +118,16 @@ export async function POST(request: NextRequest) {
       const uniqueBusinessIds = [
         ...new Set(
           businesses
-            .filter((b) => {
+            .filter((b: any) => {
               // Check if any activity mentioned this business
-              return activities.some((a) => {
+              return activities.some((a: any) => {
                 const fields = [a.title, a.location, a.description]
                 return fields.some(
-                  (f) => f && f.toLowerCase().includes(b.name.toLowerCase())
+                  (f: string | null) => f && f.toLowerCase().includes(b.name.toLowerCase())
                 )
               })
             })
-            .map((b) => b.id)
+            .map((b: any) => b.id)
         ),
       ]
 
@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
               .eq("id", bizId)
               .single()
 
-            const highlights = newMentions.map((m) => ({
+            const highlights = newMentions.map((m: any) => ({
               mention_id: m.id,
               plan_id: plan.id,
               business_id: bizId,
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
             await supabase
               .from("business_mentions")
               .update({ status: "highlighted", updated_at: new Date().toISOString() })
-              .in("id", newMentions.map((m) => m.id))
+              .in("id", newMentions.map((m: any) => m.id))
           }
         }
       }

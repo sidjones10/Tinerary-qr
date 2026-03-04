@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useRef } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Sparkles, ExternalLink, Tag } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
@@ -22,28 +23,28 @@ interface MentionHighlightBadgeProps {
 
 export function MentionHighlightBadge({ highlight }: MentionHighlightBadgeProps) {
   const business = highlight.business_mentions?.businesses
+  const viewTracked = useRef(false)
+
+  // Track view once on mount
+  useEffect(() => {
+    if (viewTracked.current) return
+    viewTracked.current = true
+    const timer = setTimeout(() => {
+      const supabase = createClient()
+      supabase.rpc("increment_highlight_view", { highlight_uuid: highlight.id }).then(() => {}, () => {})
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [highlight.id])
+
   if (!business) return null
 
   const handleBookingClick = () => {
-    // Track click (non-blocking)
     const supabase = createClient()
     supabase.rpc("increment_highlight_click", { highlight_uuid: highlight.id }).then(() => {}, () => {})
 
     if (highlight.booking_url) {
       window.open(highlight.booking_url, "_blank", "noopener,noreferrer")
     }
-  }
-
-  const handleView = () => {
-    // Track view (non-blocking)
-    const supabase = createClient()
-    supabase.rpc("increment_highlight_view", { highlight_uuid: highlight.id }).then(() => {}, () => {})
-  }
-
-  // Fire view tracking on mount
-  if (typeof window !== "undefined") {
-    // Use a small delay to avoid blocking render
-    setTimeout(handleView, 500)
   }
 
   return (

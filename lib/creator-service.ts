@@ -391,6 +391,130 @@ export async function createTemplate(
   }
 }
 
+export async function updateTemplate(
+  userId: string,
+  templateId: string,
+  data: {
+    title?: string
+    description?: string
+    location?: string
+    duration?: number
+    price?: number
+    category?: string
+    status?: "active" | "draft" | "archived"
+  }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = createClient()
+
+    // Verify ownership
+    const { data: existing } = await supabase
+      .from("itinerary_templates")
+      .select("creator_id")
+      .eq("id", templateId)
+      .single()
+
+    if (!existing || existing.creator_id !== userId) {
+      return { success: false, error: "Template not found or not owned by you" }
+    }
+
+    const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() }
+    if (data.title !== undefined) updateData.title = data.title
+    if (data.description !== undefined) updateData.description = data.description
+    if (data.location !== undefined) updateData.location = data.location
+    if (data.duration !== undefined) updateData.duration = data.duration
+    if (data.price !== undefined) updateData.price = data.price
+    if (data.category !== undefined) updateData.category = data.category
+    if (data.status !== undefined) updateData.status = data.status
+
+    const { error } = await supabase
+      .from("itinerary_templates")
+      .update(updateData)
+      .eq("id", templateId)
+
+    if (error) throw error
+    return { success: true }
+  } catch (error) {
+    console.error("Error updating template:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update template",
+    }
+  }
+}
+
+export async function deleteTemplate(
+  userId: string,
+  templateId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = createClient()
+
+    // Verify ownership and check sales
+    const { data: existing } = await supabase
+      .from("itinerary_templates")
+      .select("creator_id, sales_count")
+      .eq("id", templateId)
+      .single()
+
+    if (!existing || existing.creator_id !== userId) {
+      return { success: false, error: "Template not found or not owned by you" }
+    }
+
+    if (existing.sales_count > 0) {
+      return { success: false, error: "Cannot delete a template with existing sales. Archive it instead." }
+    }
+
+    const { error } = await supabase
+      .from("itinerary_templates")
+      .delete()
+      .eq("id", templateId)
+
+    if (error) throw error
+    return { success: true }
+  } catch (error) {
+    console.error("Error deleting template:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to delete template",
+    }
+  }
+}
+
+export async function getUserItinerariesForTemplate(userId: string) {
+  try {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("itineraries")
+      .select("id, title, description, location, start_date, end_date, image_url, itinerary_categories(category)")
+      .eq("user_id", userId)
+      .eq("is_public", true)
+      .order("created_at", { ascending: false })
+      .limit(50)
+
+    if (error) throw error
+
+    return (data || []).map((it: any) => {
+      const start = it.start_date ? new Date(it.start_date) : null
+      const end = it.end_date ? new Date(it.end_date) : null
+      const duration = start && end ? Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1) : 1
+      const category = it.itinerary_categories?.[0]?.category || ""
+      return {
+        id: it.id,
+        title: it.title,
+        description: it.description || "",
+        location: it.location || "",
+        duration,
+        category,
+        imageUrl: it.image_url || null,
+      }
+    })
+  } catch (error) {
+    console.error("Error fetching itineraries for template:", error)
+    return []
+  }
+}
+
 // ─── Sponsorship Inbox ───────────────────────────────────────
 
 export async function getSponsorshipMessages(userId: string): Promise<SponsorshipMessage[]> {

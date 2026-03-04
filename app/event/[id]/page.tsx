@@ -477,8 +477,31 @@ export default function EventPage() {
         const isMockData = !isNaN(Number(id)) && !isValidUUID(id as string)
 
         if (!isMockData && eventData.is_public === false && (!user || user.id !== eventData.user_id)) {
-          setIsPrivate(true)
-          return
+          // Allow access via invite link or if user already has an invitation
+          const urlParams = new URLSearchParams(window.location.search)
+          const isInviteLink = urlParams.has("invite") || urlParams.has("rsvp")
+
+          if (user && isInviteLink) {
+            // Invite link grants access — user will see RSVP banner
+          } else if (user) {
+            // Check if user has an invitation for this event
+            const supabase = createClient()
+            const { data: invitation } = await supabase
+              .from("itinerary_invitations")
+              .select("id")
+              .eq("itinerary_id", id as string)
+              .eq("invitee_id", user.id)
+              .limit(1)
+              .maybeSingle()
+
+            if (!invitation) {
+              setIsPrivate(true)
+              return
+            }
+          } else {
+            setIsPrivate(true)
+            return
+          }
         }
 
         // Mask precise location for non-owners on public itineraries

@@ -274,10 +274,11 @@ export function EventDetail({ event }: EventDetailProps) {
     fetchMyInvitation()
   }, [user?.id, event.id, isOwner])
 
-  // Handle ?rsvp= query param from email links
+  // Handle ?rsvp= query param from email links or invite links
   useEffect(() => {
+    if (!user || isOwner) return
     const rsvpParam = searchParams.get("rsvp")
-    if (!rsvpParam || !myInvitation) return
+    if (!rsvpParam) return
 
     const validResponses = ["accept", "decline", "tentative"]
     if (!validResponses.includes(rsvpParam)) return
@@ -289,7 +290,10 @@ export function EventDetail({ event }: EventDetailProps) {
     }
 
     // Only auto-submit if current status is different
-    if (myInvitation.status !== statusMap[rsvpParam]) {
+    if (myInvitation && myInvitation.status === statusMap[rsvpParam]) {
+      // Already at this status, just clean URL
+    } else if (myInvitation) {
+      // Has existing invitation — use respond route
       fetch(`/api/invitations/${myInvitation.id}/respond`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -306,13 +310,32 @@ export function EventDetail({ event }: EventDetailProps) {
           }
         })
         .catch(() => {})
+    } else {
+      // No existing invitation — use link-based RSVP
+      fetch("/api/invitations/rsvp-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itineraryId: event.id, response: rsvpParam }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            setMyInvitation({ id: data.invitationId, status: statusMap[rsvpParam] as any })
+            toast({
+              title: rsvpParam === "accept" ? "You're going!" : rsvpParam === "tentative" ? "Marked as maybe" : "You've declined",
+              description: `Your response for "${event.title}" has been saved.`,
+            })
+          }
+        })
+        .catch(() => {})
     }
 
     // Clean up the URL
     const url = new URL(window.location.href)
     url.searchParams.delete("rsvp")
+    url.searchParams.delete("invite")
     window.history.replaceState({}, "", url.toString())
-  }, [searchParams, myInvitation])
+  }, [searchParams, myInvitation, user, isOwner])
 
   // Check if we should show the post-event cover update prompt
   useEffect(() => {
@@ -828,16 +851,19 @@ export function EventDetail({ event }: EventDetailProps) {
           )}
         </div>
 
-        {/* RSVP Banner for invited users */}
-        {myInvitation && !isOwner && (
+        {/* RSVP Banner — shown to any logged-in non-owner (Partiful-style) */}
+        {user && !isOwner && (
           <RsvpBanner
-            invitationId={myInvitation.id}
-            currentStatus={myInvitation.status}
+            invitationId={myInvitation?.id}
+            itineraryId={event.id}
+            currentStatus={myInvitation?.status || "pending"}
             eventTitle={event.title}
             hostName={(event.host_name as string) || undefined}
-            onStatusChange={(newStatus) => {
-              setMyInvitation((prev) => prev ? { ...prev, status: newStatus } : prev)
-              // Refresh invitations list if owner is viewing
+            onStatusChange={(newStatus, newInvitationId) => {
+              setMyInvitation((prev) => {
+                const id = newInvitationId || prev?.id || ""
+                return { id, status: newStatus }
+              })
               fetchInvitations()
             }}
           />

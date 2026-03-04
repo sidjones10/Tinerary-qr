@@ -9,58 +9,33 @@ import { cn } from "@/lib/utils"
 type RsvpStatus = "pending" | "accepted" | "declined" | "tentative"
 
 interface RsvpBannerProps {
-  invitationId: string
+  /** Existing invitation ID (if user was explicitly invited) */
+  invitationId?: string
+  /** Itinerary ID (for link-based RSVP when no invitation exists yet) */
+  itineraryId: string
   currentStatus: RsvpStatus
   eventTitle: string
   hostName?: string
-  onStatusChange?: (newStatus: RsvpStatus) => void
+  onStatusChange?: (newStatus: RsvpStatus, invitationId?: string) => void
 }
 
 const STATUS_CONFIG = {
   accepted: {
-    label: "Going",
-    shortLabel: "Going",
-    icon: Check,
-    bg: "bg-emerald-500",
-    activeBg: "bg-emerald-600",
-    ring: "ring-emerald-300",
-    text: "text-white",
     bannerBg: "bg-emerald-50 dark:bg-emerald-950/30",
     bannerBorder: "border-emerald-200 dark:border-emerald-800",
     bannerText: "text-emerald-800 dark:text-emerald-200",
   },
   tentative: {
-    label: "Maybe",
-    shortLabel: "Maybe",
-    icon: HelpCircle,
-    bg: "bg-amber-500",
-    activeBg: "bg-amber-600",
-    ring: "ring-amber-300",
-    text: "text-white",
     bannerBg: "bg-amber-50 dark:bg-amber-950/30",
     bannerBorder: "border-amber-200 dark:border-amber-800",
     bannerText: "text-amber-800 dark:text-amber-200",
   },
   declined: {
-    label: "Can't Go",
-    shortLabel: "Can't Go",
-    icon: X,
-    bg: "bg-red-500",
-    activeBg: "bg-red-600",
-    ring: "ring-red-300",
-    text: "text-white",
     bannerBg: "bg-red-50 dark:bg-red-950/30",
     bannerBorder: "border-red-200 dark:border-red-800",
     bannerText: "text-red-800 dark:text-red-200",
   },
   pending: {
-    label: "Pending",
-    shortLabel: "Respond",
-    icon: HelpCircle,
-    bg: "bg-gray-400",
-    activeBg: "bg-gray-500",
-    ring: "ring-gray-300",
-    text: "text-white",
     bannerBg: "bg-orange-50 dark:bg-orange-950/30",
     bannerBorder: "border-orange-200 dark:border-orange-800",
     bannerText: "text-orange-800 dark:text-orange-200",
@@ -69,12 +44,14 @@ const STATUS_CONFIG = {
 
 export function RsvpBanner({
   invitationId,
+  itineraryId,
   currentStatus,
   eventTitle,
   hostName,
   onStatusChange,
 }: RsvpBannerProps) {
   const [status, setStatus] = useState<RsvpStatus>(currentStatus)
+  const [currentInvitationId, setCurrentInvitationId] = useState<string | undefined>(invitationId)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
 
@@ -90,19 +67,37 @@ export function RsvpBanner({
 
     setIsSubmitting(true)
     try {
-      const res = await fetch(`/api/invitations/${invitationId}/respond`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ response }),
-      })
+      let res: Response
+
+      if (currentInvitationId) {
+        // Use the existing invitation respond route
+        res = await fetch(`/api/invitations/${currentInvitationId}/respond`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ response }),
+        })
+      } else {
+        // Link-based RSVP — creates invitation on-the-fly
+        res = await fetch("/api/invitations/rsvp-link", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ itineraryId, response }),
+        })
+      }
+
+      const data = await res.json()
 
       if (!res.ok) {
-        const data = await res.json()
         throw new Error(data.error || "Failed to update RSVP")
       }
 
+      // If link-based RSVP created a new invitation, save the ID for subsequent updates
+      if (data.invitationId && !currentInvitationId) {
+        setCurrentInvitationId(data.invitationId)
+      }
+
       setStatus(newStatus)
-      onStatusChange?.(newStatus)
+      onStatusChange?.(newStatus, data.invitationId)
 
       const labels: Record<string, string> = {
         accepted: "You're going!",

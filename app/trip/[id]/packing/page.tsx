@@ -85,8 +85,17 @@ export default async function PackingPage({ params }: { params: Promise<{ id: st
     )
   }
 
-  // Fetch packing items
-  const packingItems = await getPackingItems(tripId)
+  // Fetch packing items and transform DB columns to component interface
+  const rawItems = await getPackingItems(tripId)
+  const packingItems = (rawItems || []).map((item: any) => ({
+    id: item.id,
+    name: item.name,
+    packed: item.is_packed ?? false,
+    tripId: item.itinerary_id,
+    category: item.category,
+    quantity: item.quantity,
+    url: item.url,
+  }))
 
   return (
     <div className="container mx-auto py-6 max-w-4xl">

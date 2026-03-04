@@ -44,8 +44,8 @@ const packingListItems = PRODUCT_CATALOG.map((entry) => {
     item: primaryKeyword,
     matched: entry.product.name,
     partner: entry.product.partner,
+    price: entry.product.price,
     autoLinked: true,
-    mentions: 0,
   }
 }).slice(0, 10) // Show top 10
 
@@ -296,8 +296,8 @@ export function AffiliateContent({ userId }: { userId?: string }) {
                     <TableHead className="text-primary-foreground">Packing List Item</TableHead>
                     <TableHead className="text-primary-foreground hidden sm:table-cell">Matched Product</TableHead>
                     <TableHead className="text-primary-foreground hidden md:table-cell">Partner</TableHead>
-                    <TableHead className="text-primary-foreground text-right">Mentions</TableHead>
-                    <TableHead className="text-primary-foreground">Auto-Linked</TableHead>
+                    <TableHead className="text-primary-foreground text-right">Price</TableHead>
+                    <TableHead className="text-primary-foreground">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -311,7 +311,7 @@ export function AffiliateContent({ userId }: { userId?: string }) {
                         </span>
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-foreground">{item.partner}</TableCell>
-                      <TableCell className="text-right text-foreground">{item.mentions}</TableCell>
+                      <TableCell className="text-right font-medium text-foreground">${item.price.toFixed(2)}</TableCell>
                       <TableCell>
                         {item.autoLinked ? (
                           <Badge className="bg-tinerary-peach text-tinerary-dark border-0 text-xs">Active</Badge>

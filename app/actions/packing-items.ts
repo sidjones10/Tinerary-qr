@@ -8,6 +8,9 @@ import { z } from "zod"
 const PackingItemSchema = z.object({
   name: z.string().min(1, "Name is required"),
   packed: z.boolean().default(false),
+  url: z.string().optional(),
+  category: z.string().optional(),
+  quantity: z.number().int().min(1).default(1),
 })
 
 // Helper function to get the current user
@@ -30,9 +33,13 @@ export async function createPackingItem(tripId: string, formData: FormData) {
       redirect("/auth/sign-in")
     }
 
+    const rawQuantity = formData.get("quantity")
     const validatedFields = PackingItemSchema.safeParse({
       name: formData.get("name"),
       packed: formData.get("packed") === "on",
+      url: formData.get("url") || undefined,
+      category: formData.get("category") || undefined,
+      quantity: rawQuantity ? Number.parseInt(rawQuantity as string) || 1 : 1,
     })
 
     if (!validatedFields.success) {
@@ -41,7 +48,7 @@ export async function createPackingItem(tripId: string, formData: FormData) {
       }
     }
 
-    const { name, packed } = validatedFields.data
+    const { name, packed, url, category, quantity } = validatedFields.data
 
     // Use Supabase client directly for better error handling
     const supabase = await createClient()
@@ -50,6 +57,9 @@ export async function createPackingItem(tripId: string, formData: FormData) {
       is_packed: packed,
       itinerary_id: tripId,
       user_id: user.id,
+      url: url || null,
+      category: category || null,
+      quantity: quantity || 1,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -83,9 +93,13 @@ export async function updatePackingItem(itemId: string, tripId: string, formData
       redirect("/auth/sign-in")
     }
 
+    const rawQuantity = formData.get("quantity")
     const validatedFields = PackingItemSchema.safeParse({
       name: formData.get("name"),
       packed: formData.get("packed") === "on",
+      url: formData.get("url") || undefined,
+      category: formData.get("category") || undefined,
+      quantity: rawQuantity ? Number.parseInt(rawQuantity as string) || 1 : 1,
     })
 
     if (!validatedFields.success) {
@@ -94,7 +108,7 @@ export async function updatePackingItem(itemId: string, tripId: string, formData
       }
     }
 
-    const { name, packed } = validatedFields.data
+    const { name, packed, url, category, quantity } = validatedFields.data
 
     // Use Supabase client directly for better error handling
     const supabase = await createClient()
@@ -103,6 +117,9 @@ export async function updatePackingItem(itemId: string, tripId: string, formData
       .update({
         name,
         is_packed: packed,
+        url: url || null,
+        category: category || null,
+        quantity: quantity || 1,
         updated_at: new Date().toISOString(),
       })
       .eq("id", itemId)

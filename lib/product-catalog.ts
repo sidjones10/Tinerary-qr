@@ -360,13 +360,23 @@ export const PRODUCT_CATALOG: ProductMatch[] = [
 /**
  * Find a product match for a packing list item name.
  * Uses keyword matching — returns the first match found.
+ * Requires at least 3 characters for reverse matching to prevent
+ * overly broad matches (e.g. "a" matching everything).
  */
 export function findProductMatch(itemName: string): ProductMatch["product"] | null {
   const normalized = itemName.toLowerCase().trim()
 
+  if (normalized.length === 0) return null
+
   for (const entry of PRODUCT_CATALOG) {
     for (const keyword of entry.itemKeywords) {
-      if (normalized.includes(keyword) || keyword.includes(normalized)) {
+      // Item name contains the full keyword (e.g. "my portable charger" includes "portable charger")
+      if (normalized.includes(keyword)) {
+        return entry.product
+      }
+      // Keyword contains the item name — only if item name is 3+ chars
+      // to prevent short strings like "a" or "ab" from matching everything
+      if (normalized.length >= 3 && keyword.includes(normalized)) {
         return entry.product
       }
     }

@@ -117,6 +117,8 @@ export function PackingList({ simplified = false, items, tripId, onItemsChange }
     // Save values before reset
     const itemName = newItemName
     const itemQuantity = newItemQuantity
+    const itemUrl = newItemUrl.trim()
+    const itemCategory = selectedCategory
 
     // Reset form
     setNewItemName("")
@@ -128,6 +130,10 @@ export function PackingList({ simplified = false, items, tripId, onItemsChange }
     formData.append("name", itemName)
     formData.append("quantity", itemQuantity.toString())
     formData.append("packed", "off")
+    formData.append("category", itemCategory)
+    if (itemUrl) {
+      formData.append("url", itemUrl)
+    }
 
     try {
       startTransition(async () => {
@@ -266,6 +272,10 @@ export function PackingList({ simplified = false, items, tripId, onItemsChange }
     formData.append("name", editingItem.name)
     formData.append("quantity", editingItem.quantity?.toString() || "1")
     formData.append("packed", editingItem.packed ? "on" : "off")
+    formData.append("category", editingItem.category || "clothing")
+    if (editingItem.url) {
+      formData.append("url", editingItem.url)
+    }
 
     try {
       startTransition(async () => {

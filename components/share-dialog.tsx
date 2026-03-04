@@ -34,6 +34,8 @@ export function ShareDialog({ itineraryId, title, description, trigger, userId }
   const { toast } = useToast()
 
   const shareUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/event/${itineraryId}`
+  const inviteUrl = `${shareUrl}?invite=true`
+  const [inviteCopied, setInviteCopied] = useState(false)
 
   useEffect(() => {
     if (open) {
@@ -191,7 +193,28 @@ export function ShareDialog({ itineraryId, title, description, trigger, userId }
 
           <TabsContent value="link" className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="link">Share Link</Label>
+              <Label htmlFor="invite-link">Invite Link</Label>
+              <p className="text-xs text-muted-foreground">Anyone with this link can RSVP to your event</p>
+              <div className="flex gap-2">
+                <Input id="invite-link" value={inviteUrl} readOnly className="flex-1" />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(inviteUrl)
+                    setInviteCopied(true)
+                    toast({ title: "Invite link copied!", description: "Share this link so people can RSVP." })
+                    setTimeout(() => setInviteCopied(false), 2000)
+                  }}
+                  aria-label={inviteCopied ? "Copied" : "Copy invite link"}
+                >
+                  {inviteCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="link">View-only Link</Label>
               <div className="flex gap-2">
                 <Input id="link" value={shareUrl} readOnly className="flex-1" />
                 <Button variant="outline" size="icon" onClick={copyToClipboard} aria-label={copied ? "Copied" : "Copy link"}>

@@ -5,6 +5,7 @@ import { DollarSign, Plus, Users, TrendingUp, Download, Check, X, UserCheck, Loa
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -45,7 +46,7 @@ interface Expense {
     name: string
     avatar_url?: string
   }
-  splits?: {
+  expense_splits?: {
     user_id: string
     amount: number
     is_paid: boolean
@@ -56,6 +57,7 @@ interface Participant {
   id: string
   name: string
   avatar_url?: string
+  role?: string
 }
 
 interface Settlement {
@@ -97,6 +99,8 @@ export function EnhancedExpenseTracker({
     date: new Date().toISOString().split("T")[0],
     currency: "USD",
   })
+  const [splitAmong, setSplitAmong] = useState<string[]>(participants.map(p => p.id))
+  const [settlingId, setSettlingId] = useState<string | null>(null)
 
   const categories = [
     { value: "food", label: "Food & Dining", icon: "🍽️" },
@@ -217,16 +221,17 @@ export function EnhancedExpenseTracker({
 
       if (error) throw error
 
-      // Calculate net balances
+      // Calculate net balances based only on unpaid splits
       const balances: Record<string, number> = {}
 
       expensesData?.forEach((expense) => {
-        // Person who paid gets credit
-        balances[expense.paid_by_user_id] = (balances[expense.paid_by_user_id] || 0) + expense.amount
-
-        // People who owe get debited
+        // Only count unpaid splits from non-payers as outstanding debts
         expense.expense_splits?.forEach((split: any) => {
-          balances[split.user_id] = (balances[split.user_id] || 0) - split.amount
+          if (!split.is_paid && split.user_id !== expense.paid_by_user_id) {
+            // This person still owes the payer
+            balances[split.user_id] = (balances[split.user_id] || 0) - split.amount
+            balances[expense.paid_by_user_id] = (balances[expense.paid_by_user_id] || 0) + split.amount
+          }
         })
       })
 
@@ -283,8 +288,11 @@ export function EnhancedExpenseTracker({
       const amount = parseFloat(newExpense.amount)
       setIsSubmitting(true)
 
-      // Create expense - the DB trigger (create_equal_splits_trigger) automatically
-      // creates equal splits in the expense_splits table, so we don't need to do it manually
+      // If specific participants are selected, use 'custom' split_type so the DB
+      // trigger (which splits among ALL attendees) doesn't run. We create splits manually.
+      const allSelected = splitAmong.length === participants.length
+      const effectiveSplitType = allSelected ? newExpense.split_type : "custom"
+
       const { data: expenseData, error: expenseError } = await supabase
         .from("expenses")
         .insert({
@@ -295,7 +303,7 @@ export function EnhancedExpenseTracker({
           amount,
           category: newExpense.category,
           paid_by_user_id: newExpense.paid_by_user_id,
-          split_type: newExpense.split_type,
+          split_type: effectiveSplitType,
           date: newExpense.date,
           currency: newExpense.currency,
         })
@@ -303,6 +311,23 @@ export function EnhancedExpenseTracker({
         .single()
 
       if (expenseError) throw expenseError
+
+      // If not all participants selected, manually create splits for selected people
+      if (!allSelected && expenseData) {
+        const splitAmount = amount / splitAmong.length
+        const splits = splitAmong.map((userId) => ({
+          expense_id: expenseData.id,
+          user_id: userId,
+          amount: splitAmount,
+          is_paid: userId === newExpense.paid_by_user_id,
+        }))
+
+        const { error: splitError } = await supabase
+          .from("expense_splits")
+          .insert(splits)
+
+        if (splitError) throw splitError
+      }
 
       toast({
         title: "Expense added",
@@ -319,6 +344,7 @@ export function EnhancedExpenseTracker({
         date: new Date().toISOString().split("T")[0],
         currency: "USD",
       })
+      setSplitAmong(participants.map(p => p.id))
 
       fetchExpenses()
       calculateSettlements()
@@ -337,6 +363,66 @@ export function EnhancedExpenseTracker({
       })
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleMarkSettled = async (fromUserId: string, toUserId: string) => {
+    const key = `${fromUserId}-${toUserId}`
+    setSettlingId(key)
+    try {
+      // Find all unpaid splits where fromUser owes toUser (toUser paid the expense)
+      const { data: expensesData, error: fetchError } = await supabase
+        .from("expenses")
+        .select(`
+          id,
+          paid_by_user_id,
+          expense_splits (
+            id,
+            user_id,
+            is_paid
+          )
+        `)
+        .eq("itinerary_id", itineraryId)
+        .eq("paid_by_user_id", toUserId)
+
+      if (fetchError) throw fetchError
+
+      // Collect all unpaid split IDs where fromUser owes
+      const splitIds: string[] = []
+      expensesData?.forEach((expense) => {
+        expense.expense_splits?.forEach((split: any) => {
+          if (split.user_id === fromUserId && !split.is_paid) {
+            splitIds.push(split.id)
+          }
+        })
+      })
+
+      if (splitIds.length > 0) {
+        const { error: updateError } = await supabase
+          .from("expense_splits")
+          .update({ is_paid: true, paid_at: new Date().toISOString() })
+          .in("id", splitIds)
+
+        if (updateError) throw updateError
+      }
+
+      toast({
+        title: "Settlement recorded",
+        description: "The debt has been marked as settled",
+      })
+
+      // Refresh data
+      fetchExpenses()
+      calculateSettlements()
+    } catch (error: any) {
+      console.error("Error marking settlement:", error?.message || error)
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to mark settlement",
+        variant: "destructive",
+      })
+    } finally {
+      setSettlingId(null)
     }
   }
 
@@ -493,6 +579,71 @@ export function EnhancedExpenseTracker({
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Split Among</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto py-0 px-1 text-xs text-muted-foreground"
+                      onClick={() => {
+                        if (splitAmong.length === participants.length) {
+                          setSplitAmong([newExpense.paid_by_user_id || currentUserId || ""])
+                        } else {
+                          setSplitAmong(participants.map(p => p.id))
+                        }
+                      }}
+                    >
+                      {splitAmong.length === participants.length ? "Deselect all" : "Select all"}
+                    </Button>
+                  </div>
+                  <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
+                    {participants.map((p) => (
+                      <div key={p.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`split-${p.id}`}
+                          checked={splitAmong.includes(p.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSplitAmong([...splitAmong, p.id])
+                            } else {
+                              // Don't allow deselecting everyone
+                              if (splitAmong.length > 1) {
+                                setSplitAmong(splitAmong.filter(id => id !== p.id))
+                              }
+                            }
+                          }}
+                        />
+                        <label
+                          htmlFor={`split-${p.id}`}
+                          className="flex items-center gap-2 text-sm cursor-pointer flex-1"
+                        >
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage src={p.avatar_url} />
+                            <AvatarFallback className="text-xs">{p.name.charAt(0).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          <span>{p.name}</span>
+                          {p.id === newExpense.paid_by_user_id && (
+                            <Badge variant="outline" className="text-xs py-0">Payer</Badge>
+                          )}
+                          {p.role === 'invited' && (
+                            <Badge variant="secondary" className="text-xs py-0">Invited</Badge>
+                          )}
+                          {p.role === 'tentative' && (
+                            <Badge variant="secondary" className="text-xs py-0">Maybe</Badge>
+                          )}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  {splitAmong.length > 0 && newExpense.amount && (
+                    <p className="text-xs text-muted-foreground">
+                      {formatAmount(parseFloat(newExpense.amount) / splitAmong.length)} per person ({splitAmong.length} {splitAmong.length === 1 ? "person" : "people"})
+                    </p>
+                  )}
+                </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowAddDialog(false)}>
@@ -562,11 +713,25 @@ export function EnhancedExpenseTracker({
                               </div>
                               <span>{new Date(expense.date).toLocaleDateString()}</span>
                             </div>
+                            {expense.expense_splits && expense.expense_splits.length > 0 && (
+                              <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                                <Users className="h-3 w-3" />
+                                <span>
+                                  Split among {expense.expense_splits.length} {expense.expense_splits.length === 1 ? "person" : "people"}
+                                  {expense.expense_splits.length <= 4 && (
+                                    <>: {expense.expense_splits.map(s => {
+                                      const p = participants.find(pp => pp.id === s.user_id)
+                                      return p?.name || "Unknown"
+                                    }).join(", ")}</>
+                                  )}
+                                </span>
+                              </div>
+                            )}
                           </div>
                           <div className="text-right">
                             <p className="text-lg font-bold">{formatAmount(expense.amount, expense.currency)}</p>
                             <p className="text-xs text-muted-foreground">
-                              {formatAmount(expense.amount / participants.length, expense.currency)} per person
+                              {formatAmount(expense.amount / (expense.expense_splits?.length || participants.length), expense.currency)} per person
                             </p>
                           </div>
                         </div>
@@ -596,43 +761,73 @@ export function EnhancedExpenseTracker({
               </div>
             ) : (
               <div className="space-y-3">
-                {settlements.map((settlement, idx) => (
-                  <Card key={idx}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={settlement.from_user?.avatar_url} />
-                            <AvatarFallback>
-                              {settlement.from_user?.name.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{settlement.from_user?.name}</p>
-                            <p className="text-sm text-muted-foreground">owes</p>
+                {settlements.map((settlement, idx) => {
+                  const settleKey = `${settlement.from_user_id}-${settlement.to_user_id}`
+                  const isSettling = settlingId === settleKey
+                  const canSettle = currentUserId === settlement.from_user_id || currentUserId === settlement.to_user_id
+
+                  return (
+                    <Card key={idx}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={settlement.from_user?.avatar_url} />
+                              <AvatarFallback>
+                                {settlement.from_user?.name.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">{settlement.from_user?.name}</p>
+                              <p className="text-sm text-muted-foreground">owes</p>
+                            </div>
+                          </div>
+
+                          <div className="text-center">
+                            <p className="text-2xl font-bold text-red-500">{formatAmount(settlement.amount)}</p>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <p className="font-medium">{settlement.to_user?.name}</p>
+                              <p className="text-sm text-muted-foreground">receives</p>
+                            </div>
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={settlement.to_user?.avatar_url} />
+                              <AvatarFallback>
+                                {settlement.to_user?.name.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
                           </div>
                         </div>
 
-                        <div className="text-center">
-                          <p className="text-2xl font-bold text-red-500">{formatAmount(settlement.amount)}</p>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <p className="font-medium">{settlement.to_user?.name}</p>
-                            <p className="text-sm text-muted-foreground">receives</p>
+                        {canSettle && (
+                          <div className="mt-3 pt-3 border-t">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full gap-2"
+                              disabled={isSettling}
+                              onClick={() => handleMarkSettled(settlement.from_user_id, settlement.to_user_id)}
+                            >
+                              {isSettling ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  Settling...
+                                </>
+                              ) : (
+                                <>
+                                  <Check className="h-4 w-4" />
+                                  Mark as Settled
+                                </>
+                              )}
+                            </Button>
                           </div>
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={settlement.to_user?.avatar_url} />
-                            <AvatarFallback>
-                              {settlement.to_user?.name.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                        )}
+                      </CardContent>
+                    </Card>
+                  )
+                })}
               </div>
             )}
           </TabsContent>

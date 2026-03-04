@@ -376,10 +376,29 @@ export async function sendEventInviteEmail(
         <!-- Divider -->
         <div style="border-top:3px solid #2c2420;margin:0;"></div>
 
+        <!-- RSVP block -->
+        <div style="background:#F8F3EF;padding:36px;text-align:center;">
+          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:3px;color:#D4792C;margin-bottom:16px;">Are You Going?</div>
+          <table width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td style="width:33%;padding:4px;text-align:center;">
+              <a href="${eventUrl}?rsvp=accept" style="display:inline-block;background:#16a34a;color:#FCFAF8;padding:14px 0;width:100%;max-width:140px;text-decoration:none;border-radius:24px;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:14px;">Going</a>
+            </td>
+            <td style="width:33%;padding:4px;text-align:center;">
+              <a href="${eventUrl}?rsvp=tentative" style="display:inline-block;background:#d97706;color:#FCFAF8;padding:14px 0;width:100%;max-width:140px;text-decoration:none;border-radius:24px;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:14px;">Maybe</a>
+            </td>
+            <td style="width:33%;padding:4px;text-align:center;">
+              <a href="${eventUrl}?rsvp=decline" style="display:inline-block;background:#dc2626;color:#FCFAF8;padding:14px 0;width:100%;max-width:140px;text-decoration:none;border-radius:24px;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:14px;">Can't Go</a>
+            </td>
+          </tr></table>
+        </div>
+
+        <!-- Divider -->
+        <div style="border-top:3px solid #2c2420;margin:0;"></div>
+
         <!-- CTA block -->
-        <div style="background:#D4792C;padding:40px 36px;text-align:center;">
-          <p style="margin:0 0 24px;font-family:'Nunito Sans',sans-serif;font-size:17px;font-weight:600;color:#FCFAF8;line-height:1.5;">Click the link to be part of the itinerary</p>
-          <a href="${eventUrl}" style="display:inline-block;background:#FCFAF8;color:#D4792C;padding:16px 48px;text-decoration:none;border-radius:28px;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.5px;">View Event &amp; RSVP</a>
+        <div style="background:#D4792C;padding:32px 36px;text-align:center;">
+          <p style="margin:0 0 20px;font-family:'Nunito Sans',sans-serif;font-size:15px;font-weight:600;color:#FCFAF8;line-height:1.5;">View the full itinerary and details</p>
+          <a href="${eventUrl}" style="display:inline-block;background:#FCFAF8;color:#D4792C;padding:14px 40px;text-decoration:none;border-radius:28px;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.5px;">View Event</a>
         </div>
 
         <!-- Divider -->
@@ -1218,6 +1237,7 @@ export async function sendAccountDeletionWarningEmail(params: {
 }
 
 /**
+/**
  * Send plan change receipt email (upgrade or downgrade confirmation)
  */
 export async function sendPlanChangeReceiptEmail(
@@ -1318,6 +1338,93 @@ export async function sendPlanChangeReceiptEmail(
       status: "failed",
       errorMessage: error.message,
     })
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Send RSVP notification email to the event host when an invitee responds
+ */
+export async function sendRsvpNotificationEmail(
+  hostEmail: string,
+  hostName: string,
+  inviteeName: string,
+  rsvpStatus: string,
+  eventTitle: string,
+  eventId: string,
+) {
+  try {
+    const eventUrl = `${APP_URL}/event/${eventId}`
+    const safeHostName = escapeHtml(hostName)
+    const safeInviteeName = escapeHtml(inviteeName)
+    const safeEventTitle = escapeHtml(eventTitle)
+
+    const statusEmoji: Record<string, string> = {
+      accepted: "🎉",
+      declined: "😔",
+      tentative: "🤔",
+    }
+    const statusLabel: Record<string, string> = {
+      accepted: "is going",
+      declined: "can't make it",
+      tentative: "might be going",
+    }
+    const statusColor: Record<string, string> = {
+      accepted: "#16a34a",
+      declined: "#dc2626",
+      tentative: "#d97706",
+    }
+
+    const emoji = statusEmoji[rsvpStatus] || ""
+    const label = statusLabel[rsvpStatus] || rsvpStatus
+    const color = statusColor[rsvpStatus] || "#D4792C"
+
+    const subject = `${emoji} ${inviteeName} ${label} to "${eventTitle}"`
+    const resend = getResendClient()
+    const { data: resendData } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: hostEmail,
+      subject,
+      html: postcardEmail(`
+        <!-- Logo banner -->
+        <div style="background:#F8F3EF;padding:28px 36px;text-align:center;">
+          <img src="${APP_URL}/email/tinerary-logo.png" alt="Tinerary" style="width:180px;height:auto;" width="180">
+        </div>
+
+        <!-- Divider -->
+        <div style="border-top:3px solid #2c2420;margin:0;"></div>
+
+        <!-- Hero block -->
+        <div style="background:#2c2420;padding:40px 36px;text-align:center;">
+          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:#D4792C;margin-bottom:16px;">RSVP Update</div>
+          <h1 style="margin:0;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:36px;color:#FCFAF8;line-height:1.1;">${safeEventTitle}</h1>
+        </div>
+
+        <!-- Status block -->
+        <div style="background:${color};padding:32px 36px;text-align:center;">
+          <div style="font-size:48px;margin-bottom:12px;">${emoji}</div>
+          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:24px;color:#FCFAF8;margin-bottom:8px;">${safeInviteeName}</div>
+          <div style="font-family:'Nunito Sans',sans-serif;font-size:16px;color:rgba(252,250,248,0.9);text-transform:uppercase;letter-spacing:2px;">${label}</div>
+        </div>
+
+        <!-- Divider -->
+        <div style="border-top:3px solid #2c2420;margin:0;"></div>
+
+        <!-- CTA block -->
+        <div style="background:#F8F3EF;padding:32px 36px;text-align:center;">
+          <p style="margin:0 0 20px;font-family:'Nunito Sans',sans-serif;font-size:15px;color:#5C4F42;">View your event to see the full guest list.</p>
+          <a href="${eventUrl}" style="display:inline-block;background:#D4792C;color:#FCFAF8;padding:14px 40px;text-decoration:none;border-radius:28px;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.5px;">View Event</a>
+        </div>
+
+        <!-- Divider -->
+        <div style="border-top:3px solid #2c2420;margin:0;"></div>
+      `),
+    })
+    await logEmail({ recipientEmail: hostEmail, emailType: "rsvp_notification", subject, status: "sent", resendId: resendData?.id, metadata: { eventId, rsvpStatus } })
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error sending RSVP notification email:", error)
+    await logEmail({ recipientEmail: hostEmail, emailType: "rsvp_notification", subject: `RSVP update for "${eventTitle}"`, status: "failed", errorMessage: error.message })
     return { success: false, error: error.message }
   }
 }

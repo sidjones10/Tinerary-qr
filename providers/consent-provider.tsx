@@ -3,7 +3,6 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import { useAuth } from "@/providers/auth-provider"
 import { createClient } from "@/lib/supabase/client"
-import { ConsentDialog } from "@/components/consent-dialog"
 
 interface ConsentContextType {
   hasConsent: boolean
@@ -25,7 +24,6 @@ interface ConsentProviderProps {
 export function ConsentProvider({ children }: ConsentProviderProps) {
   const { user, isLoading: authLoading } = useAuth()
   const [hasConsent, setHasConsent] = useState(true)
-  const [needsConsentDialog, setNeedsConsentDialog] = useState(false)
   const [isCheckingConsent, setIsCheckingConsent] = useState(true) // Start as true to prevent flash
   const [accountType, setAccountType] = useState<"minor" | "standard" | "business" | null>(null)
   const [canUsePayments, setCanUsePayments] = useState(true)
@@ -34,7 +32,6 @@ export function ConsentProvider({ children }: ConsentProviderProps) {
   const checkConsent = async () => {
     if (!user) {
       setHasConsent(true) // Guests don't need consent checks
-      setNeedsConsentDialog(false)
       setIsCheckingConsent(false)
       return
     }
@@ -55,7 +52,6 @@ export function ConsentProvider({ children }: ConsentProviderProps) {
         console.error("Error fetching profile:", error)
         // Profile doesn't exist or error - default to allowing access
         setHasConsent(true)
-        setNeedsConsentDialog(false)
         setIsCheckingConsent(false)
         return
       }
@@ -84,29 +80,25 @@ export function ConsentProvider({ children }: ConsentProviderProps) {
           const consentComplete = hasAllConsent && (!isMinor || hasParentalConsent)
 
           setHasConsent(consentComplete)
-          setNeedsConsentDialog(!consentComplete) // Show dialog if consent not complete
           setAccountType(consentData.account_type || null)
           setCanUsePayments(!isMinor || hasParentalConsent)
           setCanUseLocationTracking(
             consentData.location_tracking_consent === true && (!isMinor || hasParentalConsent)
           )
         } else {
-          // No consent data - user needs to complete consent
+          // No consent data yet - consent was collected at signup
           setHasConsent(false)
-          setNeedsConsentDialog(true)
         }
       } catch {
         // Consent columns don't exist yet (migration not run)
         // Default to allowing access for existing users but log it
         console.log("Consent columns not available - migration may not have run yet")
         setHasConsent(true)
-        setNeedsConsentDialog(false)
       }
     } catch (err) {
       console.error("Error checking consent:", err)
       // On error, default to allowing access
       setHasConsent(true)
-      setNeedsConsentDialog(false)
     } finally {
       setIsCheckingConsent(false)
     }
@@ -122,15 +114,7 @@ export function ConsentProvider({ children }: ConsentProviderProps) {
     await checkConsent()
   }
 
-  const handleConsentComplete = () => {
-    setNeedsConsentDialog(false)
-    setHasConsent(true)
-    // Refresh consent data to get updated account type and permissions
-    checkConsent()
-  }
-
-  // Show consent dialog if user needs to complete consent
-  // This blocks access until consent is given
+  // Consent is collected at signup time - no post-login dialog needed
   return (
     <ConsentContext.Provider
       value={{
@@ -143,9 +127,6 @@ export function ConsentProvider({ children }: ConsentProviderProps) {
       }}
     >
       {children}
-      {needsConsentDialog && user && (
-        <ConsentDialog userId={user.id} onConsentComplete={handleConsentComplete} />
-      )}
     </ConsentContext.Provider>
   )
 }

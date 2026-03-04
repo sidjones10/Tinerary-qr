@@ -139,6 +139,7 @@ export function EventDetail({ event }: EventDetailProps) {
   const [invitations, setInvitations] = useState<InvitationInfo[]>([])
   const [loadingInvitations, setLoadingInvitations] = useState(false)
   const [myInvitation, setMyInvitation] = useState<{ id: string; status: "pending" | "accepted" | "declined" | "tentative" } | null>(null)
+  const [attendeeCounts, setAttendeeCounts] = useState<{ going: number; maybe: number }>({ going: 1, maybe: 0 }) // 1 = host
   const isOwner = !!(user && user.id === event.user_id)
   const searchParams = useSearchParams()
 
@@ -253,6 +254,34 @@ export function EventDetail({ event }: EventDetailProps) {
     fetchInvitations()
   }, [event.id, isOwner])
 
+  // Fetch attendee counts (visible to everyone via itinerary_attendees + invitations)
+  const fetchAttendeeCounts = async () => {
+    const supabase = createClient()
+
+    // Count accepted attendees (from itinerary_attendees table, accessible to all)
+    const { count: attendeeCount } = await supabase
+      .from("itinerary_attendees")
+      .select("*", { count: "exact", head: true })
+      .eq("itinerary_id", event.id)
+
+    // For tentative count, we need invitations — only owners can see all via RLS
+    // For non-owners, this will return 0 (acceptable tradeoff)
+    const { count: tentativeCount } = await supabase
+      .from("itinerary_invitations")
+      .select("*", { count: "exact", head: true })
+      .eq("itinerary_id", event.id)
+      .eq("status", "tentative")
+
+    setAttendeeCounts({
+      going: Math.max(1, attendeeCount || 1), // At least the host
+      maybe: tentativeCount || 0,
+    })
+  }
+
+  useEffect(() => {
+    fetchAttendeeCounts()
+  }, [event.id])
+
   // Fetch current user's invitation status (for non-owners)
   useEffect(() => {
     const fetchMyInvitation = async () => {
@@ -274,10 +303,11 @@ export function EventDetail({ event }: EventDetailProps) {
     fetchMyInvitation()
   }, [user?.id, event.id, isOwner])
 
-  // Handle ?rsvp= query param from email links
+  // Handle ?rsvp= query param from email links or invite links
   useEffect(() => {
+    if (!user || isOwner) return
     const rsvpParam = searchParams.get("rsvp")
-    if (!rsvpParam || !myInvitation) return
+    if (!rsvpParam) return
 
     const validResponses = ["accept", "decline", "tentative"]
     if (!validResponses.includes(rsvpParam)) return
@@ -289,7 +319,10 @@ export function EventDetail({ event }: EventDetailProps) {
     }
 
     // Only auto-submit if current status is different
-    if (myInvitation.status !== statusMap[rsvpParam]) {
+    if (myInvitation && myInvitation.status === statusMap[rsvpParam]) {
+      // Already at this status, just clean URL
+    } else if (myInvitation) {
+      // Has existing invitation — use respond route
       fetch(`/api/invitations/${myInvitation.id}/respond`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -306,13 +339,32 @@ export function EventDetail({ event }: EventDetailProps) {
           }
         })
         .catch(() => {})
+    } else {
+      // No existing invitation — use link-based RSVP
+      fetch("/api/invitations/rsvp-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itineraryId: event.id, response: rsvpParam }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            setMyInvitation({ id: data.invitationId, status: statusMap[rsvpParam] as any })
+            toast({
+              title: rsvpParam === "accept" ? "You're going!" : rsvpParam === "tentative" ? "Marked as maybe" : "You've declined",
+              description: `Your response for "${event.title}" has been saved.`,
+            })
+          }
+        })
+        .catch(() => {})
     }
 
     // Clean up the URL
     const url = new URL(window.location.href)
     url.searchParams.delete("rsvp")
+    url.searchParams.delete("invite")
     window.history.replaceState({}, "", url.toString())
-  }, [searchParams, myInvitation])
+  }, [searchParams, myInvitation, user, isOwner])
 
   // Check if we should show the post-event cover update prompt
   useEffect(() => {
@@ -762,38 +814,48 @@ export function EventDetail({ event }: EventDetailProps) {
         </div>
 
         <div className="mb-6">
-          <div className="flex items-start mb-4">
-            {event.location && (
-              <div className="flex items-center text-sm text-muted-foreground mr-4">
-                <MapPin className="h-4 w-4 mr-1" />
-                <span>{event.location}</span>
-              </div>
-            )}
-
-            <div
-              className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={(e) => {
-                e.stopPropagation()
-                if (event.user_id) {
-                  router.push(`/user/${event.user_id}`)
-                }
-              }}
-            >
-              {event.host_avatar && (
-                <img
-                  src={event.host_avatar}
-                  alt={event.host_name}
-                  className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
-                />
-              )}
-              <div>
-                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  Hosted by {event.host_name || "Anonymous"}
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-start gap-4">
+              {event.location && (
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <MapPin className="h-4 w-4 mr-1" />
+                  <span>{event.location}</span>
                 </div>
-                {event.host_username && (
-                  <div className="text-xs text-muted-foreground">{event.host_username}</div>
+              )}
+
+              <div
+                className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (event.user_id) {
+                    router.push(`/user/${event.user_id}`)
+                  }
+                }}
+              >
+                {event.host_avatar && (
+                  <img
+                    src={event.host_avatar}
+                    alt={event.host_name}
+                    className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
+                  />
                 )}
+                <div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    Hosted by {event.host_name || "Anonymous"}
+                  </div>
+                  {event.host_username && (
+                    <div className="text-xs text-muted-foreground">{event.host_username}</div>
+                  )}
+                </div>
               </div>
+            </div>
+
+            {/* Attendee counter */}
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground shrink-0">
+              <Users className="h-4 w-4" />
+              <span className="font-medium text-foreground">
+                {attendeeCounts.going} going{attendeeCounts.maybe > 0 ? ` · ${attendeeCounts.maybe} maybe` : ""}
+              </span>
             </div>
           </div>
 
@@ -828,17 +890,21 @@ export function EventDetail({ event }: EventDetailProps) {
           )}
         </div>
 
-        {/* RSVP Banner for invited users */}
-        {myInvitation && !isOwner && (
+        {/* RSVP Banner — shown to any logged-in non-owner (Partiful-style) */}
+        {user && !isOwner && (
           <RsvpBanner
-            invitationId={myInvitation.id}
-            currentStatus={myInvitation.status}
+            invitationId={myInvitation?.id}
+            itineraryId={event.id}
+            currentStatus={myInvitation?.status || "pending"}
             eventTitle={event.title}
             hostName={(event.host_name as string) || undefined}
-            onStatusChange={(newStatus) => {
-              setMyInvitation((prev) => prev ? { ...prev, status: newStatus } : prev)
-              // Refresh invitations list if owner is viewing
+            onStatusChange={(newStatus, newInvitationId) => {
+              setMyInvitation((prev) => {
+                const id = newInvitationId || prev?.id || ""
+                return { id, status: newStatus }
+              })
               fetchInvitations()
+              fetchAttendeeCounts()
             }}
           />
         )}

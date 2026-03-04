@@ -252,6 +252,7 @@ export function BusinessProfileContent() {
   const { user } = useAuth()
   const [business, setBusiness] = useState<BusinessData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [tier, setTier] = useState<BusinessTierSlug>("basic")
   const [summaryStats, setSummaryStats] = useState({ views: 0, clicks: 0, saves: 0, activeDeals: 0 })
   const [profileData, setProfileData] = useState<ProfileData | null>(null)
@@ -263,32 +264,43 @@ export function BusinessProfileContent() {
     let cancelled = false
 
     const loadData = async () => {
-      // Use server action (service-role, bypasses RLS) to fetch all business data
-      const { profile, business: biz, promos, subscription } = await getBusinessProfileData()
+      try {
+        const result = await getBusinessProfileData()
 
-      if (cancelled) return
-      if (profile) setProfileData(profile)
+        if (cancelled) return
 
-      if (biz) {
-        setBusiness(biz)
-        setTier(getEffectiveTier(subscription, biz.business_tier as BusinessTierSlug))
-
-        if (promos) {
-          const activeDeals = promos.filter((p: any) => p.status === "active").length
-          const views = promos.reduce((s: number, p: any) => s + ((p.promotion_metrics as any)?.views || 0), 0)
-          const clicks = promos.reduce((s: number, p: any) => s + ((p.promotion_metrics as any)?.clicks || 0), 0)
-          const saves = promos.reduce((s: number, p: any) => s + ((p.promotion_metrics as any)?.saves || 0), 0)
-          setSummaryStats({ views, clicks, saves, activeDeals })
-          setPromoDetails(
-            promos.map((p: any) => ({
-              title: p.title || "Untitled",
-              views: (p.promotion_metrics as any)?.views || 0,
-              clicks: (p.promotion_metrics as any)?.clicks || 0,
-              saves: (p.promotion_metrics as any)?.saves || 0,
-              status: p.status || "draft",
-            }))
-          )
+        if (result.error) {
+          setLoadError(result.error)
+          setLoading(false)
+          return
         }
+
+        if (result.profile) setProfileData(result.profile)
+
+        if (result.business) {
+          setBusiness(result.business)
+          setTier(getEffectiveTier(result.subscription, result.business.business_tier as BusinessTierSlug))
+
+          if (result.promos) {
+            const activeDeals = result.promos.filter((p: any) => p.status === "active").length
+            const views = result.promos.reduce((s: number, p: any) => s + ((p.promotion_metrics as any)?.views || 0), 0)
+            const clicks = result.promos.reduce((s: number, p: any) => s + ((p.promotion_metrics as any)?.clicks || 0), 0)
+            const saves = result.promos.reduce((s: number, p: any) => s + ((p.promotion_metrics as any)?.saves || 0), 0)
+            setSummaryStats({ views, clicks, saves, activeDeals })
+            setPromoDetails(
+              result.promos.map((p: any) => ({
+                title: p.title || "Untitled",
+                views: (p.promotion_metrics as any)?.views || 0,
+                clicks: (p.promotion_metrics as any)?.clicks || 0,
+                saves: (p.promotion_metrics as any)?.saves || 0,
+                status: p.status || "draft",
+              }))
+            )
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load business profile:", err)
+        if (!cancelled) setLoadError("fetch_failed")
       }
 
       if (!cancelled) setLoading(false)
@@ -322,8 +334,29 @@ export function BusinessProfileContent() {
   }
 
   if (!business) {
-    router.replace("/settings?section=business")
-    return null
+    return (
+      <Card className="border-border">
+        <CardContent className="py-16 text-center">
+          <Store className="mx-auto size-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold mb-2">
+            {loadError ? "Unable to load business profile" : "No business profile found"}
+          </h3>
+          <p className="text-muted-foreground mb-6">
+            {loadError
+              ? "There was a problem loading your business data. Please try refreshing the page."
+              : "Set up your business profile in settings to get started."}
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              Refresh
+            </Button>
+            <Button onClick={() => router.push("/settings?section=business")}>
+              Go to Settings
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   // Business loaded successfully — clear the sessionStorage flag

@@ -288,6 +288,13 @@ export async function changeTier(
       return { success: true, subscription: currentSub, chargeAmount: 0 }
     }
 
+    // Ensure billing period dates exist (fix for subscriptions created before period tracking)
+    const periodStart = currentSub.current_period_start || now.toISOString()
+    const periodEnd = currentSub.current_period_end || new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    const periodFix = !currentSub.current_period_start || !currentSub.current_period_end
+      ? { current_period_start: periodStart, current_period_end: periodEnd }
+      : {}
+
     if (isDowngrade(currentSub.tier, newTier)) {
       // DOWNGRADE: Schedule for next period, keep current tier now
       const { data, error } = await supabase
@@ -297,6 +304,7 @@ export async function changeTier(
           cancel_at_period_end: false,
           canceled_at: null,
           updated_at: now.toISOString(),
+          ...periodFix,
         })
         .eq("id", subscriptionId)
         .select()
@@ -310,8 +318,8 @@ export async function changeTier(
     const { proratedAmount } = calculateProratedAmount(
       currentSub.tier,
       newTier,
-      currentSub.current_period_start,
-      currentSub.current_period_end,
+      periodStart,
+      periodEnd,
       currentSub.pricing_override as PricingOverride | null
     )
 
@@ -324,6 +332,7 @@ export async function changeTier(
         canceled_at: null,
         paid_amount: (currentSub.paid_amount || 0) + proratedAmount,
         updated_at: now.toISOString(),
+        ...periodFix,
       })
       .eq("id", subscriptionId)
       .select()

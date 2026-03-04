@@ -317,9 +317,11 @@ export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics, businessI
     promotions: [], bookings: [], subscriptionRevenue: 0,
     totalBookingUsers: 0, repeatBookingUsers: 0, userLocations: [], loaded: false,
   })
+  const [refreshing, setRefreshing] = useState(false)
 
   const loadAnalytics = useCallback(async () => {
     if (!businessId) return
+    setRefreshing(true)
     const supabase = createClient()
 
     // Fetch promotions with metrics
@@ -396,9 +398,46 @@ export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics, businessI
       subscriptionRevenue: subRevenue, totalBookingUsers: uniqueUsers,
       repeatBookingUsers: repeatUsers, userLocations: userLocs, loaded: true,
     })
+    setRefreshing(false)
   }, [businessId])
 
   useEffect(() => { loadAnalytics() }, [loadAnalytics])
+
+  const handleExportCSV = useCallback(() => {
+    const rows: string[][] = [
+      ["Metric", "Value"],
+      ["Total Views", String(promotionMetrics?.views ?? analytics.promotions.reduce((s, p) => s + p.views, 0))],
+      ["Total Clicks", String(promotionMetrics?.clicks ?? analytics.promotions.reduce((s, p) => s + p.clicks, 0))],
+      ["Total Saves", String(promotionMetrics?.saves ?? analytics.promotions.reduce((s, p) => s + p.saves, 0))],
+      ["Total Shares", String(promotionMetrics?.shares ?? analytics.promotions.reduce((s, p) => s + p.shares, 0))],
+      ["Total Bookings", String(analytics.bookings.length)],
+      ["Total Revenue", `$${analytics.bookings.reduce((s, b) => s + b.total_price, 0).toFixed(2)}`],
+      ["Unique Customers", String(analytics.totalBookingUsers)],
+      ["Repeat Customers", String(analytics.repeatBookingUsers)],
+      ["Subscription MRR", `$${analytics.subscriptionRevenue}`],
+      [],
+      ["Promotion", "Views", "Clicks", "Saves", "Shares", "Bookings", "Revenue"],
+      ...analytics.promotions.map(p => {
+        const promoBookings = analytics.bookings.filter(b => b.promotion_id === p.id)
+        const promoRevenue = promoBookings.reduce((s, b) => s + b.total_price, 0)
+        return [p.title, String(p.views), String(p.clicks), String(p.saves), String(p.shares), String(promoBookings.length), `$${promoRevenue.toFixed(2)}`]
+      }),
+      [],
+      ["Date", "Bookings", "Revenue"],
+      ...groupBookingsByDate(analytics.bookings).map(d => [d.date, String(d.bookings), `$${d.revenue.toFixed(2)}`]),
+    ]
+
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n")
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `analytics-export-${new Date().toISOString().split("T")[0]}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }, [analytics, promotionMetrics])
 
   // Use real data when available, fall back to promotion metrics prop
   const realViews = promotionMetrics?.views ?? analytics.promotions.reduce((s, p) => s + p.views, 0)
@@ -686,11 +725,11 @@ export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics, businessI
                 API Active
               </Badge>
             )}
-            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1">
-              <RefreshCw className="size-3" />
-              Refresh
+            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={loadAnalytics} disabled={refreshing}>
+              <RefreshCw className={`size-3 ${refreshing ? "animate-spin" : ""}`} />
+              {refreshing ? "Refreshing..." : "Refresh"}
             </Button>
-            <Button size="sm" variant="outline" className="h-7 text-xs gap-1">
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={handleExportCSV}>
               <Download className="size-3" />
               Export
             </Button>
@@ -1020,9 +1059,29 @@ export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics, businessI
                     <CardTitle className="text-base">Daily Performance Report</CardTitle>
                     <CardDescription>Full daily breakdown with ROAS tracking</CardDescription>
                   </div>
-                  <Button size="sm" variant="outline" className="text-xs gap-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs gap-1"
+                    onClick={() => {
+                      const rows = [
+                        ["Date", "Bookings", "Revenue"],
+                        ...computedDailyPerformance.map(d => [d.date, String(d.bookings), `$${d.revenue.toFixed(2)}`]),
+                      ]
+                      const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n")
+                      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+                      const url = URL.createObjectURL(blob)
+                      const link = document.createElement("a")
+                      link.href = url
+                      link.download = `daily-performance-${new Date().toISOString().split("T")[0]}.csv`
+                      document.body.appendChild(link)
+                      link.click()
+                      document.body.removeChild(link)
+                      URL.revokeObjectURL(url)
+                    }}
+                  >
                     <Download className="size-3" />
-                    Export PDF
+                    Export CSV
                   </Button>
                 </div>
               </CardHeader>

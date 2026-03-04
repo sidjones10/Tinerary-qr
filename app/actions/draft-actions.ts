@@ -269,6 +269,37 @@ export async function publishDraft(draftId: string) {
       // We still return success since the itinerary was created
     }
 
+    // Award Tinerary Coins (non-blocking)
+    try {
+      const { awardCoins, hasAlreadyEarned } = await import("@/lib/coins-service")
+
+      // Check if this is the user's first itinerary
+      const { count: existingCount } = await supabase
+        .from("itineraries")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+
+      if (existingCount === 1) {
+        const alreadyGotFirst = await hasAlreadyEarned(userId, "first_itinerary")
+        if (!alreadyGotFirst) {
+          await awardCoins(userId, "first_itinerary", "itinerary", itinerary.id)
+        }
+      }
+
+      // Public itinerary bonus
+      if (draft.is_public !== false) {
+        await awardCoins(userId, "publish_public_itinerary", "itinerary", itinerary.id)
+      }
+
+      // 5+ activities bonus
+      const contentActivities = (draft.content as any)?.activities
+      if (Array.isArray(contentActivities) && contentActivities.length >= 5) {
+        await awardCoins(userId, "add_5_activities", "itinerary", itinerary.id)
+      }
+    } catch (coinError) {
+      console.warn("Coin awarding skipped:", coinError)
+    }
+
     return {
       success: true,
       itinerary,

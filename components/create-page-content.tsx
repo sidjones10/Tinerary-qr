@@ -693,6 +693,37 @@ export default function CreatePageContent() {
         }
       }
 
+      // Award Tinerary Coins (non-blocking)
+      try {
+        const { awardCoins, hasAlreadyEarned } = await import("@/lib/coins-service")
+
+        // Check if this is the user's first itinerary
+        const { count: existingCount } = await supabase
+          .from("itineraries")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id)
+
+        if (existingCount === 1) {
+          const alreadyGotFirst = await hasAlreadyEarned(user.id, "first_itinerary")
+          if (!alreadyGotFirst) {
+            await awardCoins(user.id, "first_itinerary", "itinerary", itinerary.id)
+          }
+        }
+
+        // Public itinerary bonus
+        if (isPublic) {
+          await awardCoins(user.id, "publish_public_itinerary", "itinerary", itinerary.id)
+        }
+
+        // 5+ activities bonus
+        const validActivities = activities.filter((a) => a.title)
+        if (validActivities.length >= 5) {
+          await awardCoins(user.id, "add_5_activities", "itinerary", itinerary.id)
+        }
+      } catch (coinError) {
+        console.warn("Coin awarding skipped:", coinError)
+      }
+
       // Delete the draft if it exists
       if (draftId) {
         await supabase.from("drafts").delete().eq("id", draftId)

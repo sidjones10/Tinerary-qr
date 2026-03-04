@@ -1,9 +1,8 @@
 -- Affiliate Commerce Tables
 -- Adds tables for affiliate link tracking, earnings, and packing item URLs
+-- NOTE: affiliate_clicks is created in 052_create_affiliate_clicks.sql
 
--- ─── Affiliate Clicks ───────────────────────────────────────
--- Tracks individual clicks on affiliate links for analytics
--- Created BEFORE affiliate_links so the index at the bottom doesn't fail
+-- Ensure affiliate_clicks exists (safe no-op if 052 already ran)
 CREATE TABLE IF NOT EXISTS affiliate_clicks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   affiliate_code TEXT NOT NULL,
@@ -11,20 +10,7 @@ CREATE TABLE IF NOT EXISTS affiliate_clicks (
   user_agent TEXT,
   clicked_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE INDEX IF NOT EXISTS idx_affiliate_clicks_code ON affiliate_clicks(affiliate_code);
-
-ALTER TABLE affiliate_clicks ENABLE ROW LEVEL SECURITY;
-
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'affiliate_clicks' AND policyname = 'Service role full access on affiliate_clicks'
-  ) THEN
-    CREATE POLICY "Service role full access on affiliate_clicks"
-      ON affiliate_clicks FOR ALL
-      USING (auth.role() = 'service_role');
-  END IF;
-END $$;
 
 
 -- ─── Affiliate Links ──────────────────────────────────────────
@@ -77,7 +63,6 @@ END $$;
 
 -- ─── Affiliate Earnings ───────────────────────────────────────
 -- Tracks commission earnings per affiliate conversion
--- status: 'pending' (tracked but payouts disabled), 'approved' (ready for payout), 'paid'
 CREATE TABLE IF NOT EXISTS affiliate_earnings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -119,5 +104,4 @@ END $$;
 
 
 -- ─── Add URL column to packing_items ──────────────────────────
--- Allows users to attach product links to packing items
 ALTER TABLE packing_items ADD COLUMN IF NOT EXISTS url TEXT;

@@ -101,6 +101,8 @@ export function EnhancedExpenseTracker({
   })
   const [splitAmong, setSplitAmong] = useState<string[]>(participants.map(p => p.id))
   const [settlingId, setSettlingId] = useState<string | null>(null)
+  // Per-person values for non-equal split types (keyed by user id)
+  const [customValues, setCustomValues] = useState<Record<string, string>>({})
 
   const categories = [
     { value: "food", label: "Food & Dining", icon: "🍽️" },
@@ -284,15 +286,29 @@ export function EnhancedExpenseTracker({
       return
     }
 
+    const amount = parseFloat(newExpense.amount)
+
+    // Validate non-equal split types
+    if (newExpense.split_type === "percentage") {
+      const totalPct = splitAmong.reduce((sum, id) => sum + parseFloat(customValues[id] || "0"), 0)
+      if (Math.abs(totalPct - 100) > 0.01) {
+        toast({ title: "Invalid split", description: "Percentages must add up to 100%", variant: "destructive" })
+        return
+      }
+    } else if (newExpense.split_type === "custom") {
+      const totalCustom = splitAmong.reduce((sum, id) => sum + parseFloat(customValues[id] || "0"), 0)
+      if (Math.abs(totalCustom - amount) > 0.01) {
+        toast({ title: "Invalid split", description: "Custom amounts must add up to the total expense", variant: "destructive" })
+        return
+      }
+    }
+
     try {
-      const amount = parseFloat(newExpense.amount)
       setIsSubmitting(true)
 
-      // If specific participants are selected, use 'custom' split_type so the DB
-      // trigger (which splits among ALL attendees) doesn't run. We create splits manually.
-      const allSelected = splitAmong.length === participants.length
-      const effectiveSplitType = allSelected ? newExpense.split_type : "custom"
-
+      // Save split_type as 'custom' in DB to prevent the DB trigger from creating
+      // its own splits (trigger only fires for 'equal' and uses itinerary_attendees
+      // which may not include all invited users). We create all splits manually.
       const { data: expenseData, error: expenseError } = await supabase
         .from("expenses")
         .insert({
@@ -303,7 +319,7 @@ export function EnhancedExpenseTracker({
           amount,
           category: newExpense.category,
           paid_by_user_id: newExpense.paid_by_user_id,
-          split_type: effectiveSplitType,
+          split_type: "custom",
           date: newExpense.date,
           currency: newExpense.currency,
         })
@@ -312,22 +328,35 @@ export function EnhancedExpenseTracker({
 
       if (expenseError) throw expenseError
 
-      // If not all participants selected, manually create splits for selected people
-      if (!allSelected && expenseData) {
-        const splitAmount = amount / splitAmong.length
-        const splits = splitAmong.map((userId) => ({
+      // Calculate per-person split amounts based on split type
+      const splits = splitAmong.map((userId) => {
+        let splitAmount: number
+        if (newExpense.split_type === "equal") {
+          splitAmount = amount / splitAmong.length
+        } else if (newExpense.split_type === "percentage") {
+          const pct = parseFloat(customValues[userId] || "0")
+          splitAmount = (amount * pct) / 100
+        } else if (newExpense.split_type === "shares") {
+          const userShares = parseFloat(customValues[userId] || "1")
+          const totalShares = splitAmong.reduce((sum, id) => sum + parseFloat(customValues[id] || "1"), 0)
+          splitAmount = (amount * userShares) / totalShares
+        } else {
+          // custom amounts
+          splitAmount = parseFloat(customValues[userId] || "0")
+        }
+        return {
           expense_id: expenseData.id,
           user_id: userId,
-          amount: splitAmount,
+          amount: Math.round(splitAmount * 100) / 100,
           is_paid: userId === newExpense.paid_by_user_id,
-        }))
+        }
+      })
 
-        const { error: splitError } = await supabase
-          .from("expense_splits")
-          .insert(splits)
+      const { error: splitError } = await supabase
+        .from("expense_splits")
+        .insert(splits)
 
-        if (splitError) throw splitError
-      }
+      if (splitError) throw splitError
 
       toast({
         title: "Expense added",
@@ -345,6 +374,7 @@ export function EnhancedExpenseTracker({
         currency: "USD",
       })
       setSplitAmong(participants.map(p => p.id))
+      setCustomValues({})
 
       fetchExpenses()
       calculateSettlements()
@@ -599,49 +629,91 @@ export function EnhancedExpenseTracker({
                       {splitAmong.length === participants.length ? "Deselect all" : "Select all"}
                     </Button>
                   </div>
-                  <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
-                    {participants.map((p) => (
-                      <div key={p.id} className="flex items-center gap-2">
-                        <Checkbox
-                          id={`split-${p.id}`}
-                          checked={splitAmong.includes(p.id)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSplitAmong([...splitAmong, p.id])
-                            } else {
-                              // Don't allow deselecting everyone
-                              if (splitAmong.length > 1) {
-                                setSplitAmong(splitAmong.filter(id => id !== p.id))
+                  <div className="border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
+                    {participants.map((p) => {
+                      const isSelected = splitAmong.includes(p.id)
+                      return (
+                        <div key={p.id} className="flex items-center gap-2">
+                          <Checkbox
+                            id={`split-${p.id}`}
+                            checked={isSelected}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSplitAmong([...splitAmong, p.id])
+                              } else {
+                                if (splitAmong.length > 1) {
+                                  setSplitAmong(splitAmong.filter(id => id !== p.id))
+                                }
                               }
-                            }
-                          }}
-                        />
-                        <label
-                          htmlFor={`split-${p.id}`}
-                          className="flex items-center gap-2 text-sm cursor-pointer flex-1"
-                        >
-                          <Avatar className="h-6 w-6">
-                            <AvatarImage src={p.avatar_url} />
-                            <AvatarFallback className="text-xs">{p.name.charAt(0).toUpperCase()}</AvatarFallback>
-                          </Avatar>
-                          <span>{p.name}</span>
-                          {p.id === newExpense.paid_by_user_id && (
-                            <Badge variant="outline" className="text-xs py-0">Payer</Badge>
+                            }}
+                          />
+                          <label
+                            htmlFor={`split-${p.id}`}
+                            className="flex items-center gap-2 text-sm cursor-pointer flex-1 min-w-0"
+                          >
+                            <Avatar className="h-6 w-6 shrink-0">
+                              <AvatarImage src={p.avatar_url} />
+                              <AvatarFallback className="text-xs">{p.name.charAt(0).toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <span className="truncate">{p.name}</span>
+                            {p.id === newExpense.paid_by_user_id && (
+                              <Badge variant="outline" className="text-xs py-0 shrink-0">Payer</Badge>
+                            )}
+                            {p.role === 'invited' && (
+                              <Badge variant="secondary" className="text-xs py-0 shrink-0">Invited</Badge>
+                            )}
+                            {p.role === 'tentative' && (
+                              <Badge variant="secondary" className="text-xs py-0 shrink-0">Maybe</Badge>
+                            )}
+                          </label>
+                          {isSelected && newExpense.split_type !== "equal" && (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <Input
+                                type="number"
+                                step={newExpense.split_type === "custom" ? "0.01" : "1"}
+                                min="0"
+                                className="w-20 h-7 text-xs"
+                                placeholder={
+                                  newExpense.split_type === "percentage" ? "%" :
+                                  newExpense.split_type === "shares" ? "shares" : "$"
+                                }
+                                value={customValues[p.id] || ""}
+                                onChange={(e) => setCustomValues({ ...customValues, [p.id]: e.target.value })}
+                              />
+                              <span className="text-xs text-muted-foreground">
+                                {newExpense.split_type === "percentage" ? "%" :
+                                 newExpense.split_type === "shares" ? "sh" : "$"}
+                              </span>
+                            </div>
                           )}
-                          {p.role === 'invited' && (
-                            <Badge variant="secondary" className="text-xs py-0">Invited</Badge>
-                          )}
-                          {p.role === 'tentative' && (
-                            <Badge variant="secondary" className="text-xs py-0">Maybe</Badge>
-                          )}
-                        </label>
-                      </div>
-                    ))}
+                        </div>
+                      )
+                    })}
                   </div>
                   {splitAmong.length > 0 && newExpense.amount && (
-                    <p className="text-xs text-muted-foreground">
-                      {formatAmount(parseFloat(newExpense.amount) / splitAmong.length)} per person ({splitAmong.length} {splitAmong.length === 1 ? "person" : "people"})
-                    </p>
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      {newExpense.split_type === "equal" ? (
+                        <p>
+                          {formatAmount(parseFloat(newExpense.amount) / splitAmong.length)} per person ({splitAmong.length} {splitAmong.length === 1 ? "person" : "people"})
+                        </p>
+                      ) : newExpense.split_type === "percentage" ? (
+                        <p>
+                          Total: {splitAmong.reduce((sum, id) => sum + parseFloat(customValues[id] || "0"), 0).toFixed(0)}% of {formatAmount(parseFloat(newExpense.amount))}
+                          {Math.abs(splitAmong.reduce((sum, id) => sum + parseFloat(customValues[id] || "0"), 0) - 100) > 0.01 && (
+                            <span className="text-red-500 ml-1">(must equal 100%)</span>
+                          )}
+                        </p>
+                      ) : newExpense.split_type === "custom" ? (
+                        <p>
+                          Assigned: {formatAmount(splitAmong.reduce((sum, id) => sum + parseFloat(customValues[id] || "0"), 0))} of {formatAmount(parseFloat(newExpense.amount))}
+                          {Math.abs(splitAmong.reduce((sum, id) => sum + parseFloat(customValues[id] || "0"), 0) - parseFloat(newExpense.amount)) > 0.01 && (
+                            <span className="text-red-500 ml-1">(must equal total)</span>
+                          )}
+                        </p>
+                      ) : (
+                        <p>{splitAmong.length} {splitAmong.length === 1 ? "person" : "people"} sharing by shares</p>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

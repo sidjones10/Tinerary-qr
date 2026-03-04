@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Calendar, Clock, Briefcase } from "lucide-react"
+import { Calendar, Clock, Briefcase, ChevronDown, ChevronUp } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { getMutualConnections, getEventMutuals, type MutualConnection } from "@/lib/mutuals-service"
@@ -52,7 +52,9 @@ function getInitials(name: string | null): string {
 
 export function MutualsSection({ eventId, limit = 8, showSeeAll = true, className = "" }: MutualsSectionProps) {
   const [mutuals, setMutuals] = useState<MutualConnection[]>([])
+  const [allMutuals, setAllMutuals] = useState<MutualConnection[]>([])
   const [loading, setLoading] = useState(true)
+  const [expanded, setExpanded] = useState(false)
   const { user } = useAuth()
 
   useEffect(() => {
@@ -74,6 +76,18 @@ export function MutualsSection({ eventId, limit = 8, showSeeAll = true, classNam
 
         if (result.success && result.mutuals) {
           setMutuals(result.mutuals)
+        }
+
+        // Also fetch all mutuals so we can expand later
+        let allResult
+        if (eventId) {
+          allResult = await getEventMutuals(user.id, eventId, 100)
+        } else {
+          allResult = await getMutualConnections(user.id, 100)
+        }
+
+        if (allResult.success && allResult.mutuals) {
+          setAllMutuals(allResult.mutuals)
         }
       } catch (error) {
         console.error("Error fetching mutuals:", error)
@@ -112,19 +126,23 @@ export function MutualsSection({ eventId, limit = 8, showSeeAll = true, classNam
     <div className={`${className}`}>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-white">Mutuals</h2>
-        {showSeeAll && mutuals.length > 0 && (
+        {showSeeAll && allMutuals.length > mutuals.length && (
           <Button
             variant="ghost"
-            className="text-white/70 hover:text-white hover:bg-white/10"
-            asChild
+            className="text-white/70 hover:text-white hover:bg-white/10 gap-1"
+            onClick={() => setExpanded(!expanded)}
           >
-            <Link href="/mutuals">See all</Link>
+            {expanded ? (
+              <>Hide <ChevronUp className="h-4 w-4" /></>
+            ) : (
+              <>See all <ChevronDown className="h-4 w-4" /></>
+            )}
           </Button>
         )}
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-        {mutuals.map((mutual) => {
+        {(expanded ? allMutuals : mutuals).map((mutual) => {
           const gradient = getGradientForUser(mutual.id)
           const initials = getInitials(mutual.name)
 

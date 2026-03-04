@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { DollarSign, Plus, Users, TrendingUp, Download, Check, X, UserCheck } from "lucide-react"
+import { DollarSign, Plus, Users, TrendingUp, Download, Check, X, UserCheck, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -81,6 +81,7 @@ export function EnhancedExpenseTracker({
   const [settlements, setSettlements] = useState<Settlement[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddDialog, setShowAddDialog] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [userCurrency, setUserCurrency] = useState<Currency>("USD")
   const [itineraryCurrency, setItineraryCurrency] = useState<Currency>("USD")
   const { toast } = useToast()
@@ -280,8 +281,10 @@ export function EnhancedExpenseTracker({
 
     try {
       const amount = parseFloat(newExpense.amount)
+      setIsSubmitting(true)
 
-      // Create expense
+      // Create expense - the DB trigger (create_equal_splits_trigger) automatically
+      // creates equal splits in the expense_splits table, so we don't need to do it manually
       const { data: expenseData, error: expenseError } = await supabase
         .from("expenses")
         .insert({
@@ -300,19 +303,6 @@ export function EnhancedExpenseTracker({
         .single()
 
       if (expenseError) throw expenseError
-
-      // Create splits based on split type
-      const splitAmount = amount / participants.length
-      const splits = participants.map((p) => ({
-        expense_id: expenseData.id,
-        user_id: p.id,
-        amount: splitAmount,
-        is_paid: p.id === newExpense.paid_by_user_id,
-      }))
-
-      const { error: splitsError } = await supabase.from("expense_splits").insert(splits)
-
-      if (splitsError) throw splitsError
 
       toast({
         title: "Expense added",
@@ -345,6 +335,8 @@ export function EnhancedExpenseTracker({
         description: error?.message || "Failed to add expense. Please check database schema.",
         variant: "destructive",
       })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -506,7 +498,16 @@ export function EnhancedExpenseTracker({
                 <Button variant="outline" onClick={() => setShowAddDialog(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleAddExpense}>Add Expense</Button>
+                <Button onClick={handleAddExpense} disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    "Add Expense"
+                  )}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

@@ -12,6 +12,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogFooter,
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
@@ -39,6 +40,8 @@ import {
   RotateCcw,
   XCircle,
   Loader2,
+  AlertTriangle,
+  CalendarDays,
 } from "lucide-react"
 import { USER_TIERS, BUSINESS_TIERS } from "@/lib/tiers"
 import { STANDARD_PRICES } from "@/lib/paywall"
@@ -54,6 +57,7 @@ import {
   changeBusinessTier,
   cancelBusinessSubscription,
   resubscribeBusiness,
+  sendPlanChangeEmail,
 } from "@/app/actions/business-actions"
 
 const CATEGORIES = [
@@ -153,6 +157,10 @@ export function BusinessSettings() {
   const [setupWebsite, setSetupWebsite] = useState("")
   const [setupSubmitting, setSetupSubmitting] = useState(false)
   const [setupError, setSetupError] = useState<string | null>(null)
+
+  // Downgrade confirmation dialog state
+  const [downgradeDialogOpen, setDowngradeDialogOpen] = useState(false)
+  const [pendingDowngradeTier, setPendingDowngradeTier] = useState<BusinessTierSlug | null>(null)
   // Load business preferences, subscription, and check for existing business record
   useEffect(() => {
     const loadPreferences = async () => {
@@ -303,15 +311,33 @@ export function BusinessSettings() {
     if (!user) return
 
     if (!subscription) {
-      // No existing subscription — just save preference.
-      // The user still needs to go through the setup dialog to create
-      // the actual business record.
       setSelectedBusinessTier(tier)
       savePreferences(isBusinessMode, selectedType, tier)
       return
     }
 
     if (tier === subscription.tier && !subscription.pending_tier) return
+
+    // Intercept downgrades with a confirmation dialog
+    const isDowngrade = STANDARD_PRICES[tier] < STANDARD_PRICES[subscription.tier as BusinessTierSlug]
+    if (isDowngrade) {
+      setPendingDowngradeTier(tier)
+      setDowngradeDialogOpen(true)
+      return
+    }
+
+    await executeChangeTier(tier)
+  }
+
+  const confirmDowngrade = async () => {
+    if (!pendingDowngradeTier) return
+    setDowngradeDialogOpen(false)
+    await executeChangeTier(pendingDowngradeTier)
+    setPendingDowngradeTier(null)
+  }
+
+  const executeChangeTier = async (tier: BusinessTierSlug) => {
+    if (!user || !subscription) return
 
     setActionLoading(true)
     try {
@@ -336,9 +362,10 @@ export function BusinessSettings() {
 
       if (subStatus?.pendingDowngradeTo) {
         const downTier = BUSINESS_TIERS.find(t => t.slug === subStatus.pendingDowngradeTo)
+        const currentTier = BUSINESS_TIERS.find(t => t.slug === result.subscription?.tier)
         toast({
           title: "Downgrade scheduled",
-          description: `Your plan will switch to ${downTier?.name || tier} at the start of your next billing period. You keep all current features until then.`,
+          description: `Your plan will switch from ${currentTier?.name || "current plan"} ($${currentTier?.price}/mo) to ${downTier?.name || tier} ($${downTier?.price}/mo) at the start of your next billing period. You keep all ${currentTier?.name || "current"} features until then.`,
         })
       } else if (result.chargeAmount && result.chargeAmount > 0) {
         toast({
@@ -351,6 +378,15 @@ export function BusinessSettings() {
           description: "Your subscription has been updated.",
         })
       }
+
+      // Send confirmation email for plan changes
+      sendPlanChangeEmail(
+        subStatus?.pendingDowngradeTo ? "downgrade" : "upgrade",
+        subscription.tier as BusinessTierSlug,
+        tier,
+        result.chargeAmount || 0,
+        subscription.current_period_end || null
+      ).catch(err => console.error("Failed to send plan change email:", err))
 
       // Update the businesses table to reflect upgrades (immediate tier changes)
       if (result.subscription && !subStatus?.pendingDowngradeTo) {
@@ -689,7 +725,8 @@ export function BusinessSettings() {
                     <ArrowDown className="h-4 w-4 text-blue-600" />
                     <AlertDescription className="text-blue-800 dark:text-blue-200">
                       <span className="font-medium">Downgrade scheduled.</span>{" "}
-                      Your plan will switch to {BUSINESS_TIERS.find(t => t.slug === subscription.pending_tier)?.name} on{" "}
+                      Your plan will switch to {BUSINESS_TIERS.find(t => t.slug === subscription.pending_tier)?.name}{" "}
+                      (${BUSINESS_TIERS.find(t => t.slug === subscription.pending_tier)?.price}/mo) on{" "}
                       {new Date(subscription.current_period_end).toLocaleDateString()}.
                       You keep all {BUSINESS_TIERS.find(t => t.slug === subscription.tier)?.name} features until then.
                       <Button
@@ -704,6 +741,27 @@ export function BusinessSettings() {
                     </AlertDescription>
                   </Alert>
                 )}
+
+                {/* Current billing period info */}
+                {subscription && subscription.current_period_end && !subscription.cancel_at_period_end && !subscription.pending_tier && (() => {
+                  const periodEnd = new Date(subscription.current_period_end)
+                  const now = new Date()
+                  const daysLeft = Math.max(0, Math.ceil((periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+                  const currentTier = BUSINESS_TIERS.find(t => t.slug === subscription.tier)
+                  return (
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border">
+                      <CalendarDays className="size-5 text-primary shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground">
+                          {daysLeft} {daysLeft === 1 ? "day" : "days"} remaining
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {currentTier?.name} plan · ${currentTier?.price}/mo · renews {periodEnd.toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })()}
 
                 {BUSINESS_TIERS.map((tier) => {
                   const isCurrent = subscription?.tier === tier.slug
@@ -769,7 +827,7 @@ export function BusinessSettings() {
                         {isDowngradeFromCurrent && !isPendingDowngrade && (
                           <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
                             <ArrowDown className="size-3" />
-                            Takes effect next billing period
+                            Switch to ${tier.price}/mo — takes effect next billing period
                           </p>
                         )}
                       </div>
@@ -1007,6 +1065,104 @@ export function BusinessSettings() {
               )}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Downgrade Confirmation Dialog */}
+      <Dialog open={downgradeDialogOpen} onOpenChange={(open) => {
+        setDowngradeDialogOpen(open)
+        if (!open) setPendingDowngradeTier(null)
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="size-5 text-amber-500" />
+              Confirm plan downgrade
+            </DialogTitle>
+            <DialogDescription>
+              Please review the changes before proceeding.
+            </DialogDescription>
+          </DialogHeader>
+
+          {pendingDowngradeTier && subscription && (() => {
+            const currentTier = BUSINESS_TIERS.find(t => t.slug === subscription.tier)
+            const newTier = BUSINESS_TIERS.find(t => t.slug === pendingDowngradeTier)
+            const periodEnd = subscription.current_period_end
+              ? new Date(subscription.current_period_end)
+              : null
+            const lostFeatures = currentTier?.features.filter(
+              f => !newTier?.features.includes(f)
+            ) || []
+
+            return (
+              <div className="space-y-4 mt-1">
+                {/* Price change summary */}
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border">
+                  <div className="text-center flex-1">
+                    <p className="text-xs text-muted-foreground">Current</p>
+                    <p className="text-sm font-semibold">{currentTier?.name}</p>
+                    <p className="text-lg font-bold text-foreground">${currentTier?.price}/mo</p>
+                  </div>
+                  <ArrowRight className="size-5 text-muted-foreground mx-2 shrink-0" />
+                  <div className="text-center flex-1">
+                    <p className="text-xs text-muted-foreground">New plan</p>
+                    <p className="text-sm font-semibold">{newTier?.name}</p>
+                    <p className="text-lg font-bold text-green-600">${newTier?.price}/mo</p>
+                  </div>
+                </div>
+
+                {/* When it takes effect */}
+                {periodEnd && (
+                  <div className="flex items-start gap-2 text-sm">
+                    <CalendarDays className="size-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <p className="text-muted-foreground">
+                      You&apos;ll keep all <span className="font-medium text-foreground">{currentTier?.name}</span> features until{" "}
+                      <span className="font-medium text-foreground">{periodEnd.toLocaleDateString()}</span>.
+                      Your next bill will be <span className="font-medium text-foreground">${newTier?.price}/mo</span>.
+                    </p>
+                  </div>
+                )}
+
+                {/* Features you'll lose */}
+                {lostFeatures.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Features you&apos;ll lose</p>
+                    <div className="space-y-1.5">
+                      {lostFeatures.map(f => (
+                        <div key={f} className="flex items-start gap-2">
+                          <XCircle className="size-3.5 text-red-400 shrink-0 mt-0.5" />
+                          <span className="text-xs text-muted-foreground">{f}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDowngradeDialogOpen(false)
+                setPendingDowngradeTier(null)
+              }}
+            >
+              Keep current plan
+            </Button>
+            <Button
+              variant="default"
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+              onClick={confirmDowngrade}
+              disabled={actionLoading}
+            >
+              {actionLoading ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : null}
+              Confirm downgrade
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

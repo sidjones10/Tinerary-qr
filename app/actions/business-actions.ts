@@ -539,3 +539,36 @@ export async function resubscribeBusiness(
     return { success: false, error: (error as Error).message }
   }
 }
+
+// ─── Plan Change Confirmation Email ──────────────────────────
+
+export async function sendPlanChangeEmail(
+  changeType: "upgrade" | "downgrade",
+  fromTier: BusinessTierSlug,
+  toTier: BusinessTierSlug,
+  chargeAmount: number,
+  periodEnd: string | null
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient()
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    if (!session) return { success: false, error: "Not authenticated" }
+
+    const { sendPlanChangeReceiptEmail } = await import("@/lib/email-notifications")
+    await sendPlanChangeReceiptEmail(
+      session.user.email!,
+      changeType,
+      fromTier,
+      toTier,
+      chargeAmount,
+      periodEnd
+    )
+
+    return { success: true }
+  } catch (error) {
+    console.error("Error sending plan change email:", error)
+    return { success: false, error: (error as Error).message }
+  }
+}

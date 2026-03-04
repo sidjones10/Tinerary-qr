@@ -459,16 +459,26 @@ export async function cancelBusinessSubscription(
       db = supabase
     }
 
-    // Verify ownership
-    const { data: currentSub } = await db
+    // Fetch subscription
+    const { data: currentSub, error: fetchError } = await db
       .from("business_subscriptions")
-      .select("*, businesses!inner(user_id)")
+      .select("*")
       .eq("id", subscriptionId)
       .single()
 
-    if (!currentSub || (currentSub as any).businesses?.user_id !== session.user.id) {
-      return { success: false, error: "Unauthorized" }
+    if (fetchError || !currentSub) {
+      return { success: false, error: "Subscription not found" }
     }
+
+    // Verify ownership via separate query (avoids join issues)
+    const { data: biz } = await db
+      .from("businesses")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .eq("id", currentSub.business_id)
+      .single()
+
+    if (!biz) return { success: false, error: "Unauthorized" }
 
     const now = new Date()
     const { data, error } = await db
@@ -509,16 +519,26 @@ export async function resubscribeBusiness(
       db = supabase
     }
 
-    // Verify ownership
-    const { data: currentSub } = await db
+    // Fetch subscription
+    const { data: currentSub, error: fetchError } = await db
       .from("business_subscriptions")
-      .select("*, businesses!inner(user_id)")
+      .select("*")
       .eq("id", subscriptionId)
       .single()
 
-    if (!currentSub || (currentSub as any).businesses?.user_id !== session.user.id) {
-      return { success: false, error: "Unauthorized" }
+    if (fetchError || !currentSub) {
+      return { success: false, error: "Subscription not found" }
     }
+
+    // Verify ownership via separate query (avoids join issues)
+    const { data: biz } = await db
+      .from("businesses")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .eq("id", currentSub.business_id)
+      .single()
+
+    if (!biz) return { success: false, error: "Unauthorized" }
 
     const now = new Date()
     const { data, error } = await db

@@ -24,12 +24,29 @@ CREATE TABLE IF NOT EXISTS coin_transactions (
   amount INTEGER NOT NULL, -- positive = earn, negative = spend
   type TEXT NOT NULL CHECK (type IN ('earn', 'spend')),
   action TEXT NOT NULL, -- machine-readable action key
-  description TEXT NOT NULL, -- human-readable description
+  description TEXT NOT NULL DEFAULT '', -- human-readable description
   reference_type TEXT, -- 'itinerary', 'review', 'referral', 'redemption', etc.
-  reference_id UUID, -- ID of related entity
+  reference_id TEXT, -- ID of related entity (TEXT for flexibility)
   metadata JSONB DEFAULT '{}', -- extra context (e.g. reward slug)
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- If the table already existed from an earlier migration (05_creator_monetization),
+-- it may be missing columns that the functions below require. Add them now.
+ALTER TABLE coin_transactions ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT '';
+ALTER TABLE coin_transactions ADD COLUMN IF NOT EXISTS reference_type TEXT;
+ALTER TABLE coin_transactions ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}';
+
+-- Ensure reference_id is TEXT (older migration used TEXT, this migration originally used UUID)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'coin_transactions' AND column_name = 'reference_id' AND data_type = 'uuid'
+  ) THEN
+    ALTER TABLE coin_transactions ALTER COLUMN reference_id TYPE TEXT USING reference_id::TEXT;
+  END IF;
+END $$;
 
 -- ─── Coin redemptions (spending records) ─────────────────────────
 CREATE TABLE IF NOT EXISTS coin_redemptions (
@@ -115,7 +132,7 @@ CREATE OR REPLACE FUNCTION award_coins(
   p_action TEXT,
   p_description TEXT,
   p_reference_type TEXT DEFAULT NULL,
-  p_reference_id UUID DEFAULT NULL,
+  p_reference_id TEXT DEFAULT NULL,
   p_metadata JSONB DEFAULT '{}'
 )
 RETURNS UUID AS $$
@@ -129,6 +146,10 @@ BEGIN
   INTO v_multiplier
   FROM profiles
   WHERE id = p_user_id;
+
+  IF NOT FOUND THEN
+    v_multiplier := 1;
+  END IF;
 
   v_final_amount := p_amount * v_multiplier;
 
@@ -158,7 +179,7 @@ CREATE OR REPLACE FUNCTION spend_coins(
   p_action TEXT,
   p_description TEXT,
   p_reference_type TEXT DEFAULT NULL,
-  p_reference_id UUID DEFAULT NULL,
+  p_reference_id TEXT DEFAULT NULL,
   p_metadata JSONB DEFAULT '{}'
 )
 RETURNS UUID AS $$
@@ -197,5 +218,10 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ─── Grant execute on functions to authenticated users ───────────
 GRANT EXECUTE ON FUNCTION ensure_coin_balance(UUID) TO authenticated;
-GRANT EXECUTE ON FUNCTION award_coins(UUID, INTEGER, TEXT, TEXT, TEXT, UUID, JSONB) TO authenticated;
-GRANT EXECUTE ON FUNCTION spend_coins(UUID, INTEGER, TEXT, TEXT, TEXT, UUID, JSONB) TO authenticated;
+GRANT EXECUTE ON FUNCTION award_coins(UUID, INTEGER, TEXT, TEXT, TEXT, TEXT, JSONB) TO authenticated;
+GRANT EXECUTE ON FUNCTION spend_coins(UUID, INTEGER, TEXT, TEXT, TEXT, TEXT, JSONB) TO authenticated;
+
+-- ─── Grant table access ─────────────────────────────────────────
+GRANT SELECT, INSERT, UPDATE ON coin_balances TO authenticated;
+GRANT SELECT, INSERT ON coin_transactions TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON coin_redemptions TO authenticated;

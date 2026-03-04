@@ -23,10 +23,11 @@ import {
   Zap,
   Percent,
   Users,
+  Inbox,
 } from "lucide-react"
 import { AFFILIATE_COMMISSIONS } from "@/lib/tiers"
 import { PRODUCT_CATALOG } from "@/lib/product-catalog"
-import { getAffiliateStats } from "@/app/actions/promotion-actions"
+import { getAffiliateStats, getAffiliateDetails } from "@/app/actions/promotion-actions"
 
 // Fallback stats shown until real data is available
 const fallbackStats = [
@@ -34,84 +35,6 @@ const fallbackStats = [
   { label: "Active Links", value: "0", change: "--", icon: Link2 },
   { label: "Click-through Rate", value: "0%", change: "--", icon: ArrowUpRight },
   { label: "Conversions", value: "0", change: "--", icon: ShoppingCart },
-]
-
-const topAffiliateProducts = [
-  {
-    name: "Portable Phone Charger (Anker)",
-    partner: "Amazon Associates",
-    clicks: 342,
-    conversions: 48,
-    revenue: "$186.40",
-    category: "Travel Tech",
-  },
-  {
-    name: "Reef-Safe Sunscreen (Sun Bum)",
-    partner: "Amazon Associates",
-    clicks: 287,
-    conversions: 39,
-    revenue: "$124.80",
-    category: "Beach & Sun",
-  },
-  {
-    name: "Packing Cubes Set (Peak Design)",
-    partner: "REI",
-    clicks: 198,
-    conversions: 28,
-    revenue: "$98.00",
-    category: "Organization",
-  },
-  {
-    name: "Travel Adapter (Universal)",
-    partner: "Amazon Associates",
-    clicks: 156,
-    conversions: 22,
-    revenue: "$72.60",
-    category: "Travel Tech",
-  },
-  {
-    name: "Noise-Cancelling Earbuds (Sony)",
-    partner: "Amazon Associates",
-    clicks: 134,
-    conversions: 15,
-    revenue: "$210.00",
-    category: "Electronics",
-  },
-]
-
-const experienceReferrals = [
-  {
-    name: "Golden Gate Sunset Sail",
-    partner: "Booking.com",
-    referrals: 45,
-    conversions: 12,
-    revenue: "$320.00",
-    status: "Active",
-  },
-  {
-    name: "Alcatraz Night Tour",
-    partner: "Viator",
-    referrals: 38,
-    conversions: 8,
-    revenue: "$180.00",
-    status: "Active",
-  },
-  {
-    name: "Napa Wine Train",
-    partner: "Booking.com",
-    referrals: 29,
-    conversions: 6,
-    revenue: "$240.00",
-    status: "Active",
-  },
-  {
-    name: "SF Street Art Walk",
-    partner: "Airbnb Experiences",
-    referrals: 22,
-    conversions: 5,
-    revenue: "$87.50",
-    status: "Paused",
-  },
 ]
 
 // Build packing list matches from the live product catalog
@@ -128,6 +51,8 @@ const packingListItems = PRODUCT_CATALOG.map((entry) => {
 
 export function AffiliateContent({ userId }: { userId?: string }) {
   const [affiliateStats, setAffiliateStats] = useState(fallbackStats)
+  const [products, setProducts] = useState<any[]>([])
+  const [experiences, setExperiences] = useState<any[]>([])
 
   useEffect(() => {
     if (!userId) return
@@ -145,6 +70,13 @@ export function AffiliateContent({ userId }: { userId?: string }) {
           { label: "Click-through Rate", value: ctr, change: "--", icon: ArrowUpRight },
           { label: "Conversions", value: String(totalConversions), change: "--", icon: ShoppingCart },
         ])
+      }
+    }).catch(console.error)
+
+    getAffiliateDetails(userId).then((result) => {
+      if (result.success && result.data) {
+        setProducts(result.data.products)
+        setExperiences(result.data.experiences)
       }
     }).catch(console.error)
   }, [userId])
@@ -265,37 +197,37 @@ export function AffiliateContent({ userId }: { userId?: string }) {
           <Card className="border-border">
             <CardHeader>
               <CardTitle>Top Affiliate Products</CardTitle>
-              <CardDescription>Best-performing auto-linked products from packing lists</CardDescription>
+              <CardDescription>Best-performing affiliate product links by revenue</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-tinerary-dark hover:bg-tinerary-dark">
-                    <TableHead className="text-primary-foreground">Product</TableHead>
-                    <TableHead className="text-primary-foreground hidden sm:table-cell">Partner</TableHead>
-                    <TableHead className="text-primary-foreground hidden md:table-cell">Category</TableHead>
-                    <TableHead className="text-primary-foreground text-right">Clicks</TableHead>
-                    <TableHead className="text-primary-foreground text-right hidden sm:table-cell">Conversions</TableHead>
-                    <TableHead className="text-primary-foreground text-right">Revenue</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {topAffiliateProducts.map((product) => (
-                    <TableRow key={product.name}>
-                      <TableCell className="font-medium text-foreground">{product.name}</TableCell>
-                      <TableCell className="hidden sm:table-cell text-foreground">{product.partner}</TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <Badge variant="secondary" className="bg-tinerary-peach text-tinerary-dark border-0 text-xs">
-                          {product.category}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right text-foreground">{product.clicks}</TableCell>
-                      <TableCell className="text-right hidden sm:table-cell text-foreground">{product.conversions}</TableCell>
-                      <TableCell className="text-right font-semibold text-tinerary-salmon">{product.revenue}</TableCell>
+              {products.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-tinerary-dark hover:bg-tinerary-dark">
+                      <TableHead className="text-primary-foreground">Product Link</TableHead>
+                      <TableHead className="text-primary-foreground text-right">Clicks</TableHead>
+                      <TableHead className="text-primary-foreground text-right hidden sm:table-cell">Conversions</TableHead>
+                      <TableHead className="text-primary-foreground text-right">Revenue</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {products.map((product, i) => (
+                      <TableRow key={i}>
+                        <TableCell className="font-medium text-foreground max-w-[200px] truncate">{product.name}</TableCell>
+                        <TableCell className="text-right text-foreground">{product.clicks}</TableCell>
+                        <TableCell className="text-right hidden sm:table-cell text-foreground">{product.conversions}</TableCell>
+                        <TableCell className="text-right font-semibold text-tinerary-salmon">{product.revenue}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <Inbox className="size-10 mb-3 opacity-40" />
+                  <p className="text-sm">No affiliate product data yet</p>
+                  <p className="text-xs mt-1">Product performance will appear here as you generate and share affiliate links</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -308,31 +240,39 @@ export function AffiliateContent({ userId }: { userId?: string }) {
               <CardDescription>Commission earned from experience and booking referrals</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col gap-3">
-                {experienceReferrals.map((exp) => (
-                  <div key={exp.name} className="flex items-center justify-between p-4 rounded-xl bg-muted">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-foreground">{exp.name}</p>
-                        <Badge
-                          variant="secondary"
-                          className={
-                            exp.status === "Active"
-                              ? "bg-tinerary-peach text-tinerary-dark border-0 text-xs"
-                              : "bg-secondary text-secondary-foreground border-0 text-xs"
-                          }
-                        >
-                          {exp.status}
-                        </Badge>
+              {experiences.length > 0 ? (
+                <div className="flex flex-col gap-3">
+                  {experiences.map((exp, i) => (
+                    <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-muted">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-foreground">{exp.name}</p>
+                          <Badge
+                            variant="secondary"
+                            className={
+                              exp.status === "Active"
+                                ? "bg-tinerary-peach text-tinerary-dark border-0 text-xs"
+                                : "bg-secondary text-secondary-foreground border-0 text-xs"
+                            }
+                          >
+                            {exp.status}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {exp.category} &middot; {exp.referrals} referrals &middot; {exp.conversions} conversions
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        via {exp.partner} &middot; {exp.referrals} referrals &middot; {exp.conversions} conversions
-                      </p>
+                      <p className="text-sm font-bold text-tinerary-salmon shrink-0 ml-4">{exp.revenue}</p>
                     </div>
-                    <p className="text-sm font-bold text-tinerary-salmon shrink-0 ml-4">{exp.revenue}</p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <Inbox className="size-10 mb-3 opacity-40" />
+                  <p className="text-sm">No experience referral data yet</p>
+                  <p className="text-xs mt-1">Share promotion referral links to start earning commissions</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

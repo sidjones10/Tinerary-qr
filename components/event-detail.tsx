@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { format } from "date-fns"
 import { ArrowLeft, Calendar, MapPin, Clock, Share2, Heart, Users, Edit, Trash2, Loader2, Flag, Mail, Phone, CheckCircle2, XCircle } from "lucide-react"
 import { MentionHighlightBadge } from "@/components/mention-highlight-badge"
@@ -29,6 +29,7 @@ import { getFontFamily } from "@/components/font-selector"
 import { PostEventCoverPrompt } from "@/components/post-event-cover-prompt"
 import { shouldPromptCoverUpdate } from "@/lib/reminder-utils"
 import { ReportDialog } from "@/components/report-dialog"
+import { RsvpBanner } from "@/components/rsvp-banner"
 
 interface Activity {
   id: string
@@ -72,7 +73,7 @@ interface Attendee {
 
 interface InvitationInfo {
   id: string
-  status: "pending" | "accepted" | "declined"
+  status: "pending" | "accepted" | "declined" | "tentative"
   created_at: string
   invitee_name?: string
   invitee_email?: string
@@ -137,7 +138,9 @@ export function EventDetail({ event }: EventDetailProps) {
   const [highlightsByActivity, setHighlightsByActivity] = useState<Record<string, any>>({})
   const [invitations, setInvitations] = useState<InvitationInfo[]>([])
   const [loadingInvitations, setLoadingInvitations] = useState(false)
+  const [myInvitation, setMyInvitation] = useState<{ id: string; status: "pending" | "accepted" | "declined" | "tentative" } | null>(null)
   const isOwner = !!(user && user.id === event.user_id)
+  const searchParams = useSearchParams()
 
   // Fetch mention highlights for this itinerary (non-blocking)
   useEffect(() => {
@@ -249,6 +252,67 @@ export function EventDetail({ event }: EventDetailProps) {
   useEffect(() => {
     fetchInvitations()
   }, [event.id, isOwner])
+
+  // Fetch current user's invitation status (for non-owners)
+  useEffect(() => {
+    const fetchMyInvitation = async () => {
+      if (!user?.id || isOwner) return
+      const supabase = createClient()
+      const { data } = await supabase
+        .from("itinerary_invitations")
+        .select("id, status")
+        .eq("itinerary_id", event.id)
+        .eq("invitee_id", user.id)
+        .limit(1)
+        .maybeSingle()
+
+      if (data) {
+        setMyInvitation({ id: data.id, status: data.status as any })
+      }
+    }
+
+    fetchMyInvitation()
+  }, [user?.id, event.id, isOwner])
+
+  // Handle ?rsvp= query param from email links
+  useEffect(() => {
+    const rsvpParam = searchParams.get("rsvp")
+    if (!rsvpParam || !myInvitation) return
+
+    const validResponses = ["accept", "decline", "tentative"]
+    if (!validResponses.includes(rsvpParam)) return
+
+    const statusMap: Record<string, string> = {
+      accept: "accepted",
+      decline: "declined",
+      tentative: "tentative",
+    }
+
+    // Only auto-submit if current status is different
+    if (myInvitation.status !== statusMap[rsvpParam]) {
+      fetch(`/api/invitations/${myInvitation.id}/respond`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ response: rsvpParam }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            setMyInvitation((prev) => prev ? { ...prev, status: statusMap[rsvpParam] as any } : prev)
+            toast({
+              title: rsvpParam === "accept" ? "You're going!" : rsvpParam === "tentative" ? "Marked as maybe" : "You've declined",
+              description: `Your response for "${event.title}" has been saved.`,
+            })
+          }
+        })
+        .catch(() => {})
+    }
+
+    // Clean up the URL
+    const url = new URL(window.location.href)
+    url.searchParams.delete("rsvp")
+    window.history.replaceState({}, "", url.toString())
+  }, [searchParams, myInvitation])
 
   // Check if we should show the post-event cover update prompt
   useEffect(() => {
@@ -764,6 +828,21 @@ export function EventDetail({ event }: EventDetailProps) {
           )}
         </div>
 
+        {/* RSVP Banner for invited users */}
+        {myInvitation && !isOwner && (
+          <RsvpBanner
+            invitationId={myInvitation.id}
+            currentStatus={myInvitation.status}
+            eventTitle={event.title}
+            hostName={(event.host_name as string) || undefined}
+            onStatusChange={(newStatus) => {
+              setMyInvitation((prev) => prev ? { ...prev, status: newStatus } : prev)
+              // Refresh invitations list if owner is viewing
+              fetchInvitations()
+            }}
+          />
+        )}
+
         {/* Mutuals Section */}
         <div className="mb-8">
           <MutualsSection eventId={event.id} limit={8} showSeeAll={true} />
@@ -1068,17 +1147,22 @@ export function EventDetail({ event }: EventDetailProps) {
                         {inv.status === "accepted" ? (
                           <>
                             <CheckCircle2 className="h-4 w-4 text-green-500" />
-                            <span className="text-xs text-green-600 dark:text-green-400">Accepted</span>
+                            <span className="text-xs text-green-600 dark:text-green-400">Going</span>
                           </>
                         ) : inv.status === "declined" ? (
                           <>
                             <XCircle className="h-4 w-4 text-red-500" />
-                            <span className="text-xs text-red-600 dark:text-red-400">Declined</span>
+                            <span className="text-xs text-red-600 dark:text-red-400">Can&apos;t Go</span>
+                          </>
+                        ) : inv.status === "tentative" ? (
+                          <>
+                            <Clock className="h-4 w-4 text-amber-500" />
+                            <span className="text-xs text-amber-600 dark:text-amber-400">Maybe</span>
                           </>
                         ) : (
                           <>
-                            <Clock className="h-4 w-4 text-amber-500" />
-                            <span className="text-xs text-amber-600 dark:text-amber-400">Pending</span>
+                            <Clock className="h-4 w-4 text-gray-400" />
+                            <span className="text-xs text-muted-foreground">Pending</span>
                           </>
                         )}
                       </div>

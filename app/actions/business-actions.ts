@@ -6,8 +6,16 @@ import { createClient } from "@/utils/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/server"
 import type { BusinessTierSlug } from "@/lib/tiers"
 import type { EnterpriseBrandingConfig } from "@/lib/enterprise"
+import { STANDARD_PRICES, getEffectivePrice, type PricingOverride } from "@/lib/paywall"
+import type { BusinessSubscription } from "@/lib/business-tier-service"
 
 const VALID_TIERS: BusinessTierSlug[] = ["basic", "premium", "enterprise"]
+
+const TIER_RANK: Record<BusinessTierSlug, number> = {
+  basic: 0,
+  premium: 1,
+  enterprise: 2,
+}
 
 const BUSINESS_CATEGORIES = [
   "Accommodation",
@@ -297,6 +305,237 @@ export async function createBusiness(formData: FormData) {
     return { success: true, data }
   } catch (error) {
     console.error("Error creating business:", error)
+    return { success: false, error: (error as Error).message }
+  }
+}
+
+// ─── Subscription Mutation Server Actions ────────────────────
+// These wrap the subscription lifecycle operations with server-side
+// Supabase clients that have proper write access (bypassing RLS).
+
+interface SubscriptionActionResult {
+  success: boolean
+  error?: string
+  subscription?: BusinessSubscription
+  chargeAmount?: number
+}
+
+export async function changeBusinessTier(
+  subscriptionId: string,
+  newTier: BusinessTierSlug
+): Promise<SubscriptionActionResult> {
+  try {
+    const supabase = await createClient()
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    if (!session) return { success: false, error: "Not authenticated" }
+
+    let db: typeof supabase
+    try {
+      db = createServiceRoleClient() as any
+    } catch {
+      db = supabase
+    }
+
+    const now = new Date()
+
+    const { data: currentSub, error: fetchError } = await db
+      .from("business_subscriptions")
+      .select("*")
+      .eq("id", subscriptionId)
+      .single()
+
+    if (fetchError || !currentSub) {
+      throw new Error("Subscription not found")
+    }
+
+    // Verify the subscription belongs to this user's business
+    const { data: biz } = await db
+      .from("businesses")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .eq("id", currentSub.business_id)
+      .single()
+
+    if (!biz) return { success: false, error: "Unauthorized" }
+
+    if (currentSub.tier === newTier) {
+      if (currentSub.pending_tier) {
+        const { data, error } = await db
+          .from("business_subscriptions")
+          .update({ pending_tier: null, updated_at: now.toISOString() })
+          .eq("id", subscriptionId)
+          .select()
+          .single()
+
+        if (error) throw error
+        return { success: true, subscription: data, chargeAmount: 0 }
+      }
+      return { success: true, subscription: currentSub, chargeAmount: 0 }
+    }
+
+    // Ensure billing period dates exist (fix for legacy subscriptions)
+    const periodStart = currentSub.current_period_start || now.toISOString()
+    const periodEnd =
+      currentSub.current_period_end ||
+      new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    const periodFix =
+      !currentSub.current_period_start || !currentSub.current_period_end
+        ? { current_period_start: periodStart, current_period_end: periodEnd }
+        : {}
+
+    const isDowngrade = TIER_RANK[newTier] < TIER_RANK[currentSub.tier as BusinessTierSlug]
+
+    if (isDowngrade) {
+      const { data, error } = await db
+        .from("business_subscriptions")
+        .update({
+          pending_tier: newTier,
+          cancel_at_period_end: false,
+          canceled_at: null,
+          updated_at: now.toISOString(),
+          ...periodFix,
+        })
+        .eq("id", subscriptionId)
+        .select()
+        .single()
+
+      if (error) throw error
+      return { success: true, subscription: data, chargeAmount: 0 }
+    }
+
+    // UPGRADE: Apply immediately with prorated charge
+    const currentPrice = getEffectivePrice(
+      currentSub.tier as BusinessTierSlug,
+      currentSub.pricing_override as PricingOverride | null
+    ).price
+    const newPrice = getEffectivePrice(newTier, null).price
+
+    const start = new Date(periodStart)
+    const end = new Date(periodEnd)
+    const totalDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)))
+    const daysRemaining = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+    const dailyDiff = (newPrice - currentPrice) / totalDays
+    const proratedAmount = Math.max(0, Math.round(dailyDiff * daysRemaining * 100) / 100)
+
+    const { data, error } = await db
+      .from("business_subscriptions")
+      .update({
+        tier: newTier,
+        pending_tier: null,
+        cancel_at_period_end: false,
+        canceled_at: null,
+        paid_amount: (currentSub.paid_amount || 0) + proratedAmount,
+        updated_at: now.toISOString(),
+        ...periodFix,
+      })
+      .eq("id", subscriptionId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return { success: true, subscription: data, chargeAmount: proratedAmount }
+  } catch (error) {
+    console.error("Error changing tier:", error)
+    return { success: false, error: (error as Error).message }
+  }
+}
+
+export async function cancelBusinessSubscription(
+  subscriptionId: string
+): Promise<SubscriptionActionResult> {
+  try {
+    const supabase = await createClient()
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    if (!session) return { success: false, error: "Not authenticated" }
+
+    let db: typeof supabase
+    try {
+      db = createServiceRoleClient() as any
+    } catch {
+      db = supabase
+    }
+
+    // Verify ownership
+    const { data: currentSub } = await db
+      .from("business_subscriptions")
+      .select("*, businesses!inner(user_id)")
+      .eq("id", subscriptionId)
+      .single()
+
+    if (!currentSub || (currentSub as any).businesses?.user_id !== session.user.id) {
+      return { success: false, error: "Unauthorized" }
+    }
+
+    const now = new Date()
+    const { data, error } = await db
+      .from("business_subscriptions")
+      .update({
+        cancel_at_period_end: true,
+        canceled_at: now.toISOString(),
+        pending_tier: null,
+        updated_at: now.toISOString(),
+      })
+      .eq("id", subscriptionId)
+      .eq("status", "active")
+      .select()
+      .single()
+
+    if (error) throw error
+    return { success: true, subscription: data }
+  } catch (error) {
+    console.error("Error canceling subscription:", error)
+    return { success: false, error: (error as Error).message }
+  }
+}
+
+export async function resubscribeBusiness(
+  subscriptionId: string
+): Promise<SubscriptionActionResult> {
+  try {
+    const supabase = await createClient()
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    if (!session) return { success: false, error: "Not authenticated" }
+
+    let db: typeof supabase
+    try {
+      db = createServiceRoleClient() as any
+    } catch {
+      db = supabase
+    }
+
+    // Verify ownership
+    const { data: currentSub } = await db
+      .from("business_subscriptions")
+      .select("*, businesses!inner(user_id)")
+      .eq("id", subscriptionId)
+      .single()
+
+    if (!currentSub || (currentSub as any).businesses?.user_id !== session.user.id) {
+      return { success: false, error: "Unauthorized" }
+    }
+
+    const now = new Date()
+    const { data, error } = await db
+      .from("business_subscriptions")
+      .update({
+        cancel_at_period_end: false,
+        canceled_at: null,
+        updated_at: now.toISOString(),
+      })
+      .eq("id", subscriptionId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return { success: true, subscription: data, chargeAmount: 0 }
+  } catch (error) {
+    console.error("Error resubscribing:", error)
     return { success: false, error: (error as Error).message }
   }
 }

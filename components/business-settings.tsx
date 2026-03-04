@@ -45,13 +45,16 @@ import { STANDARD_PRICES } from "@/lib/paywall"
 import type { BusinessTierSlug } from "@/lib/tiers"
 import type { BusinessSubscription } from "@/lib/business-tier-service"
 import {
-  cancelSubscription,
-  resubscribe,
-  changeTier,
   calculateProratedAmount,
   getSubscriptionStatus,
 } from "@/lib/subscription-lifecycle"
-import { createBusiness, getBusinessProfileData } from "@/app/actions/business-actions"
+import {
+  createBusiness,
+  getBusinessProfileData,
+  changeBusinessTier,
+  cancelBusinessSubscription,
+  resubscribeBusiness,
+} from "@/app/actions/business-actions"
 
 const CATEGORIES = [
   "Accommodation",
@@ -312,7 +315,7 @@ export function BusinessSettings() {
 
     setActionLoading(true)
     try {
-      const result = await changeTier(subscription.id, tier)
+      const result = await changeBusinessTier(subscription.id, tier)
 
       if (!result.success) {
         toast({
@@ -381,7 +384,7 @@ export function BusinessSettings() {
     if (!subscription) return
     setActionLoading(true)
     try {
-      const result = await cancelSubscription(subscription.id)
+      const result = await cancelBusinessSubscription(subscription.id)
       if (!result.success) {
         toast({
           title: "Error",
@@ -411,7 +414,7 @@ export function BusinessSettings() {
     if (!subscription) return
     setActionLoading(true)
     try {
-      const result = await resubscribe(subscription.id)
+      const result = await resubscribeBusiness(subscription.id)
       if (!result.success) {
         toast({
           title: "Error",
@@ -438,7 +441,7 @@ export function BusinessSettings() {
     if (!subscription) return
     setActionLoading(true)
     try {
-      const result = await changeTier(subscription.id, subscription.tier as BusinessTierSlug)
+      const result = await changeBusinessTier(subscription.id, subscription.tier as BusinessTierSlug)
       if (result.success && result.subscription) {
         setSubscription(result.subscription)
         toast({

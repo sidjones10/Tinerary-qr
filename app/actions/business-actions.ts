@@ -52,15 +52,18 @@ export async function getBusinessProfileData() {
         .select("name, username, bio, location, website, avatar_url")
         .eq("id", session.user.id)
         .single(),
+      // Use .limit(1) instead of .single() to handle duplicate business rows
+      // gracefully (duplicates could exist from a past creation bug).
       db
         .from("businesses")
         .select("*")
         .eq("user_id", session.user.id)
-        .single(),
+        .order("created_at", { ascending: false })
+        .limit(1),
     ])
 
     const profile = profileResult.data
-    const business = bizResult.data
+    const business = bizResult.data?.[0] ?? null
 
     let promos: any[] | null = null
     let subscription: any | null = null
@@ -120,12 +123,16 @@ export async function saveBrandingConfig(
   let businessId = existingBusinessId ?? undefined
 
   if (!businessId) {
-    // Look up existing business row the client may not have seen (RLS timing)
-    const { data: existing } = await db
+    // Look up existing business row the client may not have seen (RLS timing).
+    // Use .limit(1) instead of .single() to handle duplicate rows gracefully.
+    const { data: existingRows } = await db
       .from("businesses")
       .select("id")
       .eq("user_id", session.user.id)
-      .single()
+      .order("created_at", { ascending: false })
+      .limit(1)
+
+    const existing = existingRows?.[0] ?? null
 
     if (existing) {
       businessId = existing.id
@@ -167,18 +174,25 @@ export async function saveBrandingConfig(
     }
   }
 
-  // Update existing business row
-  const { error } = await db
+  // Update existing business row — use .select() to verify the update affected a row
+  const { data: updated, error } = await db
     .from("businesses")
     .update({ branding_config: config as any })
     .eq("id", businessId)
+    .select("id")
+    .single()
 
   if (error) {
     console.error("Error saving branding config:", error)
     return { success: false, error: error.message }
   }
 
+  if (!updated) {
+    return { success: false, error: "No business row was updated — please refresh and try again." }
+  }
+
   revalidatePath("/business-profile")
+  revalidatePath("/settings")
   return { success: true, businessId }
 }
 
@@ -203,14 +217,14 @@ export async function createBusiness(formData: FormData) {
     db = supabase
   }
 
-  // Check if user already has a business
-  const { data: existing } = await db
+  // Check if user already has a business (use .limit(1) to handle duplicates)
+  const { data: existingRows } = await db
     .from("businesses")
     .select("id")
     .eq("user_id", session.user.id)
-    .single()
+    .limit(1)
 
-  if (existing) {
+  if (existingRows && existingRows.length > 0) {
     return { success: false, error: "You already have a business profile." }
   }
 

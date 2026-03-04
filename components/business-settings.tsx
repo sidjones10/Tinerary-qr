@@ -336,9 +336,10 @@ export function BusinessSettings() {
 
       if (subStatus?.pendingDowngradeTo) {
         const downTier = BUSINESS_TIERS.find(t => t.slug === subStatus.pendingDowngradeTo)
+        const currentTier = BUSINESS_TIERS.find(t => t.slug === result.subscription?.tier)
         toast({
           title: "Downgrade scheduled",
-          description: `Your plan will switch to ${downTier?.name || tier} at the start of your next billing period. You keep all current features until then.`,
+          description: `Your plan will switch from ${currentTier?.name || "current plan"} ($${currentTier?.price}/mo) to ${downTier?.name || tier} ($${downTier?.price}/mo) at the start of your next billing period. You keep all ${currentTier?.name || "current"} features until then.`,
         })
       } else if (result.chargeAmount && result.chargeAmount > 0) {
         toast({
@@ -689,7 +690,8 @@ export function BusinessSettings() {
                     <ArrowDown className="h-4 w-4 text-blue-600" />
                     <AlertDescription className="text-blue-800 dark:text-blue-200">
                       <span className="font-medium">Downgrade scheduled.</span>{" "}
-                      Your plan will switch to {BUSINESS_TIERS.find(t => t.slug === subscription.pending_tier)?.name} on{" "}
+                      Your plan will switch to {BUSINESS_TIERS.find(t => t.slug === subscription.pending_tier)?.name}{" "}
+                      (${BUSINESS_TIERS.find(t => t.slug === subscription.pending_tier)?.price}/mo) on{" "}
                       {new Date(subscription.current_period_end).toLocaleDateString()}.
                       You keep all {BUSINESS_TIERS.find(t => t.slug === subscription.tier)?.name} features until then.
                       <Button
@@ -769,7 +771,7 @@ export function BusinessSettings() {
                         {isDowngradeFromCurrent && !isPendingDowngrade && (
                           <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
                             <ArrowDown className="size-3" />
-                            Takes effect next billing period
+                            Switch to ${tier.price}/mo — takes effect next billing period
                           </p>
                         )}
                       </div>

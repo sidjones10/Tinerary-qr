@@ -83,12 +83,15 @@ export function ProfileSettings() {
             setAvatarPath(data.avatar_path || null)
           }
 
-          // Fetch business data + subscription for tier-aware profile editing
-          const { data: biz } = await supabase
+          // Fetch business data + subscription for tier-aware profile editing.
+          // Use .limit(1) instead of .single() to handle duplicate rows gracefully.
+          const { data: bizRows } = await supabase
             .from("businesses")
             .select("id, business_tier, branding_config")
             .eq("user_id", user.id)
-            .single()
+            .order("created_at", { ascending: false })
+            .limit(1)
+          const biz = bizRows?.[0] ?? null
 
           if (biz) {
             setBusinessId(biz.id)

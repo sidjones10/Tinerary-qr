@@ -47,36 +47,87 @@ export async function POST(request: NextRequest) {
       const contactIsPhone = isPhoneNumber(contact)
 
       if (contactIsPhone) {
-        // Phone number invitation — always treated as non-user
+        // Phone number invitation — check if an existing user has this phone
         try {
           const formattedPhone = formatPhoneNumber(contact)
 
-          // Store pending invitation
-          const { error: pendingError } = await supabase.from("pending_invitations").insert({
-            itinerary_id: itineraryId,
-            inviter_id: user.id,
-            email: formattedPhone, // store phone in the email column
-            status: "pending",
-            created_at: new Date().toISOString(),
-          })
+          // Look up existing user by phone number
+          const { data: existingUser } = await supabase
+            .from("profiles")
+            .select("id, email, name, phone")
+            .or(`phone.eq.${formattedPhone},phone.eq.${contact}`)
+            .limit(1)
+            .maybeSingle()
 
-          if (!pendingError) {
-            const inviteUrl = `${APP_URL}/auth?invite=${itineraryId}&phone=${encodeURIComponent(formattedPhone)}`
-
-            const smsSent = await sendInvitationSMS({
-              phoneNumber: formattedPhone,
-              inviterName: senderName || "Someone",
-              itineraryTitle,
-              inviteUrl,
+          if (existingUser) {
+            // Existing user found — create invitation record + in-app notification + SMS
+            const { error: inviteError } = await supabase.from("itinerary_invitations").insert({
+              itinerary_id: itineraryId,
+              inviter_id: user.id,
+              invitee_id: existingUser.id,
+              status: "pending",
+              created_at: new Date().toISOString(),
             })
 
-            results.push({
-              contact: formattedPhone,
-              status: smsSent ? "sms_sent" : "sms_failed",
-              type: "phone",
-            })
+            if (!inviteError) {
+              // In-app notification (pass server client so it works in API routes)
+              await createNotification(
+                {
+                  userId: existingUser.id,
+                  type: "invitation",
+                  title: "Trip Invitation",
+                  message: `${senderName || "Someone"} invited you to join "${itineraryTitle}"`,
+                  linkUrl: `/event/${itineraryId}`,
+                },
+                supabase,
+              )
+
+              // Also send SMS
+              const inviteUrl = `${APP_URL}/event/${itineraryId}`
+              const smsSent = await sendInvitationSMS({
+                phoneNumber: formattedPhone,
+                inviterName: senderName || "Someone",
+                itineraryTitle,
+                inviteUrl,
+              })
+
+              results.push({
+                contact: formattedPhone,
+                status: "invited",
+                type: "user",
+                smsSent,
+              })
+            } else {
+              results.push({ contact: formattedPhone, status: "error", error: inviteError.message })
+            }
           } else {
-            results.push({ contact: formattedPhone, status: "error", error: pendingError.message })
+            // No existing user — store pending invitation and send SMS
+            const { error: pendingError } = await supabase.from("pending_invitations").insert({
+              itinerary_id: itineraryId,
+              inviter_id: user.id,
+              email: formattedPhone, // store phone in the email column
+              status: "pending",
+              created_at: new Date().toISOString(),
+            })
+
+            if (!pendingError) {
+              const inviteUrl = `${APP_URL}/auth?invite=${itineraryId}&phone=${encodeURIComponent(formattedPhone)}`
+
+              const smsSent = await sendInvitationSMS({
+                phoneNumber: formattedPhone,
+                inviterName: senderName || "Someone",
+                itineraryTitle,
+                inviteUrl,
+              })
+
+              results.push({
+                contact: formattedPhone,
+                status: smsSent ? "sms_sent" : "sms_failed",
+                type: "phone",
+              })
+            } else {
+              results.push({ contact: formattedPhone, status: "error", error: pendingError.message })
+            }
           }
         } catch (error: any) {
           results.push({ contact, status: "error", error: error.message })
@@ -103,14 +154,17 @@ export async function POST(request: NextRequest) {
           })
 
           if (!inviteError) {
-            // In-app notification
-            await createNotification({
-              userId: existingUser.id,
-              type: "invitation",
-              title: "Trip Invitation",
-              message: `${senderName} invited you to join "${itineraryTitle}"`,
-              linkUrl: `/event/${itineraryId}`,
-            })
+            // In-app notification (pass server client so it works in API routes)
+            await createNotification(
+              {
+                userId: existingUser.id,
+                type: "invitation",
+                title: "Trip Invitation",
+                message: `${senderName} invited you to join "${itineraryTitle}"`,
+                linkUrl: `/event/${itineraryId}`,
+              },
+              supabase,
+            )
 
             // Send email notification to existing user
             sendEventInviteEmail(

@@ -1,6 +1,7 @@
 "use client"
 
 import { useSearchParams } from "next/navigation"
+import { useCallback, useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -63,6 +64,7 @@ import {
 } from "recharts"
 import type { BusinessTierSlug } from "@/lib/tiers"
 import { WebhookManagement } from "@/components/webhook-management"
+import { createClient } from "@/lib/supabase/client"
 
 interface PromotionMetrics {
   views: number
@@ -74,225 +76,179 @@ interface PromotionMetrics {
 interface EnterpriseAnalyticsDashboardProps {
   tier: BusinessTierSlug
   promotionMetrics?: PromotionMetrics
+  businessId?: string
 }
 
-// ─── Demo Data ─────────────────────────────────────────────────────
+// ─── Types for fetched data ─────────────────────────────────────────
 
-const realtimeMetrics = {
-  activeViewers: 247,
-  viewsToday: 18_472,
-  viewsChange: 12.5,
-  clicksToday: 3_421,
-  clicksChange: 8.3,
-  savesToday: 891,
-  savesChange: -2.1,
-  bookingsToday: 156,
-  bookingsChange: 23.4,
-  revenueToday: 24_380,
-  revenueChange: 18.7,
-  ctrToday: 18.5,
-  ctrChange: 1.2,
-  conversionRate: 4.4,
-  conversionChange: 0.8,
-  avgTimeOnPage: "3m 12s",
-  avgOrderValue: 156.28,
-  aovChange: 5.2,
+interface FetchedPromotion {
+  id: string
+  title: string
+  status: string
+  category: string
+  location: string
+  price: number | null
+  views: number
+  clicks: number
+  saves: number
+  shares: number
 }
 
-const revenueIntelligence = {
-  mrr: 148_500,
-  mrrChange: 14.2,
-  arr: 1_782_000,
-  arrChange: 14.2,
-  ltv: 1_284,
-  ltvChange: 8.6,
-  cac: 42.30,
-  cacChange: -12.1,
-  ltvCacRatio: 30.4,
-  roi: 342,
-  roiChange: 18.3,
-  grossMargin: 72.4,
-  grossMarginChange: 2.1,
-  revenuePerUser: 18.42,
-  revenuePerUserChange: 6.8,
-  paybackPeriodDays: 34,
+interface FetchedBooking {
+  id: string
+  promotion_id: string
+  quantity: number
+  total_price: number
+  status: string
+  created_at: string
+  user_id: string
 }
 
-const revenueTrend30d = [
-  { date: "Feb 1", revenue: 4820, bookings: 32, forecast: null },
-  { date: "Feb 3", revenue: 5140, bookings: 35, forecast: null },
-  { date: "Feb 5", revenue: 4960, bookings: 31, forecast: null },
-  { date: "Feb 7", revenue: 5680, bookings: 38, forecast: null },
-  { date: "Feb 9", revenue: 5320, bookings: 36, forecast: null },
-  { date: "Feb 11", revenue: 6100, bookings: 41, forecast: null },
-  { date: "Feb 13", revenue: 5890, bookings: 39, forecast: null },
-  { date: "Feb 15", revenue: 6450, bookings: 43, forecast: null },
-  { date: "Feb 17", revenue: 6280, bookings: 42, forecast: null },
-  { date: "Feb 19", revenue: 7120, bookings: 48, forecast: null },
-  { date: "Feb 21", revenue: 6890, bookings: 46, forecast: null },
-  { date: "Feb 23", revenue: 7340, bookings: 49, forecast: null },
-  { date: "Feb 25", revenue: 7680, bookings: 51, forecast: null },
-  { date: "Feb 27", revenue: 8120, bookings: 54, forecast: null },
-  { date: "Mar 1", revenue: 8420, bookings: 56, forecast: 8420 },
-  { date: "Mar 3", revenue: null, bookings: null, forecast: 8780 },
-  { date: "Mar 5", revenue: null, bookings: null, forecast: 9150 },
-  { date: "Mar 7", revenue: null, bookings: null, forecast: 9480 },
-]
-
-const dailyPerformance = [
-  { date: "Feb 28", views: 18472, clicks: 3421, saves: 891, bookings: 156, revenue: "$24,380", roas: "4.2x" },
-  { date: "Feb 27", views: 16230, clicks: 2981, saves: 912, bookings: 128, revenue: "$19,200", roas: "3.8x" },
-  { date: "Feb 26", views: 17560, clicks: 3210, saves: 780, bookings: 142, revenue: "$21,800", roas: "4.0x" },
-  { date: "Feb 25", views: 14890, clicks: 2670, saves: 720, bookings: 114, revenue: "$16,900", roas: "3.5x" },
-  { date: "Feb 24", views: 15340, clicks: 2820, saves: 850, bookings: 131, revenue: "$20,100", roas: "3.9x" },
-  { date: "Feb 23", views: 16780, clicks: 3150, saves: 940, bookings: 168, revenue: "$24,800", roas: "4.5x" },
-  { date: "Feb 22", views: 14020, clicks: 2550, saves: 680, bookings: 102, revenue: "$15,400", roas: "3.2x" },
-]
-
-const conversionFunnel = [
-  { stage: "Impressions", count: 184720, percentage: 100 },
-  { stage: "Page Views", count: 68_248, percentage: 36.9 },
-  { stage: "Engaged (>30s)", count: 34_124, percentage: 18.5 },
-  { stage: "Click-Through", count: 12_652, percentage: 6.8 },
-  { stage: "Add to Plan", count: 4_218, percentage: 2.3 },
-  { stage: "Booking Started", count: 1_687, percentage: 0.91 },
-  { stage: "Booking Completed", count: 1_124, percentage: 0.61 },
-]
-
-const competitorBenchmarks = [
-  { metric: "Avg. Views/Day", yours: "18,472", benchmark: "8,900", delta: "+107%", status: "above" as const },
-  { metric: "Click-Through Rate", yours: "18.5%", benchmark: "12.3%", delta: "+50%", status: "above" as const },
-  { metric: "Booking Conversion", yours: "4.4%", benchmark: "3.1%", delta: "+42%", status: "above" as const },
-  { metric: "Avg. Revenue/Booking", yours: "$156", benchmark: "$142", delta: "+10%", status: "above" as const },
-  { metric: "Customer Return Rate", yours: "28%", benchmark: "35%", delta: "-20%", status: "below" as const },
-  { metric: "Avg. Session Duration", yours: "3m 12s", benchmark: "2m 05s", delta: "+54%", status: "above" as const },
-  { metric: "Revenue per Visitor", yours: "$1.32", benchmark: "$0.87", delta: "+52%", status: "above" as const },
-  { metric: "Net Promoter Score", yours: "72", benchmark: "58", delta: "+24%", status: "above" as const },
-]
-
-const audienceDemographics = [
-  { segment: "Solo Travelers", percentage: 34, trend: "up" as const, revenue: "$8,240" },
-  { segment: "Couples", percentage: 28, trend: "up" as const, revenue: "$6,826" },
-  { segment: "Families", percentage: 22, trend: "stable" as const, revenue: "$5,364" },
-  { segment: "Group Tours", percentage: 16, trend: "down" as const, revenue: "$3,901" },
-]
-
-const topPromotions = [
-  { name: "Weekend Wine Tour", views: 5230, clicks: 980, bookings: 82, revenue: "$12,792", ctr: "18.7%", roas: "5.1x" },
-  { name: "Sunset Dinner Cruise", views: 4120, clicks: 760, bookings: 54, revenue: "$8,370", ctr: "18.4%", roas: "4.2x" },
-  { name: "Morning Yoga Retreat", views: 3890, clicks: 710, bookings: 48, revenue: "$5,760", ctr: "18.3%", roas: "3.8x" },
-  { name: "City Walking Tour", views: 3450, clicks: 630, bookings: 36, revenue: "$1,620", ctr: "18.3%", roas: "2.7x" },
-  { name: "Vineyard Tasting Pass", views: 2980, clicks: 548, bookings: 31, revenue: "$4,650", ctr: "18.4%", roas: "3.9x" },
-]
-
-const revenueByChannel = [
-  { name: "Organic Search", value: 38, revenue: 56_280, color: "#1a1a2e" },
-  { name: "Direct", value: 24, revenue: 35_520, color: "#ff9a8b" },
-  { name: "Social Media", value: 18, revenue: 26_640, color: "#f59e0b" },
-  { name: "Email", value: 12, revenue: 17_760, color: "#7C3AED" },
-  { name: "Referral", value: 8, revenue: 11_840, color: "#22c55e" },
-]
-
-const hourlyTraffic = [
-  { hour: "12am", views: 120, bookings: 2 },
-  { hour: "2am", views: 80, bookings: 1 },
-  { hour: "4am", views: 65, bookings: 0 },
-  { hour: "6am", views: 180, bookings: 3 },
-  { hour: "8am", views: 890, bookings: 12 },
-  { hour: "9am", views: 1420, bookings: 18 },
-  { hour: "10am", views: 1850, bookings: 24 },
-  { hour: "11am", views: 2100, bookings: 28 },
-  { hour: "12pm", views: 1980, bookings: 22 },
-  { hour: "1pm", views: 1640, bookings: 19 },
-  { hour: "2pm", views: 1520, bookings: 17 },
-  { hour: "3pm", views: 1380, bookings: 15 },
-  { hour: "4pm", views: 1260, bookings: 14 },
-  { hour: "5pm", views: 1480, bookings: 16 },
-  { hour: "6pm", views: 1720, bookings: 20 },
-  { hour: "7pm", views: 1940, bookings: 25 },
-  { hour: "8pm", views: 2240, bookings: 30 },
-  { hour: "9pm", views: 1860, bookings: 22 },
-  { hour: "10pm", views: 980, bookings: 10 },
-  { hour: "11pm", views: 420, bookings: 4 },
-]
-
-const cohortRetention = [
-  { cohort: "Week of Feb 24", users: 1840, w1: 100, w2: 68, w3: 52, w4: 41 },
-  { cohort: "Week of Feb 17", users: 1620, w1: 100, w2: 64, w3: 48, w4: 38 },
-  { cohort: "Week of Feb 10", users: 1490, w1: 100, w2: 61, w3: 45, w4: 35 },
-  { cohort: "Week of Feb 3", users: 1380, w1: 100, w2: 58, w3: 42, w4: 32 },
-  { cohort: "Week of Jan 27", users: 1260, w1: 100, w2: 55, w3: 39, w4: 29 },
-]
-
-const topGeographies = [
-  { city: "San Francisco", views: 4_680, revenue: "$7,340", percentage: 25, flag: "US" },
-  { city: "Los Angeles", views: 3_320, revenue: "$5,180", percentage: 18, flag: "US" },
-  { city: "New York", views: 2_770, revenue: "$4,320", percentage: 15, flag: "US" },
-  { city: "London", views: 2_030, revenue: "$3,280", percentage: 11, flag: "GB" },
-  { city: "Seattle", views: 1_660, revenue: "$2,640", percentage: 9, flag: "US" },
-  { city: "Tokyo", views: 1_290, revenue: "$2,120", percentage: 7, flag: "JP" },
-  { city: "Sydney", views: 1_110, revenue: "$1,780", percentage: 6, flag: "AU" },
-  { city: "Toronto", views: 920, revenue: "$1,420", percentage: 5, flag: "CA" },
-]
-
-const weekOverWeek = [
-  { day: "Mon", thisWeek: 14020, lastWeek: 12180 },
-  { day: "Tue", thisWeek: 15340, lastWeek: 13420 },
-  { day: "Wed", thisWeek: 16780, lastWeek: 14890 },
-  { day: "Thu", thisWeek: 14890, lastWeek: 13680 },
-  { day: "Fri", thisWeek: 17560, lastWeek: 15240 },
-  { day: "Sat", thisWeek: 18472, lastWeek: 16120 },
-  { day: "Sun", thisWeek: 16230, lastWeek: 14560 },
-]
-
-const customerHealthMetrics = {
-  nps: 72,
-  npsChange: 4,
-  csat: 4.6,
-  csatChange: 0.2,
-  healthScore: 87,
-  healthLabel: "Excellent" as const,
-  activeCustomers: 12_480,
-  atRiskCustomers: 1_840,
-  churnedLast30d: 320,
-  churnRate: 2.5,
-  churnChange: -0.8,
-  repeatBookingRate: 34.2,
-  repeatChange: 3.1,
+interface AnalyticsState {
+  promotions: FetchedPromotion[]
+  bookings: FetchedBooking[]
+  subscriptionRevenue: number
+  totalBookingUsers: number
+  repeatBookingUsers: number
+  userLocations: { location: string; count: number }[]
+  loaded: boolean
 }
 
-const dataInsights = [
-  {
-    type: "opportunity" as const,
-    title: "Weekend bookings surge detected",
-    description: "Saturday bookings are 42% higher than weekday average. Consider launching weekend-exclusive promotions to capitalize on this trend.",
-    impact: "Est. +$4,200/week",
-  },
-  {
-    type: "warning" as const,
-    title: "Solo traveler segment declining",
-    description: "Solo traveler engagement dropped 8% this week. Their average session duration decreased from 3m 45s to 2m 58s. Consider refreshing solo-focused content.",
-    impact: "At risk: $2,100/week",
-  },
-  {
-    type: "insight" as const,
-    title: "High-value cohort identified",
-    description: "Users acquired through email campaigns have 2.4x higher LTV ($3,082) than average. Email-sourced users also have 52% higher repeat booking rates.",
-    impact: "LTV opportunity",
-  },
-  {
-    type: "opportunity" as const,
-    title: "Price optimization signal",
-    description: "Your conversion rate remains stable at prices 10% above benchmark. A/B testing suggests room for a 5-8% price increase without conversion loss.",
-    impact: "Est. +$12,400/mo",
-  },
-  {
-    type: "insight" as const,
-    title: "Peak booking window identified",
-    description: "72% of completed bookings occur between 10am-12pm and 7pm-9pm. Scheduling push notifications for 9:45am and 6:45pm could increase conversion by 15-20%.",
-    impact: "Conversion boost",
-  },
-]
+// ─── Helper: group bookings by date ────────────────────────────────
+
+function groupBookingsByDate(bookings: FetchedBooking[]) {
+  const map: Record<string, { count: number; revenue: number }> = {}
+  for (const b of bookings) {
+    const date = new Date(b.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    if (!map[date]) map[date] = { count: 0, revenue: 0 }
+    map[date].count += b.quantity
+    map[date].revenue += b.total_price
+  }
+  return Object.entries(map)
+    .map(([date, data]) => ({ date, bookings: data.count, revenue: data.revenue }))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(-14)
+}
+
+function groupBookingsByWeekday(bookings: FetchedBooking[]) {
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+  const now = new Date()
+  const oneWeekAgo = new Date(now.getTime() - 7 * 86400000)
+  const twoWeeksAgo = new Date(now.getTime() - 14 * 86400000)
+  const thisWeek: Record<string, number> = {}
+  const lastWeek: Record<string, number> = {}
+  for (const d of days) { thisWeek[d] = 0; lastWeek[d] = 0 }
+  for (const b of bookings) {
+    const d = new Date(b.created_at)
+    const day = days[d.getDay()]
+    if (d >= oneWeekAgo) thisWeek[day] += b.quantity
+    else if (d >= twoWeeksAgo) lastWeek[day] += b.quantity
+  }
+  return days.filter(d => d !== "Sun").concat("Sun").map(day => ({
+    day, thisWeek: thisWeek[day], lastWeek: lastWeek[day],
+  }))
+}
+
+function groupBookingsByHour(bookings: FetchedBooking[]) {
+  const hours: Record<number, { bookings: number }> = {}
+  for (let h = 0; h < 24; h++) hours[h] = { bookings: 0 }
+  for (const b of bookings) {
+    const h = new Date(b.created_at).getHours()
+    hours[h].bookings += b.quantity
+  }
+  const labels = ["12am","1am","2am","3am","4am","5am","6am","7am","8am","9am","10am","11am","12pm","1pm","2pm","3pm","4pm","5pm","6pm","7pm","8pm","9pm","10pm","11pm"]
+  return labels.map((hour, i) => ({ hour, bookings: hours[i].bookings }))
+}
+
+function buildCohortRetention(bookings: FetchedBooking[]) {
+  const now = new Date()
+  const weeks: { label: string; start: Date; end: Date }[] = []
+  for (let i = 4; i >= 0; i--) {
+    const start = new Date(now.getTime() - (i + 1) * 7 * 86400000)
+    const end = new Date(start.getTime() + 7 * 86400000)
+    weeks.push({
+      label: `Week of ${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+      start, end,
+    })
+  }
+  return weeks.map((week) => {
+    const cohortUsers = new Set(bookings.filter(b => {
+      const d = new Date(b.created_at)
+      return d >= week.start && d < week.end
+    }).map(b => b.user_id))
+    const size = cohortUsers.size || 1
+    const weekRetention = [100]
+    for (let w = 1; w <= 3; w++) {
+      const periodStart = new Date(week.end.getTime() + (w - 1) * 7 * 86400000)
+      const periodEnd = new Date(periodStart.getTime() + 7 * 86400000)
+      if (periodStart > now) { weekRetention.push(0); continue }
+      const active = bookings.filter(b => {
+        const d = new Date(b.created_at)
+        return d >= periodStart && d < periodEnd && cohortUsers.has(b.user_id)
+      })
+      const uniqueActive = new Set(active.map(b => b.user_id)).size
+      weekRetention.push(Math.round((uniqueActive / size) * 100))
+    }
+    return { cohort: week.label, users: cohortUsers.size, w1: weekRetention[0], w2: weekRetention[1], w3: weekRetention[2], w4: weekRetention[3] }
+  })
+}
+
+function generateInsights(promos: FetchedPromotion[], bookings: FetchedBooking[], totalViews: number, totalClicks: number) {
+  const insights: { type: "opportunity" | "warning" | "insight"; title: string; description: string; impact: string }[] = []
+  // Top performing category
+  const categoryRevenue: Record<string, number> = {}
+  for (const b of bookings) {
+    const promo = promos.find(p => p.id === b.promotion_id)
+    if (promo) {
+      categoryRevenue[promo.category] = (categoryRevenue[promo.category] || 0) + b.total_price
+    }
+  }
+  const topCategory = Object.entries(categoryRevenue).sort((a, b) => b[1] - a[1])[0]
+  if (topCategory) {
+    insights.push({
+      type: "insight",
+      title: `Top category: ${topCategory[0]}`,
+      description: `"${topCategory[0]}" generates $${topCategory[1].toLocaleString()} in bookings — your highest-performing category. Consider adding more promotions in this category.`,
+      impact: `$${topCategory[1].toLocaleString()} revenue`,
+    })
+  }
+  // CTR analysis
+  const ctr = totalViews > 0 ? (totalClicks / totalViews) * 100 : 0
+  if (ctr > 15) {
+    insights.push({ type: "opportunity", title: "High click-through rate detected", description: `Your CTR of ${ctr.toFixed(1)}% is above average. Consider testing a small price increase on top-performing promotions — your high engagement suggests room for optimization.`, impact: "Pricing opportunity" })
+  } else if (ctr < 5 && totalViews > 100) {
+    insights.push({ type: "warning", title: "Low click-through rate", description: `Your CTR of ${ctr.toFixed(1)}% is below average. Consider improving promotion titles, images, and descriptions to drive more engagement.`, impact: "Engagement at risk" })
+  }
+  // Weekend vs weekday
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+  let weekdayBookings = 0, weekdayDays = 0, weekendBookings = 0, weekendDays = 0
+  for (const b of bookings) {
+    const d = new Date(b.created_at).getDay()
+    if (d === 0 || d === 6) { weekendBookings += b.quantity; weekendDays++ }
+    else { weekdayBookings += b.quantity; weekdayDays++ }
+  }
+  const weekdayAvg = weekdayDays > 0 ? weekdayBookings / weekdayDays : 0
+  const weekendAvg = weekendDays > 0 ? weekendBookings / weekendDays : 0
+  if (weekendAvg > weekdayAvg * 1.3 && weekendBookings > 0) {
+    insights.push({ type: "opportunity", title: "Weekend bookings outperform weekdays", description: `Weekend booking average (${weekendAvg.toFixed(0)}/day) is ${((weekendAvg / Math.max(weekdayAvg, 1) - 1) * 100).toFixed(0)}% higher than weekdays. Consider launching weekend-exclusive promotions.`, impact: "Weekend opportunity" })
+  }
+  // Low-performing promos
+  const lowPerformers = promos.filter(p => p.status === "active" && p.views > 50 && p.clicks === 0)
+  if (lowPerformers.length > 0) {
+    insights.push({ type: "warning", title: `${lowPerformers.length} promotion${lowPerformers.length > 1 ? "s" : ""} with zero clicks`, description: `${lowPerformers.map(p => `"${p.title}"`).slice(0, 3).join(", ")} ${lowPerformers.length > 3 ? `and ${lowPerformers.length - 3} more` : ""} have views but no clicks. Review their content and imagery.`, impact: "Action needed" })
+  }
+  // Top location insight
+  const locationRevenue: Record<string, number> = {}
+  for (const b of bookings) {
+    const promo = promos.find(p => p.id === b.promotion_id)
+    if (promo) locationRevenue[promo.location] = (locationRevenue[promo.location] || 0) + b.total_price
+  }
+  const topLoc = Object.entries(locationRevenue).sort((a, b) => b[1] - a[1])[0]
+  if (topLoc) {
+    insights.push({ type: "insight", title: `Top market: ${topLoc[0]}`, description: `${topLoc[0]} generates the most booking revenue at $${topLoc[1].toLocaleString()}. Consider increasing promotion density in this market.`, impact: "Market insight" })
+  }
+  return insights.slice(0, 5)
+}
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
@@ -351,19 +307,303 @@ const tooltipStyle = {
 
 // ─── Component ──────────────────────────────────────────────────────
 
-export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics }: EnterpriseAnalyticsDashboardProps) {
+export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics, businessId }: EnterpriseAnalyticsDashboardProps) {
   const searchParams = useSearchParams()
   const tabParam = searchParams.get("tab")
   const isEnterprise = tier === "enterprise"
   const isPremium = tier === "premium"
 
-  // Use real data when available, fall back to demo data
-  const realViews = promotionMetrics?.views ?? realtimeMetrics.viewsToday
-  const realClicks = promotionMetrics?.clicks ?? realtimeMetrics.clicksToday
-  const realSaves = promotionMetrics?.saves ?? realtimeMetrics.savesToday
-  const realShares = promotionMetrics?.shares ?? 0
+  const [analytics, setAnalytics] = useState<AnalyticsState>({
+    promotions: [], bookings: [], subscriptionRevenue: 0,
+    totalBookingUsers: 0, repeatBookingUsers: 0, userLocations: [], loaded: false,
+  })
+
+  const loadAnalytics = useCallback(async () => {
+    if (!businessId) return
+    const supabase = createClient()
+
+    // Fetch promotions with metrics
+    const { data: promos } = await supabase
+      .from("promotions")
+      .select("id, title, status, category, location, price, promotion_metrics(*)")
+      .eq("business_id", businessId)
+      .order("created_at", { ascending: false })
+
+    const fetchedPromos: FetchedPromotion[] = (promos || []).map((p: any) => {
+      const m = Array.isArray(p.promotion_metrics) ? p.promotion_metrics[0] : p.promotion_metrics
+      return {
+        id: p.id, title: p.title, status: p.status, category: p.category,
+        location: p.location, price: p.price,
+        views: m?.views || 0, clicks: m?.clicks || 0, saves: m?.saves || 0, shares: m?.shares || 0,
+      }
+    })
+
+    const promoIds = fetchedPromos.map(p => p.id)
+
+    // Fetch bookings for this business's promotions
+    let fetchedBookings: FetchedBooking[] = []
+    if (promoIds.length > 0) {
+      const { data: bookingsData } = await supabase
+        .from("bookings")
+        .select("id, promotion_id, quantity, total_price, status, created_at, user_id")
+        .in("promotion_id", promoIds)
+        .order("created_at", { ascending: false })
+      fetchedBookings = (bookingsData || []) as FetchedBooking[]
+    }
+
+    // Fetch subscription revenue
+    const { data: subData } = await supabase
+      .from("business_subscriptions")
+      .select("paid_amount")
+      .eq("business_id", businessId)
+      .eq("status", "active")
+      .single()
+    const subRevenue = subData?.paid_amount || 0
+
+    // Compute repeat booking users
+    const userBookingCounts: Record<string, number> = {}
+    for (const b of fetchedBookings) {
+      userBookingCounts[b.user_id] = (userBookingCounts[b.user_id] || 0) + 1
+    }
+    const uniqueUsers = Object.keys(userBookingCounts).length
+    const repeatUsers = Object.values(userBookingCounts).filter(c => c > 1).length
+
+    // Fetch user locations for geography (from booking users' profiles)
+    const bookingUserIds = [...new Set(fetchedBookings.map(b => b.user_id))].slice(0, 100)
+    let userLocs: { location: string; count: number }[] = []
+    if (bookingUserIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("location")
+        .in("id", bookingUserIds)
+        .not("location", "is", null)
+      if (profiles) {
+        const locMap: Record<string, number> = {}
+        for (const p of profiles) {
+          if (p.location) {
+            locMap[p.location] = (locMap[p.location] || 0) + 1
+          }
+        }
+        userLocs = Object.entries(locMap)
+          .map(([location, count]) => ({ location, count }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 8)
+      }
+    }
+
+    setAnalytics({
+      promotions: fetchedPromos, bookings: fetchedBookings,
+      subscriptionRevenue: subRevenue, totalBookingUsers: uniqueUsers,
+      repeatBookingUsers: repeatUsers, userLocations: userLocs, loaded: true,
+    })
+  }, [businessId])
+
+  useEffect(() => { loadAnalytics() }, [loadAnalytics])
+
+  // Use real data when available, fall back to promotion metrics prop
+  const realViews = promotionMetrics?.views ?? analytics.promotions.reduce((s, p) => s + p.views, 0)
+  const realClicks = promotionMetrics?.clicks ?? analytics.promotions.reduce((s, p) => s + p.clicks, 0)
+  const realSaves = promotionMetrics?.saves ?? analytics.promotions.reduce((s, p) => s + p.saves, 0)
+  const realShares = promotionMetrics?.shares ?? analytics.promotions.reduce((s, p) => s + p.shares, 0)
   const realCtr = realViews > 0 ? Math.round((realClicks / realViews) * 10000) / 100 : 0
   const realSaveRate = realViews > 0 ? Math.round((realSaves / realViews) * 10000) / 100 : 0
+
+  // Computed analytics from real data
+  const totalBookings = analytics.bookings.length
+  const totalRevenue = analytics.bookings.reduce((s, b) => s + b.total_price, 0)
+  const avgOrderValue = totalBookings > 0 ? totalRevenue / totalBookings : 0
+  const conversionRate = realViews > 0 ? Math.round((totalBookings / realViews) * 10000) / 100 : 0
+  const repeatRate = analytics.totalBookingUsers > 0 ? Math.round((analytics.repeatBookingUsers / analytics.totalBookingUsers) * 100 * 10) / 10 : 0
+
+  // Revenue intelligence from real data
+  const mrr = analytics.subscriptionRevenue
+  const arr = mrr * 12
+  const totalBookingRevenue = totalRevenue
+  const revenuePerUser = analytics.totalBookingUsers > 0 ? totalBookingRevenue / analytics.totalBookingUsers : 0
+
+  // Top promotions from real data
+  const computedTopPromotions = analytics.promotions
+    .map(p => {
+      const promoBookings = analytics.bookings.filter(b => b.promotion_id === p.id)
+      const promoRevenue = promoBookings.reduce((s, b) => s + b.total_price, 0)
+      return {
+        name: p.title, views: p.views, clicks: p.clicks,
+        bookings: promoBookings.length, revenue: promoRevenue,
+        ctr: p.views > 0 ? `${((p.clicks / p.views) * 100).toFixed(1)}%` : "0.0%",
+      }
+    })
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 10)
+
+  // Conversion funnel from real data
+  const computedFunnel = [
+    { stage: "Total Views", count: realViews, percentage: 100 },
+    { stage: "Clicks", count: realClicks, percentage: realViews > 0 ? Math.round((realClicks / realViews) * 1000) / 10 : 0 },
+    { stage: "Saves", count: realSaves, percentage: realViews > 0 ? Math.round((realSaves / realViews) * 1000) / 10 : 0 },
+    { stage: "Bookings", count: totalBookings, percentage: realViews > 0 ? Math.round((totalBookings / realViews) * 10000) / 100 : 0 },
+  ]
+
+  // Daily performance from real bookings
+  const computedDailyPerformance = groupBookingsByDate(analytics.bookings)
+
+  // Revenue trend from real bookings
+  const computedRevenueTrend = computedDailyPerformance.map(d => ({
+    date: d.date, revenue: d.revenue, bookings: d.bookings, forecast: null as number | null,
+  }))
+
+  // Week-over-week from real bookings
+  const computedWeekOverWeek = groupBookingsByWeekday(analytics.bookings)
+
+  // Hourly traffic from real bookings
+  const computedHourlyTraffic = groupBookingsByHour(analytics.bookings)
+
+  // Cohort retention from real bookings
+  const computedCohortRetention = buildCohortRetention(analytics.bookings)
+
+  // Geography from real data (promotion locations + booking revenue)
+  const computedGeography = (() => {
+    const locRevenue: Record<string, { views: number; revenue: number }> = {}
+    for (const p of analytics.promotions) {
+      if (!locRevenue[p.location]) locRevenue[p.location] = { views: 0, revenue: 0 }
+      locRevenue[p.location].views += p.views
+    }
+    for (const b of analytics.bookings) {
+      const promo = analytics.promotions.find(p => p.id === b.promotion_id)
+      if (promo) {
+        if (!locRevenue[promo.location]) locRevenue[promo.location] = { views: 0, revenue: 0 }
+        locRevenue[promo.location].revenue += b.total_price
+      }
+    }
+    const totalLocViews = Object.values(locRevenue).reduce((s, l) => s + l.views, 0) || 1
+    return Object.entries(locRevenue)
+      .map(([city, data]) => ({
+        city, views: data.views, revenue: `$${data.revenue.toLocaleString()}`,
+        percentage: Math.round((data.views / totalLocViews) * 100),
+      }))
+      .sort((a, b) => b.views - a.views)
+      .slice(0, 8)
+  })()
+
+  // Audience segments from promotion categories
+  const computedAudienceSegments = (() => {
+    const catRevenue: Record<string, number> = {}
+    for (const b of analytics.bookings) {
+      const promo = analytics.promotions.find(p => p.id === b.promotion_id)
+      if (promo) catRevenue[promo.category] = (catRevenue[promo.category] || 0) + b.total_price
+    }
+    const totalCatRevenue = Object.values(catRevenue).reduce((s, r) => s + r, 0) || 1
+    return Object.entries(catRevenue)
+      .map(([segment, revenue]) => ({
+        segment, revenue: `$${revenue.toLocaleString()}`,
+        percentage: Math.round((revenue / totalCatRevenue) * 100),
+      }))
+      .sort((a, b) => b.percentage - a.percentage)
+      .slice(0, 6)
+  })()
+
+  // Revenue by category for pie chart
+  const PIE_COLORS = ["#22c55e", "#7C3AED", "#f59e0b", "#ef4444", "#3b82f6", "#ec4899"]
+  const computedRevenueByChannel = (() => {
+    const catRevenue: Record<string, number> = {}
+    for (const b of analytics.bookings) {
+      const promo = analytics.promotions.find(p => p.id === b.promotion_id)
+      if (promo) catRevenue[promo.category] = (catRevenue[promo.category] || 0) + b.total_price
+    }
+    const totalCatRev = Object.values(catRevenue).reduce((s, r) => s + r, 0) || 1
+    return Object.entries(catRevenue)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([name, revenue], i) => ({
+        name, revenue, value: Math.round((revenue / totalCatRev) * 100), color: PIE_COLORS[i % PIE_COLORS.length],
+      }))
+  })()
+
+  // Customer health metrics from real booking data
+  const computedCustomerHealth = (() => {
+    const now = new Date()
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000)
+    const sixtyDaysAgo = new Date(now.getTime() - 60 * 86400000)
+
+    // Track per-user last booking dates
+    const userLastBooking: Record<string, Date> = {}
+    for (const b of analytics.bookings) {
+      const d = new Date(b.created_at)
+      if (!userLastBooking[b.user_id] || d > userLastBooking[b.user_id]) {
+        userLastBooking[b.user_id] = d
+      }
+    }
+    const allUsers = Object.entries(userLastBooking)
+    const activeCustomers = allUsers.filter(([, d]) => d >= thirtyDaysAgo).length
+    const atRiskCustomers = allUsers.filter(([, d]) => d < thirtyDaysAgo && d >= sixtyDaysAgo).length
+    const churnedLast30d = allUsers.filter(([, d]) => d < sixtyDaysAgo).length
+    const totalCustomers = allUsers.length || 1
+    const churnRate = Math.round((churnedLast30d / totalCustomers) * 1000) / 10
+
+    // Health score based on activity and repeat rate
+    const healthScore = Math.min(100, Math.round(
+      (activeCustomers / totalCustomers) * 50 +
+      repeatRate * 0.3 +
+      (1 - churnRate / 100) * 20
+    ))
+    const healthLabel = healthScore >= 70 ? "Healthy" : healthScore >= 40 ? "At Risk" : "Critical"
+
+    return {
+      activeCustomers,
+      atRiskCustomers,
+      churnedLast30d,
+      churnRate,
+      healthScore,
+      healthLabel,
+      repeatRate,
+    }
+  })()
+
+  // Competitor benchmarks computed from actual data vs industry averages
+  const computedBenchmarks = (() => {
+    const benchmarkData = [
+      { metric: "Click-Through Rate", yours: `${realCtr}%`, benchmark: "12.0%", yoursVal: realCtr, benchVal: 12.0 },
+      { metric: "Save Rate", yours: `${realSaveRate}%`, benchmark: "8.5%", yoursVal: realSaveRate, benchVal: 8.5 },
+      { metric: "Conversion Rate", yours: `${conversionRate}%`, benchmark: "2.5%", yoursVal: conversionRate, benchVal: 2.5 },
+      { metric: "Avg Order Value", yours: `$${avgOrderValue.toFixed(2)}`, benchmark: "$45.00", yoursVal: avgOrderValue, benchVal: 45.0 },
+      { metric: "Repeat Rate", yours: `${repeatRate}%`, benchmark: "25.0%", yoursVal: repeatRate, benchVal: 25.0 },
+      { metric: "Revenue per User", yours: `$${revenuePerUser.toFixed(2)}`, benchmark: "$85.00", yoursVal: revenuePerUser, benchVal: 85.0 },
+    ]
+    return benchmarkData.map(b => {
+      const diff = b.yoursVal - b.benchVal
+      const pctDiff = b.benchVal > 0 ? Math.round((diff / b.benchVal) * 100) : 0
+      return {
+        metric: b.metric,
+        yours: b.yours,
+        benchmark: b.benchmark,
+        delta: `${pctDiff >= 0 ? "+" : ""}${pctDiff}%`,
+        status: pctDiff >= 0 ? "above" : "below" as "above" | "below",
+      }
+    })
+  })()
+
+  // Data-driven insights
+  const computedInsights = analytics.loaded ? generateInsights(analytics.promotions, analytics.bookings, realViews, realClicks) : []
+
+  // Trend analysis recommendations
+  const trendRecommendations = (() => {
+    const recs: string[] = []
+    if (totalRevenue > 0 && computedDailyPerformance.length >= 2) {
+      const recent = computedDailyPerformance.slice(-3)
+      const earlier = computedDailyPerformance.slice(0, 3)
+      const recentAvg = recent.reduce((s, d) => s + d.revenue, 0) / (recent.length || 1)
+      const earlierAvg = earlier.reduce((s, d) => s + d.revenue, 0) / (earlier.length || 1)
+      if (recentAvg > earlierAvg) recs.push(`Revenue is trending up — recent days average $${recentAvg.toFixed(0)} vs $${earlierAvg.toFixed(0)} earlier.`)
+      else if (recentAvg < earlierAvg * 0.9) recs.push(`Revenue has dipped recently — $${recentAvg.toFixed(0)} avg vs $${earlierAvg.toFixed(0)} earlier. Review promotion performance.`)
+    }
+    if (realCtr > 15) recs.push(`Your CTR of ${realCtr}% is strong. Test small price increases on top performers.`)
+    if (realCtr < 5 && realViews > 100) recs.push(`CTR is ${realCtr}% — consider refreshing promotion images and descriptions.`)
+    if (repeatRate > 20) recs.push(`Repeat booking rate of ${repeatRate}% shows good customer loyalty.`)
+    if (repeatRate < 10 && totalBookings > 10) recs.push(`Repeat rate is ${repeatRate}%. Consider a loyalty program or follow-up email sequence.`)
+    if (computedTopPromotions.length > 0 && computedTopPromotions[0].revenue > 0) {
+      recs.push(`Top performer "${computedTopPromotions[0].name}" drives $${computedTopPromotions[0].revenue.toLocaleString()} — consider similar promotions.`)
+    }
+    return recs.slice(0, 4)
+  })()
 
   // ── Premium: "Advanced analytics + insights" ──────────────
   // KPIs, secondary metrics, revenue trend (no forecast), funnel,
@@ -432,11 +672,11 @@ export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics }: Enterpr
             <span className="text-xs font-medium text-muted-foreground">Real-time</span>
             <Badge variant="secondary" className="text-[10px]">
               <Users className="size-2.5 mr-1" />
-              {realtimeMetrics.activeViewers} active viewers
+              {analytics.totalBookingUsers} booking customers
             </Badge>
             <Badge variant="secondary" className="text-[10px]">
               <Activity className="size-2.5 mr-1" />
-              {realtimeMetrics.bookingsToday} bookings today
+              {totalBookings} total bookings
             </Badge>
           </div>
           <div className="flex items-center gap-2">
@@ -559,10 +799,9 @@ export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics }: Enterpr
         <Card className="border-border">
           <CardContent className="pt-4 pb-4">
             <Repeat className="size-3.5 text-muted-foreground" />
-            <p className="mt-1.5 text-lg font-bold text-foreground">{customerHealthMetrics.repeatBookingRate}%</p>
+            <p className="mt-1.5 text-lg font-bold text-foreground">{repeatRate}%</p>
             <div className="flex items-center justify-between mt-0.5">
               <p className="text-[11px] text-muted-foreground">Repeat Rate</p>
-              <MetricChange value={customerHealthMetrics.repeatChange} />
             </div>
           </CardContent>
         </Card>
@@ -585,46 +824,38 @@ export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics }: Enterpr
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="p-3 rounded-xl bg-muted">
-                <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">MRR</p>
-                <p className="text-xl font-bold text-foreground mt-1">${(revenueIntelligence.mrr / 1000).toFixed(1)}K</p>
-                <MetricChange value={revenueIntelligence.mrrChange} />
+                <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Subscription MRR</p>
+                <p className="text-xl font-bold text-foreground mt-1">${mrr > 1000 ? `${(mrr / 1000).toFixed(1)}K` : mrr.toLocaleString()}</p>
               </div>
               <div className="p-3 rounded-xl bg-muted">
-                <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">ARR</p>
-                <p className="text-xl font-bold text-foreground mt-1">${(revenueIntelligence.arr / 1000000).toFixed(2)}M</p>
-                <MetricChange value={revenueIntelligence.arrChange} />
+                <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Est. ARR</p>
+                <p className="text-xl font-bold text-foreground mt-1">${arr > 1000000 ? `${(arr / 1000000).toFixed(2)}M` : arr > 1000 ? `${(arr / 1000).toFixed(1)}K` : arr.toLocaleString()}</p>
               </div>
               <div className="p-3 rounded-xl bg-muted">
-                <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Customer LTV</p>
-                <p className="text-xl font-bold text-foreground mt-1">${revenueIntelligence.ltv.toLocaleString()}</p>
-                <MetricChange value={revenueIntelligence.ltvChange} />
+                <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Total Booking Revenue</p>
+                <p className="text-xl font-bold text-foreground mt-1">${totalBookingRevenue > 1000 ? `${(totalBookingRevenue / 1000).toFixed(1)}K` : totalBookingRevenue.toLocaleString()}</p>
               </div>
               <div className="p-3 rounded-xl bg-muted">
-                <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">CAC</p>
-                <p className="text-xl font-bold text-foreground mt-1">${revenueIntelligence.cac.toFixed(2)}</p>
-                <MetricChange value={revenueIntelligence.cacChange} />
+                <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Revenue per User</p>
+                <p className="text-xl font-bold text-foreground mt-1">${revenuePerUser.toFixed(2)}</p>
               </div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
               <div className="p-3 rounded-xl bg-muted">
-                <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">LTV:CAC Ratio</p>
-                <p className="text-xl font-bold text-foreground mt-1">{revenueIntelligence.ltvCacRatio}x</p>
-                <span className="text-[11px] text-green-600 font-medium">Excellent</span>
+                <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Total Bookings</p>
+                <p className="text-xl font-bold text-foreground mt-1">{totalBookings.toLocaleString()}</p>
               </div>
               <div className="p-3 rounded-xl bg-muted">
-                <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">ROI</p>
-                <p className="text-xl font-bold text-foreground mt-1">{revenueIntelligence.roi}%</p>
-                <MetricChange value={revenueIntelligence.roiChange} />
+                <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Avg Order Value</p>
+                <p className="text-xl font-bold text-foreground mt-1">${avgOrderValue.toFixed(2)}</p>
               </div>
               <div className="p-3 rounded-xl bg-muted">
-                <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Gross Margin</p>
-                <p className="text-xl font-bold text-foreground mt-1">{revenueIntelligence.grossMargin}%</p>
-                <MetricChange value={revenueIntelligence.grossMarginChange} />
+                <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Unique Customers</p>
+                <p className="text-xl font-bold text-foreground mt-1">{analytics.totalBookingUsers.toLocaleString()}</p>
               </div>
               <div className="p-3 rounded-xl bg-muted">
-                <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Payback Period</p>
-                <p className="text-xl font-bold text-foreground mt-1">{revenueIntelligence.paybackPeriodDays}d</p>
-                <span className="text-[11px] text-green-600 font-medium">Below 60d target</span>
+                <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Conversion Rate</p>
+                <p className="text-xl font-bold text-foreground mt-1">{conversionRate}%</p>
               </div>
             </div>
           </CardContent>
@@ -654,7 +885,7 @@ export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics }: Enterpr
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <ComposedChart data={revenueTrend30d} margin={{ left: 0, right: 10, top: 5, bottom: 5 }}>
+              <ComposedChart data={computedRevenueTrend} margin={{ left: 0, right: 10, top: 5, bottom: 5 }}>
                 <defs>
                   <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
@@ -695,7 +926,7 @@ export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics }: Enterpr
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {dataInsights.map((insight, i) => (
+              {computedInsights.map((insight, i) => (
                 <div
                   key={i}
                   className={`p-3 rounded-xl border ${
@@ -796,49 +1027,42 @@ export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics }: Enterpr
                 </div>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-tinerary-dark hover:bg-tinerary-dark">
-                      <TableHead className="text-primary-foreground">Date</TableHead>
-                      <TableHead className="text-primary-foreground text-right">Views</TableHead>
-                      <TableHead className="text-primary-foreground text-right">Clicks</TableHead>
-                      <TableHead className="text-primary-foreground text-right">Saves</TableHead>
-                      <TableHead className="text-primary-foreground text-right">Bookings</TableHead>
-                      <TableHead className="text-primary-foreground text-right">Revenue</TableHead>
-                      <TableHead className="text-primary-foreground text-right">ROAS</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {dailyPerformance.map((row) => (
-                      <TableRow key={row.date}>
-                        <TableCell className="font-medium text-foreground">{row.date}</TableCell>
-                        <TableCell className="text-right text-foreground">{row.views.toLocaleString()}</TableCell>
-                        <TableCell className="text-right text-foreground">{row.clicks.toLocaleString()}</TableCell>
-                        <TableCell className="text-right text-foreground">{row.saves}</TableCell>
-                        <TableCell className="text-right text-foreground">{row.bookings}</TableCell>
-                        <TableCell className="text-right font-semibold text-tinerary-salmon">{row.revenue}</TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-0">
-                            {row.roas}
-                          </Badge>
-                        </TableCell>
+                {computedDailyPerformance.length === 0 ? (
+                  <div className="text-center py-8 text-sm text-muted-foreground">No booking data yet. Performance data will appear as bookings come in.</div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-tinerary-dark hover:bg-tinerary-dark">
+                        <TableHead className="text-primary-foreground">Date</TableHead>
+                        <TableHead className="text-primary-foreground text-right">Bookings</TableHead>
+                        <TableHead className="text-primary-foreground text-right">Revenue</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {computedDailyPerformance.slice().reverse().map((row) => (
+                        <TableRow key={row.date}>
+                          <TableCell className="font-medium text-foreground">{row.date}</TableCell>
+                          <TableCell className="text-right text-foreground">{row.bookings}</TableCell>
+                          <TableCell className="text-right font-semibold text-tinerary-salmon">${row.revenue.toLocaleString()}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
 
-                <div className="mt-4 p-4 rounded-xl bg-muted">
-                  <div className="flex items-center gap-2 mb-2">
-                    <TrendingUp className="size-4 text-tinerary-gold" />
-                    <h4 className="text-sm font-semibold text-foreground">Trend Analysis & Recommendations</h4>
+                {trendRecommendations.length > 0 && (
+                  <div className="mt-4 p-4 rounded-xl bg-muted">
+                    <div className="flex items-center gap-2 mb-2">
+                      <TrendingUp className="size-4 text-tinerary-gold" />
+                      <h4 className="text-sm font-semibold text-foreground">Trend Analysis & Recommendations</h4>
+                    </div>
+                    <ul className="space-y-1.5 text-xs text-muted-foreground">
+                      {trendRecommendations.map((rec, i) => (
+                        <li key={i}>{rec}</li>
+                      ))}
+                    </ul>
                   </div>
-                  <ul className="space-y-1.5 text-xs text-muted-foreground">
-                    <li>Revenue is trending up 18.7% week-over-week, driven by increased weekend bookings.</li>
-                    <li>ROAS averaged 3.9x this week — Saturday peaked at 4.5x, suggesting weekend campaigns are most efficient.</li>
-                    <li>Booking conversion improved after A/B testing updated promotion images (+0.8% lift).</li>
-                    <li>Consider increasing mid-week ad spend — Tuesday and Wednesday show untapped capacity with lower competition.</li>
-                  </ul>
-                </div>
+                )}
               </CardContent>
             </Card>
 
@@ -850,7 +1074,7 @@ export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics }: Enterpr
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={weekOverWeek} margin={{ left: -10, right: 10 }}>
+                  <BarChart data={computedWeekOverWeek} margin={{ left: -10, right: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                     <XAxis dataKey="day" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                     <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
@@ -871,27 +1095,22 @@ export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics }: Enterpr
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={260}>
-                  <ComposedChart data={hourlyTraffic} margin={{ left: -10, right: 10 }}>
-                    <defs>
-                      <linearGradient id="hourlyGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ff9a8b" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#ff9a8b" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
+                  <BarChart data={computedHourlyTraffic} margin={{ left: -10, right: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                    <XAxis dataKey="hour" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" interval={1} />
-                    <YAxis yAxisId="left" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `${(v / 1000).toFixed(1)}K`} />
-                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                    <XAxis dataKey="hour" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" interval={2} />
+                    <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                     <Tooltip contentStyle={tooltipStyle} />
-                    <Area yAxisId="left" type="monotone" dataKey="views" stroke="#ff9a8b" strokeWidth={2} fill="url(#hourlyGradient)" name="Views" />
-                    <Line yAxisId="right" type="monotone" dataKey="bookings" stroke="#7C3AED" strokeWidth={2} dot={{ r: 3, fill: "#7C3AED" }} name="Bookings" />
-                  </ComposedChart>
+                    <Bar dataKey="bookings" name="Bookings" fill="#7C3AED" radius={[4, 4, 0, 0]} />
+                  </BarChart>
                 </ResponsiveContainer>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Badge variant="outline" className="text-[10px]">Peak views: 8pm (2,240)</Badge>
-                  <Badge variant="outline" className="text-[10px]">Peak bookings: 8pm (30)</Badge>
-                  <Badge variant="outline" className="text-[10px]">Quiet hours: 2am-6am</Badge>
-                </div>
+                {(() => {
+                  const peakHour = computedHourlyTraffic.reduce((max, h) => h.bookings > max.bookings ? h : max, computedHourlyTraffic[0])
+                  return peakHour && peakHour.bookings > 0 ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Badge variant="outline" className="text-[10px]">Peak bookings: {peakHour.hour} ({peakHour.bookings})</Badge>
+                    </div>
+                  ) : null
+                })()}
               </CardContent>
             </Card>
           </TabsContent>
@@ -905,44 +1124,42 @@ export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics }: Enterpr
               <CardDescription>Ranked by revenue with CTR and ROAS metrics</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-tinerary-dark hover:bg-tinerary-dark">
-                    <TableHead className="text-primary-foreground">#</TableHead>
-                    <TableHead className="text-primary-foreground">Promotion</TableHead>
-                    <TableHead className="text-primary-foreground text-right">Views</TableHead>
-                    <TableHead className="text-primary-foreground text-right">Clicks</TableHead>
-                    <TableHead className="text-primary-foreground text-right">CTR</TableHead>
-                    <TableHead className="text-primary-foreground text-right">Bookings</TableHead>
-                    <TableHead className="text-primary-foreground text-right">Revenue</TableHead>
-                    <TableHead className="text-primary-foreground text-right">ROAS</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {topPromotions.map((promo, i) => (
-                    <TableRow key={promo.name}>
-                      <TableCell>
-                        <div className={`size-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                          i === 0 ? "bg-yellow-400 text-yellow-900" : i === 1 ? "bg-gray-300 text-gray-700" : i === 2 ? "bg-amber-600 text-white" : "bg-muted text-muted-foreground"
-                        }`}>
-                          {i + 1}
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-medium text-foreground">{promo.name}</TableCell>
-                      <TableCell className="text-right text-foreground">{promo.views.toLocaleString()}</TableCell>
-                      <TableCell className="text-right text-foreground">{promo.clicks.toLocaleString()}</TableCell>
-                      <TableCell className="text-right text-foreground">{promo.ctr}</TableCell>
-                      <TableCell className="text-right text-foreground">{promo.bookings}</TableCell>
-                      <TableCell className="text-right font-semibold text-tinerary-salmon">{promo.revenue}</TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-0">
-                          {promo.roas}
-                        </Badge>
-                      </TableCell>
+              {computedTopPromotions.length === 0 ? (
+                <div className="text-center py-8 text-sm text-muted-foreground">No promotions with data yet.</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-tinerary-dark hover:bg-tinerary-dark">
+                      <TableHead className="text-primary-foreground">#</TableHead>
+                      <TableHead className="text-primary-foreground">Promotion</TableHead>
+                      <TableHead className="text-primary-foreground text-right">Views</TableHead>
+                      <TableHead className="text-primary-foreground text-right">Clicks</TableHead>
+                      <TableHead className="text-primary-foreground text-right">CTR</TableHead>
+                      <TableHead className="text-primary-foreground text-right">Bookings</TableHead>
+                      <TableHead className="text-primary-foreground text-right">Revenue</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {computedTopPromotions.map((promo, i) => (
+                      <TableRow key={promo.name}>
+                        <TableCell>
+                          <div className={`size-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                            i === 0 ? "bg-yellow-400 text-yellow-900" : i === 1 ? "bg-gray-300 text-gray-700" : i === 2 ? "bg-amber-600 text-white" : "bg-muted text-muted-foreground"
+                          }`}>
+                            {i + 1}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium text-foreground">{promo.name}</TableCell>
+                        <TableCell className="text-right text-foreground">{promo.views.toLocaleString()}</TableCell>
+                        <TableCell className="text-right text-foreground">{promo.clicks.toLocaleString()}</TableCell>
+                        <TableCell className="text-right text-foreground">{promo.ctr}</TableCell>
+                        <TableCell className="text-right text-foreground">{promo.bookings}</TableCell>
+                        <TableCell className="text-right font-semibold text-tinerary-salmon">${promo.revenue.toLocaleString()}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -964,21 +1181,21 @@ export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics }: Enterpr
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {conversionFunnel.map((step, i) => (
+                  {computedFunnel.map((step, i) => (
                     <div key={step.stage}>
                       <FunnelBar
                         stage={step.stage}
                         count={step.count}
                         percentage={step.percentage}
-                        isLast={i === conversionFunnel.length - 1}
+                        isLast={i === computedFunnel.length - 1}
                       />
-                      {i < conversionFunnel.length - 1 && (
+                      {i < computedFunnel.length - 1 && computedFunnel[i].count > 0 && (
                         <div className="flex items-center gap-3 my-1">
                           <div className="w-32 sm:w-40" />
                           <div className="flex-1 flex items-center gap-1.5 pl-2">
                             <ArrowDownRight className="size-3 text-red-400" />
                             <span className="text-[10px] text-red-400 font-medium">
-                              {((1 - conversionFunnel[i + 1].count / step.count) * 100).toFixed(1)}% drop-off
+                              {((1 - computedFunnel[i + 1].count / computedFunnel[i].count) * 100).toFixed(1)}% drop-off
                             </span>
                           </div>
                         </div>
@@ -987,21 +1204,14 @@ export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics }: Enterpr
                   ))}
                 </div>
 
-                <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="p-3 rounded-xl bg-muted text-center">
-                    <p className="text-[11px] text-muted-foreground">Overall Conversion</p>
-                    <p className="text-lg font-bold text-foreground mt-1">0.61%</p>
-                    <MetricChange value={12.4} />
+                    <p className="text-[11px] text-muted-foreground">Overall Conversion (Views → Bookings)</p>
+                    <p className="text-lg font-bold text-foreground mt-1">{conversionRate}%</p>
                   </div>
                   <div className="p-3 rounded-xl bg-muted text-center">
-                    <p className="text-[11px] text-muted-foreground">Biggest Drop-off</p>
-                    <p className="text-lg font-bold text-foreground mt-1">Impressions → Views</p>
-                    <span className="text-[11px] text-red-500 font-medium">63.1% lost</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-muted text-center">
-                    <p className="text-[11px] text-muted-foreground">Best Stage</p>
-                    <p className="text-lg font-bold text-foreground mt-1">Started → Completed</p>
-                    <span className="text-[11px] text-green-600 font-medium">66.6% completion</span>
+                    <p className="text-[11px] text-muted-foreground">Click-Through Rate</p>
+                    <p className="text-lg font-bold text-foreground mt-1">{realCtr}%</p>
                   </div>
                 </div>
               </CardContent>
@@ -1019,69 +1229,76 @@ export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics }: Enterpr
                   <CardDescription>Who is engaging with your business</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {audienceDemographics.map((segment) => (
-                      <div key={segment.segment}>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-sm font-medium text-foreground">{segment.segment}</span>
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs text-muted-foreground">{segment.revenue}</span>
-                            <span className="text-sm font-semibold text-foreground">{segment.percentage}%</span>
-                            {segment.trend === "up" && <TrendingUp className="size-3 text-green-500" />}
-                            {segment.trend === "down" && <TrendingDown className="size-3 text-red-500" />}
-                            {segment.trend === "stable" && <span className="text-xs text-muted-foreground">—</span>}
+                  {computedAudienceSegments.length === 0 ? (
+                    <div className="text-center py-8 text-sm text-muted-foreground">No audience data yet. Data will appear as bookings come in.</div>
+                  ) : (
+                    <div className="space-y-4">
+                      {computedAudienceSegments.map((segment) => (
+                        <div key={segment.segment}>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-sm font-medium text-foreground">{segment.segment}</span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs text-muted-foreground">{segment.revenue}</span>
+                              <span className="text-sm font-semibold text-foreground">{segment.percentage}%</span>
+                            </div>
+                          </div>
+                          <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-primary to-tinerary-salmon rounded-full transition-all"
+                              style={{ width: `${segment.percentage}%` }}
+                            />
                           </div>
                         </div>
-                        <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-primary to-tinerary-salmon rounded-full transition-all"
-                            style={{ width: `${segment.percentage}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
               <Card className="border-border">
                 <CardHeader>
-                  <CardTitle className="text-base">Revenue by Channel</CardTitle>
-                  <CardDescription>Where your revenue originates</CardDescription>
+                  <CardTitle className="text-base">Revenue by Category</CardTitle>
+                  <CardDescription>Booking revenue breakdown by promotion category</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <PieChart>
-                      <Pie
-                        data={revenueByChannel}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={80}
-                        paddingAngle={3}
-                        dataKey="value"
-                      >
-                        {revenueByChannel.map((entry) => (
-                          <Cell key={entry.name} fill={entry.color} />
+                  {computedRevenueByChannel.length === 0 ? (
+                    <div className="text-center py-8 text-sm text-muted-foreground">No booking data yet.</div>
+                  ) : (
+                    <>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <PieChart>
+                          <Pie
+                            data={computedRevenueByChannel}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={50}
+                            outerRadius={80}
+                            paddingAngle={3}
+                            dataKey="value"
+                          >
+                            {computedRevenueByChannel.map((entry) => (
+                              <Cell key={entry.name} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => [`${value}%`, "Share"]} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="space-y-2 mt-2">
+                        {computedRevenueByChannel.map((channel) => (
+                          <div key={channel.name} className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="size-2.5 rounded-full" style={{ backgroundColor: channel.color }} />
+                              <span className="text-xs text-foreground">{channel.name}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs text-muted-foreground">${channel.revenue >= 1000 ? `${(channel.revenue / 1000).toFixed(1)}K` : channel.revenue.toLocaleString()}</span>
+                              <span className="text-xs font-semibold text-foreground">{channel.value}%</span>
+                            </div>
+                          </div>
                         ))}
-                      </Pie>
-                      <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => [`${value}%`, "Share"]} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="space-y-2 mt-2">
-                    {revenueByChannel.map((channel) => (
-                      <div key={channel.name} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="size-2.5 rounded-full" style={{ backgroundColor: channel.color }} />
-                          <span className="text-xs text-foreground">{channel.name}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs text-muted-foreground">${(channel.revenue / 1000).toFixed(1)}K</span>
-                          <span className="text-xs font-semibold text-foreground">{channel.value}%</span>
-                        </div>
                       </div>
-                    ))}
-                  </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -1103,43 +1320,43 @@ export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics }: Enterpr
                 <CardContent>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <div className="p-3 rounded-xl bg-muted text-center">
-                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">NPS Score</p>
-                      <p className="text-2xl font-bold text-foreground mt-1">{customerHealthMetrics.nps}</p>
-                      <MetricChange value={customerHealthMetrics.npsChange} />
-                      <Badge variant="secondary" className="text-[10px] mt-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-0">
-                        Excellent
-                      </Badge>
-                    </div>
-                    <div className="p-3 rounded-xl bg-muted text-center">
-                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">CSAT</p>
-                      <p className="text-2xl font-bold text-foreground mt-1">{customerHealthMetrics.csat}/5.0</p>
-                      <MetricChange value={customerHealthMetrics.csatChange > 0 ? (customerHealthMetrics.csatChange / 4.4 * 100) : 0} />
-                    </div>
-                    <div className="p-3 rounded-xl bg-muted text-center">
                       <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Health Score</p>
-                      <p className="text-2xl font-bold text-foreground mt-1">{customerHealthMetrics.healthScore}/100</p>
-                      <Badge variant="secondary" className="text-[10px] mt-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-0">
-                        {customerHealthMetrics.healthLabel}
+                      <p className="text-2xl font-bold text-foreground mt-1">{computedCustomerHealth.healthScore}/100</p>
+                      <Badge variant="secondary" className={`text-[10px] mt-1 border-0 ${
+                        computedCustomerHealth.healthLabel === "Healthy"
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                          : computedCustomerHealth.healthLabel === "At Risk"
+                          ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                          : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                      }`}>
+                        {computedCustomerHealth.healthLabel}
                       </Badge>
+                    </div>
+                    <div className="p-3 rounded-xl bg-muted text-center">
+                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Repeat Rate</p>
+                      <p className="text-2xl font-bold text-foreground mt-1">{computedCustomerHealth.repeatRate}%</p>
                     </div>
                     <div className="p-3 rounded-xl bg-muted text-center">
                       <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Churn Rate</p>
-                      <p className="text-2xl font-bold text-foreground mt-1">{customerHealthMetrics.churnRate}%</p>
-                      <MetricChange value={customerHealthMetrics.churnChange} />
+                      <p className="text-2xl font-bold text-foreground mt-1">{computedCustomerHealth.churnRate}%</p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-muted text-center">
+                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Total Customers</p>
+                      <p className="text-2xl font-bold text-foreground mt-1">{analytics.totalBookingUsers.toLocaleString()}</p>
                     </div>
                   </div>
                   <div className="mt-4 grid grid-cols-3 gap-4">
                     <div className="p-3 rounded-xl border border-green-200 bg-green-50/50 dark:border-green-900/30 dark:bg-green-900/10 text-center">
-                      <p className="text-xs text-green-700 dark:text-green-400 font-medium">Active Customers</p>
-                      <p className="text-lg font-bold text-foreground">{customerHealthMetrics.activeCustomers.toLocaleString()}</p>
+                      <p className="text-xs text-green-700 dark:text-green-400 font-medium">Active (30d)</p>
+                      <p className="text-lg font-bold text-foreground">{computedCustomerHealth.activeCustomers.toLocaleString()}</p>
                     </div>
                     <div className="p-3 rounded-xl border border-amber-200 bg-amber-50/50 dark:border-amber-900/30 dark:bg-amber-900/10 text-center">
                       <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">At Risk</p>
-                      <p className="text-lg font-bold text-foreground">{customerHealthMetrics.atRiskCustomers.toLocaleString()}</p>
+                      <p className="text-lg font-bold text-foreground">{computedCustomerHealth.atRiskCustomers.toLocaleString()}</p>
                     </div>
                     <div className="p-3 rounded-xl border border-red-200 bg-red-50/50 dark:border-red-900/30 dark:bg-red-900/10 text-center">
-                      <p className="text-xs text-red-700 dark:text-red-400 font-medium">Churned (30d)</p>
-                      <p className="text-lg font-bold text-foreground">{customerHealthMetrics.churnedLast30d}</p>
+                      <p className="text-xs text-red-700 dark:text-red-400 font-medium">Churned (60d+)</p>
+                      <p className="text-lg font-bold text-foreground">{computedCustomerHealth.churnedLast30d}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -1164,42 +1381,48 @@ export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics }: Enterpr
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {topGeographies.map((geo, i) => (
-                    <div key={geo.city} className="flex items-center gap-3">
-                      <div className={`size-7 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                        i === 0 ? "bg-yellow-400 text-yellow-900" : i === 1 ? "bg-gray-300 text-gray-700" : i === 2 ? "bg-amber-600 text-white" : "bg-muted text-muted-foreground"
-                      }`}>
-                        {i + 1}
-                      </div>
-                      <MapPin className="size-3.5 text-primary shrink-0" />
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium text-foreground">{geo.city}</span>
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs text-muted-foreground">{geo.views.toLocaleString()} views</span>
-                            <span className="text-xs font-semibold text-tinerary-salmon">{geo.revenue}</span>
+                {computedGeography.length === 0 ? (
+                  <div className="text-center py-8 text-sm text-muted-foreground">No geographic data yet. Data will appear as promotions get views.</div>
+                ) : (
+                  <div className="space-y-3">
+                    {computedGeography.map((geo, i) => (
+                      <div key={geo.city} className="flex items-center gap-3">
+                        <div className={`size-7 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                          i === 0 ? "bg-yellow-400 text-yellow-900" : i === 1 ? "bg-gray-300 text-gray-700" : i === 2 ? "bg-amber-600 text-white" : "bg-muted text-muted-foreground"
+                        }`}>
+                          {i + 1}
+                        </div>
+                        <MapPin className="size-3.5 text-primary shrink-0" />
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm font-medium text-foreground">{geo.city}</span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs text-muted-foreground">{geo.views.toLocaleString()} views</span>
+                              <span className="text-xs font-semibold text-tinerary-salmon">{geo.revenue}</span>
+                            </div>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-primary to-tinerary-salmon rounded-full transition-all"
+                              style={{ width: `${geo.percentage}%` }}
+                            />
                           </div>
                         </div>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-primary to-tinerary-salmon rounded-full transition-all"
-                            style={{ width: `${geo.percentage}%` }}
-                          />
-                        </div>
+                        <span className="text-xs font-medium text-foreground w-8 text-right">{geo.percentage}%</span>
                       </div>
-                      <span className="text-xs font-medium text-foreground w-8 text-right">{geo.percentage}%</span>
-                    </div>
-                  ))}
-                </div>
-                {isEnterprise && (
+                    ))}
+                  </div>
+                )}
+                {isEnterprise && computedGeography.length >= 2 && (
                   <div className="mt-4 p-3 rounded-xl bg-muted">
                     <div className="flex items-center gap-2 mb-1.5">
                       <Sparkles className="size-3.5 text-purple-500" />
                       <p className="text-xs font-semibold text-foreground">Geographic Insight</p>
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      International traffic (London, Tokyo, Sydney, Toronto) represents 29% of views but generates 35% of revenue — international visitors have a 22% higher average order value. Consider localizing content for UK and Japanese markets.
+                      {computedGeography[0].city} leads with {computedGeography[0].percentage}% of views and {computedGeography[0].revenue} in revenue.
+                      {computedGeography.length >= 3 && ` Your top 3 markets (${computedGeography.slice(0, 3).map(g => g.city).join(", ")}) account for ${computedGeography.slice(0, 3).reduce((s, g) => s + g.percentage, 0)}% of total views.`}
+                      {" "}Consider increasing promotion density in your strongest markets.
                     </p>
                   </div>
                 )}
@@ -1235,7 +1458,7 @@ export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics }: Enterpr
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {competitorBenchmarks.map((row) => (
+                    {computedBenchmarks.map((row) => (
                       <TableRow key={row.metric}>
                         <TableCell className="font-medium text-foreground">{row.metric}</TableCell>
                         <TableCell className="text-right font-semibold text-foreground">{row.yours}</TableCell>
@@ -1260,15 +1483,30 @@ export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics }: Enterpr
                     ))}
                   </TableBody>
                 </Table>
-                <div className="mt-4 p-3 rounded-xl bg-green-50/50 border border-green-200 dark:border-green-900/30 dark:bg-green-900/10">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <Award className="size-3.5 text-green-600" />
-                    <p className="text-xs font-semibold text-green-700 dark:text-green-400">Performance Summary</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    You outperform category averages in 7 of 8 key metrics. Your strongest differentiators are views (+107%) and session duration (+54%).
-                  </p>
-                </div>
+                {(() => {
+                  const aboveCount = computedBenchmarks.filter(b => b.status === "above").length
+                  const totalCount = computedBenchmarks.length
+                  const topMetric = computedBenchmarks.reduce((best, b) => {
+                    const val = parseInt(b.delta)
+                    return val > parseInt(best.delta) ? b : best
+                  }, computedBenchmarks[0])
+                  return (
+                    <div className={`mt-4 p-3 rounded-xl border ${
+                      aboveCount > totalCount / 2
+                        ? "bg-green-50/50 border-green-200 dark:border-green-900/30 dark:bg-green-900/10"
+                        : "bg-amber-50/50 border-amber-200 dark:border-amber-900/30 dark:bg-amber-900/10"
+                    }`}>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Award className={`size-3.5 ${aboveCount > totalCount / 2 ? "text-green-600" : "text-amber-600"}`} />
+                        <p className={`text-xs font-semibold ${aboveCount > totalCount / 2 ? "text-green-700 dark:text-green-400" : "text-amber-700 dark:text-amber-400"}`}>Performance Summary</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        You {aboveCount > totalCount / 2 ? "outperform" : "match or trail"} category averages in {aboveCount} of {totalCount} key metrics.
+                        {topMetric && parseInt(topMetric.delta) > 0 && ` Your strongest differentiator is ${topMetric.metric} (${topMetric.delta}).`}
+                      </p>
+                    </div>
+                  )
+                })()}
 
                 <div className="mt-3 p-3 rounded-xl bg-muted">
                   <div className="flex items-center gap-2 mb-2">
@@ -1276,18 +1514,24 @@ export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics }: Enterpr
                     <p className="text-xs font-semibold text-foreground">Recommendations</p>
                   </div>
                   <ul className="space-y-2 text-xs text-muted-foreground">
-                    <li className="flex gap-2">
-                      <span className="text-primary font-bold shrink-0">1.</span>
-                      <span><strong className="text-foreground">Improve Customer Return Rate.</strong> You&apos;re 20% below benchmark. Implement a post-booking re-engagement email sequence at Day 7, 14, and 30 with personalized recommendations.</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="text-primary font-bold shrink-0">2.</span>
-                      <span><strong className="text-foreground">Capitalize on high CTR.</strong> Your 18.5% CTR is 50% above average — test increasing pricing by 5-8% on your top-performing promotions without conversion loss.</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="text-primary font-bold shrink-0">3.</span>
-                      <span><strong className="text-foreground">Launch a loyalty program.</strong> Your NPS (72) and session duration suggest high brand affinity. A points-based loyalty system could lift return rate by 15-25%.</span>
-                    </li>
+                    {computedBenchmarks.filter(b => b.status === "below").slice(0, 2).map((b, i) => (
+                      <li key={b.metric} className="flex gap-2">
+                        <span className="text-primary font-bold shrink-0">{i + 1}.</span>
+                        <span><strong className="text-foreground">Improve {b.metric}.</strong> You&apos;re {b.delta.replace("-", "")} below the category average of {b.benchmark}. Focus on improving this metric to close the gap.</span>
+                      </li>
+                    ))}
+                    {computedBenchmarks.filter(b => b.status === "above").slice(0, 1).map((b, i) => (
+                      <li key={b.metric} className="flex gap-2">
+                        <span className="text-primary font-bold shrink-0">{computedBenchmarks.filter(r => r.status === "below").slice(0, 2).length + 1}.</span>
+                        <span><strong className="text-foreground">Capitalize on strong {b.metric}.</strong> Your {b.yours} is {b.delta} above the category average — leverage this strength to drive more revenue.</span>
+                      </li>
+                    ))}
+                    {repeatRate < 25 && (
+                      <li className="flex gap-2">
+                        <span className="text-primary font-bold shrink-0">{Math.min(computedBenchmarks.filter(r => r.status === "below").length, 2) + 2}.</span>
+                        <span><strong className="text-foreground">Launch a loyalty program.</strong> Your repeat rate of {repeatRate}% suggests room for improvement. A points-based loyalty system could lift return rate by 15-25%.</span>
+                      </li>
+                    )}
                   </ul>
                 </div>
               </CardContent>
@@ -1311,58 +1555,94 @@ export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics }: Enterpr
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-tinerary-dark hover:bg-tinerary-dark">
-                        <TableHead className="text-primary-foreground">Cohort</TableHead>
-                        <TableHead className="text-primary-foreground text-center">Users</TableHead>
-                        <TableHead className="text-primary-foreground text-center">Week 1</TableHead>
-                        <TableHead className="text-primary-foreground text-center">Week 2</TableHead>
-                        <TableHead className="text-primary-foreground text-center">Week 3</TableHead>
-                        <TableHead className="text-primary-foreground text-center">Week 4</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {cohortRetention.map((row) => (
-                        <TableRow key={row.cohort}>
-                          <TableCell className="font-medium text-foreground text-xs">{row.cohort}</TableCell>
-                          <TableCell className="text-center text-foreground text-xs">{row.users.toLocaleString()}</TableCell>
-                          <RetentionCell value={row.w1} />
-                          <RetentionCell value={row.w2} />
-                          <RetentionCell value={row.w3} />
-                          <RetentionCell value={row.w4} />
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-                <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="p-3 rounded-xl bg-muted text-center">
-                    <p className="text-[11px] text-muted-foreground">Avg. Week 2 Retention</p>
-                    <p className="text-lg font-bold text-foreground">61.2%</p>
-                    <MetricChange value={4.8} />
-                  </div>
-                  <div className="p-3 rounded-xl bg-muted text-center">
-                    <p className="text-[11px] text-muted-foreground">Avg. Week 4 Retention</p>
-                    <p className="text-lg font-bold text-foreground">35.0%</p>
-                    <MetricChange value={6.2} />
-                  </div>
-                  <div className="p-3 rounded-xl bg-muted text-center">
-                    <p className="text-[11px] text-muted-foreground">Retention Trend</p>
-                    <p className="text-lg font-bold text-foreground">Improving</p>
-                    <span className="text-[11px] text-green-600 font-medium">+3.2% avg over 5 weeks</span>
-                  </div>
-                </div>
-                <div className="mt-4 p-3 rounded-xl bg-muted">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <Brain className="size-3.5 text-purple-500" />
-                    <p className="text-xs font-semibold text-foreground">Retention Insight</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    The Feb 24 cohort shows a 9% improvement in Week 2 retention compared to the Jan 27 cohort. This improvement correlates with the launch of post-booking follow-up emails. The biggest retention drop-off happens between Week 1 and Week 2 — consider adding a re-engagement touchpoint at Day 8-10.
-                  </p>
-                </div>
+                {computedCohortRetention.every(c => c.users === 0) ? (
+                  <div className="text-center py-8 text-sm text-muted-foreground">No booking cohort data yet. Data will appear as customers make bookings over multiple weeks.</div>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-tinerary-dark hover:bg-tinerary-dark">
+                            <TableHead className="text-primary-foreground">Cohort</TableHead>
+                            <TableHead className="text-primary-foreground text-center">Users</TableHead>
+                            <TableHead className="text-primary-foreground text-center">Week 1</TableHead>
+                            <TableHead className="text-primary-foreground text-center">Week 2</TableHead>
+                            <TableHead className="text-primary-foreground text-center">Week 3</TableHead>
+                            <TableHead className="text-primary-foreground text-center">Week 4</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {computedCohortRetention.map((row) => (
+                            <TableRow key={row.cohort}>
+                              <TableCell className="font-medium text-foreground text-xs">{row.cohort}</TableCell>
+                              <TableCell className="text-center text-foreground text-xs">{row.users.toLocaleString()}</TableCell>
+                              <RetentionCell value={row.w1} />
+                              <RetentionCell value={row.w2} />
+                              <RetentionCell value={row.w3} />
+                              <RetentionCell value={row.w4} />
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    {(() => {
+                      const cohortsWithData = computedCohortRetention.filter(c => c.users > 0)
+                      const avgW2 = cohortsWithData.length > 0
+                        ? Math.round(cohortsWithData.reduce((s, c) => s + c.w2, 0) / cohortsWithData.length * 10) / 10
+                        : 0
+                      const avgW4 = cohortsWithData.length > 0
+                        ? Math.round(cohortsWithData.reduce((s, c) => s + c.w4, 0) / cohortsWithData.length * 10) / 10
+                        : 0
+                      const recentCohorts = cohortsWithData.slice(-2)
+                      const olderCohorts = cohortsWithData.slice(0, -2)
+                      const recentAvgW2 = recentCohorts.length > 0 ? recentCohorts.reduce((s, c) => s + c.w2, 0) / recentCohorts.length : 0
+                      const olderAvgW2 = olderCohorts.length > 0 ? olderCohorts.reduce((s, c) => s + c.w2, 0) / olderCohorts.length : 0
+                      const trendDiff = Math.round((recentAvgW2 - olderAvgW2) * 10) / 10
+                      const trendLabel = trendDiff > 2 ? "Improving" : trendDiff < -2 ? "Declining" : "Stable"
+                      return (
+                        <>
+                          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div className="p-3 rounded-xl bg-muted text-center">
+                              <p className="text-[11px] text-muted-foreground">Avg. Week 2 Retention</p>
+                              <p className="text-lg font-bold text-foreground">{avgW2}%</p>
+                            </div>
+                            <div className="p-3 rounded-xl bg-muted text-center">
+                              <p className="text-[11px] text-muted-foreground">Avg. Week 4 Retention</p>
+                              <p className="text-lg font-bold text-foreground">{avgW4}%</p>
+                            </div>
+                            <div className="p-3 rounded-xl bg-muted text-center">
+                              <p className="text-[11px] text-muted-foreground">Retention Trend</p>
+                              <p className="text-lg font-bold text-foreground">{trendLabel}</p>
+                              {trendDiff !== 0 && (
+                                <span className={`text-[11px] font-medium ${trendDiff > 0 ? "text-green-600" : "text-red-500"}`}>
+                                  {trendDiff > 0 ? "+" : ""}{trendDiff}% avg change
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="mt-4 p-3 rounded-xl bg-muted">
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <Brain className="size-3.5 text-purple-500" />
+                              <p className="text-xs font-semibold text-foreground">Retention Insight</p>
+                            </div>
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                              {avgW2 > 50
+                                ? `Your average Week 2 retention of ${avgW2}% is strong. `
+                                : avgW2 > 0
+                                ? `Your average Week 2 retention of ${avgW2}% has room for improvement. `
+                                : "Not enough data for retention insights yet. "}
+                              {avgW4 > 0 && avgW4 < avgW2 * 0.6
+                                ? "The biggest retention drop-off happens between Week 2 and Week 4 — consider adding a re-engagement touchpoint at Day 14-21."
+                                : avgW4 > 0
+                                ? "Retention between Week 2 and Week 4 is holding relatively well."
+                                : ""}
+                            </p>
+                          </div>
+                        </>
+                      )
+                    })()}
+                  </>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

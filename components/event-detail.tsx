@@ -92,9 +92,10 @@ function PhotoGalleryLoader({ eventId, isOwner }: { eventId: string; isOwner: bo
   const [photos, setPhotos] = useState<EventPhoto[]>([])
   const [loading, setLoading] = useState(true)
 
-  const fetchPhotos = async () => {
+  const fetchPhotos = async (cancelled?: { current: boolean }) => {
     setLoading(true)
     const result = await getEventPhotos(eventId)
+    if (cancelled?.current) return
     if (result.success && result.photos) {
       setPhotos(result.photos)
     }
@@ -102,7 +103,9 @@ function PhotoGalleryLoader({ eventId, isOwner }: { eventId: string; isOwner: bo
   }
 
   useEffect(() => {
-    fetchPhotos()
+    const cancelled = { current: false }
+    fetchPhotos(cancelled)
+    return () => { cancelled.current = true }
   }, [eventId])
 
   if (loading) {
@@ -145,6 +148,7 @@ export function EventDetail({ event }: EventDetailProps) {
 
   // Fetch mention highlights for this itinerary (non-blocking)
   useEffect(() => {
+    let cancelled = false
     const fetchHighlights = async () => {
       try {
         const supabase = createClient()
@@ -169,6 +173,7 @@ export function EventDetail({ event }: EventDetailProps) {
           .eq("business_mentions.itinerary_id", event.id)
           .gte("expires_at", new Date().toISOString())
 
+        if (cancelled) return
         if (data) {
           const map: Record<string, any> = {}
           data.forEach((h: any) => {
@@ -188,6 +193,7 @@ export function EventDetail({ event }: EventDetailProps) {
     }
 
     fetchHighlights()
+    return () => { cancelled = true }
   }, [event.id])
 
   // Fetch invitations for this itinerary
@@ -251,11 +257,16 @@ export function EventDetail({ event }: EventDetailProps) {
   }
 
   useEffect(() => {
-    fetchInvitations()
+    let cancelled = false
+    const doFetch = async () => {
+      await fetchInvitations()
+    }
+    doFetch()
+    return () => { cancelled = true }
   }, [event.id, isOwner])
 
   // Fetch attendee counts (visible to everyone via itinerary_attendees + invitations)
-  const fetchAttendeeCounts = async () => {
+  const fetchAttendeeCounts = async (cancelled?: { current: boolean }) => {
     const supabase = createClient()
 
     // Count accepted attendees (from itinerary_attendees table, accessible to all)
@@ -263,6 +274,8 @@ export function EventDetail({ event }: EventDetailProps) {
       .from("itinerary_attendees")
       .select("*", { count: "exact", head: true })
       .eq("itinerary_id", event.id)
+
+    if (cancelled?.current) return
 
     // For tentative count, we need invitations — only owners can see all via RLS
     // For non-owners, this will return 0 (acceptable tradeoff)
@@ -272,6 +285,8 @@ export function EventDetail({ event }: EventDetailProps) {
       .eq("itinerary_id", event.id)
       .eq("status", "tentative")
 
+    if (cancelled?.current) return
+
     setAttendeeCounts({
       going: Math.max(1, attendeeCount || 1), // At least the host
       maybe: tentativeCount || 0,
@@ -279,11 +294,14 @@ export function EventDetail({ event }: EventDetailProps) {
   }
 
   useEffect(() => {
-    fetchAttendeeCounts()
+    const cancelled = { current: false }
+    fetchAttendeeCounts(cancelled)
+    return () => { cancelled.current = true }
   }, [event.id])
 
   // Fetch current user's invitation status (for non-owners)
   useEffect(() => {
+    let cancelled = false
     const fetchMyInvitation = async () => {
       if (!user?.id || isOwner) return
       const supabase = createClient()
@@ -295,12 +313,13 @@ export function EventDetail({ event }: EventDetailProps) {
         .limit(1)
         .maybeSingle()
 
-      if (data) {
+      if (!cancelled && data) {
         setMyInvitation({ id: data.id, status: data.status as any })
       }
     }
 
     fetchMyInvitation()
+    return () => { cancelled = true }
   }, [user?.id, event.id, isOwner])
 
   // Handle ?rsvp= query param from email links or invite links
@@ -311,6 +330,8 @@ export function EventDetail({ event }: EventDetailProps) {
 
     const validResponses = ["accept", "decline", "tentative"]
     if (!validResponses.includes(rsvpParam)) return
+
+    const controller = new AbortController()
 
     const statusMap: Record<string, string> = {
       accept: "accepted",
@@ -327,6 +348,7 @@ export function EventDetail({ event }: EventDetailProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ response: rsvpParam }),
+        signal: controller.signal,
       })
         .then((res) => res.json())
         .then((data) => {
@@ -345,6 +367,7 @@ export function EventDetail({ event }: EventDetailProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ itineraryId: event.id, response: rsvpParam }),
+        signal: controller.signal,
       })
         .then((res) => res.json())
         .then((data) => {
@@ -364,6 +387,8 @@ export function EventDetail({ event }: EventDetailProps) {
     url.searchParams.delete("rsvp")
     url.searchParams.delete("invite")
     window.history.replaceState({}, "", url.toString())
+
+    return () => controller.abort()
   }, [searchParams, myInvitation, user, isOwner])
 
   // Check if we should show the post-event cover update prompt
@@ -378,6 +403,7 @@ export function EventDetail({ event }: EventDetailProps) {
 
   // Check access permissions for packing and expenses
   useEffect(() => {
+    let cancelled = false
     const checkAccess = async () => {
       setCheckingAccess(true)
 
@@ -401,6 +427,8 @@ export function EventDetail({ event }: EventDetailProps) {
         .limit(1)
         .maybeSingle()
 
+      if (cancelled) return
+
       const isAttendee = !!invitation
 
       // Attendees and owners can access private content
@@ -411,6 +439,7 @@ export function EventDetail({ event }: EventDetailProps) {
     }
 
     checkAccess()
+    return () => { cancelled = true }
   }, [user?.id, event.id, isOwner])
 
   // Function to fetch packing items
@@ -441,11 +470,17 @@ export function EventDetail({ event }: EventDetailProps) {
 
   // Fetch packing items (only if user has access)
   useEffect(() => {
-    fetchPackingItems()
+    let cancelled = false
+    const doFetch = async () => {
+      await fetchPackingItems()
+    }
+    doFetch()
+    return () => { cancelled = true }
   }, [event.id, canAccessPacking])
 
   // Check if user has liked this itinerary
   useEffect(() => {
+    let cancelled = false
     const checkLikeStatus = async () => {
       if (!user?.id) {
         setLiked(false)
@@ -458,12 +493,13 @@ export function EventDetail({ event }: EventDetailProps) {
         itinerary_uuid: event.id
       })
 
-      if (!error && data !== null) {
+      if (!cancelled && !error && data !== null) {
         setLiked(data)
       }
     }
 
     checkLikeStatus()
+    return () => { cancelled = true }
   }, [user?.id, event.id])
 
   // Check if it's a multi-day trip

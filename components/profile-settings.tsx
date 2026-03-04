@@ -83,6 +83,15 @@ export function ProfileSettings() {
             setAvatarPath(data.avatar_path || null)
           }
 
+          // Check if user has business mode enabled before showing business features
+          const { data: prefs } = await supabase
+            .from("user_preferences")
+            .select("business_preferences")
+            .eq("user_id", user.id)
+            .single()
+
+          const isBusinessMode = (prefs?.business_preferences as any)?.isBusinessMode === true
+
           // Fetch business data + subscription for tier-aware profile editing.
           // Use .limit(1) instead of .single() to handle duplicate rows gracefully.
           const { data: bizRows } = await supabase
@@ -93,22 +102,16 @@ export function ProfileSettings() {
             .limit(1)
           const biz = bizRows?.[0] ?? null
 
-          if (biz) {
+          if (biz && isBusinessMode) {
             setBusinessId(biz.id)
             const sub = await getBusinessSubscription(biz.id)
             setBusinessTier(getEffectiveTier(sub, biz.business_tier as BusinessTierSlug))
             setBrandingConfig(biz.branding_config as EnterpriseBrandingConfig | null)
-          } else {
+          } else if (!biz && isBusinessMode) {
             // No businesses row yet — check user_preferences for the tier
             // the user selected in Business settings so the branding editor
             // still renders for enterprise users who haven't formally created
             // a business record.
-            const { data: prefs } = await supabase
-              .from("user_preferences")
-              .select("business_preferences")
-              .eq("user_id", user.id)
-              .single()
-
             const prefTier = (prefs?.business_preferences as any)?.selectedBusinessTier as
               | BusinessTierSlug
               | undefined

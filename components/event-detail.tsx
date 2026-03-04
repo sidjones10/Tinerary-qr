@@ -139,6 +139,7 @@ export function EventDetail({ event }: EventDetailProps) {
   const [invitations, setInvitations] = useState<InvitationInfo[]>([])
   const [loadingInvitations, setLoadingInvitations] = useState(false)
   const [myInvitation, setMyInvitation] = useState<{ id: string; status: "pending" | "accepted" | "declined" | "tentative" } | null>(null)
+  const [attendeeCounts, setAttendeeCounts] = useState<{ going: number; maybe: number }>({ going: 1, maybe: 0 }) // 1 = host
   const isOwner = !!(user && user.id === event.user_id)
   const searchParams = useSearchParams()
 
@@ -252,6 +253,34 @@ export function EventDetail({ event }: EventDetailProps) {
   useEffect(() => {
     fetchInvitations()
   }, [event.id, isOwner])
+
+  // Fetch attendee counts (visible to everyone via itinerary_attendees + invitations)
+  const fetchAttendeeCounts = async () => {
+    const supabase = createClient()
+
+    // Count accepted attendees (from itinerary_attendees table, accessible to all)
+    const { count: attendeeCount } = await supabase
+      .from("itinerary_attendees")
+      .select("*", { count: "exact", head: true })
+      .eq("itinerary_id", event.id)
+
+    // For tentative count, we need invitations — only owners can see all via RLS
+    // For non-owners, this will return 0 (acceptable tradeoff)
+    const { count: tentativeCount } = await supabase
+      .from("itinerary_invitations")
+      .select("*", { count: "exact", head: true })
+      .eq("itinerary_id", event.id)
+      .eq("status", "tentative")
+
+    setAttendeeCounts({
+      going: Math.max(1, attendeeCount || 1), // At least the host
+      maybe: tentativeCount || 0,
+    })
+  }
+
+  useEffect(() => {
+    fetchAttendeeCounts()
+  }, [event.id])
 
   // Fetch current user's invitation status (for non-owners)
   useEffect(() => {
@@ -785,38 +814,48 @@ export function EventDetail({ event }: EventDetailProps) {
         </div>
 
         <div className="mb-6">
-          <div className="flex items-start mb-4">
-            {event.location && (
-              <div className="flex items-center text-sm text-muted-foreground mr-4">
-                <MapPin className="h-4 w-4 mr-1" />
-                <span>{event.location}</span>
-              </div>
-            )}
-
-            <div
-              className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={(e) => {
-                e.stopPropagation()
-                if (event.user_id) {
-                  router.push(`/user/${event.user_id}`)
-                }
-              }}
-            >
-              {event.host_avatar && (
-                <img
-                  src={event.host_avatar}
-                  alt={event.host_name}
-                  className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
-                />
-              )}
-              <div>
-                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  Hosted by {event.host_name || "Anonymous"}
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-start gap-4">
+              {event.location && (
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <MapPin className="h-4 w-4 mr-1" />
+                  <span>{event.location}</span>
                 </div>
-                {event.host_username && (
-                  <div className="text-xs text-muted-foreground">{event.host_username}</div>
+              )}
+
+              <div
+                className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (event.user_id) {
+                    router.push(`/user/${event.user_id}`)
+                  }
+                }}
+              >
+                {event.host_avatar && (
+                  <img
+                    src={event.host_avatar}
+                    alt={event.host_name}
+                    className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
+                  />
                 )}
+                <div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    Hosted by {event.host_name || "Anonymous"}
+                  </div>
+                  {event.host_username && (
+                    <div className="text-xs text-muted-foreground">{event.host_username}</div>
+                  )}
+                </div>
               </div>
+            </div>
+
+            {/* Attendee counter */}
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground shrink-0">
+              <Users className="h-4 w-4" />
+              <span className="font-medium text-foreground">
+                {attendeeCounts.going} going{attendeeCounts.maybe > 0 ? ` · ${attendeeCounts.maybe} maybe` : ""}
+              </span>
             </div>
           </div>
 
@@ -865,6 +904,7 @@ export function EventDetail({ event }: EventDetailProps) {
                 return { id, status: newStatus }
               })
               fetchInvitations()
+              fetchAttendeeCounts()
             }}
           />
         )}

@@ -222,15 +222,26 @@ export function BusinessSettings() {
     loadPreferences()
   }, [user])
 
-  // Auto-open setup dialog when arriving with a tier query param (e.g. from /business plans page)
+  // Track whether tier query param has been processed to avoid re-triggering
+  const [tierParamProcessed, setTierParamProcessed] = useState(false)
+
+  // Auto-open setup dialog or trigger tier change when arriving with a tier query param
   useEffect(() => {
-    if (!loaded) return
+    if (!loaded || tierParamProcessed) return
     const tierParam = searchParams.get("tier") as BusinessTierSlug | null
-    if (tierParam && ["basic", "premium", "enterprise"].includes(tierParam) && !hasBusinessRecord) {
+    if (!tierParam || !["basic", "premium", "enterprise"].includes(tierParam)) return
+
+    if (!hasBusinessRecord) {
+      // New user: open setup dialog with selected tier
       setSelectedBusinessTier(tierParam)
       setSetupOpen(true)
+      setTierParamProcessed(true)
+    } else if (subscription && tierParam !== subscription.tier) {
+      // Existing user: trigger tier change if different from current
+      setTierParamProcessed(true)
+      handleSelectBusinessTier(tierParam)
     }
-  }, [loaded, searchParams, hasBusinessRecord])
+  }, [loaded, searchParams, hasBusinessRecord, subscription, tierParamProcessed])
 
   // Persist business preferences whenever they change
   const savePreferences = useCallback(

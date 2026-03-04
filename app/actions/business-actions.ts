@@ -169,11 +169,18 @@ export async function createBusiness(formData: FormData) {
 
     // Create a matching subscription record so the dashboard picks up the tier
     if (data) {
+      const periodStart = new Date()
+      const periodEnd = new Date()
+      periodEnd.setMonth(periodEnd.getMonth() + 1)
+
       await db.from("business_subscriptions").insert({
         business_id: data.id,
         tier: tier as BusinessTierSlug,
         status: "active",
         mention_highlights_used: 0,
+        current_period_start: periodStart.toISOString(),
+        current_period_end: periodEnd.toISOString(),
+        paid_amount: tier === "enterprise" ? 399 : tier === "premium" ? 149 : 49,
       })
     }
 

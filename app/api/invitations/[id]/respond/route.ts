@@ -1,11 +1,27 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/utils/supabase/server"
+import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
 import { createNotification } from "@/lib/notification-service"
+import { sendRsvpNotificationEmail } from "@/lib/email-notifications"
+
+const VALID_RESPONSES = ["accept", "decline", "tentative"] as const
+type RsvpResponse = (typeof VALID_RESPONSES)[number]
+
+const STATUS_MAP: Record<RsvpResponse, string> = {
+  accept: "accepted",
+  decline: "declined",
+  tentative: "tentative",
+}
+
+const STATUS_EMOJI: Record<string, string> = {
+  accepted: "🎉",
+  declined: "😔",
+  tentative: "🤔",
+}
 
 /**
- * Accept or decline an itinerary invitation.
+ * Accept, decline, or mark tentative on an itinerary invitation.
  * POST /api/invitations/[id]/respond
- * Body: { response: "accept" | "decline" }
+ * Body: { response: "accept" | "decline" | "tentative" }
  */
 export async function POST(
   request: NextRequest,
@@ -24,16 +40,16 @@ export async function POST(
 
     const { id: invitationId } = await params
     const body = await request.json()
-    const { response } = body
+    const { response } = body as { response: string }
 
-    if (!response || !["accept", "decline"].includes(response)) {
+    if (!response || !VALID_RESPONSES.includes(response as RsvpResponse)) {
       return NextResponse.json(
-        { error: "Invalid response. Must be 'accept' or 'decline'." },
+        { error: "Invalid response. Must be 'accept', 'decline', or 'tentative'." },
         { status: 400 }
       )
     }
 
-    const newStatus = response === "accept" ? "accepted" : "declined"
+    const newStatus = STATUS_MAP[response as RsvpResponse]
 
     // Fetch the invitation and verify the current user is the invitee
     const { data: invitation, error: fetchError } = await supabase
@@ -56,11 +72,13 @@ export async function POST(
       )
     }
 
-    if (invitation.status !== "pending") {
-      return NextResponse.json(
-        { error: `Invitation has already been ${invitation.status}` },
-        { status: 409 }
-      )
+    // Allow changing RSVP status (Partiful-style: users can change their mind)
+    if (invitation.status === newStatus) {
+      return NextResponse.json({
+        success: true,
+        status: newStatus,
+        message: `Already ${newStatus}`,
+      })
     }
 
     // Update the invitation status
@@ -80,7 +98,7 @@ export async function POST(
       )
     }
 
-    // If accepted, add user as an attendee
+    // If accepted, add user as an attendee; if changed away from accepted, remove
     if (newStatus === "accepted") {
       const { error: attendeeError } = await supabase
         .from("itinerary_attendees")
@@ -96,14 +114,20 @@ export async function POST(
 
       if (attendeeError) {
         console.error("Error adding attendee:", attendeeError)
-        // Non-fatal: invitation is still accepted even if attendee insert fails
       }
+    } else if (invitation.status === "accepted") {
+      // Was accepted, now changing to something else — remove from attendees
+      await supabase
+        .from("itinerary_attendees")
+        .delete()
+        .eq("itinerary_id", invitation.itinerary_id)
+        .eq("user_id", user.id)
     }
 
     // Notify the inviter about the response
     const { data: inviteeProfile } = await supabase
       .from("profiles")
-      .select("name")
+      .select("name, avatar_url")
       .eq("id", user.id)
       .single()
 
@@ -115,22 +139,50 @@ export async function POST(
 
     const inviteeName = inviteeProfile?.name || "Someone"
     const itineraryTitle = itinerary?.title || "an itinerary"
+    const emoji = STATUS_EMOJI[newStatus] || ""
+
+    // Use service role client to create notification for the inviter (bypasses RLS)
+    let serviceClient: ReturnType<typeof createServiceRoleClient> | null = null
+    try {
+      serviceClient = createServiceRoleClient()
+    } catch {
+      // Fall back to regular client
+    }
 
     await createNotification(
       {
         userId: invitation.inviter_id,
         type: "itinerary_rsvp",
-        title: `Invitation ${newStatus}`,
-        message: `${inviteeName} has ${newStatus} your invitation to "${itineraryTitle}"`,
+        title: `${emoji} RSVP: ${inviteeName} ${newStatus}`,
+        message: `${inviteeName} has ${newStatus === "tentative" ? "marked tentative for" : newStatus} your invitation to "${itineraryTitle}"`,
         linkUrl: `/event/${invitation.itinerary_id}`,
+        imageUrl: inviteeProfile?.avatar_url || undefined,
       },
-      supabase,
+      serviceClient || supabase,
     )
+
+    // Send email notification to host about the RSVP
+    const { data: inviterProfile } = await (serviceClient || supabase)
+      .from("profiles")
+      .select("email, name")
+      .eq("id", invitation.inviter_id)
+      .single()
+
+    if (inviterProfile?.email) {
+      sendRsvpNotificationEmail(
+        inviterProfile.email,
+        inviterProfile.name || "there",
+        inviteeName,
+        newStatus,
+        itineraryTitle,
+        invitation.itinerary_id,
+      ).catch((err: any) => console.error("Failed to send RSVP notification email:", err))
+    }
 
     return NextResponse.json({
       success: true,
       status: newStatus,
-      message: `Invitation ${newStatus} successfully`,
+      message: `RSVP updated to ${newStatus}`,
     })
   } catch (error: any) {
     console.error("Error responding to invitation:", error)

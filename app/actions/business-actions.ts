@@ -99,8 +99,18 @@ export async function createBusiness(formData: FormData) {
     return redirect("/auth?message=You must be logged in to create a business")
   }
 
+  // Use service role to bypass RLS for the duplicate check + insert.
+  // The anon key can't SELECT from businesses (missing RLS policy),
+  // which previously caused unlimited duplicate rows.
+  let db: typeof supabase
+  try {
+    db = createServiceRoleClient() as any
+  } catch {
+    db = supabase
+  }
+
   // Check if user already has a business
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from("businesses")
     .select("id")
     .eq("user_id", session.user.id)
@@ -142,7 +152,7 @@ export async function createBusiness(formData: FormData) {
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from("businesses")
       .insert({
         name,
@@ -159,7 +169,7 @@ export async function createBusiness(formData: FormData) {
 
     // Create a matching subscription record so the dashboard picks up the tier
     if (data) {
-      await supabase.from("business_subscriptions").insert({
+      await db.from("business_subscriptions").insert({
         business_id: data.id,
         tier: tier as BusinessTierSlug,
         status: "active",

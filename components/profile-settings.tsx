@@ -21,6 +21,7 @@ import {
   getBusinessSubscription,
   getEffectiveTier,
 } from "@/lib/business-tier-service"
+import { saveBrandingConfig } from "@/app/actions/business-actions"
 
 export function ProfileSettings() {
   const { t } = useTranslation()
@@ -263,17 +264,20 @@ export function ProfileSettings() {
   }
 
   const handleSaveBranding = async (config: EnterpriseBrandingConfig) => {
-    if (!user || !businessId) return
+    if (!user) return
 
     setSavingBranding(true)
     try {
-      const supabase = createClient()
-      const { error } = await supabase
-        .from("businesses")
-        .update({ branding_config: config as any })
-        .eq("id", businessId)
+      const result = await saveBrandingConfig(config, businessId)
 
-      if (error) throw error
+      if (!result.success) {
+        throw new Error(result.error || "Failed to save branding configuration.")
+      }
+
+      // If a new business was created, store its ID for future saves
+      if (result.businessId && result.businessId !== businessId) {
+        setBusinessId(result.businessId)
+      }
 
       setBrandingConfig(config)
       toast({

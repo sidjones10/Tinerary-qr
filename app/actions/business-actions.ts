@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/utils/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/server"
 import type { BusinessTierSlug } from "@/lib/tiers"
+import type { EnterpriseBrandingConfig } from "@/lib/enterprise"
 
 const VALID_TIERS: BusinessTierSlug[] = ["basic", "premium", "enterprise"]
 
@@ -86,6 +87,99 @@ export async function getBusinessProfileData() {
     console.error("getBusinessProfileData failed:", err)
     return { profile: null, business: null, promos: null, subscription: null, error: "server_error" }
   }
+}
+
+/**
+ * Save enterprise branding configuration.
+ * If the user doesn't have a businesses row yet (e.g. they selected their tier
+ * in user_preferences but never completed the business setup wizard), this
+ * creates a minimal business record first so the branding config has somewhere
+ * to live.
+ */
+export async function saveBrandingConfig(
+  config: EnterpriseBrandingConfig,
+  existingBusinessId?: string | null
+): Promise<{ success: boolean; businessId?: string; error?: string }> {
+  const supabase = await createClient()
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  if (!session) {
+    return { success: false, error: "Not authenticated" }
+  }
+
+  let db: typeof supabase
+  try {
+    db = createServiceRoleClient() as any
+  } catch {
+    db = supabase
+  }
+
+  let businessId = existingBusinessId ?? undefined
+
+  if (!businessId) {
+    // Look up existing business row the client may not have seen (RLS timing)
+    const { data: existing } = await db
+      .from("businesses")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .single()
+
+    if (existing) {
+      businessId = existing.id
+    } else {
+      // Read the user's profile name to use as a default business name
+      const { data: profile } = await db
+        .from("profiles")
+        .select("name")
+        .eq("id", session.user.id)
+        .single()
+
+      const { data: newBiz, error: insertErr } = await db
+        .from("businesses")
+        .insert({
+          user_id: session.user.id,
+          name: profile?.name || "My Business",
+          category: "Other",
+          business_tier: "enterprise" as BusinessTierSlug,
+          branding_config: config as any,
+        })
+        .select("id")
+        .single()
+
+      if (insertErr) {
+        console.error("Error creating business for branding:", insertErr)
+        return { success: false, error: insertErr.message }
+      }
+
+      // Create a matching subscription record
+      await db.from("business_subscriptions").insert({
+        business_id: newBiz.id,
+        tier: "enterprise" as BusinessTierSlug,
+        status: "active",
+        mention_highlights_used: 0,
+      })
+
+      revalidatePath("/business-profile")
+      return { success: true, businessId: newBiz.id }
+    }
+  }
+
+  // Update existing business row
+  const { error } = await db
+    .from("businesses")
+    .update({ branding_config: config as any })
+    .eq("id", businessId)
+
+  if (error) {
+    console.error("Error saving branding config:", error)
+    return { success: false, error: error.message }
+  }
+
+  revalidatePath("/business-profile")
+  return { success: true, businessId }
 }
 
 export async function createBusiness(formData: FormData) {

@@ -116,13 +116,16 @@ export async function POST(
     const inviteeName = inviteeProfile?.name || "Someone"
     const itineraryTitle = itinerary?.title || "an itinerary"
 
-    await createNotification({
-      userId: invitation.inviter_id,
-      type: "itinerary_rsvp",
-      title: `Invitation ${newStatus}`,
-      message: `${inviteeName} has ${newStatus} your invitation to "${itineraryTitle}"`,
-      linkUrl: `/event/${invitation.itinerary_id}`,
-    })
+    await createNotification(
+      {
+        userId: invitation.inviter_id,
+        type: "itinerary_rsvp",
+        title: `Invitation ${newStatus}`,
+        message: `${inviteeName} has ${newStatus} your invitation to "${itineraryTitle}"`,
+        linkUrl: `/event/${invitation.itinerary_id}`,
+      },
+      supabase,
+    )
 
     return NextResponse.json({
       success: true,

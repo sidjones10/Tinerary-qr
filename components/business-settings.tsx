@@ -404,11 +404,11 @@ export function BusinessSettings() {
             .eq("id", biz.id)
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error changing business tier:", error)
       toast({
         title: "Error",
-        description: "Something went wrong. Please try again.",
+        description: error?.message || "Something went wrong. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -439,8 +439,13 @@ export function BusinessSettings() {
         title: "Subscription canceled",
         description: `You'll keep access to all features until ${periodEnd}. You can resubscribe anytime before then without being charged again.`,
       })
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error canceling subscription:", error)
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to cancel subscription.",
+        variant: "destructive",
+      })
     } finally {
       setActionLoading(false)
     }

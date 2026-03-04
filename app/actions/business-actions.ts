@@ -324,17 +324,21 @@ export async function changeBusinessTier(
   subscriptionId: string,
   newTier: BusinessTierSlug
 ): Promise<SubscriptionActionResult> {
+  if (!subscriptionId) return { success: false, error: "Missing subscription ID" }
+  if (!VALID_TIERS.includes(newTier)) return { success: false, error: "Invalid tier" }
+
   try {
     const supabase = await createClient()
     const {
-      data: { session },
-    } = await supabase.auth.getSession()
-    if (!session) return { success: false, error: "Not authenticated" }
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not authenticated" }
 
     let db: typeof supabase
     try {
       db = createServiceRoleClient() as any
     } catch {
+      console.warn("Service role client unavailable, falling back to authenticated client")
       db = supabase
     }
 
@@ -354,7 +358,7 @@ export async function changeBusinessTier(
     const { data: biz } = await db
       .from("businesses")
       .select("id")
-      .eq("user_id", session.user.id)
+      .eq("user_id", user.id)
       .eq("id", currentSub.business_id)
       .single()
 
@@ -448,9 +452,9 @@ export async function cancelBusinessSubscription(
   try {
     const supabase = await createClient()
     const {
-      data: { session },
-    } = await supabase.auth.getSession()
-    if (!session) return { success: false, error: "Not authenticated" }
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not authenticated" }
 
     let db: typeof supabase
     try {
@@ -474,7 +478,7 @@ export async function cancelBusinessSubscription(
     const { data: biz } = await db
       .from("businesses")
       .select("id")
-      .eq("user_id", session.user.id)
+      .eq("user_id", user.id)
       .eq("id", currentSub.business_id)
       .single()
 
@@ -490,7 +494,6 @@ export async function cancelBusinessSubscription(
         updated_at: now.toISOString(),
       })
       .eq("id", subscriptionId)
-      .eq("status", "active")
       .select()
       .single()
 
@@ -508,9 +511,9 @@ export async function resubscribeBusiness(
   try {
     const supabase = await createClient()
     const {
-      data: { session },
-    } = await supabase.auth.getSession()
-    if (!session) return { success: false, error: "Not authenticated" }
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not authenticated" }
 
     let db: typeof supabase
     try {
@@ -534,7 +537,7 @@ export async function resubscribeBusiness(
     const { data: biz } = await db
       .from("businesses")
       .select("id")
-      .eq("user_id", session.user.id)
+      .eq("user_id", user.id)
       .eq("id", currentSub.business_id)
       .single()
 
@@ -572,13 +575,13 @@ export async function sendPlanChangeEmail(
   try {
     const supabase = await createClient()
     const {
-      data: { session },
-    } = await supabase.auth.getSession()
-    if (!session) return { success: false, error: "Not authenticated" }
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not authenticated" }
 
     const { sendPlanChangeReceiptEmail } = await import("@/lib/email-notifications")
     await sendPlanChangeReceiptEmail(
-      session.user.email!,
+      user.email!,
       changeType,
       fromTier,
       toTier,

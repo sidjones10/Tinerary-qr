@@ -77,39 +77,35 @@ ALTER TABLE coin_balances ENABLE ROW LEVEL SECURITY;
 ALTER TABLE coin_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE coin_redemptions ENABLE ROW LEVEL SECURITY;
 
--- ─── RLS Policies (guarded against duplicates from migration 05) ──
-DO $$
-BEGIN
-  -- coin_balances
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'coin_balances' AND policyname = 'Users can view own coin balance') THEN
-    CREATE POLICY "Users can view own coin balance" ON coin_balances FOR SELECT USING (auth.uid() = user_id);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'coin_balances' AND policyname = 'Users can insert own coin balance') THEN
-    CREATE POLICY "Users can insert own coin balance" ON coin_balances FOR INSERT WITH CHECK (auth.uid() = user_id);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'coin_balances' AND policyname = 'Users can update own coin balance') THEN
-    CREATE POLICY "Users can update own coin balance" ON coin_balances FOR UPDATE USING (auth.uid() = user_id);
-  END IF;
+-- ─── RLS Policies (drop-then-create to avoid duplicates from migration 05) ──
 
-  -- coin_transactions
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'coin_transactions' AND policyname = 'Users can view own coin transactions') THEN
-    CREATE POLICY "Users can view own coin transactions" ON coin_transactions FOR SELECT USING (auth.uid() = user_id);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'coin_transactions' AND policyname = 'Users can insert own coin transactions') THEN
-    CREATE POLICY "Users can insert own coin transactions" ON coin_transactions FOR INSERT WITH CHECK (auth.uid() = user_id);
-  END IF;
+-- coin_balances
+DROP POLICY IF EXISTS "Users can view own coin balance" ON coin_balances;
+CREATE POLICY "Users can view own coin balance" ON coin_balances FOR SELECT USING (auth.uid() = user_id);
 
-  -- coin_redemptions
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'coin_redemptions' AND policyname = 'Users can view own coin redemptions') THEN
-    CREATE POLICY "Users can view own coin redemptions" ON coin_redemptions FOR SELECT USING (auth.uid() = user_id);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'coin_redemptions' AND policyname = 'Users can insert own coin redemptions') THEN
-    CREATE POLICY "Users can insert own coin redemptions" ON coin_redemptions FOR INSERT WITH CHECK (auth.uid() = user_id);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'coin_redemptions' AND policyname = 'Users can update own coin redemptions') THEN
-    CREATE POLICY "Users can update own coin redemptions" ON coin_redemptions FOR UPDATE USING (auth.uid() = user_id);
-  END IF;
-END $$;
+DROP POLICY IF EXISTS "Users can insert own coin balance" ON coin_balances;
+CREATE POLICY "Users can insert own coin balance" ON coin_balances FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own coin balance" ON coin_balances;
+CREATE POLICY "Users can update own coin balance" ON coin_balances FOR UPDATE USING (auth.uid() = user_id);
+
+-- coin_transactions (migration 05 creates these with slightly different names too)
+DROP POLICY IF EXISTS "Users can view own coin transactions" ON coin_transactions;
+CREATE POLICY "Users can view own coin transactions" ON coin_transactions FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can create own coin transactions" ON coin_transactions;
+DROP POLICY IF EXISTS "Users can insert own coin transactions" ON coin_transactions;
+CREATE POLICY "Users can insert own coin transactions" ON coin_transactions FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- coin_redemptions
+DROP POLICY IF EXISTS "Users can view own coin redemptions" ON coin_redemptions;
+CREATE POLICY "Users can view own coin redemptions" ON coin_redemptions FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own coin redemptions" ON coin_redemptions;
+CREATE POLICY "Users can insert own coin redemptions" ON coin_redemptions FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own coin redemptions" ON coin_redemptions;
+CREATE POLICY "Users can update own coin redemptions" ON coin_redemptions FOR UPDATE USING (auth.uid() = user_id);
 
 -- ─── Helper: ensure coin balance row exists ──────────────────────
 CREATE OR REPLACE FUNCTION ensure_coin_balance(p_user_id UUID)

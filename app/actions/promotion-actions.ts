@@ -798,6 +798,113 @@ export async function getAffiliateStats(userId: string) {
   }
 }
 
+/**
+ * Fetch detailed affiliate earnings data grouped by link for tables/charts.
+ */
+export async function getAffiliateDetails(userId: string) {
+  const supabase = await createClient()
+
+  try {
+    // Fetch all affiliate links with their associated earnings
+    const { data: links } = await supabase
+      .from("affiliate_links")
+      .select("id, affiliate_code, type, target_url, promotion_id, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+
+    if (!links || links.length === 0) {
+      return { success: true, data: { products: [], experiences: [] } }
+    }
+
+    const codes = links.map((l: any) => l.affiliate_code)
+
+    // Fetch all clicks per code
+    const { data: clicks } = await supabase
+      .from("affiliate_clicks")
+      .select("affiliate_code")
+      .in("affiliate_code", codes)
+
+    // Fetch all earnings
+    const { data: earnings } = await supabase
+      .from("affiliate_earnings")
+      .select("affiliate_code, user_commission, status, gross_amount")
+      .eq("user_id", userId)
+
+    // Build click counts per code
+    const clicksByCode: Record<string, number> = {}
+    for (const c of clicks || []) {
+      clicksByCode[c.affiliate_code] = (clicksByCode[c.affiliate_code] || 0) + 1
+    }
+
+    // Build earnings per code
+    const earningsByCode: Record<string, { conversions: number; revenue: number }> = {}
+    for (const e of earnings || []) {
+      if (!earningsByCode[e.affiliate_code]) {
+        earningsByCode[e.affiliate_code] = { conversions: 0, revenue: 0 }
+      }
+      earningsByCode[e.affiliate_code].conversions += 1
+      earningsByCode[e.affiliate_code].revenue += Number(e.user_commission || 0)
+    }
+
+    // Fetch promotion details for promotion-type links
+    const promoIds = links.filter((l: any) => l.promotion_id).map((l: any) => l.promotion_id)
+    let promoMap: Record<string, any> = {}
+    if (promoIds.length > 0) {
+      const { data: promos } = await supabase
+        .from("promotions")
+        .select("id, title, type, category")
+        .in("id", promoIds)
+
+      for (const p of promos || []) {
+        promoMap[p.id] = p
+      }
+    }
+
+    // Separate into products (external links) and experiences (promotion links)
+    const products: any[] = []
+    const experiences: any[] = []
+
+    for (const link of links) {
+      const clickCount = clicksByCode[link.affiliate_code] || 0
+      const earning = earningsByCode[link.affiliate_code] || { conversions: 0, revenue: 0 }
+
+      if (link.type === "external") {
+        products.push({
+          name: link.target_url,
+          clicks: clickCount,
+          conversions: earning.conversions,
+          revenue: `$${earning.revenue.toFixed(2)}`,
+        })
+      } else if (link.promotion_id && promoMap[link.promotion_id]) {
+        const promo = promoMap[link.promotion_id]
+        experiences.push({
+          name: promo.title,
+          category: promo.category || promo.type || "General",
+          referrals: clickCount,
+          conversions: earning.conversions,
+          revenue: `$${earning.revenue.toFixed(2)}`,
+          status: "Active",
+        })
+      }
+    }
+
+    // Sort by revenue descending
+    products.sort((a, b) => parseFloat(b.revenue.slice(1)) - parseFloat(a.revenue.slice(1)))
+    experiences.sort((a, b) => parseFloat(b.revenue.slice(1)) - parseFloat(a.revenue.slice(1)))
+
+    return {
+      success: true,
+      data: {
+        products: products.slice(0, 10),
+        experiences: experiences.slice(0, 10),
+      },
+    }
+  } catch (error) {
+    console.warn("Could not fetch affiliate details (tables may not exist yet):", error)
+    return { success: true, data: { products: [], experiences: [] } }
+  }
+}
+
 export async function generatePerformanceReport() {
   const supabase = await createClient()
 
@@ -875,5 +982,187 @@ export async function generatePerformanceReport() {
   } catch (error) {
     console.error("Error generating performance report:", error)
     return { success: false, error: (error as Error).message }
+  }
+}
+
+/**
+ * Fetch real transaction and commission data for the business transactions page.
+ * Pulls from affiliate_earnings, affiliate_links, and promotion_metrics.
+ */
+export async function getBusinessTransactions() {
+  const supabase = await createClient()
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  if (!session) {
+    return { success: false, error: "Not authenticated" }
+  }
+
+  try {
+    const { data: business } = await supabase
+      .from("businesses")
+      .select("id, name, business_tier")
+      .eq("user_id", session.user.id)
+      .single()
+
+    if (!business) {
+      return { success: false, error: "No business profile found" }
+    }
+
+    // Fetch affiliate earnings (real transaction data)
+    const { data: earnings } = await supabase
+      .from("affiliate_earnings")
+      .select("*")
+      .eq("user_id", session.user.id)
+      .order("created_at", { ascending: false })
+
+    const allEarnings = earnings || []
+
+    // Fetch promotions with metrics for summary data
+    const { data: promotions } = await supabase
+      .from("promotions")
+      .select("id, title, status, type, category, promotion_metrics(views, clicks, saves)")
+      .eq("business_id", business.id)
+      .order("created_at", { ascending: false })
+
+    const allPromos = promotions || []
+
+    // Calculate summary stats from real data
+    const now = new Date()
+    const thirtyDaysAgo = new Date(now)
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    const sixtyDaysAgo = new Date(now)
+    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
+
+    const currentPeriodEarnings = allEarnings.filter(
+      (e: any) => new Date(e.created_at) >= thirtyDaysAgo
+    )
+    const previousPeriodEarnings = allEarnings.filter(
+      (e: any) => new Date(e.created_at) >= sixtyDaysAgo && new Date(e.created_at) < thirtyDaysAgo
+    )
+
+    const currentRevenue = currentPeriodEarnings.reduce(
+      (sum: number, e: any) => sum + Number(e.user_commission || 0),
+      0
+    )
+    const previousRevenue = previousPeriodEarnings.reduce(
+      (sum: number, e: any) => sum + Number(e.user_commission || 0),
+      0
+    )
+
+    const revenueChange =
+      previousRevenue > 0
+        ? Math.round(((currentRevenue - previousRevenue) / previousRevenue) * 100)
+        : 0
+
+    const currentBookings = currentPeriodEarnings.length
+    const previousBookings = previousPeriodEarnings.length
+    const bookingsChange =
+      previousBookings > 0
+        ? Math.round(((currentBookings - previousBookings) / previousBookings) * 100)
+        : 0
+
+    // Average commission rate
+    const avgCommissionRate =
+      currentPeriodEarnings.length > 0
+        ? currentPeriodEarnings.reduce((sum: number, e: any) => {
+            const gross = Number(e.gross_amount || 0)
+            const comm = Number(e.user_commission || 0)
+            return sum + (gross > 0 ? (comm / gross) * 100 : 0)
+          }, 0) / currentPeriodEarnings.length
+        : 0
+
+    // Build monthly revenue for chart (last 6 months)
+    const monthlyRevenue: { month: string; revenue: number }[] = []
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now)
+      d.setMonth(d.getMonth() - i)
+      const monthStart = new Date(d.getFullYear(), d.getMonth(), 1)
+      const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59)
+      const monthEarnings = allEarnings.filter(
+        (e: any) => new Date(e.created_at) >= monthStart && new Date(e.created_at) <= monthEnd
+      )
+      const revenue = monthEarnings.reduce(
+        (sum: number, e: any) => sum + Number(e.user_commission || 0),
+        0
+      )
+      monthlyRevenue.push({
+        month: monthStart.toLocaleString("en-US", { month: "short" }),
+        revenue: Math.round(revenue * 100) / 100,
+      })
+    }
+
+    // Format recent transactions from affiliate_earnings
+    const recentTransactions = allEarnings.slice(0, 10).map((e: any, idx: number) => {
+      const isRefund = Number(e.user_commission) < 0
+      const gross = Number(e.gross_amount || 0)
+      const commission = Number(e.user_commission || 0)
+      const rate = gross > 0 ? Math.round((commission / gross) * 100) : 0
+
+      return {
+        id: `TXN-${String(allEarnings.length - idx).padStart(4, "0")}`,
+        date: new Date(e.created_at).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }),
+        type: e.booking_id ? "Booking Commission" : "Affiliate Earning",
+        amount: `$${Math.abs(gross).toFixed(2)}`,
+        commission: `${isRefund ? "-" : "+"}$${Math.abs(commission).toFixed(2)}`,
+        rate: `${Math.abs(rate)}%`,
+        status: e.status === "paid" ? "Completed" : e.status === "approved" ? "Completed" : "Pending",
+      }
+    })
+
+    // Annual projection based on current month
+    const annualProjection = currentRevenue > 0 ? Math.round(currentRevenue * 12) : 0
+
+    return {
+      success: true,
+      data: {
+        summary: {
+          totalRevenue: Math.round(currentRevenue * 100) / 100,
+          revenueChange,
+          totalBookings: currentBookings,
+          bookingsChange,
+          avgCommissionRate: Math.round(avgCommissionRate * 10) / 10,
+          annualProjection,
+        },
+        monthlyRevenue,
+        recentTransactions,
+        promotions: allPromos.map((p: any) => {
+          const m = Array.isArray(p.promotion_metrics) ? p.promotion_metrics[0] : p.promotion_metrics
+          return {
+            id: p.id,
+            title: p.title,
+            status: p.status,
+            type: p.type || p.category,
+            views: m?.views || 0,
+            clicks: m?.clicks || 0,
+            saves: m?.saves || 0,
+          }
+        }),
+      },
+    }
+  } catch (error) {
+    console.warn("Could not fetch business transactions (tables may not exist yet):", error)
+    return {
+      success: true,
+      data: {
+        summary: {
+          totalRevenue: 0,
+          revenueChange: 0,
+          totalBookings: 0,
+          bookingsChange: 0,
+          avgCommissionRate: 0,
+          annualProjection: 0,
+        },
+        monthlyRevenue: [],
+        recentTransactions: [],
+        promotions: [],
+      },
+    }
   }
 }

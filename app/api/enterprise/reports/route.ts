@@ -104,31 +104,137 @@ export async function GET(request: NextRequest) {
       }),
     }
 
-    // Enterprise-only report sections
+    // Enterprise-only report sections — computed from real metrics
     if (isEnterprise(tier)) {
+      // Calculate trend analysis by comparing current vs previous period metrics
+      const now = new Date()
+      const periodDays = reportType === "daily" ? 1 : reportType === "weekly" ? 7 : 30
+
+      // Fetch current period metrics
+      const currentStart = new Date(now)
+      currentStart.setDate(currentStart.getDate() - periodDays)
+      const previousStart = new Date(currentStart)
+      previousStart.setDate(previousStart.getDate() - periodDays)
+
+      const { data: currentMetrics } = await supabase
+        .from("promotions")
+        .select("promotion_metrics(views, clicks, saves)")
+        .eq("business_id", business.id)
+        .gte("updated_at", currentStart.toISOString())
+
+      const { data: previousMetrics } = await supabase
+        .from("promotions")
+        .select("promotion_metrics(views, clicks, saves)")
+        .eq("business_id", business.id)
+        .gte("updated_at", previousStart.toISOString())
+        .lt("updated_at", currentStart.toISOString())
+
+      const sumMetrics = (items: any[]) => {
+        let views = 0, clicks = 0, saves = 0
+        for (const p of items) {
+          const m = Array.isArray(p.promotion_metrics) ? p.promotion_metrics[0] : p.promotion_metrics
+          views += m?.views || 0
+          clicks += m?.clicks || 0
+          saves += m?.saves || 0
+        }
+        return { views, clicks, saves }
+      }
+
+      const current = sumMetrics(currentMetrics || [])
+      const previous = sumMetrics(previousMetrics || [])
+
+      const calcChange = (curr: number, prev: number) =>
+        prev > 0 ? Math.round(((curr - prev) / prev) * 1000) / 10 : 0
+      const trendLabel = (change: number) =>
+        change > 2 ? "increasing" : change < -2 ? "decreasing" : "stable"
+
+      const viewsChange = calcChange(current.views, previous.views)
+      const clicksChange = calcChange(current.clicks, previous.clicks)
+      const savesChange = calcChange(current.saves, previous.saves)
+
       report.trend_analysis = {
-        views_trend: "increasing",
-        views_change_percent: 12.5,
-        clicks_trend: "increasing",
-        clicks_change_percent: 8.3,
-        saves_trend: "stable",
-        saves_change_percent: -2.1,
-        period_comparison: "vs. previous period",
+        views_trend: trendLabel(viewsChange),
+        views_change_percent: viewsChange,
+        clicks_trend: trendLabel(clicksChange),
+        clicks_change_percent: clicksChange,
+        saves_trend: trendLabel(savesChange),
+        saves_change_percent: savesChange,
+        period_comparison: `vs. previous ${periodDays}-day period`,
       }
 
-      report.competitor_benchmark = {
-        category_avg_views: 890,
-        category_avg_ctr: 12.3,
-        category_avg_conversion: 3.1,
-        your_position: "top_10_percent",
+      // Competitor benchmark: compare against category averages from real data
+      const categories = [...new Set(allPromos.map((p) => p.category).filter(Boolean))]
+      const primaryCategory = categories[0] || null
+
+      if (primaryCategory) {
+        const { data: categoryPromos } = await supabase
+          .from("promotions")
+          .select("promotion_metrics(views, clicks, saves)")
+          .eq("category", primaryCategory)
+          .neq("business_id", business.id)
+
+        const catItems = categoryPromos || []
+        const catMetrics = sumMetrics(catItems)
+        const catCount = catItems.length || 1
+        const catAvgViews = Math.round(catMetrics.views / catCount)
+        const catAvgCtr = catMetrics.views > 0
+          ? Math.round((catMetrics.clicks / catMetrics.views) * 1000) / 10
+          : 0
+
+        const yourViews = current.views
+        const businessesAbove = catItems.filter((p) => {
+          const m = Array.isArray(p.promotion_metrics) ? p.promotion_metrics[0] : p.promotion_metrics
+          return (m?.views || 0) > yourViews
+        }).length
+        const percentile = catCount > 0
+          ? Math.round(((catCount - businessesAbove) / catCount) * 100)
+          : 50
+
+        report.competitor_benchmark = {
+          category: primaryCategory,
+          category_avg_views: catAvgViews,
+          category_avg_ctr: catAvgCtr,
+          businesses_in_category: catCount,
+          your_percentile: percentile,
+        }
+      } else {
+        report.competitor_benchmark = {
+          category: null,
+          note: "No category data available for benchmarking. Add a category to your promotions to enable competitor comparison.",
+        }
       }
 
-      report.recommendations = [
-        "Consider adding a mid-week promotion to capture weekday traffic dip.",
-        "Your Weekend Wine Tour is outperforming similar listings by 34%. Consider increasing its budget.",
-        "Adding high-quality images to your Sunset Dinner Cruise listing could improve CTR by ~15%.",
-        "Revenue per booking is strong — maintain current pricing strategy.",
-      ]
+      // Generate recommendations based on actual performance
+      const recommendations: string[] = []
+      const totalViews = report.promotions.reduce((s: number, p: any) => s + p.views, 0)
+      const totalClicks = report.promotions.reduce((s: number, p: any) => s + p.clicks, 0)
+      const overallCtr = totalViews > 0 ? (totalClicks / totalViews) * 100 : 0
+
+      if (overallCtr < 5 && totalViews > 0) {
+        recommendations.push("Your click-through rate is below 5%. Consider updating promotion titles and images to increase engagement.")
+      }
+      if (report.metrics.active_promotions === 0) {
+        recommendations.push("You have no active promotions. Create or reactivate promotions to start generating traffic.")
+      }
+      if (viewsChange < -10) {
+        recommendations.push(`Views dropped ${Math.abs(viewsChange)}% compared to the previous period. Consider boosting your promotions or updating their content.`)
+      }
+      if (totalViews > 100 && overallCtr > 10) {
+        recommendations.push("Strong click-through rate! Consider increasing your promotion reach to capitalize on high engagement.")
+      }
+      // Top performing promotion insight
+      const topPromo = report.promotions.reduce(
+        (top: any, p: any) => (p.views > (top?.views || 0) ? p : top),
+        null
+      )
+      if (topPromo && topPromo.views > 0) {
+        recommendations.push(`"${topPromo.title}" is your top performer with ${topPromo.views} views. Consider creating similar promotions.`)
+      }
+      if (recommendations.length === 0) {
+        recommendations.push("Keep your promotions active and monitor performance regularly to identify growth opportunities.")
+      }
+
+      report.recommendations = recommendations
     }
 
     // CSV format

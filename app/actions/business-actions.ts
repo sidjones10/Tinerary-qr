@@ -22,61 +22,70 @@ const BUSINESS_CATEGORIES = [
 
 /**
  * Fetch the current user's business profile data for the dashboard.
- * Uses the service-role client to bypass RLS on the businesses table
- * (which may lack a SELECT policy for authenticated users).
+ * Tries service-role client first (bypasses RLS), falls back to the
+ * regular cookie-based client if the service role key isn't configured.
  */
 export async function getBusinessProfileData() {
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
 
-  if (!session) {
-    return { profile: null, business: null, promos: null }
-  }
+    if (!session) {
+      return { profile: null, business: null, promos: null, subscription: null, error: "no_session" }
+    }
 
-  // Use service role to bypass RLS — the businesses table may not have
-  // a SELECT policy for authenticated users via the anon key.
-  const admin = createServiceRoleClient()
+    // Prefer service role (bypasses RLS) but fall back to cookie-based client
+    let db: typeof supabase
+    try {
+      db = createServiceRoleClient() as any
+    } catch {
+      db = supabase
+    }
 
-  const [profileResult, bizResult] = await Promise.all([
-    admin
-      .from("profiles")
-      .select("name, username, bio, location, website, avatar_url")
-      .eq("id", session.user.id)
-      .single(),
-    admin
-      .from("businesses")
-      .select("*")
-      .eq("user_id", session.user.id)
-      .single(),
-  ])
-
-  const profile = profileResult.data
-  const business = bizResult.data
-
-  let promos: any[] | null = null
-  let subscription: any | null = null
-  if (business) {
-    const [promosResult, subResult] = await Promise.all([
-      admin
-        .from("promotions")
-        .select("title, status, promotion_metrics(views, clicks, saves)")
-        .eq("business_id", business.id)
-        .order("created_at", { ascending: false }),
-      admin
-        .from("business_subscriptions")
+    const [profileResult, bizResult] = await Promise.all([
+      db
+        .from("profiles")
+        .select("name, username, bio, location, website, avatar_url")
+        .eq("id", session.user.id)
+        .single(),
+      db
+        .from("businesses")
         .select("*")
-        .eq("business_id", business.id)
-        .eq("status", "active")
+        .eq("user_id", session.user.id)
         .single(),
     ])
-    promos = promosResult.data
-    subscription = subResult.data
-  }
 
-  return { profile, business, promos, subscription }
+    const profile = profileResult.data
+    const business = bizResult.data
+
+    let promos: any[] | null = null
+    let subscription: any | null = null
+    if (business) {
+      const [promosResult, subResult] = await Promise.all([
+        db
+          .from("promotions")
+          .select("title, status, promotion_metrics(views, clicks, saves)")
+          .eq("business_id", business.id)
+          .order("created_at", { ascending: false }),
+        db
+          .from("business_subscriptions")
+          .select("*")
+          .eq("business_id", business.id)
+          .eq("status", "active")
+          .single(),
+      ])
+      promos = promosResult.data
+      subscription = subResult.data
+    }
+
+    return { profile, business, promos, subscription, error: null }
+  } catch (err) {
+    console.error("getBusinessProfileData failed:", err)
+    return { profile: null, business: null, promos: null, subscription: null, error: "server_error" }
+  }
 }
 
 export async function createBusiness(formData: FormData) {

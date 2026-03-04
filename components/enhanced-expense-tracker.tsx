@@ -498,6 +498,27 @@ export function EnhancedExpenseTracker({
   const myExpenses = expenses.filter((e) => e.paid_by_user_id === currentUserId)
   const myTotal = myExpenses.reduce((sum, e) => sum + e.amount, 0)
 
+  // Calculate what each participant owes (their share from splits) and what they paid
+  const getParticipantSummary = (participantId: string) => {
+    let totalOwed = 0 // what they owe based on splits
+    let totalPaid = 0 // what they paid out of pocket
+    expenses.forEach((e) => {
+      if (e.paid_by_user_id === participantId) {
+        totalPaid += e.amount
+      }
+      const split = e.expense_splits?.find(s => s.user_id === participantId)
+      if (split) {
+        totalOwed += split.amount
+      }
+    })
+    return { totalOwed, totalPaid, net: totalPaid - totalOwed }
+  }
+
+  const myShare = expenses.reduce((sum, e) => {
+    const split = e.expense_splits?.find(s => s.user_id === currentUserId)
+    return sum + (split?.amount || 0)
+  }, 0)
+
   return (
     <Card>
       <CardHeader>
@@ -802,9 +823,19 @@ export function EnhancedExpenseTracker({
                           </div>
                           <div className="text-right">
                             <p className="text-lg font-bold">{formatAmount(expense.amount, expense.currency)}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {formatAmount(expense.amount / (expense.expense_splits?.length || participants.length), expense.currency)} per person
-                            </p>
+                            {expense.expense_splits && expense.expense_splits.length > 1 && (
+                              <p className="text-xs text-muted-foreground">
+                                {(() => {
+                                  const amounts = expense.expense_splits!.map(s => s.amount)
+                                  const allEqual = amounts.every(a => Math.abs(a - amounts[0]) < 0.01)
+                                  if (allEqual) {
+                                    return `${formatAmount(amounts[0], expense.currency)} each`
+                                  }
+                                  const mySplit = expense.expense_splits!.find(s => s.user_id === currentUserId)
+                                  return mySplit ? `Your share: ${formatAmount(mySplit.amount, expense.currency)}` : ""
+                                })()}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </CardContent>
@@ -816,20 +847,11 @@ export function EnhancedExpenseTracker({
           </TabsContent>
 
           <TabsContent value="settlements" className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Who owes whom</p>
-              <p className="text-xs text-muted-foreground">
-                Simplified settlement suggestions to minimize transactions
-              </p>
-            </div>
-
-            <Separator />
-
             {settlements.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Check className="h-12 w-12 mx-auto mb-2 text-green-500" />
-                <p>All settled up!</p>
-                <p className="text-sm mt-2">No pending settlements</p>
+                <p className="font-medium">All settled up!</p>
+                <p className="text-sm mt-1">No one owes anything</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -841,60 +863,49 @@ export function EnhancedExpenseTracker({
                   return (
                     <Card key={idx}>
                       <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={settlement.from_user?.avatar_url} />
-                              <AvatarFallback>
-                                {settlement.from_user?.name.charAt(0).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium">{settlement.from_user?.name}</p>
-                              <p className="text-sm text-muted-foreground">owes</p>
-                            </div>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10 shrink-0">
+                            <AvatarImage src={settlement.from_user?.avatar_url} />
+                            <AvatarFallback>
+                              {settlement.from_user?.name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm">
+                              <span className="font-medium">{settlement.from_user?.name}</span>
+                              {" owes "}
+                              <span className="font-medium">{settlement.to_user?.name}</span>
+                            </p>
+                            <p className="text-xl font-bold text-red-500">{formatAmount(settlement.amount)}</p>
                           </div>
-
-                          <div className="text-center">
-                            <p className="text-2xl font-bold text-red-500">{formatAmount(settlement.amount)}</p>
-                          </div>
-
-                          <div className="flex items-center gap-3">
-                            <div className="text-right">
-                              <p className="font-medium">{settlement.to_user?.name}</p>
-                              <p className="text-sm text-muted-foreground">receives</p>
-                            </div>
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={settlement.to_user?.avatar_url} />
-                              <AvatarFallback>
-                                {settlement.to_user?.name.charAt(0).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                          </div>
+                          <Avatar className="h-10 w-10 shrink-0">
+                            <AvatarImage src={settlement.to_user?.avatar_url} />
+                            <AvatarFallback>
+                              {settlement.to_user?.name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
                         </div>
 
                         {canSettle && (
-                          <div className="mt-3 pt-3 border-t">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="w-full gap-2"
-                              disabled={isSettling}
-                              onClick={() => handleMarkSettled(settlement.from_user_id, settlement.to_user_id)}
-                            >
-                              {isSettling ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                  Settling...
-                                </>
-                              ) : (
-                                <>
-                                  <Check className="h-4 w-4" />
-                                  Mark as Settled
-                                </>
-                              )}
-                            </Button>
-                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full gap-2 mt-3"
+                            disabled={isSettling}
+                            onClick={() => handleMarkSettled(settlement.from_user_id, settlement.to_user_id)}
+                          >
+                            {isSettling ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Settling...
+                              </>
+                            ) : (
+                              <>
+                                <Check className="h-4 w-4" />
+                                Mark as Settled
+                              </>
+                            )}
+                          </Button>
                         )}
                       </CardContent>
                     </Card>
@@ -905,20 +916,39 @@ export function EnhancedExpenseTracker({
           </TabsContent>
 
           <TabsContent value="summary" className="space-y-4 mt-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <Card>
-                <CardContent className="p-4">
-                  <p className="text-sm text-muted-foreground mb-1">Total Group Spending</p>
-                  <p className="text-2xl font-bold">{formatAmount(totalExpenses)}</p>
+                <CardContent className="p-3">
+                  <p className="text-xs text-muted-foreground mb-1">Total Spent</p>
+                  <p className="text-lg font-bold">{formatAmount(totalExpenses)}</p>
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="p-4">
-                  <p className="text-sm text-muted-foreground mb-1">You Paid</p>
-                  <p className="text-2xl font-bold text-green-600">{formatAmount(myTotal)}</p>
+                <CardContent className="p-3">
+                  <p className="text-xs text-muted-foreground mb-1">You Paid</p>
+                  <p className="text-lg font-bold">{formatAmount(myTotal)}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-3">
+                  <p className="text-xs text-muted-foreground mb-1">Your Share</p>
+                  <p className="text-lg font-bold">{formatAmount(myShare)}</p>
                 </CardContent>
               </Card>
             </div>
+
+            {myTotal - myShare !== 0 && (
+              <Card className={myTotal > myShare ? "border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950" : "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950"}>
+                <CardContent className="p-3 text-center">
+                  <p className={`text-sm font-medium ${myTotal > myShare ? "text-green-700 dark:text-green-300" : "text-red-700 dark:text-red-300"}`}>
+                    {myTotal > myShare
+                      ? `You are owed ${formatAmount(myTotal - myShare)}`
+                      : `You owe ${formatAmount(myShare - myTotal)}`
+                    }
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             <Card>
               <CardHeader>
@@ -940,7 +970,7 @@ export function EnhancedExpenseTracker({
                             <span>{category.icon}</span>
                             <span>{category.label}</span>
                           </span>
-                          <span className="text-sm font-medium">${categoryTotal.toFixed(2)}</span>
+                          <span className="text-sm font-medium">{formatAmount(categoryTotal)}</span>
                         </div>
                         <div className="h-2 bg-muted rounded-full overflow-hidden">
                           <div
@@ -963,19 +993,26 @@ export function EnhancedExpenseTracker({
               <CardContent>
                 <div className="space-y-3">
                   {participants.map((participant) => {
-                    const paidExpenses = expenses.filter((e) => e.paid_by_user_id === participant.id)
-                    const paidTotal = paidExpenses.reduce((sum, e) => sum + e.amount, 0)
+                    const summary = getParticipantSummary(participant.id)
 
                     return (
-                      <div key={participant.id} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={participant.avatar_url} />
-                            <AvatarFallback>{participant.name.charAt(0).toUpperCase()}</AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium">{participant.name}</span>
+                      <div key={participant.id} className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={participant.avatar_url} />
+                              <AvatarFallback>{participant.name.charAt(0).toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium">{participant.name}</span>
+                          </div>
+                          <span className={`text-sm font-medium ${summary.net > 0.01 ? "text-green-600" : summary.net < -0.01 ? "text-red-600" : ""}`}>
+                            {summary.net > 0.01 ? `+${formatAmount(summary.net)}` : summary.net < -0.01 ? `-${formatAmount(Math.abs(summary.net))}` : "Settled"}
+                          </span>
                         </div>
-                        <span className="text-sm font-medium">${paidTotal.toFixed(2)}</span>
+                        <div className="flex gap-4 ml-10 text-xs text-muted-foreground">
+                          <span>Paid: {formatAmount(summary.totalPaid)}</span>
+                          <span>Share: {formatAmount(summary.totalOwed)}</span>
+                        </div>
                       </div>
                     )
                   })}

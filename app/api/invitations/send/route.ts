@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/utils/supabase/server"
+import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
 import { createNotification } from "@/lib/notification-service"
 import { sendInvitationEmail, sendEventInviteEmail } from "@/lib/email-notifications"
 import { sendInvitationSMS, formatPhoneNumber } from "@/backend/services/twilio"
@@ -41,6 +41,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
+    // Use service role client for creating notifications for other users
+    // This bypasses RLS so the inviter can insert notifications for the invitee
+    let serviceClient: ReturnType<typeof createServiceRoleClient> | null = null
+    try {
+      serviceClient = createServiceRoleClient()
+    } catch (err) {
+      console.error("Service role client unavailable — notifications may not be delivered:", err)
+    }
+
     const results = []
 
     for (const contact of contacts) {
@@ -70,8 +79,8 @@ export async function POST(request: NextRequest) {
             })
 
             if (!inviteError) {
-              // In-app notification (pass server client so it works in API routes)
-              await createNotification(
+              // In-app notification — use service role client to bypass RLS
+              const notifResult = await createNotification(
                 {
                   userId: existingUser.id,
                   type: "invitation",
@@ -79,8 +88,11 @@ export async function POST(request: NextRequest) {
                   message: `${senderName || "Someone"} invited you to join "${itineraryTitle}"`,
                   linkUrl: `/event/${itineraryId}`,
                 },
-                supabase,
+                serviceClient || supabase,
               )
+              if (!notifResult.success) {
+                console.error("Failed to create in-app notification for phone user:", notifResult.error)
+              }
 
               // Also send SMS
               const inviteUrl = `${APP_URL}/event/${itineraryId}`
@@ -154,17 +166,20 @@ export async function POST(request: NextRequest) {
           })
 
           if (!inviteError) {
-            // In-app notification (pass server client so it works in API routes)
-            await createNotification(
+            // In-app notification — use service role client to bypass RLS
+            const notifResult = await createNotification(
               {
                 userId: existingUser.id,
                 type: "invitation",
                 title: "Trip Invitation",
-                message: `${senderName} invited you to join "${itineraryTitle}"`,
+                message: `${senderName || "Someone"} invited you to join "${itineraryTitle}"`,
                 linkUrl: `/event/${itineraryId}`,
               },
-              supabase,
+              serviceClient || supabase,
             )
+            if (!notifResult.success) {
+              console.error("Failed to create in-app notification for email user:", notifResult.error)
+            }
 
             // Send email notification to existing user
             sendEventInviteEmail(

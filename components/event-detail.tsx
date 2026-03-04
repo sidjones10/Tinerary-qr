@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
-import { ArrowLeft, Calendar, MapPin, Clock, Share2, Heart, Users, Edit, Trash2, Loader2, Flag } from "lucide-react"
+import { ArrowLeft, Calendar, MapPin, Clock, Share2, Heart, Users, Edit, Trash2, Loader2, Flag, Mail, Phone, CheckCircle2, XCircle } from "lucide-react"
 import { MentionHighlightBadge } from "@/components/mention-highlight-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -70,6 +70,17 @@ interface Attendee {
   role?: string
 }
 
+interface InvitationInfo {
+  id: string
+  status: "pending" | "accepted" | "declined"
+  created_at: string
+  invitee_name?: string
+  invitee_email?: string
+  invitee_avatar?: string
+  is_pending_invitation?: boolean // for non-user pending invitations
+  contact?: string // email or phone for pending invitations
+}
+
 interface EventDetailProps {
   event: Event
   packingItems?: PackingItem[]
@@ -124,6 +135,8 @@ export function EventDetail({ event }: EventDetailProps) {
   const [coverImage, setCoverImage] = useState(event.image_url as string | undefined)
   const [showCoverPrompt, setShowCoverPrompt] = useState(false)
   const [highlightsByActivity, setHighlightsByActivity] = useState<Record<string, any>>({})
+  const [invitations, setInvitations] = useState<InvitationInfo[]>([])
+  const [loadingInvitations, setLoadingInvitations] = useState(false)
   const isOwner = !!(user && user.id === event.user_id)
 
   // Fetch mention highlights for this itinerary (non-blocking)
@@ -172,6 +185,70 @@ export function EventDetail({ event }: EventDetailProps) {
 
     fetchHighlights()
   }, [event.id])
+
+  // Fetch invitations for this itinerary
+  const fetchInvitations = async () => {
+    if (!isOwner) return
+    setLoadingInvitations(true)
+    try {
+      const supabase = createClient()
+
+      // Fetch user invitations (existing users)
+      const { data: userInvites } = await supabase
+        .from("itinerary_invitations")
+        .select(`
+          id, status, created_at,
+          invitee:profiles!invitee_id (id, name, email, avatar_url)
+        `)
+        .eq("itinerary_id", event.id)
+        .order("created_at", { ascending: false })
+
+      // Fetch pending invitations (non-users)
+      const { data: pendingInvites } = await supabase
+        .from("pending_invitations")
+        .select("id, email, status, created_at")
+        .eq("itinerary_id", event.id)
+        .order("created_at", { ascending: false })
+
+      const allInvitations: InvitationInfo[] = []
+
+      if (userInvites) {
+        for (const inv of userInvites) {
+          const invitee = inv.invitee as any
+          allInvitations.push({
+            id: inv.id,
+            status: inv.status as "pending" | "accepted" | "declined",
+            created_at: inv.created_at,
+            invitee_name: invitee?.name || "Unknown",
+            invitee_email: invitee?.email,
+            invitee_avatar: invitee?.avatar_url,
+          })
+        }
+      }
+
+      if (pendingInvites) {
+        for (const inv of pendingInvites) {
+          allInvitations.push({
+            id: inv.id,
+            status: inv.status as "pending",
+            created_at: inv.created_at,
+            is_pending_invitation: true,
+            contact: inv.email, // could be email or phone
+          })
+        }
+      }
+
+      setInvitations(allInvitations)
+    } catch (err) {
+      console.error("Error fetching invitations:", err)
+    } finally {
+      setLoadingInvitations(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchInvitations()
+  }, [event.id, isOwner])
 
   // Check if we should show the post-event cover update prompt
   useEffect(() => {
@@ -406,6 +483,8 @@ export function EventDetail({ event }: EventDetailProps) {
           ...(isPhoneNumber ? { phoneNumbers: [input] } : { emails: [input] }),
           itineraryTitle: event.title,
           senderName: user.user_metadata?.name || user.email?.split("@")[0] || "Someone",
+          eventDate: event.start_date || undefined,
+          eventLocation: event.location || undefined,
         }),
       })
 
@@ -420,6 +499,7 @@ export function EventDetail({ event }: EventDetailProps) {
 
       setInviteEmail("")
       setShowInviteModal(false)
+      fetchInvitations() // Refresh the attendees list
     } catch (error: any) {
       console.error("Error sending invitation:", error)
       toast({
@@ -928,15 +1008,93 @@ export function EventDetail({ event }: EventDetailProps) {
           </TabsContent>
 
           <TabsContent value="attendees">
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">No attendees yet.</p>
-              {isOwner && (
-                <Button className="mt-4" onClick={() => setShowInviteModal(true)}>
-                  <Users className="h-4 w-4 mr-2" />
-                  Invite Friends
-                </Button>
-              )}
-            </div>
+            {loadingInvitations ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : invitations.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No attendees yet.</p>
+                {isOwner && (
+                  <Button className="mt-4" onClick={() => setShowInviteModal(true)}>
+                    <Users className="h-4 w-4 mr-2" />
+                    Invite Friends
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  {invitations.map((inv) => (
+                    <div
+                      key={inv.id}
+                      className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                    >
+                      <div className="flex items-center gap-3">
+                        {inv.invitee_avatar ? (
+                          <img
+                            src={inv.invitee_avatar}
+                            alt={inv.invitee_name || ""}
+                            className="h-8 w-8 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                            {inv.is_pending_invitation ? (
+                              inv.contact?.includes("@") ? (
+                                <Mail className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <Phone className="h-4 w-4 text-muted-foreground" />
+                              )
+                            ) : (
+                              <Users className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-sm font-medium">
+                            {inv.is_pending_invitation
+                              ? inv.contact
+                              : inv.invitee_name}
+                          </p>
+                          {!inv.is_pending_invitation && inv.invitee_email && (
+                            <p className="text-xs text-muted-foreground">{inv.invitee_email}</p>
+                          )}
+                          {inv.is_pending_invitation && (
+                            <p className="text-xs text-muted-foreground">Not yet signed up</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {inv.status === "accepted" ? (
+                          <>
+                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                            <span className="text-xs text-green-600 dark:text-green-400">Accepted</span>
+                          </>
+                        ) : inv.status === "declined" ? (
+                          <>
+                            <XCircle className="h-4 w-4 text-red-500" />
+                            <span className="text-xs text-red-600 dark:text-red-400">Declined</span>
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="h-4 w-4 text-amber-500" />
+                            <span className="text-xs text-amber-600 dark:text-amber-400">Pending</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {isOwner && (
+                  <div className="flex justify-center">
+                    <Button variant="outline" onClick={() => setShowInviteModal(true)}>
+                      <Users className="h-4 w-4 mr-2" />
+                      Invite More
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="comments">

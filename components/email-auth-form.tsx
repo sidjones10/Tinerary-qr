@@ -251,6 +251,11 @@ export default function EmailAuthForm() {
       const accountType = age < 18 ? "minor" : "standard"
       const dateOfBirth = `${birthYear}-${birthMonth}-${birthDay}`
 
+      // Check for referral code in URL
+      const referralCode = typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("ref")
+        : null
+
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -261,6 +266,7 @@ export default function EmailAuthForm() {
             account_type: accountType,
             tos_accepted: true,
             privacy_accepted: true,
+            referred_by: referralCode || undefined,
           },
         },
       })
@@ -302,6 +308,15 @@ export default function EmailAuthForm() {
           { user_id: userId, consent_type: "data_processing", consent_version: "1.0.0", consent_given: true },
           { user_id: userId, consent_type: "marketing", consent_version: "1.0.0", consent_given: marketingAccepted },
         ])
+
+        // Process referral — award coins to referrer (non-blocking)
+        if (referralCode) {
+          fetch("/api/referrals", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ referrer_id: referralCode, referred_id: userId }),
+          }).catch((err) => console.error("Referral tracking error:", err))
+        }
 
         setAuthResult({
           success: true,

@@ -91,6 +91,8 @@ export function ShareDialog({ itineraryId, title, description, trigger, userId }
           text: description || `Check out ${title}!`,
           url: shareUrl,
         })
+        // Award coins after successful share
+        awardShareCoins()
       } catch (error: any) {
         // User cancelled or error occurred
         if (error.name !== "AbortError") {
@@ -103,10 +105,27 @@ export function ShareDialog({ itineraryId, title, description, trigger, userId }
     }
   }
 
+  const awardShareCoins = async () => {
+    if (!userId) return
+    try {
+      await fetch("/api/coins/award", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "share_social",
+          reference_type: "itinerary",
+          reference_id: itineraryId,
+        }),
+      })
+    } catch (error) {
+      // Non-blocking — don't interrupt the share flow
+      console.error("Error awarding share coins:", error)
+    }
+  }
+
   const shareToSocial = (platform: string) => {
     const encodedUrl = encodeURIComponent(shareUrl)
     const encodedTitle = encodeURIComponent(title)
-    const encodedDescription = encodeURIComponent(description || `Check out ${title}!`)
 
     let shareLink = ""
 
@@ -128,6 +147,9 @@ export function ShareDialog({ itineraryId, title, description, trigger, userId }
     }
 
     window.open(shareLink, "_blank", "width=600,height=400")
+
+    // Award coins for sharing to social media (once per itinerary)
+    awardShareCoins()
   }
 
   const downloadQRCode = () => {

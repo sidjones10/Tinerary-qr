@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/client"
-import { COIN_EARNING_ACTIONS, COIN_SPENDING_REWARDS } from "@/lib/tiers"
 
 // ─── Action Keys (machine-readable identifiers) ─────────────────
 

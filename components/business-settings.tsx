@@ -159,17 +159,15 @@ export function BusinessSettings() {
         // Use server action (bypasses RLS) to reliably check for business
         const { business: biz, subscription: sub } = await getBusinessProfileData()
 
-        const justCreated = typeof window !== "undefined" && sessionStorage.getItem("business_created") === "true"
-        setHasBusinessRecord(!!biz || justCreated)
-
         if (biz) {
+          setHasBusinessRecord(true)
           setBusinessId(biz.id)
           if (sub) {
             setSubscription(sub as BusinessSubscription)
             setSelectedBusinessTier(sub.tier as BusinessTierSlug)
           }
-        } else if (!justCreated) {
-          // No business in DB and no recent creation — clear stale flag
+        } else {
+          // No business in DB — clear any stale sessionStorage flag
           if (typeof window !== "undefined") {
             sessionStorage.removeItem("business_created")
           }

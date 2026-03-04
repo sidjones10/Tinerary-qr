@@ -185,14 +185,14 @@ export function PackingList({ simplified = false, items, tripId, onItemsChange }
     const item = optimisticItems.find((item) => item.id === id)
     if (!item) return
 
-    // Apply optimistic update
-    addOptimisticItem({
-      type: "toggle",
-      item: { ...item, packed: !currentPacked },
-    })
+    startTransition(async () => {
+      // Apply optimistic update inside transition so it persists until the server responds
+      addOptimisticItem({
+        type: "toggle",
+        item: { ...item, packed: !currentPacked },
+      })
 
-    try {
-      startTransition(async () => {
+      try {
         const result = await togglePackingItem(id, tripId, !currentPacked)
 
         if (!result.success) {
@@ -203,15 +203,15 @@ export function PackingList({ simplified = false, items, tripId, onItemsChange }
           })
           setError("Failed to update item status. Please try again.")
         }
-      })
-    } catch (err) {
-      // Revert optimistic update on error
-      addOptimisticItem({
-        type: "toggle",
-        item: { ...item, packed: currentPacked },
-      })
-      setError("Failed to update item status. Please try again.")
-    }
+      } catch (err) {
+        // Revert optimistic update on error
+        addOptimisticItem({
+          type: "toggle",
+          item: { ...item, packed: currentPacked },
+        })
+        setError("Failed to update item status. Please try again.")
+      }
+    })
   }
 
   const handleRemoveItem = async (id: string) => {
@@ -221,11 +221,11 @@ export function PackingList({ simplified = false, items, tripId, onItemsChange }
 
     setIsDeletingItem(id)
 
-    // Apply optimistic update
-    addOptimisticItem({ type: "delete", item, id })
+    startTransition(async () => {
+      // Apply optimistic update inside transition so it persists until the server responds
+      addOptimisticItem({ type: "delete", item, id })
 
-    try {
-      startTransition(async () => {
+      try {
         const result = await deletePackingItem(id, tripId)
 
         if (!result.success) {
@@ -240,15 +240,14 @@ export function PackingList({ simplified = false, items, tripId, onItemsChange }
           // Notify parent to refresh data
           onItemsChange?.()
         }
+      } catch (err) {
+        // Revert optimistic update on error
+        addOptimisticItem({ type: "add", item })
+        setError("Failed to delete item. Please try again.")
+      }
 
-        setIsDeletingItem(null)
-      })
-    } catch (err) {
-      // Revert optimistic update on error
-      addOptimisticItem({ type: "add", item })
-      setError("Failed to delete item. Please try again.")
       setIsDeletingItem(null)
-    }
+    })
   }
 
   const startEditItem = (item: PackingItem) => {
@@ -264,9 +263,6 @@ export function PackingList({ simplified = false, items, tripId, onItemsChange }
     const originalItem = items.find((item) => item.id === editingItem.id)
     if (!originalItem) return
 
-    // Apply optimistic update
-    addOptimisticItem({ type: "update", item: editingItem })
-
     // Create form data
     const formData = new FormData()
     formData.append("name", editingItem.name)
@@ -277,8 +273,11 @@ export function PackingList({ simplified = false, items, tripId, onItemsChange }
       formData.append("url", editingItem.url)
     }
 
-    try {
-      startTransition(async () => {
+    startTransition(async () => {
+      // Apply optimistic update inside transition so it persists until the server responds
+      addOptimisticItem({ type: "update", item: editingItem })
+
+      try {
         const result = await updatePackingItem(editingItem.id, tripId, formData)
 
         if (!result.success) {
@@ -298,12 +297,12 @@ export function PackingList({ simplified = false, items, tripId, onItemsChange }
           // Notify parent to refresh data
           onItemsChange?.()
         }
-      })
-    } catch (err) {
-      setError("Failed to update item. Please try again.")
-      // Revert optimistic update on error
-      addOptimisticItem({ type: "update", item: originalItem })
-    }
+      } catch (err) {
+        setError("Failed to update item. Please try again.")
+        // Revert optimistic update on error
+        addOptimisticItem({ type: "update", item: originalItem })
+      }
+    })
   }
 
   const packedCount = optimisticItems.filter((item) => item.packed).length

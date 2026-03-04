@@ -51,7 +51,7 @@ import {
   calculateProratedAmount,
   getSubscriptionStatus,
 } from "@/lib/subscription-lifecycle"
-import { createBusiness } from "@/app/actions/business-actions"
+import { createBusiness, getBusinessProfileData } from "@/app/actions/business-actions"
 
 const CATEGORIES = [
   "Accommodation",
@@ -156,35 +156,26 @@ export function BusinessSettings() {
       if (!user) return
 
       try {
-        const supabase = createClient()
-
-        // Check if a businesses row exists and load subscription
-        const { data: biz } = await supabase
-          .from("businesses")
-          .select("id")
-          .eq("user_id", user.id)
-          .single()
-
-        // Also check sessionStorage — if business was just created this session,
-        // trust that even if the DB query hasn't propagated yet
-        const justCreated = typeof window !== "undefined" && sessionStorage.getItem("business_created") === "true"
-        setHasBusinessRecord(!!biz || justCreated)
+        // Use server action (bypasses RLS) to reliably check for business
+        const { business: biz, subscription: sub } = await getBusinessProfileData()
 
         if (biz) {
+          setHasBusinessRecord(true)
           setBusinessId(biz.id)
-          const { data: sub } = await supabase
-            .from("business_subscriptions")
-            .select("*")
-            .eq("business_id", biz.id)
-            .single()
-
           if (sub) {
             setSubscription(sub as BusinessSubscription)
             setSelectedBusinessTier(sub.tier as BusinessTierSlug)
           }
+        } else {
+          // No business in DB — clear any stale sessionStorage flag
+          if (typeof window !== "undefined") {
+            sessionStorage.removeItem("business_created")
+          }
+          setHasBusinessRecord(false)
         }
 
         // Load preferences
+        const supabase = createClient()
         const { data, error } = await supabase
           .from("user_preferences")
           .select("business_preferences")

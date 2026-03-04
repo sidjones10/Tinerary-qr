@@ -1237,7 +1237,6 @@ export async function sendAccountDeletionWarningEmail(params: {
 }
 
 /**
-/**
  * Send plan change receipt email (upgrade or downgrade confirmation)
  */
 export async function sendPlanChangeReceiptEmail(

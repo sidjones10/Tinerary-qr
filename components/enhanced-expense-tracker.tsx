@@ -57,6 +57,7 @@ interface Participant {
   id: string
   name: string
   avatar_url?: string
+  role?: string
 }
 
 interface Settlement {
@@ -626,6 +627,12 @@ export function EnhancedExpenseTracker({
                           <span>{p.name}</span>
                           {p.id === newExpense.paid_by_user_id && (
                             <Badge variant="outline" className="text-xs py-0">Payer</Badge>
+                          )}
+                          {p.role === 'invited' && (
+                            <Badge variant="secondary" className="text-xs py-0">Invited</Badge>
+                          )}
+                          {p.role === 'tentative' && (
+                            <Badge variant="secondary" className="text-xs py-0">Maybe</Badge>
                           )}
                         </label>
                       </div>

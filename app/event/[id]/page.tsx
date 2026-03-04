@@ -463,6 +463,8 @@ export default function EventPage() {
   const [isPrivate, setIsPrivate] = useState(false)
 
   useEffect(() => {
+    let cancelled = false
+
     const fetchEvent = async () => {
       try {
         setLoading(true)
@@ -472,6 +474,9 @@ export default function EventPage() {
 
         // Use the getEventById function which has mock data fallback
         const eventData = await getEventById(id as string)
+
+        // If the effect was cleaned up while we were fetching, bail out
+        if (cancelled) return
 
         // Check if we have the necessary data to determine privacy
         // For mock data, assume it's public
@@ -494,6 +499,8 @@ export default function EventPage() {
               .eq("invitee_id", user.id)
               .limit(1)
               .maybeSingle()
+
+            if (cancelled) return
 
             if (!invitation) {
               setIsPrivate(true)
@@ -527,8 +534,14 @@ export default function EventPage() {
           }
         }
 
-        setEvent(eventData)
+        if (!cancelled) {
+          setEvent(eventData)
+        }
       } catch (err: any) {
+        // Ignore AbortError — this happens when the effect is cleaned up
+        // while a fetch is still in-flight (e.g. navigation, re-render)
+        if (err.name === "AbortError" || cancelled) return
+
         console.error("Error fetching event:", err)
         if (err.message === "Itinerary not found") {
           setNotFound(true)
@@ -536,20 +549,28 @@ export default function EventPage() {
           setError(err.message || "An error occurred while fetching the event")
         }
       } finally {
-        setLoading(false)
+        if (!cancelled) {
+          setLoading(false)
+        }
       }
     }
 
     if (id) {
       fetchEvent()
     }
+
+    return () => {
+      cancelled = true
+    }
   }, [id, user])
 
   // Track view when event loads successfully
   useEffect(() => {
     if (!event || !id) return
+    const controller = new AbortController()
     // Use the view API route which handles incrementing, interaction tracking, and coin milestones
-    fetch(`/api/itineraries/${id}/view`, { method: "POST" }).catch(() => {})
+    fetch(`/api/itineraries/${id}/view`, { method: "POST", signal: controller.signal }).catch(() => {})
+    return () => controller.abort()
   }, [event?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {

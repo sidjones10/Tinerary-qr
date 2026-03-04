@@ -53,6 +53,9 @@ export function setupGlobalErrorHandler(userId?: string) {
 
   // Handle unhandled errors
   window.onerror = (message, source, lineno, colno, error) => {
+    // Ignore AbortError — these are expected during navigation/cleanup
+    if (error?.name === "AbortError") return false
+
     logError({
       type: "client",
       message: String(message),
@@ -67,6 +70,10 @@ export function setupGlobalErrorHandler(userId?: string) {
 
   // Handle unhandled promise rejections
   window.onunhandledrejection = (event) => {
+    // Ignore AbortError — these are expected when navigating away or
+    // when React cleans up effects with in-flight fetch requests
+    if (event.reason?.name === "AbortError") return
+
     logError({
       type: "client",
       message: event.reason?.message || String(event.reason),

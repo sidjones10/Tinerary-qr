@@ -16,8 +16,6 @@ import {
 } from "@/components/ui/table"
 import {
   BarChart3,
-  TrendingUp,
-  TrendingDown,
   Eye,
   MousePointerClick,
   Bookmark,
@@ -245,24 +243,18 @@ export function BusinessAnalyticsContent() {
       {/* Overview Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {[
-          { label: "Total Views", value: totalViews.toLocaleString(), icon: Eye, change: "+18%", up: true },
-          { label: "Total Clicks", value: totalClicks.toLocaleString(), icon: MousePointerClick, change: "+24%", up: true },
-          { label: "Avg CTR", value: `${avgCtr}%`, icon: ArrowUpRight, change: "+2.1%", up: true },
-          { label: "Total Saves", value: totalSaves.toLocaleString(), icon: Bookmark, change: "+12%", up: true },
-          { label: "Total Shares", value: totalShares.toLocaleString(), icon: Share2, change: "-3%", up: false },
+          { label: "Total Views", value: totalViews.toLocaleString(), icon: Eye },
+          { label: "Total Clicks", value: totalClicks.toLocaleString(), icon: MousePointerClick },
+          { label: "Click-Through Rate", value: `${avgCtr}%`, icon: ArrowUpRight },
+          { label: "Save Rate", value: totalViews > 0 ? `${((totalSaves / totalViews) * 100).toFixed(1)}%` : "0.0%", icon: Bookmark },
+          { label: "Total Shares", value: totalShares.toLocaleString(), icon: Share2 },
         ].map((stat, i) => (
           <Card key={stat.label} className={`border-border ${STAT_ACCENTS[i]}`}>
             <CardContent className="pt-6">
               <div className={`size-8 rounded-lg ${STAT_ICON_COLORS[i].bg} flex items-center justify-center mb-2`}>
                 <stat.icon className={`size-4 ${STAT_ICON_COLORS[i].color}`} />
               </div>
-              <div className="flex items-baseline gap-2">
-                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                <span className={`text-xs font-medium flex items-center ${stat.up ? "text-green-600" : "text-red-500"}`}>
-                  {stat.up ? <TrendingUp className="size-3 mr-0.5" /> : <TrendingDown className="size-3 mr-0.5" />}
-                  {stat.change}
-                </span>
-              </div>
+              <p className="text-2xl font-bold text-foreground">{stat.value}</p>
               <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
             </CardContent>
           </Card>
@@ -474,7 +466,7 @@ export function BusinessAnalyticsContent() {
               </Badge>
             )}
           </div>
-          <EnterpriseAnalyticsDashboard tier={tier} />
+          <EnterpriseAnalyticsDashboard tier={tier} promotionMetrics={{ views: totalViews, clicks: totalClicks, saves: totalSaves, shares: totalShares }} />
         </div>
       )}
     </div>

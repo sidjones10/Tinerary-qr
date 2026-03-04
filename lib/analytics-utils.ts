@@ -252,6 +252,13 @@ export function calculateCTR(clicks: number, impressions: number): number {
   return Math.round((clicks / impressions) * 10000) / 100
 }
 
+// --- Save Rate ---
+
+export function calculateSaveRate(saves: number, views: number): number {
+  if (views === 0) return 0
+  return Math.round((saves / views) * 10000) / 100
+}
+
 // --- Projected Value ---
 
 export function projectValue(

@@ -43,10 +43,8 @@ const pages = [
     items: [
       { href: "/", label: "Home", icon: Home },
       { href: "/discover", label: "Discover", icon: Compass },
-      { href: "/explore", label: "Explore", icon: Search },
       { href: "/for-you", label: "For You", icon: Sparkles },
       { href: "/search", label: "Search", icon: Search },
-      { href: "/pricing", label: "Pricing", icon: CreditCard },
     ],
   },
   {
@@ -70,7 +68,15 @@ const pages = [
     ],
   },
   {
-    category: "Business (Phase 2)",
+    category: "Phase 2 — General",
+    items: [
+      { href: "/explore", label: "Explore", icon: Search },
+      { href: "/pricing", label: "Pricing", icon: CreditCard },
+      { href: "/mentions", label: "Mentions", icon: Megaphone },
+    ],
+  },
+  {
+    category: "Phase 2 — Business",
     items: [
       { href: "/business", label: "Business Plans", icon: Store },
       { href: "/business-profile", label: "Business Profile", icon: Store },
@@ -78,11 +84,10 @@ const pages = [
       { href: "/business-onboarding", label: "Business Onboarding", icon: Store },
       { href: "/deals", label: "Deals", icon: Tag },
       { href: "/deals/manage", label: "Manage Deals", icon: Tag },
-      { href: "/mentions", label: "Mentions", icon: Megaphone },
     ],
   },
   {
-    category: "Creator (Phase 2)",
+    category: "Phase 2 — Creator",
     items: [
       { href: "/creators", label: "Creator Directory", icon: Users },
       { href: "/creator", label: "Creator Hub", icon: Crown },
@@ -93,7 +98,7 @@ const pages = [
     ],
   },
   {
-    category: "Finance (Phase 2)",
+    category: "Phase 2 — Finance",
     items: [
       { href: "/coins", label: "Tinerary Coins", icon: Coins },
       { href: "/transactions", label: "Transactions", icon: Receipt },

@@ -21,12 +21,13 @@ async function getAdminClient() {
   return { adminClient }
 }
 
-// Define known cron jobs
+// Define known cron jobs with their correct HTTP methods
 const CRON_JOBS = [
   {
     id: "update-trending",
     name: "Update Trending Scores",
     endpoint: "/api/cron/update-trending",
+    method: "GET" as const,
     schedule: "Every hour",
     description: "Recalculates trending scores for itineraries",
   },
@@ -34,6 +35,7 @@ const CRON_JOBS = [
     id: "send-deletion-warnings",
     name: "Send Deletion Warnings",
     endpoint: "/api/cron/send-deletion-warnings",
+    method: "POST" as const,
     schedule: "Daily",
     description: "Sends warnings to users with accounts scheduled for deletion",
   },
@@ -41,6 +43,7 @@ const CRON_JOBS = [
     id: "send-reminders",
     name: "Send Event Reminders",
     endpoint: "/api/reminders/send",
+    method: "POST" as const,
     schedule: "Hourly",
     description: "Sends upcoming event reminders to users",
   },
@@ -104,20 +107,43 @@ export async function POST(request: NextRequest) {
     const job = CRON_JOBS.find((j) => j.id === jobId)
     if (!job) return NextResponse.json({ error: "Unknown job" }, { status: 400 })
 
-    // Trigger the cron job endpoint
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000"
+    // Build base URL - use NEXT_PUBLIC_APP_URL first, then VERCEL_URL, then fallback
+    let baseUrl: string
+    if (process.env.NEXT_PUBLIC_APP_URL) {
+      baseUrl = process.env.NEXT_PUBLIC_APP_URL
+    } else if (process.env.VERCEL_URL) {
+      baseUrl = `https://${process.env.VERCEL_URL}`
+    } else {
+      baseUrl = "http://localhost:3000"
+    }
+    // Remove trailing slash
+    baseUrl = baseUrl.replace(/\/$/, "")
+
+    // Build headers - pass CRON_SECRET if configured
+    const headers: Record<string, string> = {}
+    if (process.env.CRON_SECRET) {
+      headers["authorization"] = `Bearer ${process.env.CRON_SECRET}`
+    }
 
     const startTime = Date.now()
     try {
-      const response = await fetch(`${baseUrl}${job.endpoint}`, { method: "POST" })
+      const response = await fetch(`${baseUrl}${job.endpoint}`, {
+        method: job.method,
+        headers,
+      })
       const duration = Date.now() - startTime
+      let responseBody: any = null
+      try {
+        responseBody = await response.json()
+      } catch {
+        // Response may not be JSON
+      }
 
       return NextResponse.json({
         success: response.ok,
         status: response.status,
         duration,
+        response: responseBody,
       })
     } catch (fetchError: any) {
       return NextResponse.json({

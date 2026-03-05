@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { format } from "date-fns"
-import { ArrowLeft, Calendar, MapPin, Clock, Share2, Heart, Users, Edit, Trash2, Loader2, Flag, Mail, Phone, CheckCircle2, XCircle } from "lucide-react"
+import { ArrowLeft, Calendar, MapPin, Clock, Share2, Heart, Users, Edit, Trash2, Loader2, Flag, Mail, Phone, CheckCircle2, XCircle, UserMinus } from "lucide-react"
 import { MentionHighlightBadge } from "@/components/mention-highlight-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -142,6 +142,7 @@ export function EventDetail({ event }: EventDetailProps) {
   const [highlightsByActivity, setHighlightsByActivity] = useState<Record<string, any>>({})
   const [invitations, setInvitations] = useState<InvitationInfo[]>([])
   const [loadingInvitations, setLoadingInvitations] = useState(false)
+  const [removingInvitationId, setRemovingInvitationId] = useState<string | null>(null)
   const [myInvitation, setMyInvitation] = useState<{ id: string; status: "pending" | "accepted" | "declined" | "tentative" } | null>(null)
   const [attendeeCounts, setAttendeeCounts] = useState<{ going: number; maybe: number }>({ going: 1, maybe: 0 }) // 1 = host
   const isOwner = !!(user && user.id === event.user_id)
@@ -663,6 +664,37 @@ export function EventDetail({ event }: EventDetailProps) {
       })
     } finally {
       setIsSendingInvite(false)
+    }
+  }
+
+  const handleRemoveInvitation = async (invitationId: string, isPending: boolean) => {
+    if (!user) return
+    setRemovingInvitationId(invitationId)
+    try {
+      const url = `/api/invitations/${invitationId}${isPending ? "?type=pending" : ""}`
+      const response = await fetch(url, { method: "DELETE" })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || "Failed to remove invitation")
+      }
+
+      toast({
+        title: "Invitation removed",
+        description: "The invitation has been removed successfully.",
+      })
+
+      fetchInvitations()
+      fetchAttendeeCounts()
+    } catch (error: any) {
+      console.error("Error removing invitation:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove invitation",
+        variant: "destructive",
+      })
+    } finally {
+      setRemovingInvitationId(null)
     }
   }
 
@@ -1271,27 +1303,45 @@ export function EventDetail({ event }: EventDetailProps) {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        {inv.status === "accepted" ? (
-                          <>
-                            <CheckCircle2 className="h-4 w-4 text-green-500" />
-                            <span className="text-xs text-green-600 dark:text-green-400">Going</span>
-                          </>
-                        ) : inv.status === "declined" ? (
-                          <>
-                            <XCircle className="h-4 w-4 text-red-500" />
-                            <span className="text-xs text-red-600 dark:text-red-400">Can&apos;t Go</span>
-                          </>
-                        ) : inv.status === "tentative" ? (
-                          <>
-                            <Clock className="h-4 w-4 text-amber-500" />
-                            <span className="text-xs text-amber-600 dark:text-amber-400">Maybe</span>
-                          </>
-                        ) : (
-                          <>
-                            <Clock className="h-4 w-4 text-gray-400" />
-                            <span className="text-xs text-muted-foreground">Pending</span>
-                          </>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
+                          {inv.status === "accepted" ? (
+                            <>
+                              <CheckCircle2 className="h-4 w-4 text-green-500" />
+                              <span className="text-xs text-green-600 dark:text-green-400">Going</span>
+                            </>
+                          ) : inv.status === "declined" ? (
+                            <>
+                              <XCircle className="h-4 w-4 text-red-500" />
+                              <span className="text-xs text-red-600 dark:text-red-400">Can&apos;t Go</span>
+                            </>
+                          ) : inv.status === "tentative" ? (
+                            <>
+                              <Clock className="h-4 w-4 text-amber-500" />
+                              <span className="text-xs text-amber-600 dark:text-amber-400">Maybe</span>
+                            </>
+                          ) : (
+                            <>
+                              <Clock className="h-4 w-4 text-gray-400" />
+                              <span className="text-xs text-muted-foreground">Pending</span>
+                            </>
+                          )}
+                        </div>
+                        {isOwner && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => handleRemoveInvitation(inv.id, !!inv.is_pending_invitation)}
+                            disabled={removingInvitationId === inv.id}
+                            title="Remove invitation"
+                          >
+                            {removingInvitationId === inv.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <UserMinus className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
                         )}
                       </div>
                     </div>

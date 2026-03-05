@@ -51,6 +51,12 @@ const isValidUUID = (id: string) => {
   return uuidRegex.test(id)
 }
 
+// Helper to detect abort errors (including wrapped ones from Supabase / Next.js fetch)
+const isAbortError = (err: any): boolean =>
+  err?.name === "AbortError" ||
+  err?.message?.includes("signal is aborted") ||
+  err?.message?.includes("AbortError")
+
 // Replace the getEventById function with this:
 const getEventById = async (id: string) => {
   try {
@@ -539,8 +545,10 @@ export default function EventPage() {
         }
       } catch (err: any) {
         // Ignore AbortError — this happens when the effect is cleaned up
-        // while a fetch is still in-flight (e.g. navigation, re-render)
-        if (err.name === "AbortError" || cancelled) return
+        // while a fetch is still in-flight (e.g. navigation, re-render).
+        // Check both err.name and err.message because Supabase / Next.js
+        // fetch wrappers may re-throw with a generic Error name.
+        if (isAbortError(err) || cancelled) return
 
         console.error("Error fetching event:", err)
         if (err.message === "Itinerary not found") {

@@ -27,6 +27,7 @@ import {
   Star,
   Activity,
   ScrollText,
+  FileStack,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/providers/auth-provider"
@@ -54,6 +55,7 @@ const navItems = [
   { href: "/admin/errors", label: "Errors", icon: FileText },
   { href: "/admin/communications", label: "Communications", icon: Send },
   { href: "/admin/email-preview", label: "Email Preview", icon: Mail },
+  { href: "/admin/pages", label: "All Pages", icon: FileStack },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ]
 

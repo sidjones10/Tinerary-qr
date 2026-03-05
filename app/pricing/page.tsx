@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge"
 import { AppHeader } from "@/components/app-header"
 import { USER_TIERS } from "@/lib/tiers"
+import { PHASE_2_ENABLED, isPhase2Route } from "@/lib/phase2"
 
 const tierColors: Record<string, string> = {
   user: "bg-tinerary-dark",
@@ -48,7 +49,7 @@ export default function PricingPage() {
 
           {/* Tier Cards — v0 style */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-16">
-            {USER_TIERS.map((tier) => {
+            {USER_TIERS.filter((tier) => PHASE_2_ENABLED || tier.slug === "user").map((tier) => {
               const isCreator = tier.slug === "creator"
               return (
                 <div
@@ -81,12 +82,12 @@ export default function PricingPage() {
                           <Link href="/auth?tab=signup">Get Started Free</Link>
                         </Button>
                       )}
-                      {tier.slug === "creator" && (
+                      {PHASE_2_ENABLED && tier.slug === "creator" && (
                         <Button className="w-full btn-sunset" asChild>
                           <Link href="/creators">Learn More</Link>
                         </Button>
                       )}
-                      {tier.slug === "business" && (
+                      {PHASE_2_ENABLED && tier.slug === "business" && (
                         <Button className="w-full" variant="outline" asChild>
                           <Link href="/business">View Business Plans</Link>
                         </Button>
@@ -109,7 +110,7 @@ export default function PricingPage() {
                 { href: "/transactions", icon: <Crown className="size-5 text-tinerary-gold" />, title: "Transactions", desc: "Bookings & commission tracking" },
                 { href: "/affiliate", icon: <Users className="size-5 text-blue-500" />, title: "Affiliate Marketing", desc: "Referral links & packing commerce" },
                 { href: "/coins", icon: <Coins className="size-5 text-tinerary-gold" />, title: "Tinerary Coins", desc: "Earn & spend rewards" },
-              ].map((item) => (
+              ].filter((item) => PHASE_2_ENABLED || !isPhase2Route(item.href)).map((item) => (
                 <Link key={item.href} href={item.href}>
                   <Card className="border-border hover:shadow-md transition-all duration-200 hover:-translate-y-1 h-full">
                     <CardContent className="pt-6">
@@ -126,6 +127,7 @@ export default function PricingPage() {
           </div>
 
           {/* Callout Cards */}
+          {PHASE_2_ENABLED && (
           <div className="max-w-4xl mx-auto space-y-6">
             <Card className="overflow-hidden border-border">
               <div className="flex flex-col md:flex-row">
@@ -167,6 +169,7 @@ export default function PricingPage() {
               </div>
             </Card>
           </div>
+          )}
         </div>
       </main>
 

@@ -13,6 +13,7 @@ import { MobileNav } from "@/components/mobile-nav"
 import { NotificationBell } from "@/components/notification-bell"
 import { CoinBalance } from "@/components/coin-balance"
 import { cn } from "@/lib/utils"
+import { PHASE_2_ENABLED } from "@/lib/phase2"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -184,7 +185,7 @@ export function AppHeader() {
                 <Search className="h-5 w-5" />
                 <span className="sr-only">Search</span>
               </Button>
-              <CoinBalance />
+              {PHASE_2_ENABLED && <CoinBalance />}
               <NotificationBell />
               <Button variant="ghost" size="icon" className="mr-2" asChild>
                 <Link href="/create">
@@ -207,7 +208,7 @@ export function AppHeader() {
                       {t("nav.profile")}
                     </Link>
                   </DropdownMenuItem>
-                  {accountType === "creator" && (
+                  {PHASE_2_ENABLED && accountType === "creator" && (
                     <DropdownMenuItem asChild>
                       <Link href="/creator" className="flex items-center">
                         <Crown className="mr-2 h-4 w-4" />
@@ -215,7 +216,7 @@ export function AppHeader() {
                       </Link>
                     </DropdownMenuItem>
                   )}
-                  {accountType === "business" && (
+                  {PHASE_2_ENABLED && accountType === "business" && (
                     <DropdownMenuItem asChild>
                       <Link href="/business-profile" className="flex items-center">
                         <Store className="mr-2 h-4 w-4" />

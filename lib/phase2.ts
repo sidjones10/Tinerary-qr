@@ -22,3 +22,8 @@ export const PHASE_2_ROUTES = [
   "/creator",
   "/creators",
 ]
+
+/** Returns true if the given path is a Phase 2 route. */
+export function isPhase2Route(path: string): boolean {
+  return PHASE_2_ROUTES.some((route) => path.startsWith(route))
+}

@@ -22,6 +22,7 @@ import {
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AppHeader } from "@/components/app-header"
+import { PHASE_2_ENABLED } from "@/lib/phase2"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -461,6 +462,7 @@ export default function ExplorePage() {
             </section>
 
             {/* CTA Section */}
+            {PHASE_2_ENABLED && (
             <section className="bg-gradient-to-r from-orange-500 to-pink-500 rounded-2xl p-8 md:p-12 text-white text-center">
               <Zap className="h-10 w-10 mx-auto mb-4" />
               <h2 className="text-2xl md:text-3xl font-bold mb-3">
@@ -478,6 +480,7 @@ export default function ExplorePage() {
                 </Button>
               </div>
             </section>
+            )}
           </div>
         </div>
       </main>

@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/page-header"
 import { PaywallGate } from "@/components/paywall-gate"
 import { useAuth } from "@/providers/auth-provider"
 import { AffiliateContent } from "./affiliate-content"
+import { PHASE_2_ENABLED } from "@/lib/phase2"
 
 export default function AffiliatePage() {
   const { user } = useAuth()
@@ -30,11 +31,19 @@ export default function AffiliatePage() {
           <nav className="mt-10 border-t pt-6">
             <p className="text-xs text-muted-foreground mb-3">Related pages</p>
             <div className="flex flex-wrap gap-2">
-              <Link href="/creator" className="text-sm text-primary hover:underline">Creator Dashboard</Link>
-              <span className="text-muted-foreground">·</span>
+              {PHASE_2_ENABLED && (
+                <>
+                  <Link href="/creator" className="text-sm text-primary hover:underline">Creator Dashboard</Link>
+                  <span className="text-muted-foreground">·</span>
+                </>
+              )}
               <Link href="/transactions" className="text-sm text-primary hover:underline">Transactions</Link>
-              <span className="text-muted-foreground">·</span>
-              <Link href="/coins" className="text-sm text-primary hover:underline">Tinerary Coins</Link>
+              {PHASE_2_ENABLED && (
+                <>
+                  <span className="text-muted-foreground">·</span>
+                  <Link href="/coins" className="text-sm text-primary hover:underline">Tinerary Coins</Link>
+                </>
+              )}
             </div>
           </nav>
         </div>

@@ -6,8 +6,8 @@
  * accessible to admins (determined by the same admin check used in
  * the admin dashboard: email list + profiles.is_admin / role).
  *
- * Phase 2 features: Events page, Deals, Business pages & toggles,
- * Creator pages & toggles, Coins.
+ * Phase 2 features: Explore, Pricing, Mentions, Deals, Business pages
+ * & toggles, Creator pages & toggles, Coins, Transactions, Affiliate.
  */
 export const PHASE_2_ENABLED = false
 
@@ -21,6 +21,11 @@ export const PHASE_2_ROUTES = [
   "/business-analytics",
   "/creator",
   "/creators",
+  "/explore",
+  "/transactions",
+  "/affiliate",
+  "/mentions",
+  "/pricing",
 ]
 
 /** Returns true if the given path is a Phase 2 route. */

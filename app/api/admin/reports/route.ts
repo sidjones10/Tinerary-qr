@@ -29,16 +29,16 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "20")
     const offset = (page - 1) * limit
 
-    // Build query
+    // Build query - use column-based FK disambiguation (more reliable than constraint names)
     let query = supabase
       .from("itinerary_reports")
       .select(`
         *,
-        reporter:profiles!itinerary_reports_reporter_id_fkey(id, name, username, email, avatar_url),
-        itinerary:itineraries!itinerary_reports_itinerary_id_fkey(id, title, user_id, is_public, image_url, location,
-          owner:profiles!itineraries_user_id_fkey(id, name, username, email)
+        reporter:profiles!reporter_id(id, name, username, email, avatar_url),
+        itinerary:itineraries!itinerary_id(id, title, user_id, is_public, image_url, location,
+          owner:profiles!user_id(id, name, username, email)
         ),
-        reviewer:profiles!itinerary_reports_reviewed_by_fkey(id, name, username)
+        reviewer:profiles!reviewed_by(id, name, username)
       `, { count: "exact" })
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1)
@@ -47,11 +47,28 @@ export async function GET(request: NextRequest) {
       query = query.eq("status", status)
     }
 
-    const { data: reports, count, error } = await query
+    let { data: reports, count, error } = await query
 
     if (error) {
-      console.error("Error fetching reports:", error)
-      return NextResponse.json({ error: "Failed to fetch reports" }, { status: 500 })
+      console.error("Error fetching reports with joins:", error)
+      // Fallback: fetch without joins so admin can still see reports
+      let fallbackQuery = supabase
+        .from("itinerary_reports")
+        .select("*", { count: "exact" })
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limit - 1)
+
+      if (status !== "all") {
+        fallbackQuery = fallbackQuery.eq("status", status)
+      }
+
+      const fallback = await fallbackQuery
+      if (fallback.error) {
+        console.error("Error fetching reports (fallback):", fallback.error)
+        return NextResponse.json({ error: "Failed to fetch reports: " + fallback.error.message }, { status: 500 })
+      }
+      reports = fallback.data
+      count = fallback.count
     }
 
     return NextResponse.json({

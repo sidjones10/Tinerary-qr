@@ -787,6 +787,95 @@ export interface Database {
         }
       }
     }
+      itinerary_reports: {
+        Row: {
+          id: string
+          itinerary_id: string
+          reporter_id: string
+          reason: "spam" | "inappropriate" | "misleading" | "harassment" | "copyright" | "other"
+          description: string | null
+          status: "pending" | "reviewed" | "resolved" | "dismissed"
+          admin_notes: string | null
+          reviewed_by: string | null
+          reviewed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          itinerary_id: string
+          reporter_id: string
+          reason: "spam" | "inappropriate" | "misleading" | "harassment" | "copyright" | "other"
+          description?: string | null
+          status?: "pending" | "reviewed" | "resolved" | "dismissed"
+          admin_notes?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          itinerary_id?: string
+          reporter_id?: string
+          reason?: "spam" | "inappropriate" | "misleading" | "harassment" | "copyright" | "other"
+          description?: string | null
+          status?: "pending" | "reviewed" | "resolved" | "dismissed"
+          admin_notes?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      user_reports: {
+        Row: {
+          id: string
+          reported_user_id: string
+          reporter_id: string
+          reason: "harassment" | "hate_speech" | "spam" | "impersonation" | "inappropriate_content" | "predatory_behavior" | "scam" | "underage" | "self_harm" | "other"
+          description: string | null
+          status: "pending" | "reviewed" | "resolved" | "dismissed"
+          severity: "low" | "medium" | "high" | "critical"
+          admin_notes: string | null
+          admin_action: "warned" | "suspended" | "banned" | "no_action" | null
+          reviewed_by: string | null
+          reviewed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          reported_user_id: string
+          reporter_id: string
+          reason: "harassment" | "hate_speech" | "spam" | "impersonation" | "inappropriate_content" | "predatory_behavior" | "scam" | "underage" | "self_harm" | "other"
+          description?: string | null
+          status?: "pending" | "reviewed" | "resolved" | "dismissed"
+          severity?: "low" | "medium" | "high" | "critical"
+          admin_notes?: string | null
+          admin_action?: "warned" | "suspended" | "banned" | "no_action" | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          reported_user_id?: string
+          reporter_id?: string
+          reason?: "harassment" | "hate_speech" | "spam" | "impersonation" | "inappropriate_content" | "predatory_behavior" | "scam" | "underage" | "self_harm" | "other"
+          description?: string | null
+          status?: "pending" | "reviewed" | "resolved" | "dismissed"
+          severity?: "low" | "medium" | "high" | "critical"
+          admin_notes?: string | null
+          admin_action?: "warned" | "suspended" | "banned" | "no_action" | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+    }
     Functions: {
       toggle_like: {
         Args: { user_uuid: string; itinerary_uuid: string }
@@ -820,3 +909,5 @@ export type ItineraryMetrics = Database["public"]["Tables"]["itinerary_metrics"]
 export type Expense = Database["public"]["Tables"]["expenses"]["Row"]
 export type BusinessSubscription = Database["public"]["Tables"]["business_subscriptions"]["Row"]
 export type Booking = Database["public"]["Tables"]["bookings"]["Row"]
+export type ItineraryReport = Database["public"]["Tables"]["itinerary_reports"]["Row"]
+export type UserReport = Database["public"]["Tables"]["user_reports"]["Row"]

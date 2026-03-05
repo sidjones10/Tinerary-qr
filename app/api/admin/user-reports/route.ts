@@ -34,14 +34,15 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "20")
     const offset = (page - 1) * limit
 
+    // First try with column-based FK disambiguation (more reliable than constraint names)
     let query = supabase
       .from("user_reports")
       .select(
         `
         *,
-        reported_user:profiles!user_reports_reported_user_id_fkey(id, name, username, email, avatar_url, bio),
-        reporter:profiles!user_reports_reporter_id_fkey(id, name, username, email, avatar_url),
-        reviewer:profiles!user_reports_reviewed_by_fkey(id, name, username)
+        reported_user:profiles!reported_user_id(id, name, username, email, avatar_url, bio),
+        reporter:profiles!reporter_id(id, name, username, email, avatar_url),
+        reviewer:profiles!reviewed_by(id, name, username)
       `,
         { count: "exact" }
       )
@@ -55,14 +56,34 @@ export async function GET(request: NextRequest) {
       query = query.eq("severity", severity)
     }
 
-    const { data: reports, count, error } = await query
+    let { data: reports, count, error } = await query
 
     if (error) {
-      console.error("Error fetching user reports:", error)
-      return NextResponse.json(
-        { error: "Failed to fetch user reports" },
-        { status: 500 }
-      )
+      console.error("Error fetching user reports with joins:", error)
+      // Fallback: fetch without joins so admin can still see reports
+      let fallbackQuery = supabase
+        .from("user_reports")
+        .select("*", { count: "exact" })
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limit - 1)
+
+      if (status !== "all") {
+        fallbackQuery = fallbackQuery.eq("status", status)
+      }
+      if (severity !== "all") {
+        fallbackQuery = fallbackQuery.eq("severity", severity)
+      }
+
+      const fallback = await fallbackQuery
+      if (fallback.error) {
+        console.error("Error fetching user reports (fallback):", fallback.error)
+        return NextResponse.json(
+          { error: "Failed to fetch user reports: " + fallback.error.message },
+          { status: 500 }
+        )
+      }
+      reports = fallback.data
+      count = fallback.count
     }
 
     // Get counts for each status

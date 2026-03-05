@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Check, HelpCircle, X, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
@@ -53,6 +53,15 @@ export function RsvpBanner({
   const [status, setStatus] = useState<RsvpStatus>(currentStatus)
   const [currentInvitationId, setCurrentInvitationId] = useState<string | undefined>(invitationId)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Sync with parent when props change (e.g. after async fetch completes)
+  useEffect(() => {
+    setStatus(currentStatus)
+  }, [currentStatus])
+
+  useEffect(() => {
+    setCurrentInvitationId(invitationId)
+  }, [invitationId])
   const { toast } = useToast()
 
   const handleRsvp = async (response: "accept" | "decline" | "tentative") => {

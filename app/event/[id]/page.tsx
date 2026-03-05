@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/providers/auth-provider"
@@ -580,12 +580,27 @@ interface EventData {
 // Update the EventDetailPage component to use async data fetching
 export default function EventPage() {
   const { id } = useParams()
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
+  const router = useRouter()
   const [event, setEvent] = useState<EventData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [notFound, setNotFound] = useState(false)
   const [isPrivate, setIsPrivate] = useState(false)
+
+  // Redirect unauthenticated users to sign in when accessing an invite link
+  useEffect(() => {
+    if (authLoading) return // Wait for auth to finish loading
+    if (user) return // Already signed in
+
+    const urlParams = new URLSearchParams(window.location.search)
+    const isInviteLink = urlParams.has("invite") || urlParams.has("rsvp")
+    if (!isInviteLink) return // Not an invite link, show guest view instead
+
+    // Redirect to auth with the full invite URL as the return destination
+    const returnPath = `/event/${id}?${urlParams.toString()}`
+    router.replace(`/auth?redirectTo=${encodeURIComponent(returnPath)}`)
+  }, [authLoading, user, id, router])
 
   useEffect(() => {
     let cancelled = false
@@ -713,7 +728,9 @@ export default function EventPage() {
     return () => controller.abort()
   }, [event?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (loading) {
+  // Show loading spinner while auth or event data is loading.
+  // Also show spinner while redirecting unauthenticated invite-link users to /auth.
+  if (loading || authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

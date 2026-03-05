@@ -928,12 +928,12 @@ export function EventDetail({ event }: EventDetailProps) {
           )}
         </div>
 
-        {/* RSVP Banner — shown to any logged-in non-owner (Partiful-style) */}
-        {user && !isOwner && (
+        {/* RSVP Banner — shown to logged-in non-owners who have an invitation */}
+        {user && !isOwner && myInvitation && (
           <RsvpBanner
-            invitationId={myInvitation?.id}
+            invitationId={myInvitation.id}
             itineraryId={event.id}
-            currentStatus={myInvitation?.status || "pending"}
+            currentStatus={myInvitation.status}
             eventTitle={event.title}
             hostName={(event.host_name as string) || undefined}
             onStatusChange={(newStatus, newInvitationId) => {

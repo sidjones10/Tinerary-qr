@@ -324,6 +324,125 @@ const getEventById = async (id: string) => {
   }
 }
 
+// Fetch event data via the invite-view API route (bypasses RLS for invited users)
+const getEventByInviteLink = async (id: string): Promise<any> => {
+  const res = await fetch(`/api/itineraries/${id}/invite-view`)
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.error || "Failed to load event via invite link")
+  }
+
+  const { itinerary: itineraryData, activities: activitiesData, packingItems: packingData, expenses: expensesData, attendees: attendeesData } = await res.json()
+
+  // Reuse the same formatting logic as getEventById
+  const isTrip = itineraryData.start_date !== itineraryData.end_date
+
+  let days: any[] = []
+  if (activitiesData && activitiesData.length > 0) {
+    if (isTrip) {
+      const dayMap = new Map()
+      activitiesData.forEach((activity: any) => {
+        const activityDate = new Date(activity.start_time).toDateString()
+        if (!dayMap.has(activityDate)) {
+          dayMap.set(activityDate, { day: dayMap.size + 1, date: activityDate, activities: [] })
+        }
+        dayMap.get(activityDate).activities.push({
+          id: activity.id, title: activity.title,
+          time: new Date(activity.start_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          location: activity.location, description: activity.description, going: 0, maybe: 0, attendees: [],
+        })
+      })
+      days = Array.from(dayMap.values())
+    } else {
+      days = [{
+        day: 1, date: itineraryData.start_date,
+        activities: activitiesData.map((activity: any) => ({
+          id: activity.id, title: activity.title,
+          time: new Date(activity.start_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          location: activity.location, description: activity.description, going: 0, maybe: 0, attendees: [],
+        })),
+      }]
+    }
+  }
+
+  const owner = Array.isArray(itineraryData.owner) ? itineraryData.owner[0] : itineraryData.owner
+  const metrics = Array.isArray(itineraryData.metrics) ? itineraryData.metrics[0] : itineraryData.metrics
+
+  return {
+    id: itineraryData.id,
+    user_id: itineraryData.user_id,
+    title: itineraryData.title,
+    type: isTrip ? "Trip" : "Event",
+    image: itineraryData.image_url || "/placeholder.svg?height=400&width=800",
+    image_url: itineraryData.image_url,
+    start_date: itineraryData.start_date,
+    end_date: itineraryData.end_date,
+    date: isTrip
+      ? formatDateRange(itineraryData.start_date, itineraryData.end_date)
+      : formatDate(itineraryData.start_date),
+    location: itineraryData.location,
+    is_public: itineraryData.is_public,
+    share_precise_location: itineraryData.share_precise_location ?? true,
+    packing_list_public: itineraryData.packing_list_public,
+    expenses_public: itineraryData.expenses_public,
+    theme: itineraryData.theme,
+    font: itineraryData.font,
+    cover_update_prompted: itineraryData.cover_update_prompted,
+    host_name: owner?.name || owner?.username || owner?.email?.split('@')[0] || "Anonymous",
+    host_username: owner?.username ? `@${owner.username}` : null,
+    host_avatar: owner?.avatar_url,
+    organizer: {
+      name: owner?.name || owner?.username || owner?.email?.split('@')[0] || "Anonymous",
+      username: owner?.username ? `@${owner.username}` : "@anonymous",
+      avatar: owner?.avatar_url || "/placeholder.svg?height=40&width=40",
+    },
+    likes: 0,
+    like_count: metrics?.like_count || 0,
+    comment_count: metrics?.comment_count || 0,
+    save_count: metrics?.save_count || 0,
+    view_count: metrics?.view_count || 0,
+    description: itineraryData.description,
+    days: days,
+    activities: activitiesData || [],
+    packingList: packingData ? packingData.map((item: any) => ({
+      id: item.id, name: item.name, category: item.category || "clothing",
+      quantity: item.quantity || 1, packed: item.is_packed || false, url: item.url, tripId: id,
+    })) : [],
+    expenses: (() => {
+      if (!expensesData || expensesData.length === 0) {
+        return { categories: [], items: [], total: 0 }
+      }
+      const total = expensesData.reduce((sum: number, exp: any) => sum + Number(exp.amount), 0)
+      const categoriesMap = new Map()
+      expensesData.forEach((expense: any) => {
+        const category = expense.category
+        const amount = Number(expense.amount)
+        categoriesMap.set(category, (categoriesMap.get(category) || 0) + amount)
+      })
+      return {
+        categories: Array.from(categoriesMap.entries()).map(([name, amount]: [string, number]) => ({
+          name, amount, percentage: total > 0 ? Math.round((amount / total) * 100) : 0
+        })),
+        items: expensesData.map((exp: any) => ({
+          id: exp.id, category: exp.category, amount: Number(exp.amount), description: exp.description || "",
+        })),
+        total,
+      }
+    })(),
+    attendees: attendeesData ? attendeesData.map((attendee: any) => {
+      const profile = Array.isArray(attendee.profiles) ? attendee.profiles[0] : attendee.profiles
+      return {
+        id: profile?.id || attendee.user_id,
+        name: profile?.name || profile?.username || "Unknown",
+        avatar_url: profile?.avatar_url,
+        role: attendee.role || 'member'
+      }
+    }) : [],
+    people: [],
+    discussion: [],
+  }
+}
+
 // Mock data function for testing
 const getMockEventData = (id: string) => {
   return {
@@ -478,8 +597,25 @@ export default function EventPage() {
         setNotFound(false)
         setIsPrivate(false)
 
-        // Use the getEventById function which has mock data fallback
-        const eventData = await getEventById(id as string)
+        const urlParams = new URLSearchParams(window.location.search)
+        const isInviteLink = urlParams.has("invite") || urlParams.has("rsvp")
+
+        let eventData: any
+
+        try {
+          // Try the normal Supabase query first (subject to RLS)
+          eventData = await getEventById(id as string)
+        } catch (directErr: any) {
+          if (cancelled) return
+
+          // If the direct query failed and user has an invite link, try the
+          // invite-view API route which bypasses RLS on the server side.
+          if (user && isInviteLink) {
+            eventData = await getEventByInviteLink(id as string)
+          } else {
+            throw directErr
+          }
+        }
 
         // If the effect was cleaned up while we were fetching, bail out
         if (cancelled) return
@@ -489,10 +625,6 @@ export default function EventPage() {
         const isMockData = !isNaN(Number(id)) && !isValidUUID(id as string)
 
         if (!isMockData && eventData.is_public === false && (!user || user.id !== eventData.user_id)) {
-          // Allow access via invite link or if user already has an invitation
-          const urlParams = new URLSearchParams(window.location.search)
-          const isInviteLink = urlParams.has("invite") || urlParams.has("rsvp")
-
           if (user && isInviteLink) {
             // Invite link grants access — user will see RSVP banner
           } else if (user) {

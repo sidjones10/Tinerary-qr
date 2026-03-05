@@ -65,9 +65,13 @@ export default function AdminCronJobsPage() {
       })
       const result = await res.json()
       if (result.success) {
-        toast({ title: "Job triggered", description: `Completed in ${result.duration}ms` })
+        toast({ title: "Job completed", description: `Finished in ${result.duration}ms (status ${result.status})` })
       } else {
-        toast({ title: "Job failed", description: result.error || "Unknown error", variant: "destructive" })
+        const errorDetail = result.error
+          || result.response?.error
+          || result.response?.message
+          || `HTTP ${result.status || "error"}`
+        toast({ title: "Job failed", description: errorDetail, variant: "destructive" })
       }
       fetchData()
     } catch (e) {

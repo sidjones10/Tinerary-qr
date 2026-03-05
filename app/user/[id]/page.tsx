@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, MapPin, Calendar, Grid3X3, Bookmark, Share2, MoreHorizontal, ExternalLink, FileEdit, Settings, Loader2, Trash2, Edit, MessageCircle, Lock, Users, CheckCircle2, Mail, Briefcase, ChevronDown, Send } from "lucide-react"
+import { ArrowLeft, MapPin, Calendar, Grid3X3, Bookmark, Share2, MoreHorizontal, ExternalLink, FileEdit, Settings, Loader2, Trash2, Edit, MessageCircle, Lock, Users, CheckCircle2, Mail, Briefcase, ChevronDown, Send, Flag, AlertTriangle } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -84,6 +84,10 @@ export default function UnifiedProfilePage() {
     campaignType: "Collaboration",
   })
   const [sponsorshipSending, setSponsorshipSending] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
+  const [reportReason, setReportReason] = useState("")
+  const [reportDescription, setReportDescription] = useState("")
+  const [reportSending, setReportSending] = useState(false)
   const { toast } = useToast()
 
   const isOwnProfile = currentUserId === userId
@@ -236,6 +240,35 @@ export default function UnifiedProfilePage() {
     }
   }
 
+  const handleReportUser = async () => {
+    if (!reportReason) return
+    setReportSending(true)
+    try {
+      const res = await fetch("/api/user/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reportedUserId: userId,
+          reason: reportReason,
+          description: reportDescription.trim() || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        toast({ title: "Report submitted", description: "Thank you for helping keep our community safe. We'll review this report." })
+        setReportOpen(false)
+        setReportReason("")
+        setReportDescription("")
+      } else {
+        toast({ title: "Error", description: data.error || "Failed to submit report", variant: "destructive" })
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to submit report", variant: "destructive" })
+    } finally {
+      setReportSending(false)
+    }
+  }
+
   const handleDeleteDraft = async (draftId: string) => {
     setDeletingDraftId(draftId)
     try {
@@ -357,6 +390,15 @@ export default function UnifiedProfilePage() {
                     <Settings className="h-4 w-4 mr-2" />
                     Settings
                   </Link>
+                </DropdownMenuItem>
+              )}
+              {!isOwnProfile && currentUserId && (
+                <DropdownMenuItem
+                  className="rounded-lg text-red-600 focus:text-red-600"
+                  onClick={() => setReportOpen(true)}
+                >
+                  <Flag className="h-4 w-4 mr-2" />
+                  Report User
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -852,6 +894,72 @@ export default function UnifiedProfilePage() {
                 <Send className="h-4 w-4 mr-2" />
               )}
               Send Inquiry
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Report User Dialog */}
+      <Dialog open={reportOpen} onOpenChange={setReportOpen}>
+        <DialogContent className="rounded-2xl max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Report User
+            </DialogTitle>
+            <DialogDescription>
+              Help us keep the community safe. Reports are anonymous and reviewed by our team.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-2">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="report-reason">Reason <span className="text-destructive">*</span></Label>
+              <select
+                id="report-reason"
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">Select a reason...</option>
+                <option value="harassment">Harassment or Bullying</option>
+                <option value="hate_speech">Hate Speech</option>
+                <option value="spam">Spam</option>
+                <option value="impersonation">Impersonation</option>
+                <option value="inappropriate_content">Inappropriate Content</option>
+                <option value="predatory_behavior">Predatory Behavior</option>
+                <option value="scam">Scam / Fraud</option>
+                <option value="underage">Underage User</option>
+                <option value="self_harm">Self-Harm / Dangerous Content</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="report-description">Additional Details</Label>
+              <Textarea
+                id="report-description"
+                placeholder="Provide any additional context that may help our team review this report..."
+                value={reportDescription}
+                onChange={(e) => setReportDescription(e.target.value)}
+                maxLength={1000}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setReportOpen(false)} className="rounded-full">
+              Cancel
+            </Button>
+            <Button
+              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
+              disabled={!reportReason || reportSending}
+              onClick={handleReportUser}
+            >
+              {reportSending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Flag className="h-4 w-4 mr-2" />
+              )}
+              Submit Report
             </Button>
           </DialogFooter>
         </DialogContent>

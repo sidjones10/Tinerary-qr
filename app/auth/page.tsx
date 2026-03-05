@@ -4,16 +4,16 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+// import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import EmailAuthForm from "@/components/email-auth-form"
-import { PhoneLoginForm } from "@/components/phone-login-form"
-import { Mail, Phone, Loader2 } from "lucide-react"
+// Phone auth archived — will re-enable when phone provider is added
+// import { PhoneLoginForm } from "@/components/phone-login-form"
+import { Loader2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useSearchParams } from "next/navigation"
 import { useAuth } from "@/providers/auth-provider"
 
 export default function AuthPage() {
-  const [activeTab, setActiveTab] = useState("email")
   const [mounted, setMounted] = useState(false)
   const searchParams = useSearchParams()
   const { user, isLoading } = useAuth()
@@ -69,26 +69,8 @@ export default function AuthPage() {
             </Alert>
           )}
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="email" className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                Email
-              </TabsTrigger>
-              <TabsTrigger value="phone" className="flex items-center gap-2">
-                <Phone className="h-4 w-4" />
-                Phone
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="email">
-              <EmailAuthForm />
-            </TabsContent>
-
-            <TabsContent value="phone">
-              <PhoneLoginForm />
-            </TabsContent>
-          </Tabs>
+          {/* Phone auth tab archived — will re-enable when phone provider is added */}
+          <EmailAuthForm />
         </CardContent>
       </Card>
     </div>

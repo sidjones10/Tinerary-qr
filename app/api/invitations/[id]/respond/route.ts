@@ -81,8 +81,16 @@ export async function POST(
       })
     }
 
+    // Use service role client for write operations (RLS may block invitee from updating)
+    let admin: ReturnType<typeof createServiceRoleClient>
+    try {
+      admin = createServiceRoleClient()
+    } catch {
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
+    }
+
     // Update the invitation status
-    const { error: updateError } = await supabase
+    const { error: updateError } = await admin
       .from("itinerary_invitations")
       .update({
         status: newStatus,
@@ -100,7 +108,7 @@ export async function POST(
 
     // If accepted, add user as an attendee; if changed away from accepted, remove
     if (newStatus === "accepted") {
-      const { error: attendeeError } = await supabase
+      const { error: attendeeError } = await admin
         .from("itinerary_attendees")
         .upsert(
           {
@@ -117,7 +125,7 @@ export async function POST(
       }
     } else if (invitation.status === "accepted") {
       // Was accepted, now changing to something else — remove from attendees
-      await supabase
+      await admin
         .from("itinerary_attendees")
         .delete()
         .eq("itinerary_id", invitation.itinerary_id)
@@ -141,14 +149,6 @@ export async function POST(
     const itineraryTitle = itinerary?.title || "an itinerary"
     const emoji = STATUS_EMOJI[newStatus] || ""
 
-    // Use service role client to create notification for the inviter (bypasses RLS)
-    let serviceClient: ReturnType<typeof createServiceRoleClient> | null = null
-    try {
-      serviceClient = createServiceRoleClient()
-    } catch {
-      // Fall back to regular client
-    }
-
     await createNotification(
       {
         userId: invitation.inviter_id,
@@ -158,11 +158,11 @@ export async function POST(
         linkUrl: `/event/${invitation.itinerary_id}`,
         imageUrl: inviteeProfile?.avatar_url || undefined,
       },
-      serviceClient || supabase,
+      admin,
     )
 
     // Send email notification to host about the RSVP
-    const { data: inviterProfile } = await (serviceClient || supabase)
+    const { data: inviterProfile } = await admin
       .from("profiles")
       .select("email, name")
       .eq("id", invitation.inviter_id)

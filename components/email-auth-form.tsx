@@ -12,7 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, Mail, Eye, EyeOff, AlertTriangle } from "lucide-react"
+import { Loader2, Mail, Eye, EyeOff, AlertTriangle, MailCheck } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { createClient } from "@/lib/supabase/client"
 import { triggerWelcomeEmail } from "@/app/actions/send-welcome-email"
@@ -318,19 +318,26 @@ export default function EmailAuthForm() {
           }).catch((err) => console.error("Referral tracking error:", err))
         }
 
+        const needsEmailVerification = !data.user?.email_confirmed_at
+
         setAuthResult({
           success: true,
-          message: age < 18
-            ? "Account created! As a minor, some features require parental consent."
-            : "Account created successfully! Redirecting...",
+          message: needsEmailVerification
+            ? "Please check your email and click the confirmation link to activate your account."
+            : age < 18
+              ? "Account created! As a minor, some features require parental consent."
+              : "Account created successfully! Redirecting...",
+          needsVerification: needsEmailVerification,
         })
 
-        setTimeout(() => {
-          if (typeof window !== "undefined") {
-            const redirectTo = new URLSearchParams(window.location.search).get("redirectTo") || "/dashboard"
-            window.location.href = redirectTo
-          }
-        }, 2000)
+        if (!needsEmailVerification) {
+          setTimeout(() => {
+            if (typeof window !== "undefined") {
+              const redirectTo = new URLSearchParams(window.location.search).get("redirectTo") || "/dashboard"
+              window.location.href = redirectTo
+            }
+          }, 2000)
+        }
       }
     } catch (error: any) {
       console.error("Sign up error:", error)
@@ -403,9 +410,19 @@ export default function EmailAuthForm() {
       </div>
 
       {authResult && (
-        <Alert variant={authResult.success ? "default" : "destructive"}>
-          <AlertDescription>{authResult.message}</AlertDescription>
-        </Alert>
+        authResult.needsVerification ? (
+          <div className="rounded-lg border-2 border-primary bg-primary/5 p-6 text-center space-y-3">
+            <MailCheck className="h-10 w-10 text-primary mx-auto" />
+            <h2 className="text-xl font-semibold">Confirm your sign up via email</h2>
+            <p className="text-base text-muted-foreground">
+              {authResult.message}
+            </p>
+          </div>
+        ) : (
+          <Alert variant={authResult.success ? "default" : "destructive"}>
+            <AlertDescription>{authResult.message}</AlertDescription>
+          </Alert>
+        )
       )}
 
       <Card>

@@ -44,6 +44,7 @@ import {
   CalendarDays,
 } from "lucide-react"
 import { USER_TIERS, BUSINESS_TIERS } from "@/lib/tiers"
+import { PHASE_2_ENABLED } from "@/lib/phase2"
 import { STANDARD_PRICES } from "@/lib/paywall"
 import type { BusinessTierSlug } from "@/lib/tiers"
 import type { BusinessSubscription } from "@/lib/business-tier-service"
@@ -597,8 +598,21 @@ export function BusinessSettings() {
 
   return (
     <div className="space-y-6">
+      {/* Coming Soon banner when Phase 2 is disabled */}
+      {!PHASE_2_ENABLED && (
+        <div className="flex items-center gap-3 p-4 rounded-xl border border-orange-200 bg-orange-50 dark:border-orange-900/40 dark:bg-orange-950/20">
+          <Lock className="size-5 text-orange-500 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-orange-700 dark:text-orange-400">Coming Soon</p>
+            <p className="text-xs text-orange-600/80 dark:text-orange-400/60">
+              Professional accounts are not yet available. Everyone is on a Personal account for now.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Switch to Professional Account */}
-      <Card>
+      <Card className={!PHASE_2_ENABLED ? "opacity-60 pointer-events-none select-none" : ""}>
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="size-10 rounded-xl bg-gradient-to-br from-tinerary-salmon to-primary flex items-center justify-center">
@@ -623,6 +637,7 @@ export function BusinessSettings() {
             <Switch
               checked={isBusinessMode}
               onCheckedChange={handleToggleBusinessMode}
+              disabled={!PHASE_2_ENABLED}
             />
           </div>
 
@@ -630,7 +645,7 @@ export function BusinessSettings() {
           <div className="grid gap-3">
             {accountTypes.map((type) => {
               const isSelected = selectedType === type.id
-              const isLocked = (!isBusinessMode && type.id !== "standard") || (isBusinessMode && type.id === "standard")
+              const isLocked = !PHASE_2_ENABLED || (!isBusinessMode && type.id !== "standard") || (isBusinessMode && type.id === "standard")
               return (
                 <button
                   key={type.id}
@@ -665,7 +680,7 @@ export function BusinessSettings() {
             })}
           </div>
 
-          {!isBusinessMode && (
+          {!isBusinessMode && PHASE_2_ENABLED && (
             <p className="text-xs text-muted-foreground mt-4 text-center">
               Turn on professional features above to switch to Creator or Business.
             </p>

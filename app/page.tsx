@@ -8,6 +8,7 @@ import { AppHeader } from "@/components/app-header"
 import { useAuth } from "@/providers/auth-provider"
 import { Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { PHASE_2_ENABLED } from "@/lib/phase2"
 
 export default function HomePage() {
   const { user, isLoading } = useAuth()
@@ -88,14 +89,18 @@ export default function HomePage() {
             <Link href="/pricing" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline">
               Pricing
             </Link>
-            <span className="text-gray-400 dark:text-gray-600">|</span>
-            <Link href="/business" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline">
-              For Business
-            </Link>
-            <span className="text-gray-400 dark:text-gray-600">|</span>
-            <Link href="/creators" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline">
-              For Creators
-            </Link>
+            {PHASE_2_ENABLED && (
+              <>
+                <span className="text-gray-400 dark:text-gray-600">|</span>
+                <Link href="/business" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline">
+                  For Business
+                </Link>
+                <span className="text-gray-400 dark:text-gray-600">|</span>
+                <Link href="/creators" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline">
+                  For Creators
+                </Link>
+              </>
+            )}
             <span className="text-gray-400 dark:text-gray-600">|</span>
             <Link href="/terms" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline">
               {t("home.termsOfService")}

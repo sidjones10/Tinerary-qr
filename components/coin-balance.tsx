@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Coins } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
+import { PHASE_2_ENABLED } from "@/lib/phase2"
 
 export function CoinBalance() {
   const [balance, setBalance] = useState<number | null>(null)

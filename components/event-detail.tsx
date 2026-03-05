@@ -713,7 +713,7 @@ export function EventDetail({ event }: EventDetailProps) {
         style={{ fontFamily: getFontFamily((event.font as string) || "default") }}
       >
         <button
-          onClick={() => router.back()}
+          onClick={() => router.push("/")}
           className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />

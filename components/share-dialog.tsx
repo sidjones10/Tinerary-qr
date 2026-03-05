@@ -31,10 +31,12 @@ export function ShareDialog({ itineraryId, title, description, trigger, userId }
   const [copied, setCopied] = useState(false)
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("")
   const [open, setOpen] = useState(false)
+  const [inviteMessageCopied, setInviteMessageCopied] = useState(false)
   const { toast } = useToast()
 
   const shareUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/event/${itineraryId}`
   const inviteUrl = `${shareUrl}?invite=true`
+  const inviteMessage = `You're invited to ${title}! 🎉\n${inviteUrl}`
   const [inviteCopied, setInviteCopied] = useState(false)
 
   useEffect(() => {
@@ -90,8 +92,8 @@ export function ShareDialog({ itineraryId, title, description, trigger, userId }
       try {
         await navigator.share({
           title: title,
-          text: description || `Check out ${title}!`,
-          url: shareUrl,
+          text: `You're invited to ${title}! 🎉`,
+          url: inviteUrl,
         })
         // Award coins after successful share
         awardShareCoins()
@@ -142,7 +144,7 @@ export function ShareDialog({ itineraryId, title, description, trigger, userId }
         shareLink = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`
         break
       case "whatsapp":
-        shareLink = `https://wa.me/?text=${encodedTitle}%20${encodedUrl}`
+        shareLink = `https://wa.me/?text=${encodeURIComponent(`You're invited to ${title}! 🎉 ${inviteUrl}`)}`
         break
       default:
         return
@@ -192,6 +194,30 @@ export function ShareDialog({ itineraryId, title, description, trigger, userId }
           </TabsList>
 
           <TabsContent value="link" className="space-y-4">
+            {/* Invite message — Partiful-style one-tap copy */}
+            <div className="rounded-lg border bg-gradient-to-r from-orange-50 to-pink-50 dark:from-orange-950/20 dark:to-pink-950/20 p-4 space-y-3">
+              <p className="text-sm font-medium text-foreground">Send this to your friends:</p>
+              <div className="rounded-md bg-white dark:bg-gray-900 border p-3 text-sm text-foreground whitespace-pre-line">
+                {inviteMessage}
+              </div>
+              <Button
+                className="w-full"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(inviteMessage)
+                  setInviteMessageCopied(true)
+                  toast({ title: "Invite message copied!", description: "Paste it in a text, DM, or group chat." })
+                  setTimeout(() => setInviteMessageCopied(false), 2000)
+                }}
+              >
+                {inviteMessageCopied ? (
+                  <><Check className="mr-2 h-4 w-4" /> Copied!</>
+                ) : (
+                  <><Copy className="mr-2 h-4 w-4" /> Copy Invite Message</>
+                )}
+              </Button>
+            </div>
+
+            {/* Raw links */}
             <div className="space-y-2">
               <Label htmlFor="invite-link">Invite Link</Label>
               <p className="text-xs text-muted-foreground">Anyone with this link can RSVP to your event</p>

@@ -54,7 +54,7 @@ export async function POST(
     // Fetch the invitation and verify the current user is the invitee
     const { data: invitation, error: fetchError } = await supabase
       .from("itinerary_invitations")
-      .select("id, itinerary_id, inviter_id, invitee_id, status")
+      .select("id, itinerary_id, inviter_id, invitee_id, status, expires_at")
       .eq("id", invitationId)
       .single()
 
@@ -69,6 +69,14 @@ export async function POST(
       return NextResponse.json(
         { error: "You are not the recipient of this invitation" },
         { status: 403 }
+      )
+    }
+
+    // Check if the invitation has expired
+    if (invitation.status === "expired" || (invitation.status === "pending" && invitation.expires_at && new Date(invitation.expires_at) < new Date())) {
+      return NextResponse.json(
+        { error: "This invitation has expired. Please ask the host to send a new invite." },
+        { status: 410 }
       )
     }
 
@@ -89,12 +97,13 @@ export async function POST(
       return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
     }
 
-    // Update the invitation status
+    // Update the invitation status (clear expires_at once responded)
     const { error: updateError } = await admin
       .from("itinerary_invitations")
       .update({
         status: newStatus,
         updated_at: new Date().toISOString(),
+        expires_at: null,
       })
       .eq("id", invitationId)
 

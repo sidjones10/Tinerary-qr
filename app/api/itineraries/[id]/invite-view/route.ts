@@ -71,9 +71,8 @@ export async function GET(
           .insert({
             itinerary_id: itineraryId,
             invitee_id: user.id,
-            invited_by: itineraryData.user_id,
+            inviter_id: itineraryData.user_id,
             status: "pending",
-            method: "link",
           })
       }
     }

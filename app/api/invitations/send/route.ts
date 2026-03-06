@@ -70,12 +70,14 @@ export async function POST(request: NextRequest) {
 
           if (existingUser) {
             // Existing user found — create invitation record + in-app notification + SMS
+            const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
             const { error: inviteError } = await supabase.from("itinerary_invitations").insert({
               itinerary_id: itineraryId,
               inviter_id: user.id,
               invitee_id: existingUser.id,
               status: "pending",
               created_at: new Date().toISOString(),
+              expires_at: expiresAt,
             })
 
             if (!inviteError) {
@@ -157,12 +159,14 @@ export async function POST(request: NextRequest) {
 
         if (existingUser) {
           // User exists - create invitation record + in-app notification + email
+          const emailExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
           const { error: inviteError } = await supabase.from("itinerary_invitations").insert({
             itinerary_id: itineraryId,
             inviter_id: user.id,
             invitee_id: existingUser.id,
             status: "pending",
             created_at: new Date().toISOString(),
+            expires_at: emailExpiresAt,
           })
 
           if (!inviteError) {

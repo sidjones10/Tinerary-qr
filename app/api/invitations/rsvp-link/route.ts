@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     // Check for existing invitation (user can see their own via RLS)
     const { data: existing } = await supabase
       .from("itinerary_invitations")
-      .select("id, status")
+      .select("id, status, expires_at")
       .eq("itinerary_id", itineraryId)
       .eq("invitee_id", user.id)
       .limit(1)
@@ -83,6 +83,14 @@ export async function POST(request: NextRequest) {
     let invitationId: string
 
     if (existing) {
+      // Check if the invitation has expired
+      if (existing.status === "expired" || (existing.status === "pending" && existing.expires_at && new Date(existing.expires_at) < new Date())) {
+        return NextResponse.json(
+          { error: "This invitation has expired. Please ask the host to send a new invite." },
+          { status: 410 }
+        )
+      }
+
       if (existing.status === newStatus) {
         return NextResponse.json({
           success: true,
@@ -94,7 +102,7 @@ export async function POST(request: NextRequest) {
 
       const { error: updateError } = await admin
         .from("itinerary_invitations")
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .update({ status: newStatus, updated_at: new Date().toISOString(), expires_at: null })
         .eq("id", existing.id)
 
       if (updateError) {

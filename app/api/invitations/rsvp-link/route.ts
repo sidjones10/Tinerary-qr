@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     // Fetch itinerary to get the owner
     const { data: itinerary, error: itineraryError } = await supabase
       .from("itineraries")
-      .select("id, user_id, title, start_date")
+      .select("id, user_id, title, start_date, invitations_enabled")
       .eq("id", itineraryId)
       .single()
 
@@ -84,6 +84,7 @@ export async function POST(request: NextRequest) {
     let invitationId: string
 
     if (existing) {
+      // Existing invitees can always update their RSVP, even when invitations are disabled.
       // Check if the invitation has expired
       if (existing.status === "expired" || (existing.status === "pending" && existing.expires_at && new Date(existing.expires_at) < new Date())) {
         return NextResponse.json(
@@ -128,7 +129,15 @@ export async function POST(request: NextRequest) {
           .eq("user_id", user.id)
       }
     } else {
-      // No existing invitation — create one (self-invite via link)
+      // No existing invitation — block if invitations are disabled
+      if (itinerary.invitations_enabled === false) {
+        return NextResponse.json(
+          { error: "Invitations are currently closed for this event." },
+          { status: 403 }
+        )
+      }
+
+      // Create one (self-invite via link)
       const { data: newInvite, error: insertError } = await admin
         .from("itinerary_invitations")
         .insert({

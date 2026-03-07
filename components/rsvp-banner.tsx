@@ -83,12 +83,18 @@ export async function submitRsvp(
     })
   }
 
-  const data = await res.json()
-
   if (!res.ok) {
-    throw new RsvpError(data.error || "Failed to update RSVP", res.status)
+    let message = "Failed to update RSVP"
+    try {
+      const data = await res.json()
+      message = data.error || message
+    } catch {
+      // response body wasn't JSON — keep default message
+    }
+    throw new RsvpError(message, res.status)
   }
 
+  const data = await res.json()
   return { invitationId: data.invitationId }
 }
 
@@ -136,6 +142,8 @@ export function RsvpBanner({
 
     if (newStatus === status) return
 
+    const previousStatus = status
+
     // Optimistic update: immediately show the selected state
     setStatus(newStatus)
     setIsSubmitting(true)
@@ -168,8 +176,11 @@ export function RsvpBanner({
     } catch (error: any) {
       setIsSubmitting(false)
 
-      // If the API returned 410 the invitation has expired — show expired state
-      if (error instanceof RsvpError && error.status === 410) {
+      // Check for HTTP status (use duck-typing — instanceof can break across bundles)
+      const httpStatus = error?.status
+
+      if (httpStatus === 410) {
+        // Invitation has expired — show expired state
         setStatus("expired")
         onStatusChange?.("expired", currentInvitationId)
         toast({
@@ -178,8 +189,8 @@ export function RsvpBanner({
           variant: "destructive",
         })
       } else {
-        // Revert optimistic update on failure
-        setStatus("pending")
+        // Revert optimistic update to the status before the attempt
+        setStatus(previousStatus)
         toast({
           title: "Error",
           description: error.message || "Failed to update RSVP",

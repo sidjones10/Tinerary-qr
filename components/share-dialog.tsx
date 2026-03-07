@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import QRCode from "qrcode"
-import { Check, Copy, Download, Facebook, Link2, Share2, Twitter, QrCode as QrCodeIcon } from "lucide-react"
+import { Check, Copy, Download, Facebook, Link2, Share2, Twitter, QrCode as QrCodeIcon, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/components/ui/use-toast"
 import { recordInteraction } from "@/lib/feed-service"
@@ -26,13 +27,16 @@ interface ShareDialogProps {
   trigger?: React.ReactNode
   userId?: string
   isOwner?: boolean
+  invitationsEnabled?: boolean
+  onInvitationsEnabledChange?: (enabled: boolean) => void
 }
 
-export function ShareDialog({ itineraryId, title, description, trigger, userId, isOwner = false }: ShareDialogProps) {
+export function ShareDialog({ itineraryId, title, description, trigger, userId, isOwner = false, invitationsEnabled = true, onInvitationsEnabledChange }: ShareDialogProps) {
   const [copied, setCopied] = useState(false)
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("")
   const [open, setOpen] = useState(false)
   const [inviteMessageCopied, setInviteMessageCopied] = useState(false)
+  const [togglingInvites, setTogglingInvites] = useState(false)
   const { toast } = useToast()
 
   const shareUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/event/${itineraryId}`
@@ -93,8 +97,8 @@ export function ShareDialog({ itineraryId, title, description, trigger, userId, 
       try {
         await navigator.share({
           title: title,
-          text: isOwner ? `You're invited to ${title}! 🎉` : `Check out ${title}!`,
-          url: isOwner ? inviteUrl : shareUrl,
+          text: (isOwner && invitationsEnabled) ? `You're invited to ${title}! 🎉` : `Check out ${title}!`,
+          url: (isOwner && invitationsEnabled) ? inviteUrl : shareUrl,
         })
         // Award coins after successful share
         awardShareCoins()
@@ -145,7 +149,7 @@ export function ShareDialog({ itineraryId, title, description, trigger, userId, 
         shareLink = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`
         break
       case "whatsapp":
-        shareLink = isOwner
+        shareLink = (isOwner && invitationsEnabled)
           ? `https://wa.me/?text=${encodeURIComponent(`You're invited to ${title}! 🎉 ${inviteUrl}`)}`
           : `https://wa.me/?text=${encodeURIComponent(`Check out ${title}! ${shareUrl}`)}`
         break
@@ -197,8 +201,50 @@ export function ShareDialog({ itineraryId, title, description, trigger, userId, 
           </TabsList>
 
           <TabsContent value="link" className="space-y-4">
-            {/* Invite message — only shown to itinerary owner */}
+            {/* Invitations toggle — only shown to owner */}
             {isOwner && (
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div className="space-y-0.5">
+                  <Label htmlFor="invite-toggle" className="text-sm font-medium">Allow invitations</Label>
+                  <p className="text-xs text-muted-foreground">
+                    {invitationsEnabled
+                      ? "Invite link is active — anyone with it can RSVP"
+                      : "Invite link is disabled — no new RSVPs allowed"}
+                  </p>
+                </div>
+                <Switch
+                  id="invite-toggle"
+                  checked={invitationsEnabled}
+                  disabled={togglingInvites}
+                  onCheckedChange={async (checked) => {
+                    setTogglingInvites(true)
+                    try {
+                      const res = await fetch(`/api/itineraries/${itineraryId}/invitations-toggle`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ enabled: checked }),
+                      })
+                      const data = await res.json()
+                      if (!res.ok) throw new Error(data.error || "Failed to update")
+                      onInvitationsEnabledChange?.(checked)
+                      toast({
+                        title: checked ? "Invitations enabled" : "Invitations disabled",
+                        description: checked
+                          ? "People can RSVP via the invite link again."
+                          : "The invite link is now invalid. Existing guests are not affected.",
+                      })
+                    } catch (err: any) {
+                      toast({ title: "Error", description: err.message, variant: "destructive" })
+                    } finally {
+                      setTogglingInvites(false)
+                    }
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Invite message — only shown to itinerary owner when invitations are enabled */}
+            {isOwner && invitationsEnabled && (
               <div className="rounded-lg border bg-gradient-to-r from-orange-50 to-pink-50 dark:from-orange-950/20 dark:to-pink-950/20 p-4 space-y-3">
                 <p className="text-sm font-medium text-foreground">Send this to your friends:</p>
                 <div className="rounded-md bg-white dark:bg-gray-900 border p-3 text-sm text-foreground whitespace-pre-line">
@@ -222,8 +268,8 @@ export function ShareDialog({ itineraryId, title, description, trigger, userId, 
               </div>
             )}
 
-            {/* Invite link — only shown to itinerary owner */}
-            {isOwner && (
+            {/* Invite link — only shown to itinerary owner when invitations are enabled */}
+            {isOwner && invitationsEnabled && (
               <div className="space-y-2">
                 <Label htmlFor="invite-link">Invite Link</Label>
                 <p className="text-xs text-muted-foreground">Anyone with this link can RSVP to your event</p>

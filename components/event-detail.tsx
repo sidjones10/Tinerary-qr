@@ -146,6 +146,7 @@ export function EventDetail({ event }: EventDetailProps) {
   const [myInvitation, setMyInvitation] = useState<{ id: string; status: "pending" | "accepted" | "declined" | "tentative" } | null>(null)
   const [arrivedViaInviteLink, setArrivedViaInviteLink] = useState(false)
   const [attendeeCounts, setAttendeeCounts] = useState<{ going: number; maybe: number }>({ going: 1, maybe: 0 }) // 1 = host
+  const [invitationsEnabled, setInvitationsEnabled] = useState<boolean>(event.invitations_enabled !== false)
   const isOwner = !!(user && user.id === event.user_id)
   const searchParams = useSearchParams()
 
@@ -208,12 +209,15 @@ export function EventDetail({ event }: EventDetailProps) {
 
   // Fetch invitations for this itinerary
   const fetchInvitations = async () => {
-    if (!isOwner) return
     setLoadingInvitations(true)
     try {
       const supabase = createClient()
 
       // Fetch user invitations (existing users)
+      // RLS allows invitees to see their own invitation; owners see all.
+      // For non-owners we query all invitations for this itinerary — RLS may
+      // restrict what comes back, but accepted/tentative users typically have
+      // attendee records visible to anyone.
       const { data: userInvites } = await supabase
         .from("itinerary_invitations")
         .select(`
@@ -223,12 +227,16 @@ export function EventDetail({ event }: EventDetailProps) {
         .eq("itinerary_id", event.id)
         .order("created_at", { ascending: false })
 
-      // Fetch pending invitations (non-users)
-      const { data: pendingInvites } = await supabase
-        .from("pending_invitations")
-        .select("id, email, status, created_at")
-        .eq("itinerary_id", event.id)
-        .order("created_at", { ascending: false })
+      // Fetch pending invitations (non-users) — only owners can see these
+      let pendingInvites: any[] | null = null
+      if (isOwner) {
+        const { data } = await supabase
+          .from("pending_invitations")
+          .select("id, email, status, created_at")
+          .eq("itinerary_id", event.id)
+          .order("created_at", { ascending: false })
+        pendingInvites = data
+      }
 
       const allInvitations: InvitationInfo[] = []
 
@@ -241,7 +249,7 @@ export function EventDetail({ event }: EventDetailProps) {
             status: inv.status as "pending" | "accepted" | "declined",
             created_at: inv.created_at,
             invitee_name: invitee?.name || "Unknown",
-            invitee_email: invitee?.email,
+            invitee_email: isOwner ? invitee?.email : undefined,
             invitee_avatar: invitee?.avatar_url,
           })
         }
@@ -822,6 +830,8 @@ export function EventDetail({ event }: EventDetailProps) {
                   description={event.description}
                   userId={user?.id}
                   isOwner={isOwner}
+                  invitationsEnabled={invitationsEnabled}
+                  onInvitationsEnabledChange={setInvitationsEnabled}
                   trigger={
                     <Button
                       variant="outline"
@@ -973,8 +983,8 @@ export function EventDetail({ event }: EventDetailProps) {
           )}
         </div>
 
-        {/* RSVP Banner — shown to logged-in non-owners who have an invitation or arrived via invite link */}
-        {user && !isOwner && (myInvitation || arrivedViaInviteLink) && (
+        {/* RSVP Banner — shown to logged-in non-owners who have an invitation, or arrived via invite link (when invitations are enabled) */}
+        {user && !isOwner && (myInvitation || (arrivedViaInviteLink && invitationsEnabled)) && (
           <RsvpBanner
             invitationId={myInvitation?.id}
             itineraryId={event.id}

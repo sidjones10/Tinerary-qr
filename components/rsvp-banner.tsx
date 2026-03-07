@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Check, HelpCircle, X, Loader2, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
@@ -24,26 +24,31 @@ const STATUS_CONFIG = {
     bannerBg: "bg-emerald-50 dark:bg-emerald-950/30",
     bannerBorder: "border-emerald-200 dark:border-emerald-800",
     bannerText: "text-emerald-800 dark:text-emerald-200",
+    label: "You're going!",
   },
   tentative: {
     bannerBg: "bg-amber-50 dark:bg-amber-950/30",
     bannerBorder: "border-amber-200 dark:border-amber-800",
     bannerText: "text-amber-800 dark:text-amber-200",
+    label: "You might be going",
   },
   declined: {
     bannerBg: "bg-red-50 dark:bg-red-950/30",
     bannerBorder: "border-red-200 dark:border-red-800",
     bannerText: "text-red-800 dark:text-red-200",
+    label: "You've declined this event",
   },
   pending: {
     bannerBg: "bg-orange-50 dark:bg-orange-950/30",
     bannerBorder: "border-orange-200 dark:border-orange-800",
     bannerText: "text-orange-800 dark:text-orange-200",
+    label: "",
   },
   expired: {
     bannerBg: "bg-gray-50 dark:bg-gray-950/30",
     bannerBorder: "border-gray-300 dark:border-gray-700",
     bannerText: "text-gray-600 dark:text-gray-400",
+    label: "Invitation expired",
   },
 } as const
 
@@ -88,6 +93,10 @@ export function RsvpBanner({
   const [status, setStatus] = useState<RsvpStatus>(currentStatus)
   const [currentInvitationId, setCurrentInvitationId] = useState<string | undefined>(invitationId)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  // Controls the collapse animation after a successful RSVP
+  const [isCollapsing, setIsCollapsing] = useState(false)
+  const [isHidden, setIsHidden] = useState(false)
+  const collapseTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Sync with parent when props change (e.g. after async fetch completes)
   useEffect(() => {
@@ -97,6 +106,14 @@ export function RsvpBanner({
   useEffect(() => {
     setCurrentInvitationId(invitationId)
   }, [invitationId])
+
+  // Cleanup timers
+  useEffect(() => {
+    return () => {
+      if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current)
+    }
+  }, [])
+
   const { toast } = useToast()
 
   const handleRsvp = async (response: "accept" | "decline" | "tentative") => {
@@ -109,7 +126,10 @@ export function RsvpBanner({
 
     if (newStatus === status) return
 
+    // Optimistic update: immediately show the selected state
+    setStatus(newStatus)
     setIsSubmitting(true)
+
     try {
       const data = await submitRsvp(response, {
         invitationId: currentInvitationId,
@@ -121,27 +141,29 @@ export function RsvpBanner({
         setCurrentInvitationId(data.invitationId)
       }
 
-      setStatus(newStatus)
-      onStatusChange?.(newStatus, data.invitationId)
-
-      const labels: Record<string, string> = {
-        accepted: "You're going!",
-        tentative: "Marked as maybe",
-        declined: "You've declined",
-      }
+      onStatusChange?.(newStatus, data.invitationId || currentInvitationId)
 
       toast({
-        title: labels[newStatus] || "RSVP updated",
+        title: STATUS_CONFIG[newStatus].label || "RSVP updated",
         description: `Your response for "${eventTitle}" has been saved.`,
       })
+
+      // Show the confirmed state briefly, then collapse the banner
+      setIsSubmitting(false)
+      collapseTimerRef.current = setTimeout(() => {
+        setIsCollapsing(true)
+        // After the CSS transition completes, fully hide
+        setTimeout(() => setIsHidden(true), 300)
+      }, 1200)
     } catch (error: any) {
+      // Revert optimistic update on failure
+      setStatus("pending")
+      setIsSubmitting(false)
       toast({
         title: "Error",
         description: error.message || "Failed to update RSVP",
         variant: "destructive",
       })
-    } finally {
-      setIsSubmitting(false)
     }
   }
 
@@ -149,20 +171,22 @@ export function RsvpBanner({
   const isPending = status === "pending"
   const isExpired = status === "expired"
 
-  // Only show the full banner for pending/expired states.
-  // Once the user has responded, the banner collapses away and
-  // RSVP controls appear inline in the Attendees tab instead.
-  if (!isPending && !isExpired) {
+  // Fully hidden after collapse animation (or if already responded on mount)
+  if (isHidden) return null
+  if (!isPending && !isExpired && !isCollapsing && !isSubmitting && status === currentStatus) {
+    // Already responded before this component mounted — don't show
     return null
   }
 
   return (
     <div
       className={cn(
-        "rounded-xl border-2 p-4 mb-6 transition-all duration-300",
+        "rounded-xl border-2 p-4 mb-6 transition-all duration-300 overflow-hidden",
         config.bannerBg,
-        config.bannerBorder
+        config.bannerBorder,
+        isCollapsing && "max-h-0 opacity-0 p-0 mb-0 border-0"
       )}
+      style={isCollapsing ? { maxHeight: 0 } : { maxHeight: 200 }}
     >
       {/* Header text */}
       <div className="mb-3 text-center">
@@ -178,7 +202,7 @@ export function RsvpBanner({
               This invitation has expired. Ask {hostName || "the host"} to send a new invite.
             </p>
           </>
-        ) : (
+        ) : isPending ? (
           <>
             <p className={cn("text-sm font-semibold", config.bannerText)}>
               {hostName ? `${hostName} invited you` : "You're invited!"}
@@ -187,6 +211,10 @@ export function RsvpBanner({
               Are you going to this event?
             </p>
           </>
+        ) : (
+          <p className={cn("text-sm font-semibold", config.bannerText)}>
+            {config.label}
+          </p>
         )}
       </div>
 

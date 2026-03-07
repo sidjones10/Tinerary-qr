@@ -808,22 +808,25 @@ export function EventDetail({ event }: EventDetailProps) {
                   {likeCount > 0 && <span className="ml-1">({likeCount})</span>}
                 </Button>
 
-                <ShareDialog
-                  itineraryId={event.id}
-                  title={event.title}
-                  description={event.description}
-                  userId={user?.id}
-                  trigger={
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-white/20 backdrop-blur-sm border-white/40 text-white hover:bg-white/30"
-                    >
-                      <Share2 className="h-4 w-4" />
-                      <span className="hidden sm:inline ml-2">Share</span>
-                    </Button>
-                  }
-                />
+                {isOwner && (
+                  <ShareDialog
+                    itineraryId={event.id}
+                    title={event.title}
+                    description={event.description}
+                    userId={user?.id}
+                    isOwner={true}
+                    trigger={
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="bg-white/20 backdrop-blur-sm border-white/40 text-white hover:bg-white/30"
+                      >
+                        <Share2 className="h-4 w-4" />
+                        <span className="hidden sm:inline ml-2">Share</span>
+                      </Button>
+                    }
+                  />
+                )}
 
                 <CalendarExportButton
                   event={{

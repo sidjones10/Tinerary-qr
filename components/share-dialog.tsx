@@ -25,9 +25,10 @@ interface ShareDialogProps {
   description?: string
   trigger?: React.ReactNode
   userId?: string
+  isOwner?: boolean
 }
 
-export function ShareDialog({ itineraryId, title, description, trigger, userId }: ShareDialogProps) {
+export function ShareDialog({ itineraryId, title, description, trigger, userId, isOwner = false }: ShareDialogProps) {
   const [copied, setCopied] = useState(false)
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("")
   const [open, setOpen] = useState(false)
@@ -92,8 +93,8 @@ export function ShareDialog({ itineraryId, title, description, trigger, userId }
       try {
         await navigator.share({
           title: title,
-          text: `You're invited to ${title}! 🎉`,
-          url: inviteUrl,
+          text: isOwner ? `You're invited to ${title}! 🎉` : `Check out ${title}!`,
+          url: isOwner ? inviteUrl : shareUrl,
         })
         // Award coins after successful share
         awardShareCoins()
@@ -144,7 +145,9 @@ export function ShareDialog({ itineraryId, title, description, trigger, userId }
         shareLink = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`
         break
       case "whatsapp":
-        shareLink = `https://wa.me/?text=${encodeURIComponent(`You're invited to ${title}! 🎉 ${inviteUrl}`)}`
+        shareLink = isOwner
+          ? `https://wa.me/?text=${encodeURIComponent(`You're invited to ${title}! 🎉 ${inviteUrl}`)}`
+          : `https://wa.me/?text=${encodeURIComponent(`Check out ${title}! ${shareUrl}`)}`
         break
       default:
         return
@@ -194,50 +197,54 @@ export function ShareDialog({ itineraryId, title, description, trigger, userId }
           </TabsList>
 
           <TabsContent value="link" className="space-y-4">
-            {/* Invite message — Partiful-style one-tap copy */}
-            <div className="rounded-lg border bg-gradient-to-r from-orange-50 to-pink-50 dark:from-orange-950/20 dark:to-pink-950/20 p-4 space-y-3">
-              <p className="text-sm font-medium text-foreground">Send this to your friends:</p>
-              <div className="rounded-md bg-white dark:bg-gray-900 border p-3 text-sm text-foreground whitespace-pre-line">
-                {inviteMessage}
-              </div>
-              <Button
-                className="w-full"
-                onClick={async () => {
-                  await navigator.clipboard.writeText(inviteMessage)
-                  setInviteMessageCopied(true)
-                  toast({ title: "Invite message copied!", description: "Paste it in a text, DM, or group chat." })
-                  setTimeout(() => setInviteMessageCopied(false), 2000)
-                }}
-              >
-                {inviteMessageCopied ? (
-                  <><Check className="mr-2 h-4 w-4" /> Copied!</>
-                ) : (
-                  <><Copy className="mr-2 h-4 w-4" /> Copy Invite Message</>
-                )}
-              </Button>
-            </div>
-
-            {/* Raw links */}
-            <div className="space-y-2">
-              <Label htmlFor="invite-link">Invite Link</Label>
-              <p className="text-xs text-muted-foreground">Anyone with this link can RSVP to your event</p>
-              <div className="flex gap-2">
-                <Input id="invite-link" value={inviteUrl} readOnly className="flex-1" />
+            {/* Invite message — only shown to itinerary owner */}
+            {isOwner && (
+              <div className="rounded-lg border bg-gradient-to-r from-orange-50 to-pink-50 dark:from-orange-950/20 dark:to-pink-950/20 p-4 space-y-3">
+                <p className="text-sm font-medium text-foreground">Send this to your friends:</p>
+                <div className="rounded-md bg-white dark:bg-gray-900 border p-3 text-sm text-foreground whitespace-pre-line">
+                  {inviteMessage}
+                </div>
                 <Button
-                  variant="outline"
-                  size="icon"
+                  className="w-full"
                   onClick={async () => {
-                    await navigator.clipboard.writeText(inviteUrl)
-                    setInviteCopied(true)
-                    toast({ title: "Invite link copied!", description: "Share this link so people can RSVP." })
-                    setTimeout(() => setInviteCopied(false), 2000)
+                    await navigator.clipboard.writeText(inviteMessage)
+                    setInviteMessageCopied(true)
+                    toast({ title: "Invite message copied!", description: "Paste it in a text, DM, or group chat." })
+                    setTimeout(() => setInviteMessageCopied(false), 2000)
                   }}
-                  aria-label={inviteCopied ? "Copied" : "Copy invite link"}
                 >
-                  {inviteCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                  {inviteMessageCopied ? (
+                    <><Check className="mr-2 h-4 w-4" /> Copied!</>
+                  ) : (
+                    <><Copy className="mr-2 h-4 w-4" /> Copy Invite Message</>
+                  )}
                 </Button>
               </div>
-            </div>
+            )}
+
+            {/* Invite link — only shown to itinerary owner */}
+            {isOwner && (
+              <div className="space-y-2">
+                <Label htmlFor="invite-link">Invite Link</Label>
+                <p className="text-xs text-muted-foreground">Anyone with this link can RSVP to your event</p>
+                <div className="flex gap-2">
+                  <Input id="invite-link" value={inviteUrl} readOnly className="flex-1" />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(inviteUrl)
+                      setInviteCopied(true)
+                      toast({ title: "Invite link copied!", description: "Share this link so people can RSVP." })
+                      setTimeout(() => setInviteCopied(false), 2000)
+                    }}
+                    aria-label={inviteCopied ? "Copied" : "Copy invite link"}
+                  >
+                    {inviteCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="link">View-only Link</Label>

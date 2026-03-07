@@ -144,9 +144,17 @@ export function EventDetail({ event }: EventDetailProps) {
   const [loadingInvitations, setLoadingInvitations] = useState(false)
   const [removingInvitationId, setRemovingInvitationId] = useState<string | null>(null)
   const [myInvitation, setMyInvitation] = useState<{ id: string; status: "pending" | "accepted" | "declined" | "tentative" } | null>(null)
+  const [arrivedViaInviteLink, setArrivedViaInviteLink] = useState(false)
   const [attendeeCounts, setAttendeeCounts] = useState<{ going: number; maybe: number }>({ going: 1, maybe: 0 }) // 1 = host
   const isOwner = !!(user && user.id === event.user_id)
   const searchParams = useSearchParams()
+
+  // Track if user arrived via an invite link so we can show the RSVP banner
+  useEffect(() => {
+    if (searchParams.get("invite") === "true" && user && !isOwner) {
+      setArrivedViaInviteLink(true)
+    }
+  }, [searchParams, user, isOwner])
 
   // Fetch mention highlights for this itinerary (non-blocking)
   useEffect(() => {
@@ -965,12 +973,12 @@ export function EventDetail({ event }: EventDetailProps) {
           )}
         </div>
 
-        {/* RSVP Banner — shown to logged-in non-owners who have an invitation */}
-        {user && !isOwner && myInvitation && (
+        {/* RSVP Banner — shown to logged-in non-owners who have an invitation or arrived via invite link */}
+        {user && !isOwner && (myInvitation || arrivedViaInviteLink) && (
           <RsvpBanner
-            invitationId={myInvitation.id}
+            invitationId={myInvitation?.id}
             itineraryId={event.id}
-            currentStatus={myInvitation.status}
+            currentStatus={myInvitation?.status || "pending"}
             eventTitle={event.title}
             hostName={(event.host_name as string) || undefined}
             onStatusChange={(newStatus, newInvitationId) => {

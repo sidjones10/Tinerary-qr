@@ -698,6 +698,13 @@ export function EventDetail({ event }: EventDetailProps) {
     const newStatus = statusMap[response]
     if (myInvitation?.status === newStatus) return
 
+    // Optimistic update for the attendee row
+    setMyInvitation((prev) => prev ? { ...prev, status: newStatus } : prev)
+    setInvitations((prev) =>
+      prev.map((inv) =>
+        inv.invitee_id === user?.id ? { ...inv, status: newStatus as any } : inv
+      )
+    )
     setIsSubmittingInlineRsvp(true)
     try {
       const data = await submitRsvp(response, {
@@ -709,8 +716,15 @@ export function EventDetail({ event }: EventDetailProps) {
       setMyInvitation({ id: invId, status: newStatus })
       fetchInvitations()
       fetchAttendeeCounts()
-    } catch {
-      // Error toast is shown by submitRsvp
+    } catch (error: any) {
+      // Revert optimistic update on failure
+      setMyInvitation((prev) => prev ? { ...prev, status: myInvitation?.status || "pending" } : prev)
+      fetchInvitations()
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update RSVP",
+        variant: "destructive",
+      })
     } finally {
       setIsSubmittingInlineRsvp(false)
     }
@@ -1021,10 +1035,37 @@ export function EventDetail({ event }: EventDetailProps) {
             eventTitle={event.title}
             hostName={(event.host_name as string) || undefined}
             onStatusChange={(newStatus, newInvitationId) => {
-              setMyInvitation((prev) => {
-                const id = newInvitationId || prev?.id || ""
-                return { id, status: newStatus }
-              })
+              const invId = newInvitationId || myInvitation?.id || ""
+              setMyInvitation({ id: invId, status: newStatus })
+
+              // Optimistically add/update the current user in the attendees list
+              // so they appear immediately without waiting for the DB round-trip
+              if (user) {
+                setInvitations((prev) => {
+                  const existing = prev.find((inv) => inv.invitee_id === user.id)
+                  if (existing) {
+                    return prev.map((inv) =>
+                      inv.invitee_id === user.id
+                        ? { ...inv, status: newStatus as any }
+                        : inv
+                    )
+                  }
+                  // Add new entry for the current user
+                  return [
+                    {
+                      id: invId,
+                      invitee_id: user.id,
+                      status: newStatus as any,
+                      created_at: new Date().toISOString(),
+                      invitee_name: user.user_metadata?.name || user.email?.split("@")[0] || "You",
+                      invitee_avatar: user.user_metadata?.avatar_url,
+                    },
+                    ...prev,
+                  ]
+                })
+              }
+
+              // Also refresh from DB (may return more data if RLS allows)
               fetchInvitations()
               fetchAttendeeCounts()
             }}

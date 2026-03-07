@@ -3,6 +3,7 @@ import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
 import { createNotification } from "@/lib/notification-service"
 import { sendInvitationEmail, sendEventInviteEmail } from "@/lib/email-notifications"
 import { sendInvitationSMS, formatPhoneNumber } from "@/backend/services/twilio"
+import { computeInvitationExpiry } from "@/lib/invitation-expiry"
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary-app.com"
 
@@ -41,6 +42,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
+    // Fetch itinerary start_date so we can compute invitation expiry
+    const { data: itineraryRow } = await supabase
+      .from("itineraries")
+      .select("start_date")
+      .eq("id", itineraryId)
+      .single()
+
+    const expiresAt = computeInvitationExpiry(itineraryRow?.start_date)
+
     // Use service role client for creating notifications for other users
     // This bypasses RLS so the inviter can insert notifications for the invitee
     let serviceClient: ReturnType<typeof createServiceRoleClient> | null = null
@@ -76,6 +86,7 @@ export async function POST(request: NextRequest) {
               invitee_id: existingUser.id,
               status: "pending",
               created_at: new Date().toISOString(),
+              expires_at: expiresAt,
             })
 
             if (!inviteError) {
@@ -163,6 +174,7 @@ export async function POST(request: NextRequest) {
             invitee_id: existingUser.id,
             status: "pending",
             created_at: new Date().toISOString(),
+            expires_at: expiresAt,
           })
 
           if (!inviteError) {

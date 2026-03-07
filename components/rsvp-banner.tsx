@@ -1,12 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Check, HelpCircle, X, Loader2 } from "lucide-react"
+import { Check, HelpCircle, X, Loader2, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { cn } from "@/lib/utils"
 
-type RsvpStatus = "pending" | "accepted" | "declined" | "tentative"
+type RsvpStatus = "pending" | "accepted" | "declined" | "tentative" | "expired"
 
 interface RsvpBannerProps {
   /** Existing invitation ID (if user was explicitly invited) */
@@ -39,6 +39,11 @@ const STATUS_CONFIG = {
     bannerBg: "bg-orange-50 dark:bg-orange-950/30",
     bannerBorder: "border-orange-200 dark:border-orange-800",
     bannerText: "text-orange-800 dark:text-orange-200",
+  },
+  expired: {
+    bannerBg: "bg-gray-50 dark:bg-gray-950/30",
+    bannerBorder: "border-gray-300 dark:border-gray-700",
+    bannerText: "text-gray-600 dark:text-gray-400",
   },
 } as const
 
@@ -131,6 +136,7 @@ export function RsvpBanner({
 
   const config = STATUS_CONFIG[status]
   const isPending = status === "pending"
+  const isExpired = status === "expired"
 
   return (
     <div
@@ -142,7 +148,19 @@ export function RsvpBanner({
     >
       {/* Header text */}
       <div className="mb-3 text-center">
-        {isPending ? (
+        {isExpired ? (
+          <>
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              <Clock className="h-4 w-4 text-gray-500" />
+              <p className={cn("text-sm font-semibold", config.bannerText)}>
+                Invitation expired
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              This invitation has expired. Ask {hostName || "the host"} to send a new invite.
+            </p>
+          </>
+        ) : isPending ? (
           <>
             <p className={cn("text-sm font-semibold", config.bannerText)}>
               {hostName ? `${hostName} invited you` : "You're invited!"}
@@ -160,33 +178,35 @@ export function RsvpBanner({
         )}
       </div>
 
-      {/* RSVP buttons — Partiful-style pill row */}
-      <div className="flex gap-2 justify-center">
-        <RsvpPill
-          label="Going"
-          icon={Check}
-          isActive={status === "accepted"}
-          activeColor="bg-emerald-500 hover:bg-emerald-600"
-          onClick={() => handleRsvp("accept")}
-          disabled={isSubmitting}
-        />
-        <RsvpPill
-          label="Maybe"
-          icon={HelpCircle}
-          isActive={status === "tentative"}
-          activeColor="bg-amber-500 hover:bg-amber-600"
-          onClick={() => handleRsvp("tentative")}
-          disabled={isSubmitting}
-        />
-        <RsvpPill
-          label="Can't Go"
-          icon={X}
-          isActive={status === "declined"}
-          activeColor="bg-red-500 hover:bg-red-600"
-          onClick={() => handleRsvp("decline")}
-          disabled={isSubmitting}
-        />
-      </div>
+      {/* RSVP buttons — Partiful-style pill row (hidden when expired) */}
+      {!isExpired && (
+        <div className="flex gap-2 justify-center">
+          <RsvpPill
+            label="Going"
+            icon={Check}
+            isActive={status === "accepted"}
+            activeColor="bg-emerald-500 hover:bg-emerald-600"
+            onClick={() => handleRsvp("accept")}
+            disabled={isSubmitting}
+          />
+          <RsvpPill
+            label="Maybe"
+            icon={HelpCircle}
+            isActive={status === "tentative"}
+            activeColor="bg-amber-500 hover:bg-amber-600"
+            onClick={() => handleRsvp("tentative")}
+            disabled={isSubmitting}
+          />
+          <RsvpPill
+            label="Can't Go"
+            icon={X}
+            isActive={status === "declined"}
+            activeColor="bg-red-500 hover:bg-red-600"
+            onClick={() => handleRsvp("decline")}
+            disabled={isSubmitting}
+          />
+        </div>
+      )}
 
       {isSubmitting && (
         <div className="flex justify-center mt-2">

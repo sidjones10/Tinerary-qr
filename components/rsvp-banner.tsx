@@ -52,6 +52,16 @@ const STATUS_CONFIG = {
   },
 } as const
 
+/** Error subclass that carries the HTTP status code from the API */
+export class RsvpError extends Error {
+  status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = "RsvpError"
+    this.status = status
+  }
+}
+
 /** Shared RSVP API call logic — used by both the banner and inline controls */
 export async function submitRsvp(
   response: "accept" | "decline" | "tentative",
@@ -76,7 +86,7 @@ export async function submitRsvp(
   const data = await res.json()
 
   if (!res.ok) {
-    throw new Error(data.error || "Failed to update RSVP")
+    throw new RsvpError(data.error || "Failed to update RSVP", res.status)
   }
 
   return { invitationId: data.invitationId }
@@ -156,14 +166,26 @@ export function RsvpBanner({
         setTimeout(() => setIsHidden(true), 300)
       }, 1200)
     } catch (error: any) {
-      // Revert optimistic update on failure
-      setStatus("pending")
       setIsSubmitting(false)
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update RSVP",
-        variant: "destructive",
-      })
+
+      // If the API returned 410 the invitation has expired — show expired state
+      if (error instanceof RsvpError && error.status === 410) {
+        setStatus("expired")
+        onStatusChange?.("expired", currentInvitationId)
+        toast({
+          title: "Invitation expired",
+          description: error.message || "This invitation has expired. Ask the host to send a new invite.",
+          variant: "destructive",
+        })
+      } else {
+        // Revert optimistic update on failure
+        setStatus("pending")
+        toast({
+          title: "Error",
+          description: error.message || "Failed to update RSVP",
+          variant: "destructive",
+        })
+      }
     }
   }
 

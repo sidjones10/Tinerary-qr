@@ -42,12 +42,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    // Fetch itinerary start_date so we can compute invitation expiry
+    // Fetch itinerary and verify the current user owns it
     const { data: itineraryRow } = await supabase
       .from("itineraries")
-      .select("start_date")
+      .select("start_date, user_id")
       .eq("id", itineraryId)
       .single()
+
+    if (!itineraryRow || itineraryRow.user_id !== user.id) {
+      return NextResponse.json(
+        { error: "Only the itinerary owner can send invitations" },
+        { status: 403 }
+      )
+    }
 
     const expiresAt = computeInvitationExpiry(itineraryRow?.start_date)
 

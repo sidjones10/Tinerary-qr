@@ -375,13 +375,23 @@ export function EventDetail({ event }: EventDetailProps) {
         body: JSON.stringify({ response: rsvpParam }),
         signal: controller.signal,
       })
-        .then((res) => res.json())
-        .then((data) => {
+        .then((res) => {
+          const status = res.status
+          return res.json().then((data) => ({ data, status }))
+        })
+        .then(({ data, status }) => {
           if (data.success) {
             setMyInvitation((prev) => prev ? { ...prev, status: statusMap[rsvpParam] as any } : prev)
             toast({
               title: rsvpParam === "accept" ? "You're going!" : rsvpParam === "tentative" ? "Marked as maybe" : "You've declined",
               description: `Your response for "${event.title}" has been saved.`,
+            })
+          } else if (status === 410) {
+            setMyInvitation((prev) => prev ? { ...prev, status: "expired" as any } : prev)
+            toast({
+              title: "Invitation expired",
+              description: data.error || "This invitation has expired. Ask the host to send a new invite.",
+              variant: "destructive",
             })
           }
         })
@@ -394,13 +404,23 @@ export function EventDetail({ event }: EventDetailProps) {
         body: JSON.stringify({ itineraryId: event.id, response: rsvpParam }),
         signal: controller.signal,
       })
-        .then((res) => res.json())
-        .then((data) => {
+        .then((res) => {
+          const status = res.status
+          return res.json().then((data) => ({ data, status }))
+        })
+        .then(({ data, status }) => {
           if (data.success) {
             setMyInvitation({ id: data.invitationId, status: statusMap[rsvpParam] as any })
             toast({
               title: rsvpParam === "accept" ? "You're going!" : rsvpParam === "tentative" ? "Marked as maybe" : "You've declined",
               description: `Your response for "${event.title}" has been saved.`,
+            })
+          } else if (status === 410) {
+            setMyInvitation((prev) => prev ? { ...prev, status: "expired" as any } : prev)
+            toast({
+              title: "Invitation expired",
+              description: data.error || "This invitation has expired. Ask the host to send a new invite.",
+              variant: "destructive",
             })
           }
         })

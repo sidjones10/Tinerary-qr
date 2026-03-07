@@ -144,9 +144,17 @@ export function EventDetail({ event }: EventDetailProps) {
   const [loadingInvitations, setLoadingInvitations] = useState(false)
   const [removingInvitationId, setRemovingInvitationId] = useState<string | null>(null)
   const [myInvitation, setMyInvitation] = useState<{ id: string; status: "pending" | "accepted" | "declined" | "tentative" } | null>(null)
+  const [arrivedViaInviteLink, setArrivedViaInviteLink] = useState(false)
   const [attendeeCounts, setAttendeeCounts] = useState<{ going: number; maybe: number }>({ going: 1, maybe: 0 }) // 1 = host
   const isOwner = !!(user && user.id === event.user_id)
   const searchParams = useSearchParams()
+
+  // Track if user arrived via an invite link so we can show the RSVP banner
+  useEffect(() => {
+    if (searchParams.get("invite") === "true" && user && !isOwner) {
+      setArrivedViaInviteLink(true)
+    }
+  }, [searchParams, user, isOwner])
 
   // Fetch mention highlights for this itinerary (non-blocking)
   useEffect(() => {
@@ -808,25 +816,23 @@ export function EventDetail({ event }: EventDetailProps) {
                   {likeCount > 0 && <span className="ml-1">({likeCount})</span>}
                 </Button>
 
-                {isOwner && (
-                  <ShareDialog
-                    itineraryId={event.id}
-                    title={event.title}
-                    description={event.description}
-                    userId={user?.id}
-                    isOwner={true}
-                    trigger={
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="bg-white/20 backdrop-blur-sm border-white/40 text-white hover:bg-white/30"
-                      >
-                        <Share2 className="h-4 w-4" />
-                        <span className="hidden sm:inline ml-2">Share</span>
-                      </Button>
-                    }
-                  />
-                )}
+                <ShareDialog
+                  itineraryId={event.id}
+                  title={event.title}
+                  description={event.description}
+                  userId={user?.id}
+                  isOwner={isOwner}
+                  trigger={
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-white/20 backdrop-blur-sm border-white/40 text-white hover:bg-white/30"
+                    >
+                      <Share2 className="h-4 w-4" />
+                      <span className="hidden sm:inline ml-2">Share</span>
+                    </Button>
+                  }
+                />
 
                 <CalendarExportButton
                   event={{
@@ -967,12 +973,12 @@ export function EventDetail({ event }: EventDetailProps) {
           )}
         </div>
 
-        {/* RSVP Banner — shown to logged-in non-owners who have an invitation */}
-        {user && !isOwner && myInvitation && (
+        {/* RSVP Banner — shown to logged-in non-owners who have an invitation or arrived via invite link */}
+        {user && !isOwner && (myInvitation || arrivedViaInviteLink) && (
           <RsvpBanner
-            invitationId={myInvitation.id}
+            invitationId={myInvitation?.id}
             itineraryId={event.id}
-            currentStatus={myInvitation.status}
+            currentStatus={myInvitation?.status || "pending"}
             eventTitle={event.title}
             hostName={(event.host_name as string) || undefined}
             onStatusChange={(newStatus, newInvitationId) => {

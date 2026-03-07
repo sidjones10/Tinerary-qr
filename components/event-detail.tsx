@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { format } from "date-fns"
-import { ArrowLeft, Calendar, MapPin, Clock, Share2, Heart, Users, Edit, Trash2, Loader2, Flag, Mail, Phone, CheckCircle2, XCircle, UserMinus } from "lucide-react"
+import { ArrowLeft, Calendar, MapPin, Clock, Share2, Heart, Users, Edit, Trash2, Loader2, Flag, Mail, Phone, CheckCircle2, XCircle, UserMinus, Check, HelpCircle, X } from "lucide-react"
 import { MentionHighlightBadge } from "@/components/mention-highlight-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -29,7 +29,8 @@ import { getFontFamily } from "@/components/font-selector"
 import { PostEventCoverPrompt } from "@/components/post-event-cover-prompt"
 import { shouldPromptCoverUpdate } from "@/lib/reminder-utils"
 import { ReportDialog } from "@/components/report-dialog"
-import { RsvpBanner } from "@/components/rsvp-banner"
+import { RsvpBanner, RsvpPill, submitRsvp } from "@/components/rsvp-banner"
+import { cn } from "@/lib/utils"
 
 interface Activity {
   id: string
@@ -143,6 +144,7 @@ export function EventDetail({ event }: EventDetailProps) {
   const [invitations, setInvitations] = useState<InvitationInfo[]>([])
   const [loadingInvitations, setLoadingInvitations] = useState(false)
   const [removingInvitationId, setRemovingInvitationId] = useState<string | null>(null)
+  const [isSubmittingInlineRsvp, setIsSubmittingInlineRsvp] = useState(false)
   const [myInvitation, setMyInvitation] = useState<{ id: string; status: "pending" | "accepted" | "declined" | "tentative" } | null>(null)
   const [arrivedViaInviteLink, setArrivedViaInviteLink] = useState(false)
   const [attendeeCounts, setAttendeeCounts] = useState<{ going: number; maybe: number }>({ going: 1, maybe: 0 }) // 1 = host
@@ -684,6 +686,33 @@ export function EventDetail({ event }: EventDetailProps) {
       })
     } finally {
       setIsSendingInvite(false)
+    }
+  }
+
+  const handleInlineRsvp = async (response: "accept" | "decline" | "tentative") => {
+    const statusMap: Record<string, "accepted" | "declined" | "tentative"> = {
+      accept: "accepted",
+      decline: "declined",
+      tentative: "tentative",
+    }
+    const newStatus = statusMap[response]
+    if (myInvitation?.status === newStatus) return
+
+    setIsSubmittingInlineRsvp(true)
+    try {
+      const data = await submitRsvp(response, {
+        invitationId: myInvitation?.id,
+        itineraryId: event.id,
+      })
+
+      const invId = data.invitationId || myInvitation?.id || ""
+      setMyInvitation({ id: invId, status: newStatus })
+      fetchInvitations()
+      fetchAttendeeCounts()
+    } catch {
+      // Error toast is shown by submitRsvp
+    } finally {
+      setIsSubmittingInlineRsvp(false)
     }
   }
 
@@ -1287,10 +1316,15 @@ export function EventDetail({ event }: EventDetailProps) {
             ) : (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  {invitations.map((inv) => (
+                  {invitations.map((inv) => {
+                    const isMe = !!(user && inv.invitee_id === user.id)
+                    return (
                     <div
                       key={inv.id}
-                      className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                      className={cn(
+                        "flex items-center justify-between p-3 rounded-lg border bg-card",
+                        isMe && "ring-1 ring-emerald-300 dark:ring-emerald-700"
+                      )}
                     >
                       <div className="flex items-center gap-3">
                         {inv.invitee_avatar ? (
@@ -1317,6 +1351,7 @@ export function EventDetail({ event }: EventDetailProps) {
                             {inv.is_pending_invitation
                               ? inv.contact
                               : inv.invitee_name}
+                            {isMe && <span className="text-xs text-muted-foreground ml-1">(You)</span>}
                           </p>
                           {!inv.is_pending_invitation && inv.invitee_email && (
                             <p className="text-xs text-muted-foreground">{inv.invitee_email}</p>
@@ -1327,29 +1362,59 @@ export function EventDetail({ event }: EventDetailProps) {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1.5">
-                          {inv.status === "accepted" ? (
-                            <>
-                              <CheckCircle2 className="h-4 w-4 text-green-500" />
-                              <span className="text-xs text-green-600 dark:text-green-400">Going</span>
-                            </>
-                          ) : inv.status === "declined" ? (
-                            <>
-                              <XCircle className="h-4 w-4 text-red-500" />
-                              <span className="text-xs text-red-600 dark:text-red-400">Can&apos;t Go</span>
-                            </>
-                          ) : inv.status === "tentative" ? (
-                            <>
-                              <Clock className="h-4 w-4 text-amber-500" />
-                              <span className="text-xs text-amber-600 dark:text-amber-400">Maybe</span>
-                            </>
-                          ) : (
-                            <>
-                              <Clock className="h-4 w-4 text-gray-400" />
-                              <span className="text-xs text-muted-foreground">Pending</span>
-                            </>
-                          )}
-                        </div>
+                        {/* Current user sees inline RSVP pills to change their status */}
+                        {!isOwner && user && inv.invitee_id === user.id ? (
+                          <div className="flex gap-1.5">
+                            <RsvpPill
+                              label="Going"
+                              icon={Check}
+                              isActive={myInvitation?.status === "accepted"}
+                              activeColor="bg-emerald-500 hover:bg-emerald-600"
+                              onClick={() => handleInlineRsvp("accept")}
+                              disabled={isSubmittingInlineRsvp}
+                            />
+                            <RsvpPill
+                              label="Maybe"
+                              icon={HelpCircle}
+                              isActive={myInvitation?.status === "tentative"}
+                              activeColor="bg-amber-500 hover:bg-amber-600"
+                              onClick={() => handleInlineRsvp("tentative")}
+                              disabled={isSubmittingInlineRsvp}
+                            />
+                            <RsvpPill
+                              label="Can't Go"
+                              icon={X}
+                              isActive={myInvitation?.status === "declined"}
+                              activeColor="bg-red-500 hover:bg-red-600"
+                              onClick={() => handleInlineRsvp("decline")}
+                              disabled={isSubmittingInlineRsvp}
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            {inv.status === "accepted" ? (
+                              <>
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                <span className="text-xs text-green-600 dark:text-green-400">Going</span>
+                              </>
+                            ) : inv.status === "declined" ? (
+                              <>
+                                <XCircle className="h-4 w-4 text-red-500" />
+                                <span className="text-xs text-red-600 dark:text-red-400">Can&apos;t Go</span>
+                              </>
+                            ) : inv.status === "tentative" ? (
+                              <>
+                                <Clock className="h-4 w-4 text-amber-500" />
+                                <span className="text-xs text-amber-600 dark:text-amber-400">Maybe</span>
+                              </>
+                            ) : (
+                              <>
+                                <Clock className="h-4 w-4 text-gray-400" />
+                                <span className="text-xs text-muted-foreground">Pending</span>
+                              </>
+                            )}
+                          </div>
+                        )}
                         {isOwner && (
                           <Button
                             variant="ghost"
@@ -1368,7 +1433,8 @@ export function EventDetail({ event }: EventDetailProps) {
                         )}
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
                 {isOwner && (
                   <div className="flex justify-center">

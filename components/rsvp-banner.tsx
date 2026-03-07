@@ -47,6 +47,36 @@ const STATUS_CONFIG = {
   },
 } as const
 
+/** Shared RSVP API call logic — used by both the banner and inline controls */
+export async function submitRsvp(
+  response: "accept" | "decline" | "tentative",
+  opts: { invitationId?: string; itineraryId: string }
+): Promise<{ invitationId?: string }> {
+  let res: Response
+
+  if (opts.invitationId) {
+    res = await fetch(`/api/invitations/${opts.invitationId}/respond`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ response }),
+    })
+  } else {
+    res = await fetch("/api/invitations/rsvp-link", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ itineraryId: opts.itineraryId, response }),
+    })
+  }
+
+  const data = await res.json()
+
+  if (!res.ok) {
+    throw new Error(data.error || "Failed to update RSVP")
+  }
+
+  return { invitationId: data.invitationId }
+}
+
 export function RsvpBanner({
   invitationId,
   itineraryId,
@@ -81,29 +111,10 @@ export function RsvpBanner({
 
     setIsSubmitting(true)
     try {
-      let res: Response
-
-      if (currentInvitationId) {
-        // Use the existing invitation respond route
-        res = await fetch(`/api/invitations/${currentInvitationId}/respond`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ response }),
-        })
-      } else {
-        // Link-based RSVP — creates invitation on-the-fly
-        res = await fetch("/api/invitations/rsvp-link", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ itineraryId, response }),
-        })
-      }
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to update RSVP")
-      }
+      const data = await submitRsvp(response, {
+        invitationId: currentInvitationId,
+        itineraryId,
+      })
 
       // If link-based RSVP created a new invitation, save the ID for subsequent updates
       if (data.invitationId && !currentInvitationId) {
@@ -138,6 +149,13 @@ export function RsvpBanner({
   const isPending = status === "pending"
   const isExpired = status === "expired"
 
+  // Only show the full banner for pending/expired states.
+  // Once the user has responded, the banner collapses away and
+  // RSVP controls appear inline in the Attendees tab instead.
+  if (!isPending && !isExpired) {
+    return null
+  }
+
   return (
     <div
       className={cn(
@@ -160,7 +178,7 @@ export function RsvpBanner({
               This invitation has expired. Ask {hostName || "the host"} to send a new invite.
             </p>
           </>
-        ) : isPending ? (
+        ) : (
           <>
             <p className={cn("text-sm font-semibold", config.bannerText)}>
               {hostName ? `${hostName} invited you` : "You're invited!"}
@@ -169,12 +187,6 @@ export function RsvpBanner({
               Are you going to this event?
             </p>
           </>
-        ) : (
-          <p className={cn("text-sm font-semibold", config.bannerText)}>
-            {status === "accepted" && "You're going!"}
-            {status === "tentative" && "You might be going"}
-            {status === "declined" && "You've declined this event"}
-          </p>
         )}
       </div>
 
@@ -217,7 +229,7 @@ export function RsvpBanner({
   )
 }
 
-function RsvpPill({
+export function RsvpPill({
   label,
   icon: Icon,
   isActive,

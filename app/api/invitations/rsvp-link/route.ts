@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
 import { createNotification } from "@/lib/notification-service"
 import { sendRsvpNotificationEmail } from "@/lib/email-notifications"
+import { computeInvitationExpiry } from "@/lib/invitation-expiry"
 
 const STATUS_MAP: Record<string, string> = {
   accept: "accepted",
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
     // Fetch itinerary to get the owner
     const { data: itinerary, error: itineraryError } = await supabase
       .from("itineraries")
-      .select("id, user_id, title")
+      .select("id, user_id, title, start_date")
       .eq("id", itineraryId)
       .single()
 
@@ -136,6 +137,7 @@ export async function POST(request: NextRequest) {
           invitee_id: user.id,
           status: newStatus,
           created_at: new Date().toISOString(),
+          expires_at: computeInvitationExpiry(itinerary.start_date),
         })
         .select("id")
         .single()

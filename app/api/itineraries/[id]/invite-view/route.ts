@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceRoleClient } from "@/lib/supabase/server"
+import { computeInvitationExpiry } from "@/lib/invitation-expiry"
 
 // GET - Fetch itinerary data for invite link access
 // Uses service role to bypass RLS for private itineraries,
@@ -73,6 +74,7 @@ export async function GET(
             invitee_id: user.id,
             inviter_id: itineraryData.user_id,
             status: "pending",
+            expires_at: computeInvitationExpiry(itineraryData.start_date),
           })
       }
     }

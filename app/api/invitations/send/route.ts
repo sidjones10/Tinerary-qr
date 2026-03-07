@@ -3,6 +3,7 @@ import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
 import { createNotification } from "@/lib/notification-service"
 import { sendInvitationEmail, sendEventInviteEmail } from "@/lib/email-notifications"
 import { sendInvitationSMS, formatPhoneNumber } from "@/backend/services/twilio"
+import { computeInvitationExpiry } from "@/lib/invitation-expiry"
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary-app.com"
 
@@ -41,6 +42,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
+    // Fetch itinerary start_date so we can compute invitation expiry
+    const { data: itineraryRow } = await supabase
+      .from("itineraries")
+      .select("start_date")
+      .eq("id", itineraryId)
+      .single()
+
+    const expiresAt = computeInvitationExpiry(itineraryRow?.start_date)
+
     // Use service role client for creating notifications for other users
     // This bypasses RLS so the inviter can insert notifications for the invitee
     let serviceClient: ReturnType<typeof createServiceRoleClient> | null = null
@@ -70,7 +80,6 @@ export async function POST(request: NextRequest) {
 
           if (existingUser) {
             // Existing user found — create invitation record + in-app notification + SMS
-            const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
             const { error: inviteError } = await supabase.from("itinerary_invitations").insert({
               itinerary_id: itineraryId,
               inviter_id: user.id,
@@ -159,14 +168,13 @@ export async function POST(request: NextRequest) {
 
         if (existingUser) {
           // User exists - create invitation record + in-app notification + email
-          const emailExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
           const { error: inviteError } = await supabase.from("itinerary_invitations").insert({
             itinerary_id: itineraryId,
             inviter_id: user.id,
             invitee_id: existingUser.id,
             status: "pending",
             created_at: new Date().toISOString(),
-            expires_at: emailExpiresAt,
+            expires_at: expiresAt,
           })
 
           if (!inviteError) {

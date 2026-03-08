@@ -5,6 +5,7 @@ import { Check, HelpCircle, X, Loader2, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/lib/supabase/client"
 
 type RsvpStatus = "pending" | "accepted" | "declined" | "tentative" | "expired"
 
@@ -62,40 +63,56 @@ export class RsvpError extends Error {
   }
 }
 
+const RESPONSE_TO_STATUS: Record<string, string> = {
+  accept: "accepted",
+  decline: "declined",
+  tentative: "tentative",
+}
+
 /** Shared RSVP API call logic — used by both the banner and inline controls */
 export async function submitRsvp(
   response: "accept" | "decline" | "tentative",
   opts: { invitationId?: string; itineraryId: string }
 ): Promise<{ invitationId?: string }> {
-  let res: Response
-
   if (opts.invitationId) {
-    res = await fetch(`/api/invitations/${opts.invitationId}/respond`, {
+    // Has existing invitation — use the respond API route
+    const res = await fetch(`/api/invitations/${opts.invitationId}/respond`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ response }),
     })
-  } else {
-    res = await fetch(`/api/itineraries/${opts.itineraryId}/rsvp`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ response }),
-    })
-  }
 
-  if (!res.ok) {
-    let message = "Failed to update RSVP"
-    try {
-      const data = await res.json()
-      message = data.error || message
-    } catch {
-      // response body wasn't JSON — keep default message
+    if (!res.ok) {
+      let message = "Failed to update RSVP"
+      try {
+        const data = await res.json()
+        message = data.error || message
+      } catch {
+        // response body wasn't JSON — keep default message
+      }
+      throw new RsvpError(message, res.status)
     }
-    throw new RsvpError(message, res.status)
+
+    const data = await res.json()
+    return { invitationId: data.invitationId }
   }
 
-  const data = await res.json()
-  return { invitationId: data.invitationId }
+  // No invitation ID — use Supabase RPC to create/update invitation directly
+  const supabase = createClient()
+  const { data, error } = await supabase.rpc("rsvp_to_event", {
+    p_itinerary_id: opts.itineraryId,
+    p_response: RESPONSE_TO_STATUS[response],
+  })
+
+  if (error) {
+    throw new RsvpError(error.message || "Failed to RSVP", 500)
+  }
+
+  if (data && !data.success) {
+    throw new RsvpError(data.error || "Failed to RSVP", 400)
+  }
+
+  return { invitationId: data?.invitationId }
 }
 
 export function RsvpBanner({

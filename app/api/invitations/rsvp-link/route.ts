@@ -85,13 +85,8 @@ export async function POST(request: NextRequest) {
 
     if (existing) {
       // Existing invitees can always update their RSVP, even when invitations are disabled.
-      // Check if the invitation has expired
-      if (existing.status === "expired" || (existing.status === "pending" && existing.expires_at && new Date(existing.expires_at) < new Date())) {
-        return NextResponse.json(
-          { error: "This invitation has expired. Please ask the host to send a new invite." },
-          { status: 410 }
-        )
-      }
+      // Even if the invitation expired, honour the user's active response —
+      // expires_at will be cleared when the status is updated below.
 
       if (existing.status === newStatus) {
         return NextResponse.json({

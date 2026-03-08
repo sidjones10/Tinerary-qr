@@ -97,11 +97,11 @@ export async function submitRsvp(
     return { invitationId: data.invitationId }
   }
 
-  // No invitation ID — use the itinerary RSVP API route
-  const res = await fetch(`/api/itineraries/${opts.itineraryId}/rsvp`, {
+  // No invitation ID — use the link-based RSVP route
+  const res = await fetch("/api/rsvp", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ response }),
+    body: JSON.stringify({ itineraryId: opts.itineraryId, response }),
   })
 
   if (!res.ok) {

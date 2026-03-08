@@ -397,11 +397,11 @@ export function EventDetail({ event }: EventDetailProps) {
         })
         .catch(() => {})
     } else {
-      // No existing invitation — use the itinerary RSVP API route
-      fetch(`/api/itineraries/${event.id}/rsvp`, {
+      // No existing invitation — use the link-based RSVP route
+      fetch("/api/rsvp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ response: rsvpParam }),
+        body: JSON.stringify({ itineraryId: event.id, response: rsvpParam }),
         signal: controller.signal,
       })
         .then((res) => res.json())

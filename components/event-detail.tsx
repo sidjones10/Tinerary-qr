@@ -397,18 +397,16 @@ export function EventDetail({ event }: EventDetailProps) {
         })
         .catch(() => {})
     } else {
-      // No existing invitation — use Supabase RPC directly (bypasses API routes)
-      const supabase = createClient()
-      supabase.rpc("rsvp_to_event", {
-        p_itinerary_id: event.id,
-        p_response: statusMap[rsvpParam],
+      // No existing invitation — use the link-based RSVP API route
+      fetch("/api/invitations/rsvp-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itineraryId: event.id, response: rsvpParam }),
+        signal: controller.signal,
       })
-        .then(({ data, error }) => {
+        .then((res) => res.json())
+        .then((data) => {
           if (controller.signal.aborted) return
-          if (error) {
-            console.error("RPC RSVP error:", error)
-            return
-          }
           if (data?.success) {
             setMyInvitation({ id: data.invitationId, status: statusMap[rsvpParam] as any })
             toast({

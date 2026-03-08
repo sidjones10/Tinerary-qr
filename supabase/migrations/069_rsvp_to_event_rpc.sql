@@ -122,3 +122,7 @@ BEGIN
   );
 END;
 $$;
+
+-- Grant execute permissions so authenticated users can call this function
+GRANT EXECUTE ON FUNCTION public.rsvp_to_event(UUID, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.rsvp_to_event(UUID, TEXT) TO anon;

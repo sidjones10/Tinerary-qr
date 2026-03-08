@@ -73,12 +73,9 @@ export async function POST(
     }
 
     // Check if the invitation has expired
-    if (invitation.status === "expired" || (invitation.status === "pending" && invitation.expires_at && new Date(invitation.expires_at) < new Date())) {
-      return NextResponse.json(
-        { error: "This invitation has expired. Please ask the host to send a new invite." },
-        { status: 410 }
-      )
-    }
+    // Even if expired, we still allow the user to respond — they're actively
+    // clicking a button, so honour that intent. The status will be updated and
+    // expires_at cleared below.
 
     // Allow changing RSVP status (Partiful-style: users can change their mind)
     if (invitation.status === newStatus) {

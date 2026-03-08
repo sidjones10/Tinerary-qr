@@ -76,10 +76,10 @@ export async function submitRsvp(
       body: JSON.stringify({ response }),
     })
   } else {
-    res = await fetch("/api/invitations/rsvp-link", {
+    res = await fetch(`/api/itineraries/${opts.itineraryId}/rsvp`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itineraryId: opts.itineraryId, response }),
+      body: JSON.stringify({ response }),
     })
   }
 

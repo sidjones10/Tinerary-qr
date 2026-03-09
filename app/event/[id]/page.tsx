@@ -645,7 +645,7 @@ export default function EventPage() {
           } else if (user) {
             // Check if user has an invitation for this event
             const supabase = createClient()
-            const { data: invitation } = await supabase
+            const { data: invitation, error: invError } = await supabase
               .from("itinerary_invitations")
               .select("id")
               .eq("itinerary_id", id as string)
@@ -655,7 +655,8 @@ export default function EventPage() {
 
             if (cancelled) return
 
-            if (!invitation) {
+            // If query failed (e.g. RLS error), don't block access
+            if (!invitation && !invError) {
               setIsPrivate(true)
               return
             }

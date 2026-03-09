@@ -71,8 +71,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "You are the host of this event" }, { status: 400 })
     }
 
-    // Check for existing invitation (user can see their own via RLS)
-    const { data: existing } = await supabase
+    // Use admin client for existing check — RLS on itinerary_invitations
+    // may fail with 500 due to self-referencing policy
+    const { data: existing } = await admin
       .from("itinerary_invitations")
       .select("id, status")
       .eq("itinerary_id", itineraryId)
@@ -83,10 +84,6 @@ export async function POST(request: NextRequest) {
     let invitationId: string
 
     if (existing) {
-      // Existing invitees can always update their RSVP, even when invitations are disabled.
-      // Even if the invitation expired, honour the user's active response —
-      // expires_at will be cleared when the status is updated below.
-
       if (existing.status === newStatus) {
         return NextResponse.json({
           success: true,
@@ -123,16 +120,20 @@ export async function POST(request: NextRequest) {
           .eq("user_id", user.id)
       }
     } else {
-      // Create one (self-invite via link)
+      // Upsert invitation (prevents duplicates)
       const { data: newInvite, error: insertError } = await admin
         .from("itinerary_invitations")
-        .insert({
-          itinerary_id: itineraryId,
-          inviter_id: itinerary.user_id,
-          invitee_id: user.id,
-          status: newStatus,
-          created_at: new Date().toISOString(),
-        })
+        .upsert(
+          {
+            itinerary_id: itineraryId,
+            inviter_id: itinerary.user_id,
+            invitee_id: user.id,
+            status: newStatus,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "itinerary_id,invitee_id" }
+        )
         .select("id")
         .single()
 

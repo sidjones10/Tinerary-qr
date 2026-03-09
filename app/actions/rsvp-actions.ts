@@ -64,8 +64,10 @@ export async function rsvpToEvent(
       return { success: false, error: "You are the host of this event" }
     }
 
-    // Check for existing invitation
-    const { data: existing } = await supabase
+    // Use admin client for the "check existing" query — the regular client
+    // goes through RLS which may fail with 500 if migration 068's
+    // self-referencing policy is active.
+    const { data: existing } = await admin
       .from("itinerary_invitations")
       .select("id, status")
       .eq("itinerary_id", itineraryId)
@@ -107,16 +109,20 @@ export async function rsvpToEvent(
           .eq("user_id", user.id)
       }
     } else {
-      // Create invitation (self-invite via link)
+      // Upsert invitation (prevents duplicates if unique constraint exists)
       const { data: newInvite, error: insertError } = await admin
         .from("itinerary_invitations")
-        .insert({
-          itinerary_id: itineraryId,
-          inviter_id: itinerary.user_id,
-          invitee_id: user.id,
-          status: newStatus,
-          created_at: new Date().toISOString(),
-        })
+        .upsert(
+          {
+            itinerary_id: itineraryId,
+            inviter_id: itinerary.user_id,
+            invitee_id: user.id,
+            status: newStatus,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "itinerary_id,invitee_id" }
+        )
         .select("id")
         .single()
 

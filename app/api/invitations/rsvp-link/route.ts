@@ -71,8 +71,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "You are the host of this event" }, { status: 400 })
     }
 
-    // Check for existing invitation (user can see their own via RLS)
-    const { data: existing } = await supabase
+    // Use admin client — RLS on itinerary_invitations may 500
+    const { data: existing } = await admin
       .from("itinerary_invitations")
       .select("id, status")
       .eq("itinerary_id", itineraryId)
@@ -123,16 +123,20 @@ export async function POST(request: NextRequest) {
           .eq("user_id", user.id)
       }
     } else {
-      // Create one (self-invite via link)
+      // Upsert invitation (prevents duplicates)
       const { data: newInvite, error: insertError } = await admin
         .from("itinerary_invitations")
-        .insert({
-          itinerary_id: itineraryId,
-          inviter_id: itinerary.user_id,
-          invitee_id: user.id,
-          status: newStatus,
-          created_at: new Date().toISOString(),
-        })
+        .upsert(
+          {
+            itinerary_id: itineraryId,
+            inviter_id: itinerary.user_id,
+            invitee_id: user.id,
+            status: newStatus,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "itinerary_id,invitee_id" }
+        )
         .select("id")
         .single()
 

@@ -30,7 +30,6 @@ import { PostEventCoverPrompt } from "@/components/post-event-cover-prompt"
 import { shouldPromptCoverUpdate } from "@/lib/reminder-utils"
 import { ReportDialog } from "@/components/report-dialog"
 import { RsvpBanner, RsvpPill, submitRsvp } from "@/components/rsvp-banner"
-import { rsvpToEvent } from "@/app/actions/rsvp-actions"
 import { cn } from "@/lib/utils"
 
 interface Activity {
@@ -383,19 +382,19 @@ export function EventDetail({ event }: EventDetailProps) {
     if (myInvitation && myInvitation.status === statusMap[rsvpParam]) {
       // Already at this status, just clean URL
     } else {
-      // Always use server action (bypasses broken RLS on itinerary_invitations)
-      rsvpToEvent(event.id, rsvpParam)
+      // Use RPC-based submitRsvp (SECURITY DEFINER bypasses RLS)
+      submitRsvp(rsvpParam as "accept" | "decline" | "tentative", { itineraryId: event.id })
         .then((result) => {
           if (controller.signal.aborted) return
-          if (result.success) {
-            setMyInvitation({ id: result.invitationId!, status: statusMap[rsvpParam] as any })
-            toast({
-              title: rsvpParam === "accept" ? "You're going!" : rsvpParam === "tentative" ? "Marked as maybe" : "You've declined",
-              description: `Your response for "${event.title}" has been saved.`,
-            })
-          }
+          setMyInvitation({ id: result.invitationId!, status: statusMap[rsvpParam] as any })
+          toast({
+            title: rsvpParam === "accept" ? "You're going!" : rsvpParam === "tentative" ? "Marked as maybe" : "You've declined",
+            description: `Your response for "${event.title}" has been saved.`,
+          })
         })
-        .catch(() => {})
+        .catch((err) => {
+          console.error("[RSVP] auto-submit failed:", err)
+        })
     }
 
     // Clean up the URL

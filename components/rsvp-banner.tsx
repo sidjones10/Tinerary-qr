@@ -5,7 +5,7 @@ import { Check, HelpCircle, X, Loader2, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { cn } from "@/lib/utils"
-import { rsvpToEvent } from "@/app/actions/rsvp-actions"
+import { createClient } from "@/lib/supabase/client"
 
 
 type RsvpStatus = "pending" | "accepted" | "declined" | "tentative" | "expired"
@@ -70,20 +70,31 @@ const RESPONSE_TO_STATUS: Record<string, string> = {
   tentative: "tentative",
 }
 
-/** Shared RSVP API call logic — used by both the banner and inline controls */
+/** Shared RSVP API call logic — used by both the banner and inline controls.
+ *  Calls the rsvp_to_event RPC directly (SECURITY DEFINER bypasses RLS). */
 export async function submitRsvp(
   response: "accept" | "decline" | "tentative",
   opts: { invitationId?: string; itineraryId: string }
 ): Promise<{ invitationId?: string }> {
-  // Always use the server action — it uses the admin client which bypasses
-  // RLS policies that may be broken (infinite recursion from migration 068)
-  const result = await rsvpToEvent(opts.itineraryId, response)
+  const newStatus = RESPONSE_TO_STATUS[response]
+  const supabase = createClient()
 
-  if (!result.success) {
-    throw new RsvpError(result.error || "Failed to RSVP", 400)
+  const { data, error } = await supabase.rpc("rsvp_to_event", {
+    p_itinerary_id: opts.itineraryId,
+    p_response: newStatus,
+  })
+
+  if (error) {
+    console.error("[RSVP] RPC error:", error)
+    throw new RsvpError(error.message || "Failed to RSVP", 500)
   }
 
-  return { invitationId: result.invitationId }
+  if (!data?.success) {
+    console.error("[RSVP] RPC returned failure:", data)
+    throw new RsvpError(data?.error || "Failed to RSVP", 400)
+  }
+
+  return { invitationId: data.invitationId }
 }
 
 export function RsvpBanner({

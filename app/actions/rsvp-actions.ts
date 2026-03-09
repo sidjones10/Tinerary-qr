@@ -17,9 +17,9 @@ const STATUS_EMOJI: Record<string, string> = {
 }
 
 /**
- * Link-based RSVP — Partiful-style.
- * Any authenticated user can RSVP to an event by visiting the link.
- * Creates an invitation record on-the-fly if one doesn't exist.
+ * RSVP to an event — Partiful-style.
+ * Uses the rsvp_to_event RPC (SECURITY DEFINER) so it bypasses RLS
+ * without needing the service role key.
  */
 export async function rsvpToEvent(
   itineraryId: string,
@@ -42,150 +42,87 @@ export async function rsvpToEvent(
 
     const newStatus = STATUS_MAP[response]
 
-    let admin: ReturnType<typeof createServiceRoleClient>
+    // Call the SECURITY DEFINER RPC — bypasses RLS without service role key
+    const { data: rpcResult, error: rpcError } = await supabase.rpc("rsvp_to_event", {
+      p_itinerary_id: itineraryId,
+      p_response: newStatus,
+    })
+
+    if (rpcError) {
+      console.error("RPC rsvp_to_event error:", rpcError)
+      return { success: false, error: rpcError.message || "Failed to RSVP" }
+    }
+
+    if (!rpcResult?.success) {
+      return { success: false, error: rpcResult?.error || "Failed to RSVP" }
+    }
+
+    const invitationId = rpcResult.invitationId
+
+    // Send notifications (best-effort, don't block the response)
     try {
-      admin = createServiceRoleClient()
-    } catch {
-      return { success: false, error: "Server configuration error" }
-    }
-
-    // Fetch itinerary (only columns guaranteed to exist)
-    const { data: itinerary, error: itineraryError } = await supabase
-      .from("itineraries")
-      .select("id, user_id, title, start_date")
-      .eq("id", itineraryId)
-      .single()
-
-    if (itineraryError || !itinerary) {
-      return { success: false, error: "Event not found" }
-    }
-
-    if (itinerary.user_id === user.id) {
-      return { success: false, error: "You are the host of this event" }
-    }
-
-    // Use admin client for the "check existing" query — the regular client
-    // goes through RLS which may fail with 500 if migration 068's
-    // self-referencing policy is active.
-    const { data: existing } = await admin
-      .from("itinerary_invitations")
-      .select("id, status")
-      .eq("itinerary_id", itineraryId)
-      .eq("invitee_id", user.id)
-      .limit(1)
-      .maybeSingle()
-
-    let invitationId: string
-
-    if (existing) {
-      if (existing.status === newStatus) {
-        return { success: true, invitationId: existing.id, status: newStatus }
-      }
-
-      const { error: updateError } = await admin
-        .from("itinerary_invitations")
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
-        .eq("id", existing.id)
-
-      if (updateError) {
-        console.error("Error updating invitation:", updateError)
-        return { success: false, error: "Failed to update RSVP" }
-      }
-
-      invitationId = existing.id
-
-      if (newStatus === "accepted") {
-        await admin
-          .from("itinerary_attendees")
-          .upsert(
-            { itinerary_id: itineraryId, user_id: user.id, role: "member", joined_at: new Date().toISOString() },
-            { onConflict: "itinerary_id,user_id" }
-          )
-      } else if (existing.status === "accepted") {
-        await admin
-          .from("itinerary_attendees")
-          .delete()
-          .eq("itinerary_id", itineraryId)
-          .eq("user_id", user.id)
-      }
-    } else {
-      // Upsert invitation (prevents duplicates if unique constraint exists)
-      const { data: newInvite, error: insertError } = await admin
-        .from("itinerary_invitations")
-        .upsert(
-          {
-            itinerary_id: itineraryId,
-            inviter_id: itinerary.user_id,
-            invitee_id: user.id,
-            status: newStatus,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "itinerary_id,invitee_id" }
-        )
-        .select("id")
+      const { data: itinerary } = await supabase
+        .from("itineraries")
+        .select("user_id, title")
+        .eq("id", itineraryId)
         .single()
 
-      if (insertError) {
-        console.error("Error creating invitation:", insertError)
-        return { success: false, error: "Failed to RSVP" }
+      if (itinerary) {
+        const { data: rsvpProfile } = await supabase
+          .from("profiles")
+          .select("name, avatar_url")
+          .eq("id", user.id)
+          .single()
+
+        const rsvpName = rsvpProfile?.name || "Someone"
+        const emoji = STATUS_EMOJI[newStatus] || ""
+
+        // Try admin client for notifications, fall back to regular client
+        let notifClient: any
+        try {
+          notifClient = createServiceRoleClient()
+        } catch {
+          notifClient = supabase
+        }
+
+        await createNotification(
+          {
+            userId: itinerary.user_id,
+            type: "itinerary_rsvp",
+            title: `${emoji} RSVP: ${rsvpName} ${newStatus}`,
+            message: `${rsvpName} has ${newStatus === "tentative" ? "marked tentative for" : newStatus} "${itinerary.title}"`,
+            linkUrl: `/event/${itineraryId}`,
+            imageUrl: rsvpProfile?.avatar_url || undefined,
+          },
+          notifClient,
+        )
+
+        // Send email to host (best-effort)
+        const { data: hostProfile } = await (notifClient || supabase)
+          .from("profiles")
+          .select("email, name")
+          .eq("id", itinerary.user_id)
+          .single()
+
+        if (hostProfile?.email) {
+          sendRsvpNotificationEmail(
+            hostProfile.email,
+            hostProfile.name || "there",
+            rsvpName,
+            newStatus,
+            itinerary.title,
+            itineraryId,
+          ).catch((err: any) => console.error("Failed to send RSVP email:", err))
+        }
       }
-
-      invitationId = newInvite.id
-
-      if (newStatus === "accepted") {
-        await admin
-          .from("itinerary_attendees")
-          .upsert(
-            { itinerary_id: itineraryId, user_id: user.id, role: "member", joined_at: new Date().toISOString() },
-            { onConflict: "itinerary_id,user_id" }
-          )
-      }
-    }
-
-    // Notify the host
-    const { data: rsvpProfile } = await supabase
-      .from("profiles")
-      .select("name, avatar_url")
-      .eq("id", user.id)
-      .single()
-
-    const rsvpName = rsvpProfile?.name || "Someone"
-    const emoji = STATUS_EMOJI[newStatus] || ""
-
-    await createNotification(
-      {
-        userId: itinerary.user_id,
-        type: "itinerary_rsvp",
-        title: `${emoji} RSVP: ${rsvpName} ${newStatus}`,
-        message: `${rsvpName} has ${newStatus === "tentative" ? "marked tentative for" : newStatus} "${itinerary.title}"`,
-        linkUrl: `/event/${itineraryId}`,
-        imageUrl: rsvpProfile?.avatar_url || undefined,
-      },
-      admin,
-    )
-
-    // Send email to host
-    const { data: hostProfile } = await admin
-      .from("profiles")
-      .select("email, name")
-      .eq("id", itinerary.user_id)
-      .single()
-
-    if (hostProfile?.email) {
-      sendRsvpNotificationEmail(
-        hostProfile.email,
-        hostProfile.name || "there",
-        rsvpName,
-        newStatus,
-        itinerary.title,
-        itineraryId,
-      ).catch((err: any) => console.error("Failed to send RSVP email:", err))
+    } catch (notifErr) {
+      // Notifications are best-effort — don't fail the RSVP
+      console.error("Error sending RSVP notifications:", notifErr)
     }
 
     return { success: true, invitationId, status: newStatus }
   } catch (error: any) {
-    console.error("Error in link RSVP:", error)
+    console.error("Error in RSVP:", error)
     return { success: false, error: error.message || "Failed to RSVP" }
   }
 }

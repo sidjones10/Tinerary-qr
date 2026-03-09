@@ -30,6 +30,7 @@ import { PostEventCoverPrompt } from "@/components/post-event-cover-prompt"
 import { shouldPromptCoverUpdate } from "@/lib/reminder-utils"
 import { ReportDialog } from "@/components/report-dialog"
 import { RsvpBanner, RsvpPill, submitRsvp } from "@/components/rsvp-banner"
+import { rsvpToEvent } from "@/app/actions/rsvp-actions"
 import { cn } from "@/lib/utils"
 
 interface Activity {
@@ -397,24 +398,19 @@ export function EventDetail({ event }: EventDetailProps) {
         })
         .catch(() => {})
     } else {
-      // No existing invitation — use the link-based RSVP route
-      fetch("/api/rsvp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itineraryId: event.id, response: rsvpParam }),
-        signal: controller.signal,
-      })
-        .then((res) => res.json())
-        .then((data) => {
+      // No existing invitation — use server action for link-based RSVP
+      rsvpToEvent(event.id, rsvpParam)
+        .then((result) => {
           if (controller.signal.aborted) return
-          if (data?.success) {
-            setMyInvitation({ id: data.invitationId, status: statusMap[rsvpParam] as any })
+          if (result.success) {
+            setMyInvitation({ id: result.invitationId!, status: statusMap[rsvpParam] as any })
             toast({
               title: rsvpParam === "accept" ? "You're going!" : rsvpParam === "tentative" ? "Marked as maybe" : "You've declined",
               description: `Your response for "${event.title}" has been saved.`,
             })
           }
         })
+        .catch(() => {})
     }
 
     // Clean up the URL

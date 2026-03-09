@@ -5,6 +5,7 @@ import { Check, HelpCircle, X, Loader2, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { cn } from "@/lib/utils"
+import { rsvpToEvent } from "@/app/actions/rsvp-actions"
 
 
 type RsvpStatus = "pending" | "accepted" | "declined" | "tentative" | "expired"
@@ -97,26 +98,14 @@ export async function submitRsvp(
     return { invitationId: data.invitationId }
   }
 
-  // No invitation ID — use the link-based RSVP route
-  const res = await fetch("/api/rsvp", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ itineraryId: opts.itineraryId, response }),
-  })
+  // No invitation ID — use the server action for link-based RSVP
+  const result = await rsvpToEvent(opts.itineraryId, response)
 
-  if (!res.ok) {
-    let message = "Failed to RSVP"
-    try {
-      const errData = await res.json()
-      message = errData.error || message
-    } catch {
-      // response body wasn't JSON — keep default message
-    }
-    throw new RsvpError(message, res.status)
+  if (!result.success) {
+    throw new RsvpError(result.error || "Failed to RSVP", 400)
   }
 
-  const data = await res.json()
-  return { invitationId: data?.invitationId }
+  return { invitationId: result.invitationId }
 }
 
 export function RsvpBanner({

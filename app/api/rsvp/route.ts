@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
 import { createNotification } from "@/lib/notification-service"
 import { sendRsvpNotificationEmail } from "@/lib/email-notifications"
-import { computeInvitationExpiry } from "@/lib/invitation-expiry"
 
 const STATUS_MAP: Record<string, string> = {
   accept: "accepted",
@@ -56,10 +55,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
     }
 
-    // Fetch itinerary to get the owner
+    // Fetch itinerary to get the owner (only select columns guaranteed to exist)
     const { data: itinerary, error: itineraryError } = await supabase
       .from("itineraries")
-      .select("id, user_id, title, start_date, invitations_enabled")
+      .select("id, user_id, title, start_date")
       .eq("id", itineraryId)
       .single()
 
@@ -75,7 +74,7 @@ export async function POST(request: NextRequest) {
     // Check for existing invitation (user can see their own via RLS)
     const { data: existing } = await supabase
       .from("itinerary_invitations")
-      .select("id, status, expires_at")
+      .select("id, status")
       .eq("itinerary_id", itineraryId)
       .eq("invitee_id", user.id)
       .limit(1)
@@ -99,7 +98,7 @@ export async function POST(request: NextRequest) {
 
       const { error: updateError } = await admin
         .from("itinerary_invitations")
-        .update({ status: newStatus, updated_at: new Date().toISOString(), expires_at: null })
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
         .eq("id", existing.id)
 
       if (updateError) {
@@ -124,14 +123,6 @@ export async function POST(request: NextRequest) {
           .eq("user_id", user.id)
       }
     } else {
-      // No existing invitation — block if invitations are disabled
-      if (itinerary.invitations_enabled === false) {
-        return NextResponse.json(
-          { error: "Invitations are currently closed for this event." },
-          { status: 403 }
-        )
-      }
-
       // Create one (self-invite via link)
       const { data: newInvite, error: insertError } = await admin
         .from("itinerary_invitations")
@@ -141,7 +132,6 @@ export async function POST(request: NextRequest) {
           invitee_id: user.id,
           status: newStatus,
           created_at: new Date().toISOString(),
-          expires_at: computeInvitationExpiry(itinerary.start_date),
         })
         .select("id")
         .single()

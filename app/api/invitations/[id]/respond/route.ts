@@ -54,7 +54,7 @@ export async function POST(
     // Fetch the invitation and verify the current user is the invitee
     const { data: invitation, error: fetchError } = await supabase
       .from("itinerary_invitations")
-      .select("id, itinerary_id, inviter_id, invitee_id, status, expires_at")
+      .select("id, itinerary_id, inviter_id, invitee_id, status")
       .eq("id", invitationId)
       .single()
 
@@ -71,11 +71,6 @@ export async function POST(
         { status: 403 }
       )
     }
-
-    // Check if the invitation has expired
-    // Even if expired, we still allow the user to respond — they're actively
-    // clicking a button, so honour that intent. The status will be updated and
-    // expires_at cleared below.
 
     // Allow changing RSVP status (Partiful-style: users can change their mind)
     if (invitation.status === newStatus) {
@@ -94,13 +89,11 @@ export async function POST(
       return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
     }
 
-    // Update the invitation status (clear expires_at once responded)
     const { error: updateError } = await admin
       .from("itinerary_invitations")
       .update({
         status: newStatus,
         updated_at: new Date().toISOString(),
-        expires_at: null,
       })
       .eq("id", invitationId)
 

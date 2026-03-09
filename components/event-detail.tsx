@@ -30,7 +30,6 @@ import { PostEventCoverPrompt } from "@/components/post-event-cover-prompt"
 import { shouldPromptCoverUpdate } from "@/lib/reminder-utils"
 import { ReportDialog } from "@/components/report-dialog"
 import { RsvpBanner, RsvpPill, submitRsvp } from "@/components/rsvp-banner"
-import { submitRsvp } from "@/components/rsvp-banner"
 import { cn } from "@/lib/utils"
 
 interface Activity {

@@ -326,8 +326,21 @@ export function EventDetail({ event }: EventDetailProps) {
     let cancelled = false
     const fetchMyInvitation = async () => {
       if (!user?.id || isOwner) return
+
+      // Check localStorage cache first (fallback when Supabase queries fail)
+      const cacheKey = `rsvp_${event.id}_${user.id}`
+      const cached = localStorage.getItem(cacheKey)
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached)
+          if (!cancelled && parsed.id && parsed.status) {
+            setMyInvitation({ id: parsed.id, status: parsed.status })
+          }
+        } catch { /* ignore malformed cache */ }
+      }
+
       const supabase = createClient()
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("itinerary_invitations")
         .select("id, status")
         .eq("itinerary_id", event.id)
@@ -337,6 +350,11 @@ export function EventDetail({ event }: EventDetailProps) {
 
       if (!cancelled && data) {
         setMyInvitation({ id: data.id, status: data.status as any })
+        // Update cache with fresh DB data
+        localStorage.setItem(cacheKey, JSON.stringify({ id: data.id, status: data.status }))
+      } else if (error) {
+        // DB query failed (e.g. 500 from PostgREST) — cache already applied above
+        console.warn("Failed to fetch invitation status from DB, using cache:", error.message)
       }
     }
 
@@ -1039,6 +1057,12 @@ export function EventDetail({ event }: EventDetailProps) {
             onStatusChange={(newStatus, newInvitationId) => {
               const invId = newInvitationId || myInvitation?.id || ""
               setMyInvitation({ id: invId, status: newStatus })
+
+              // Persist to localStorage so status survives refresh even if DB query fails
+              if (user) {
+                const cacheKey = `rsvp_${event.id}_${user.id}`
+                localStorage.setItem(cacheKey, JSON.stringify({ id: invId, status: newStatus }))
+              }
 
               // Optimistically add/update the current user in the attendees list
               // so they appear immediately without waiting for the DB round-trip

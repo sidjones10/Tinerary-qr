@@ -382,37 +382,8 @@ export function EventDetail({ event }: EventDetailProps) {
     // Only auto-submit if current status is different
     if (myInvitation && myInvitation.status === statusMap[rsvpParam]) {
       // Already at this status, just clean URL
-    } else if (myInvitation) {
-      // Has existing invitation — use respond route
-      fetch(`/api/invitations/${myInvitation.id}/respond`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ response: rsvpParam }),
-        signal: controller.signal,
-      })
-        .then((res) => {
-          const status = res.status
-          return res.json().then((data) => ({ data, status }))
-        })
-        .then(({ data, status }) => {
-          if (data.success) {
-            setMyInvitation((prev) => prev ? { ...prev, status: statusMap[rsvpParam] as any } : prev)
-            toast({
-              title: rsvpParam === "accept" ? "You're going!" : rsvpParam === "tentative" ? "Marked as maybe" : "You've declined",
-              description: `Your response for "${event.title}" has been saved.`,
-            })
-          } else if (status === 410) {
-            setMyInvitation((prev) => prev ? { ...prev, status: "expired" as any } : prev)
-            toast({
-              title: "Invitation expired",
-              description: data.error || "This invitation has expired. Ask the host to send a new invite.",
-              variant: "destructive",
-            })
-          }
-        })
-        .catch(() => {})
     } else {
-      // No existing invitation — use server action for link-based RSVP
+      // Always use server action (bypasses broken RLS on itinerary_invitations)
       rsvpToEvent(event.id, rsvpParam)
         .then((result) => {
           if (controller.signal.aborted) return

@@ -75,30 +75,8 @@ export async function submitRsvp(
   response: "accept" | "decline" | "tentative",
   opts: { invitationId?: string; itineraryId: string }
 ): Promise<{ invitationId?: string }> {
-  if (opts.invitationId) {
-    // Has existing invitation — use the respond API route
-    const res = await fetch(`/api/invitations/${opts.invitationId}/respond`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ response }),
-    })
-
-    if (!res.ok) {
-      let message = "Failed to update RSVP"
-      try {
-        const data = await res.json()
-        message = data.error || message
-      } catch {
-        // response body wasn't JSON — keep default message
-      }
-      throw new RsvpError(message, res.status)
-    }
-
-    const data = await res.json()
-    return { invitationId: data.invitationId }
-  }
-
-  // No invitation ID — use the server action for link-based RSVP
+  // Always use the server action — it uses the admin client which bypasses
+  // RLS policies that may be broken (infinite recursion from migration 068)
   const result = await rsvpToEvent(opts.itineraryId, response)
 
   if (!result.success) {

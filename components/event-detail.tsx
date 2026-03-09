@@ -329,18 +329,14 @@ export function EventDetail({ event }: EventDetailProps) {
       const supabase = createClient()
       const { data } = await supabase
         .from("itinerary_invitations")
-        .select("id, status, expires_at")
+        .select("id, status")
         .eq("itinerary_id", event.id)
         .eq("invitee_id", user.id)
         .limit(1)
         .maybeSingle()
 
       if (!cancelled && data) {
-        // Check client-side if the invitation has expired
-        const isExpired = data.status === "expired" ||
-          (data.status === "pending" && data.expires_at && new Date(data.expires_at) < new Date())
-        const status = isExpired ? "expired" : data.status
-        setMyInvitation({ id: data.id, status: status as any })
+        setMyInvitation({ id: data.id, status: data.status as any })
       }
     }
 

@@ -13,6 +13,7 @@ import { EventPrivate } from "@/components/event-private"
 import { Button } from "@/components/ui/button"
 import { DiscoveryFeed } from "@/components/discovery-feed"
 import { censorText } from "@/lib/content-moderation"
+import { parseLocalDate } from "@/lib/utils"
 
 // Add these helper functions at the top of the file, after the imports:
 const formatDate = (dateString: string) => {
@@ -22,14 +23,14 @@ const formatDate = (dateString: string) => {
     month: "short",
     day: "numeric",
   }
-  return new Date(dateString).toLocaleDateString(undefined, options)
+  return parseLocalDate(dateString).toLocaleDateString(undefined, options)
 }
 
 const formatDateRange = (startDate: string, endDate: string) => {
   if (!startDate || !endDate) return ""
 
-  const start = new Date(startDate)
-  const end = new Date(endDate)
+  const start = parseLocalDate(startDate)
+  const end = parseLocalDate(endDate)
 
   const startMonth = start.toLocaleDateString(undefined, { month: "short" })
   const endMonth = end.toLocaleDateString(undefined, { month: "short" })

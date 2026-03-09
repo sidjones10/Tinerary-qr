@@ -30,7 +30,7 @@ import { PostEventCoverPrompt } from "@/components/post-event-cover-prompt"
 import { shouldPromptCoverUpdate } from "@/lib/reminder-utils"
 import { ReportDialog } from "@/components/report-dialog"
 import { RsvpBanner, RsvpPill, submitRsvp } from "@/components/rsvp-banner"
-import { cn } from "@/lib/utils"
+import { cn, parseLocalDate } from "@/lib/utils"
 
 interface Activity {
   id: string
@@ -409,7 +409,7 @@ export function EventDetail({ event }: EventDetailProps) {
   // Check if we should show the post-event cover update prompt
   useEffect(() => {
     if (isOwner && event.end_date && !event.cover_update_prompted) {
-      const endDate = new Date(event.end_date)
+      const endDate = parseLocalDate(event.end_date)
       if (shouldPromptCoverUpdate(endDate)) {
         setShowCoverPrompt(true)
       }
@@ -518,8 +518,8 @@ export function EventDetail({ event }: EventDetailProps) {
   }, [user?.id, event.id])
 
   // Check if it's a multi-day trip
-  const startDate = new Date(event.start_date)
-  const endDate = new Date(event.end_date)
+  const startDate = parseLocalDate(event.start_date)
+  const endDate = parseLocalDate(event.end_date)
   const isMultiDay = startDate.toDateString() !== endDate.toDateString()
 
   // Group activities by day for multi-day trips
@@ -534,7 +534,7 @@ export function EventDetail({ event }: EventDetailProps) {
 
   const formatDate = (dateString: string) => {
     try {
-      return format(new Date(dateString), "MMMM d, yyyy")
+      return format(parseLocalDate(dateString), "MMMM d, yyyy")
     } catch (e) {
       return dateString
     }

@@ -15,6 +15,7 @@ import { InlineComments } from "@/components/inline-comments"
 import { FeedItemSkeleton } from "@/components/skeleton-screens"
 import Link from "next/link"
 import confetti from "canvas-confetti"
+import { parseLocalDate } from "@/lib/utils"
 import { ThemeIcon, getThemeColor } from "@/components/theme-selector"
 import { getFontFamily } from "@/components/font-selector"
 import { useTranslation } from "react-i18next"
@@ -529,8 +530,8 @@ export function DiscoveryFeed() {
       }
     }
 
-    const startDate = new Date(item.start_date)
-    const endDate = new Date(item.end_date)
+    const startDate = parseLocalDate(item.start_date)
+    const endDate = parseLocalDate(item.end_date)
 
     // Determine if it's an Event or Trip
     // Same day = Event, multi-day = Trip

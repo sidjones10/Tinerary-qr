@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { supabase } from "@/lib/supabase-client"
+import { parseLocalDate } from "@/lib/utils"
 
 // Define types for our data
 type User = {
@@ -207,8 +208,8 @@ export default function ForYouPage() {
 
   // Format date range for display
   const formatDateRange = (startDate: string, endDate: string) => {
-    const start = new Date(startDate)
-    const end = new Date(endDate)
+    const start = parseLocalDate(startDate)
+    const end = parseLocalDate(endDate)
 
     // If same day, just show one date
     if (start.toDateString() === end.toDateString()) {

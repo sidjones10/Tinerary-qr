@@ -514,8 +514,14 @@ const templates: Record<string, { subject: string; html: string }> = {
       <!-- Divider -->
       <div style="border-top:3px solid #2c2420;margin:0;"></div>
 
-      <!-- Hero block -->
-      <div style="background:#2c2420;padding:48px 36px;text-align:center;">
+      <!-- Santorini hero image -->
+      <div style="background:#2c2420;position:relative;">
+        <img src="${APP_URL}/email/welcome-hero.jpg" alt="Santorini, Greece" style="width:100%;height:auto;display:block;max-height:320px;object-fit:cover;" width="600">
+      </div>
+
+      <!-- Heading block with orange top accent -->
+      <div style="background:#D4792C;height:4px;"></div>
+      <div style="background:#2c2420;padding:40px 36px 36px;text-align:center;">
         <div style="display:inline-block;background:rgba(212,121,44,0.2);border-radius:20px;padding:5px 18px;margin-bottom:20px;">
           <span style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#D4792C;">Got Plans?</span>
         </div>
@@ -523,8 +529,8 @@ const templates: Record<string, { subject: string; html: string }> = {
         <p style="margin:0;font-size:16px;color:rgba(252,250,248,0.65);line-height:1.6;">Plan it in Tinerary and share with your friends</p>
       </div>
 
-      <!-- Orange accent divider -->
-      <div style="background:#D4792C;height:4px;"></div>
+      <!-- Divider -->
+      <div style="border-top:3px solid #D4792C;margin:0;"></div>
 
       <!-- Body content -->
       <div class="body-content">

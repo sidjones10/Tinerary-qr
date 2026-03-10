@@ -13,6 +13,7 @@ import {
   sendAccountDeletionWarningEmail,
   sendEventInviteEmail,
   sendSummerPlanningEmail,
+  sendEventPlanningEmail,
 } from "@/lib/email-notifications"
 import { rateLimit, getClientIp } from "@/lib/rate-limit"
 import { writeAuditLog } from "@/lib/audit-log"
@@ -34,6 +35,7 @@ type EmailType =
   | "signin_alert"
   | "account_deletion_warning"
   | "summer_planning"
+  | "event_planning"
 
 async function sendEmailByType(
   emailType: EmailType,
@@ -137,6 +139,8 @@ async function sendEmailByType(
         ipAddress: "0.0.0.0",
         userAgent: "Admin Test",
         deviceInfo: "Admin Dashboard",
+        revokeToken: "sample-revoke-token",
+        signInTime: new Date().toISOString(),
       })
 
     case "account_deletion_warning":
@@ -153,6 +157,9 @@ async function sendEmailByType(
 
     case "summer_planning":
       return sendSummerPlanningEmail({ email: recipientEmail, name: recipientName })
+
+    case "event_planning":
+      return sendEventPlanningEmail({ email: recipientEmail, name: recipientName })
 
     default:
       return { success: false, error: `Unknown email type: ${emailType}` }

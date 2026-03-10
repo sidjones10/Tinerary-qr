@@ -77,6 +77,7 @@ const emailTypeLabels: Record<string, string> = {
   signin_alert: "Sign-In Alert",
   account_deletion_warning: "Deletion Warning",
   summer_planning: "Summer Planning",
+  event_planning: "Event Planning",
 }
 
 const emailTypeColors: Record<string, string> = {
@@ -93,6 +94,7 @@ const emailTypeColors: Record<string, string> = {
   signin_alert: "bg-slate-100 text-slate-700",
   account_deletion_warning: "bg-red-100 text-red-700",
   summer_planning: "bg-sky-100 text-sky-700",
+  event_planning: "bg-indigo-100 text-indigo-700",
 }
 
 const statusConfig: Record<string, { label: string; className: string; icon: typeof CheckCircle }> = {
@@ -117,6 +119,7 @@ const sendableEmailTypes: { value: string; label: string; description: string }[
   { value: "signin_alert", label: "Sign-In Alert", description: "New device sign-in security alert" },
   { value: "account_deletion_warning", label: "Deletion Warning", description: "Account scheduled for deletion warning" },
   { value: "summer_planning", label: "Summer Planning", description: "Encourage users to plan their summer 2026 trips and events" },
+  { value: "event_planning", label: "Event Planning", description: "Encourage users to plan and share upcoming events" },
 ]
 
 export default function AdminCommunicationsPage() {

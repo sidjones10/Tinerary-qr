@@ -503,6 +503,133 @@ const templates: Record<string, { subject: string; html: string }> = {
     `, 'You received this because you signed up for Tinerary. Ready to see the world.'),
   },
 
+  eventPlanning: {
+    subject: "Do you have a new event coming up?",
+    html: postcardEmail(`
+      <!-- Logo banner -->
+      <div style="background:#F8F3EF;padding:28px 36px;text-align:center;">
+        <img src="${APP_URL}/email/tinerary-logo.png" alt="Tinerary" style="width:180px;height:auto;" width="180">
+      </div>
+
+      <!-- Divider -->
+      <div style="border-top:3px solid #2c2420;margin:0;"></div>
+
+      <!-- Hero block -->
+      <div style="background:#2c2420;padding:48px 36px;text-align:center;">
+        <div style="display:inline-block;background:rgba(212,121,44,0.2);border-radius:20px;padding:5px 18px;margin-bottom:20px;">
+          <span style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#D4792C;">Got Plans?</span>
+        </div>
+        <h1 style="margin:0 0 12px;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:36px;color:#FCFAF8;line-height:1.15;">Do you have a new<br>event coming up?</h1>
+        <p style="margin:0;font-size:16px;color:rgba(252,250,248,0.65);line-height:1.6;">Plan it in Tinerary and share with your friends</p>
+      </div>
+
+      <!-- Orange accent divider -->
+      <div style="background:#D4792C;height:4px;"></div>
+
+      <!-- Body content -->
+      <div class="body-content">
+        <p>Hi ${SAMPLE.name},</p>
+        <p>Whether it's a birthday party, a weekend getaway, a concert, or a group holiday &mdash; Tinerary is the easiest way to plan it, organise it, and share it with everyone who matters.</p>
+
+        <!-- How it works steps -->
+        <h2 style="text-align:center;margin-top:28px;">Here's how it works</h2>
+
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
+          <tr>
+            <td style="padding:16px 0;vertical-align:top;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="width:48px;vertical-align:top;">
+                    <div style="width:40px;height:40px;border-radius:50%;background:#D4792C;text-align:center;line-height:40px;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:18px;color:#FCFAF8;">1</div>
+                  </td>
+                  <td style="vertical-align:top;padding-left:12px;">
+                    <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:16px;color:#1A1A1A;margin-bottom:4px;">Create your event</div>
+                    <div style="font-size:14px;color:#5C4F42;line-height:1.6;">Add a title, date, location, and all the details your guests need to know.</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 0;border-top:1px solid #E8DDD4;vertical-align:top;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="width:48px;vertical-align:top;">
+                    <div style="width:40px;height:40px;border-radius:50%;background:#D4792C;text-align:center;line-height:40px;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:18px;color:#FCFAF8;">2</div>
+                  </td>
+                  <td style="vertical-align:top;padding-left:12px;">
+                    <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:16px;color:#1A1A1A;margin-bottom:4px;">Invite your crew</div>
+                    <div style="font-size:14px;color:#5C4F42;line-height:1.6;">Share a link or send invites directly. Friends can RSVP with a single tap.</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 0;border-top:1px solid #E8DDD4;vertical-align:top;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="width:48px;vertical-align:top;">
+                    <div style="width:40px;height:40px;border-radius:50%;background:#D4792C;text-align:center;line-height:40px;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:18px;color:#FCFAF8;">3</div>
+                  </td>
+                  <td style="vertical-align:top;padding-left:12px;">
+                    <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:16px;color:#1A1A1A;margin-bottom:4px;">Everyone stays in the loop</div>
+                    <div style="font-size:14px;color:#5C4F42;line-height:1.6;">Automatic reminders, real-time updates, and all the info in one place.</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+
+        <hr class="divider">
+
+        <!-- Event ideas -->
+        <h2 style="text-align:center;">What are you planning?</h2>
+
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">
+          <tr>
+            <td style="width:50%;padding-right:6px;vertical-align:top;">
+              <div style="border:2px solid #1A1A1A;border-radius:16px;padding:20px 16px;text-align:center;margin-bottom:12px;">
+                <div style="font-size:32px;margin-bottom:8px;">&#127881;</div>
+                <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:14px;font-weight:700;color:#1A1A1A;">Birthday Party</div>
+              </div>
+            </td>
+            <td style="width:50%;padding-left:6px;vertical-align:top;">
+              <div style="border:2px solid #1A1A1A;border-radius:16px;padding:20px 16px;text-align:center;margin-bottom:12px;">
+                <div style="font-size:32px;margin-bottom:8px;">&#127926;</div>
+                <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:14px;font-weight:700;color:#1A1A1A;">Concert / Festival</div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="width:50%;padding-right:6px;vertical-align:top;">
+              <div style="border:2px solid #1A1A1A;border-radius:16px;padding:20px 16px;text-align:center;margin-bottom:12px;">
+                <div style="font-size:32px;margin-bottom:8px;">&#9992;&#65039;</div>
+                <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:14px;font-weight:700;color:#1A1A1A;">Group Trip</div>
+              </div>
+            </td>
+            <td style="width:50%;padding-left:6px;vertical-align:top;">
+              <div style="border:2px solid #1A1A1A;border-radius:16px;padding:20px 16px;text-align:center;margin-bottom:12px;">
+                <div style="font-size:32px;margin-bottom:8px;">&#127860;</div>
+                <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:14px;font-weight:700;color:#1A1A1A;">Dinner / Brunch</div>
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <hr class="divider">
+
+        <!-- CTA block -->
+        <div style="background:#F8F3EF;border:2px solid #1A1A1A;border-radius:16px;padding:28px;text-align:center;margin:28px 0;">
+          <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:22px;font-weight:700;color:#1A1A1A;margin-bottom:8px;">Ready to get started?</div>
+          <p style="margin:0 0 20px;font-size:15px;color:#5C4F42;">Create your event in under a minute. Your friends will thank you.</p>
+          <a href="${APP_URL}/create" class="cta-btn">Create an Event</a>
+        </div>
+      </div>
+    `, 'You received this because you signed up for Tinerary.'),
+  },
+
   accountDeletion: {
     subject: `Your Tinerary account will be deleted in ${SAMPLE.daysRemaining} days`,
     html: postcardEmail(`

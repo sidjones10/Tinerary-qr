@@ -80,7 +80,7 @@ export function AdminSidebar() {
           <Shield className="h-5 w-5 text-white" />
         </div>
         <div>
-          <span className="font-bold text-[#2c2420]">Tinerary</span>
+          <span className="font-bold text-[#2c2420]">Tinerary™</span>
           <span className="text-xs text-[#2c2420]/50 block -mt-0.5">Admin Panel</span>
         </div>
       </div>

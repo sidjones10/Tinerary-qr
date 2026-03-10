@@ -22,7 +22,7 @@ export function OnboardingFlow({ userId, userName, onComplete }: OnboardingFlowP
 
   const steps = [
     {
-      title: `Welcome to Tinerary, ${userName || "traveler"}! 🎉`,
+      title: `Welcome to Tinerary™, ${userName || "traveler"}! 🎉`,
       description: "Plan trips, share itineraries, and discover amazing destinations with friends.",
       content: (
         <div className="space-y-6 py-6">

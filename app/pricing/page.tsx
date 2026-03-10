@@ -109,7 +109,7 @@ export default function PricingPage() {
                 { href: "/mentions", icon: <Megaphone className="size-5 text-tinerary-salmon" />, title: "Mention Highlights", desc: "Highlight organic mentions" },
                 { href: "/transactions", icon: <Crown className="size-5 text-tinerary-gold" />, title: "Transactions", desc: "Bookings & commission tracking" },
                 { href: "/affiliate", icon: <Users className="size-5 text-blue-500" />, title: "Affiliate Marketing", desc: "Referral links & packing commerce" },
-                { href: "/coins", icon: <Coins className="size-5 text-tinerary-gold" />, title: "Tinerary Coins", desc: "Earn & spend rewards" },
+                { href: "/coins", icon: <Coins className="size-5 text-tinerary-gold" />, title: "Tinerary™ Coins", desc: "Earn & spend rewards" },
               ].filter((item) => PHASE_2_ENABLED || !isPhase2Route(item.href)).map((item) => (
                 <Link key={item.href} href={item.href}>
                   <Card className="border-border hover:shadow-md transition-all duration-200 hover:-translate-y-1 h-full">
@@ -135,7 +135,7 @@ export default function PricingPage() {
                   <Coins className="h-16 w-16 text-tinerary-gold" />
                 </div>
                 <div className="p-8 md:w-2/3">
-                  <h3 className="text-xl font-semibold mb-2">Tinerary Coins</h3>
+                  <h3 className="text-xl font-semibold mb-2">Tinerary™ Coins</h3>
                   <p className="text-muted-foreground mb-4">
                     Earn coins by sharing itineraries, getting saves, leaving reviews, and referring friends. Spend them on Shop discounts, premium templates, profile badges, and more.
                   </p>
@@ -184,7 +184,7 @@ export default function PricingPage() {
               Privacy Policy
             </Link>
           </div>
-          <p className="text-muted-foreground">&copy; {new Date().getFullYear()} Tinerary. All rights reserved.</p>
+          <p className="text-muted-foreground">&copy; {new Date().getFullYear()} Tinerary™. All rights reserved.</p>
         </div>
       </footer>
     </div>

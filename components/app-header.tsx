@@ -121,7 +121,7 @@ export function AppHeader() {
       <div className="container flex h-14 items-center">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <span className="font-bold text-xl text-gray-800 dark:text-orange-100">Tinerary</span>
+            <span className="font-bold text-xl text-gray-800 dark:text-orange-100">Tinerary™</span>
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
             <Link href="/" className="transition-colors hover:text-foreground/80">
@@ -155,7 +155,7 @@ export function AppHeader() {
         </Sheet>
 
         <Link href="/" className="mr-6 flex items-center md:hidden">
-          <span className="font-bold text-xl text-gray-800 dark:text-orange-100">Tinerary</span>
+          <span className="font-bold text-xl text-gray-800 dark:text-orange-100">Tinerary™</span>
         </Link>
 
         <div className={cn("flex items-center ml-auto", showSearch ? "w-full md:w-auto justify-between" : "")}>

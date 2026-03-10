@@ -19,7 +19,7 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: "Tinerary",
+  title: "Tinerary™",
   description: "Create and share your travel itineraries",
   generator: 'v0.app',
   manifest: '/manifest.json',
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Tinerary',
+    title: 'Tinerary™',
   },
   formatDetection: {
     telephone: false,

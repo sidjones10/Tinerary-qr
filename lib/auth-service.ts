@@ -107,7 +107,7 @@ export async function signUpWithProfile(data: SignUpData): Promise<SignUpResult>
     const { error: notificationError } = await supabase.from("notifications").insert({
       user_id: userId,
       type: "system_message",
-      title: "Welcome to Tinerary!",
+      title: "Welcome to Tinerary™!",
       message: "Start exploring amazing travel itineraries and create your own.",
       link_url: "/",
       is_read: false,

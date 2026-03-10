@@ -248,7 +248,7 @@ export default function CoinsPage() {
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 mb-4">
               <Coins className="h-8 w-8 text-tinerary-gold" />
-              <h1 className="text-4xl font-bold tracking-tight">Tinerary Coins</h1>
+              <h1 className="text-4xl font-bold tracking-tight">Tinerary™ Coins</h1>
             </div>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Earn coins for the things you already do — share itineraries, help other travelers, and explore. Spend them on real perks and products.
@@ -413,7 +413,7 @@ export default function CoinsPage() {
               Privacy Policy
             </Link>
           </div>
-          <p className="text-muted-foreground">&copy; {new Date().getFullYear()} Tinerary. All rights reserved.</p>
+          <p className="text-muted-foreground">&copy; {new Date().getFullYear()} Tinerary™. All rights reserved.</p>
         </div>
       </footer>
     </div>

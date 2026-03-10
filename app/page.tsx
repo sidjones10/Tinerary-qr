@@ -44,7 +44,7 @@ export default function HomePage() {
     <div className="flex flex-col min-h-screen">
       <header className="bg-white dark:bg-card shadow-sm py-4">
         <div className="container mx-auto px-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Tinerary</h1>
+          <h1 className="text-2xl font-bold">Tinerary™</h1>
           <div className="space-x-2">
             <Button variant="outline" asChild>
               <Link href="/auth">{t("nav.signIn")}</Link>
@@ -110,7 +110,7 @@ export default function HomePage() {
               {t("home.privacyPolicy")}
             </Link>
           </div>
-          <p className="text-gray-600 dark:text-gray-400">&copy; {new Date().getFullYear()} Tinerary. {t("home.allRightsReserved")}</p>
+          <p className="text-gray-600 dark:text-gray-400">&copy; {new Date().getFullYear()} Tinerary™. {t("home.allRightsReserved")}</p>
         </div>
       </footer>
     </div>

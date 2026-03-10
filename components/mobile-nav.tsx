@@ -55,7 +55,7 @@ export function MobileNav() {
     <div className="flex h-full flex-col">
       <div className="flex h-14 items-center border-b px-4">
         <Link href="/" className="flex items-center gap-2 font-semibold">
-          <span className="text-xl font-bold">Tinerary</span>
+          <span className="text-xl font-bold">Tinerary™</span>
         </Link>
       </div>
       <div className="flex-1 overflow-auto py-2">

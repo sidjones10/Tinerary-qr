@@ -42,7 +42,7 @@ const reasonContent: Record<PromptReason, { icon: React.ReactNode; title: string
   },
   general: {
     icon: <Users className="h-8 w-8 text-green-500" />,
-    title: "Join Tinerary",
+    title: "Join Tinerary™",
     description: "Sign up to unlock the full experience - create itineraries, connect with travelers, and plan amazing trips!",
   },
 }

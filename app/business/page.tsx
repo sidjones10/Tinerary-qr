@@ -91,7 +91,7 @@ export default function BusinessPage() {
 
           {/* Why Tinerary */}
           <div className="max-w-4xl mx-auto mb-16">
-            <h2 className="text-2xl font-bold text-center mb-8">Why advertise on Tinerary?</h2>
+            <h2 className="text-2xl font-bold text-center mb-8">Why advertise on Tinerary™?</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
                 {
@@ -224,7 +224,7 @@ export default function BusinessPage() {
               Privacy Policy
             </Link>
           </div>
-          <p className="text-muted-foreground">&copy; {new Date().getFullYear()} Tinerary. All rights reserved.</p>
+          <p className="text-muted-foreground">&copy; {new Date().getFullYear()} Tinerary™. All rights reserved.</p>
         </div>
       </footer>
     </div>

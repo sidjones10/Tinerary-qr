@@ -250,7 +250,7 @@ export function ConsentDialog({ userId, onConsentComplete }: ConsentDialogProps)
       <div className="bg-white dark:bg-card rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="bg-gradient-to-r from-orange-500 to-pink-500 p-6 rounded-t-2xl text-white">
-          <h1 className="text-2xl font-bold mb-1">Welcome to Tinerary</h1>
+          <h1 className="text-2xl font-bold mb-1">Welcome to Tinerary™</h1>
           <p className="text-white/90 text-sm">
             {isInitializing && "Setting things up..."}
             {!isInitializing && step === "age" && "Let's verify your age to get started"}

@@ -51,7 +51,7 @@ export default function AuthPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-orange-50 to-pink-50 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">Tinerary</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">Tinerary™</CardTitle>
           <CardDescription className="text-center">
             Sign in to start planning your perfect journey
           </CardDescription>

@@ -232,7 +232,7 @@ export default function CreatorsPage() {
               Privacy Policy
             </Link>
           </div>
-          <p className="text-muted-foreground">&copy; {new Date().getFullYear()} Tinerary. All rights reserved.</p>
+          <p className="text-muted-foreground">&copy; {new Date().getFullYear()} Tinerary™. All rights reserved.</p>
         </div>
       </footer>
     </div>

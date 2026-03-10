@@ -12,6 +12,7 @@ import {
   sendSignInAlertEmail,
   sendAccountDeletionWarningEmail,
   sendEventInviteEmail,
+  sendSummerPlanningEmail,
 } from "@/lib/email-notifications"
 import { rateLimit, getClientIp } from "@/lib/rate-limit"
 import { writeAuditLog } from "@/lib/audit-log"
@@ -32,6 +33,7 @@ type EmailType =
   | "new_comment"
   | "signin_alert"
   | "account_deletion_warning"
+  | "summer_planning"
 
 async function sendEmailByType(
   emailType: EmailType,
@@ -148,6 +150,9 @@ async function sendEmailByType(
         ),
         daysRemaining: 30,
       })
+
+    case "summer_planning":
+      return sendSummerPlanningEmail({ email: recipientEmail, name: recipientName })
 
     default:
       return { success: false, error: `Unknown email type: ${emailType}` }

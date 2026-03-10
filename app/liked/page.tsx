@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { AppHeader } from "@/components/app-header"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/providers/auth-provider"
+import { parseLocalDate } from "@/lib/utils"
 
 export default function LikedPage() {
   const { user } = useAuth()
@@ -124,8 +125,8 @@ export default function LikedPage() {
   const filteredItems = getFilteredAndSortedItems()
 
   const formatDate = (startDate: string, endDate: string) => {
-    const start = new Date(startDate)
-    const end = new Date(endDate)
+    const start = parseLocalDate(startDate)
+    const end = parseLocalDate(endDate)
 
     if (start.toDateString() === end.toDateString()) {
       return start.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
@@ -135,8 +136,8 @@ export default function LikedPage() {
   }
 
   const getItineraryType = (startDate: string, endDate: string) => {
-    const start = new Date(startDate)
-    const end = new Date(endDate)
+    const start = parseLocalDate(startDate)
+    const end = parseLocalDate(endDate)
     return start.toDateString() === end.toDateString() ? "Event" : "Trip"
   }
 

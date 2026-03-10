@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { supabase } from "@/lib/supabase-client"
+import { parseLocalDate } from "@/lib/utils"
 
 export default function SavedItemsPage() {
   const router = useRouter()
@@ -143,15 +144,15 @@ export default function SavedItemsPage() {
   }
 
   const getItineraryType = (startDate: string, endDate: string) => {
-    const start = new Date(startDate)
-    const end = new Date(endDate)
+    const start = parseLocalDate(startDate)
+    const end = parseLocalDate(endDate)
     const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
     return daysDiff > 1 ? "Trip" : "Event"
   }
 
   const formatDate = (startDate: string, endDate: string) => {
-    const start = new Date(startDate)
-    const end = new Date(endDate)
+    const start = parseLocalDate(startDate)
+    const end = parseLocalDate(endDate)
     const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
 
     if (daysDiff === 1) {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import Link from "next/link"
 import {
   ArrowLeft,
@@ -17,6 +17,10 @@ import {
   MousePointerClick,
   Ban,
   Inbox,
+  Search,
+  Users,
+  X,
+  ChevronDown,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -39,6 +43,14 @@ interface EmailLog {
   created_at: string
 }
 
+interface UserProfile {
+  id: string
+  email: string
+  name: string | null
+  username: string | null
+  avatar_url: string | null
+}
+
 interface EmailStats {
   total: number
   sent: number
@@ -56,6 +68,7 @@ const emailTypeLabels: Record<string, string> = {
   event_invite: "Event Invite",
   event_reminder: "Event Reminder",
   new_follower: "New Follower",
+  new_like: "New Like",
   new_comment: "New Comment",
   password_reset: "Password Reset",
   countdown_reminder: "Countdown",
@@ -70,6 +83,7 @@ const emailTypeColors: Record<string, string> = {
   event_invite: "bg-blue-100 text-blue-700",
   event_reminder: "bg-amber-100 text-amber-700",
   new_follower: "bg-purple-100 text-purple-700",
+  new_like: "bg-rose-100 text-rose-700",
   new_comment: "bg-teal-100 text-teal-700",
   password_reset: "bg-gray-100 text-gray-700",
   countdown_reminder: "bg-orange-100 text-orange-700",
@@ -88,6 +102,20 @@ const statusConfig: Record<string, { label: string; className: string; icon: typ
   failed: { label: "Failed", className: "bg-red-100 text-red-700", icon: XCircle },
 }
 
+const sendableEmailTypes: { value: string; label: string; description: string }[] = [
+  { value: "welcome", label: "Welcome", description: "New user onboarding email with feature highlights" },
+  { value: "whats_new", label: "What's New", description: "Feature announcements and travel tips" },
+  { value: "event_invite", label: "Event Invite", description: "Sample event invitation with RSVP buttons" },
+  { value: "event_reminder", label: "Event Reminder", description: "Reminder about an upcoming event" },
+  { value: "countdown_reminder", label: "Countdown Reminder", description: "Countdown to event start" },
+  { value: "event_started", label: "Event Started", description: "Notification that an event is happening now" },
+  { value: "new_follower", label: "New Follower", description: "Someone started following notification" },
+  { value: "new_like", label: "New Like", description: "Someone liked your itinerary notification" },
+  { value: "new_comment", label: "New Comment", description: "New comment on itinerary notification" },
+  { value: "signin_alert", label: "Sign-In Alert", description: "New device sign-in security alert" },
+  { value: "account_deletion_warning", label: "Deletion Warning", description: "Account scheduled for deletion warning" },
+]
+
 export default function AdminCommunicationsPage() {
   const [logs, setLogs] = useState<EmailLog[]>([])
   const [stats, setStats] = useState<EmailStats | null>(null)
@@ -95,49 +123,101 @@ export default function AdminCommunicationsPage() {
   const [filter, setFilter] = useState<string>("all")
   const [typeFilter, setTypeFilter] = useState<string>("all")
 
-  // Bulk welcome email state
-  const [welcomePreview, setWelcomePreview] = useState<{ total: number; users: { email: string; name: string }[] } | null>(null)
-  const [welcomeLoading, setWelcomeLoading] = useState(false)
-  const [welcomeResult, setWelcomeResult] = useState<{ sent: number; failed: number } | null>(null)
-  const [welcomeSending, setWelcomeSending] = useState(false)
+  // Send email panel state
+  const [selectedEmailType, setSelectedEmailType] = useState<string>("welcome")
+  const [sendToAll, setSendToAll] = useState(false)
+  const [selectedUsers, setSelectedUsers] = useState<UserProfile[]>([])
+  const [userSearch, setUserSearch] = useState("")
+  const [userSearchResults, setUserSearchResults] = useState<UserProfile[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [showUserDropdown, setShowUserDropdown] = useState(false)
+  const [sendResult, setSendResult] = useState<{ sent: number; failed: number } | null>(null)
+  const [isSending, setIsSending] = useState(false)
+  const [sendError, setSendError] = useState<string | null>(null)
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const previewWelcomeEmails = async () => {
-    setWelcomeLoading(true)
-    setWelcomeResult(null)
-    try {
-      const res = await fetch("/api/admin/send-bulk-welcome", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dryRun: true }),
-      })
-      const data = await res.json()
-      if (data.success) {
-        setWelcomePreview({ total: data.stats.total || data.stats.wouldSend, users: data.users || [] })
-      }
-    } catch (err) {
-      console.error("Preview failed:", err)
+  // Search users as they type
+  const searchUsers = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setUserSearchResults([])
+      setShowUserDropdown(false)
+      return
     }
-    setWelcomeLoading(false)
+    setIsSearching(true)
+    const supabase = createClient()
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, email, name, username, avatar_url")
+      .not("email", "is", null)
+      .or(`name.ilike.%${query}%,email.ilike.%${query}%,username.ilike.%${query}%`)
+      .limit(20)
+
+    const selectedIds = new Set(selectedUsers.map(u => u.id))
+    setUserSearchResults((data || []).filter(u => !selectedIds.has(u.id)))
+    setShowUserDropdown(true)
+    setIsSearching(false)
+  }, [selectedUsers])
+
+  useEffect(() => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+    if (userSearch.trim()) {
+      searchTimeoutRef.current = setTimeout(() => searchUsers(userSearch), 300)
+    } else {
+      setUserSearchResults([])
+      setShowUserDropdown(false)
+    }
+    return () => { if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current) }
+  }, [userSearch, searchUsers])
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowUserDropdown(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [])
+
+  const addUser = (user: UserProfile) => {
+    setSelectedUsers(prev => [...prev, user])
+    setUserSearch("")
+    setUserSearchResults([])
+    setShowUserDropdown(false)
   }
 
-  const sendWelcomeEmails = async () => {
-    setWelcomeSending(true)
+  const removeUser = (userId: string) => {
+    setSelectedUsers(prev => prev.filter(u => u.id !== userId))
+  }
+
+  const handleSendEmail = async () => {
+    setIsSending(true)
+    setSendResult(null)
+    setSendError(null)
     try {
-      const res = await fetch("/api/admin/send-bulk-welcome", {
+      const res = await fetch("/api/admin/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          emailType: selectedEmailType,
+          sendToAll,
+          recipientIds: sendToAll ? undefined : selectedUsers.map(u => u.id),
+        }),
       })
       const data = await res.json()
       if (data.success) {
-        setWelcomeResult({ sent: data.stats.sent, failed: data.stats.failed })
-        setWelcomePreview(null)
+        setSendResult({ sent: data.stats.sent, failed: data.stats.failed })
         fetchLogs()
+      } else {
+        setSendError(data.error || "Failed to send")
       }
     } catch (err) {
       console.error("Send failed:", err)
+      setSendError("Network error")
     }
-    setWelcomeSending(false)
+    setIsSending(false)
   }
 
   const fetchLogs = useCallback(async () => {
@@ -264,93 +344,168 @@ export default function AdminCommunicationsPage() {
         </Button>
       </div>
 
-      {/* Bulk Welcome Email Panel */}
+      {/* Send Email Panel */}
       <div className="bg-white/70 dark:bg-card/70 backdrop-blur rounded-2xl border border-[#2c2420]/5 p-5 mb-6">
-        <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-[#2c2420] flex items-center gap-2 mb-4">
+          <Mail className="h-4 w-4 text-[#D4792C]" />
+          Send Email
+        </h3>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Email Type Selection */}
           <div>
-            <h3 className="text-sm font-semibold text-[#2c2420] flex items-center gap-2">
-              <Mail className="h-4 w-4 text-[#D4792C]" />
-              Send Welcome Email to All Users
-            </h3>
-            <p className="text-xs text-[#2c2420]/50 mt-0.5">
-              Send the welcome email to every current user who hasn&apos;t received one yet.
+            <label className="block text-xs font-medium text-[#2c2420]/60 mb-1.5">Email Template</label>
+            <div className="relative">
+              <select
+                value={selectedEmailType}
+                onChange={(e) => setSelectedEmailType(e.target.value)}
+                className="w-full px-3 py-2.5 text-sm rounded-xl bg-white dark:bg-card border border-[#2c2420]/10 text-[#2c2420] appearance-none pr-8 focus:outline-none focus:ring-2 focus:ring-[#D4792C]/30 focus:border-[#D4792C]"
+              >
+                {sendableEmailTypes.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+              <ChevronDown className="h-4 w-4 text-[#2c2420]/40 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+            <p className="text-xs text-[#2c2420]/40 mt-1">
+              {sendableEmailTypes.find(t => t.value === selectedEmailType)?.description}
             </p>
           </div>
-          {!welcomePreview && !welcomeResult && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={previewWelcomeEmails}
-              disabled={welcomeLoading}
-            >
-              {welcomeLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <Eye className="h-4 w-4 mr-2" />
-              )}
-              Preview Recipients
-            </Button>
-          )}
+
+          {/* Recipient Selection */}
+          <div>
+            <label className="block text-xs font-medium text-[#2c2420]/60 mb-1.5">Recipients</label>
+
+            {/* Send to All toggle */}
+            <label className="flex items-center gap-2 mb-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={sendToAll}
+                onChange={(e) => setSendToAll(e.target.checked)}
+                className="rounded border-[#2c2420]/20 text-[#D4792C] focus:ring-[#D4792C]/30"
+              />
+              <span className="text-sm text-[#2c2420]/70 flex items-center gap-1">
+                <Users className="h-3.5 w-3.5" />
+                Send to all users
+              </span>
+            </label>
+
+            {/* User search (hidden when send to all) */}
+            {!sendToAll && (
+              <div className="relative" ref={dropdownRef}>
+                <div className="relative">
+                  <Search className="h-4 w-4 text-[#2c2420]/30 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    placeholder="Search users by name, email, or username..."
+                    className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl bg-white dark:bg-card border border-[#2c2420]/10 text-[#2c2420] placeholder:text-[#2c2420]/30 focus:outline-none focus:ring-2 focus:ring-[#D4792C]/30 focus:border-[#D4792C]"
+                  />
+                  {isSearching && (
+                    <Loader2 className="h-4 w-4 animate-spin text-[#D4792C] absolute right-3 top-1/2 -translate-y-1/2" />
+                  )}
+                </div>
+
+                {/* Search results dropdown */}
+                {showUserDropdown && userSearchResults.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-white dark:bg-card border border-[#2c2420]/10 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                    {userSearchResults.map((user) => (
+                      <button
+                        key={user.id}
+                        onClick={() => addUser(user)}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-[#D4792C]/5 transition-colors first:rounded-t-xl last:rounded-b-xl"
+                      >
+                        <div className="h-7 w-7 rounded-full bg-[#D4792C]/10 flex items-center justify-center text-xs font-semibold text-[#D4792C] flex-shrink-0">
+                          {(user.name || user.username || user.email)?.[0]?.toUpperCase() || "?"}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-[#2c2420] truncate">
+                            {user.name || user.username || "Unknown"}
+                          </p>
+                          <p className="text-xs text-[#2c2420]/40 truncate">{user.email}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {showUserDropdown && userSearchResults.length === 0 && userSearch.trim() && !isSearching && (
+                  <div className="absolute z-50 w-full mt-1 bg-white dark:bg-card border border-[#2c2420]/10 rounded-xl shadow-lg p-3 text-center">
+                    <p className="text-xs text-[#2c2420]/40">No users found</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Selected users chips */}
+            {!sendToAll && selectedUsers.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {selectedUsers.map((user) => (
+                  <span
+                    key={user.id}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#D4792C]/10 text-[#D4792C] text-xs font-medium"
+                  >
+                    {user.name || user.username || user.email}
+                    <button
+                      onClick={() => removeUser(user.id)}
+                      className="hover:text-[#2c2420] transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {welcomePreview && (
-          <div className="mt-3">
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
-              <p className="text-sm text-amber-800">
-                <strong>{welcomePreview.total} users</strong> will receive the welcome email.
-                {welcomePreview.users.length > 0 && (
-                  <span className="block mt-1 text-xs text-amber-600">
-                    Including: {welcomePreview.users.slice(0, 5).map(u => u.name || u.email).join(", ")}
-                    {welcomePreview.users.length > 5 && ` and ${welcomePreview.users.length - 5} more...`}
-                  </span>
-                )}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={sendWelcomeEmails}
-                disabled={welcomeSending}
-                className="bg-[#D4792C] hover:bg-[#c06a20] text-white"
-              >
-                {welcomeSending ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <Send className="h-4 w-4 mr-2" />
-                )}
-                {welcomeSending ? "Sending..." : `Send to ${welcomePreview.total} Users`}
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setWelcomePreview(null)}
-                disabled={welcomeSending}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        )}
+        {/* Send button and result */}
+        <div className="mt-4 flex items-center gap-3 flex-wrap">
+          <Button
+            size="sm"
+            onClick={handleSendEmail}
+            disabled={isSending || (!sendToAll && selectedUsers.length === 0)}
+            className="bg-[#D4792C] hover:bg-[#c06a20] text-white"
+          >
+            {isSending ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Send className="h-4 w-4 mr-2" />
+            )}
+            {isSending
+              ? "Sending..."
+              : sendToAll
+              ? `Send ${sendableEmailTypes.find(t => t.value === selectedEmailType)?.label} to All Users`
+              : `Send to ${selectedUsers.length} User${selectedUsers.length !== 1 ? "s" : ""}`}
+          </Button>
 
-        {welcomeResult && (
-          <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
-            <p className="text-sm text-green-800 flex items-center gap-2">
-              <CheckCircle className="h-4 w-4" />
-              <strong>{welcomeResult.sent} welcome emails sent</strong>
-              {welcomeResult.failed > 0 && (
-                <span className="text-red-600">({welcomeResult.failed} failed)</span>
+          {sendResult && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-green-700 flex items-center gap-1">
+                <CheckCircle className="h-4 w-4" />
+                <strong>{sendResult.sent} sent</strong>
+              </span>
+              {sendResult.failed > 0 && (
+                <span className="text-sm text-red-600">({sendResult.failed} failed)</span>
               )}
-            </p>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setWelcomeResult(null)}
-              className="text-xs"
-            >
-              Dismiss
-            </Button>
-          </div>
-        )}
+              <button onClick={() => setSendResult(null)} className="text-xs text-[#2c2420]/40 hover:text-[#2c2420]">
+                Dismiss
+              </button>
+            </div>
+          )}
+
+          {sendError && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-red-600 flex items-center gap-1">
+                <XCircle className="h-4 w-4" />
+                {sendError}
+              </span>
+              <button onClick={() => setSendError(null)} className="text-xs text-[#2c2420]/40 hover:text-[#2c2420]">
+                Dismiss
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Stats cards */}

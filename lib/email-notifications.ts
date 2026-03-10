@@ -1427,3 +1427,127 @@ export async function sendRsvpNotificationEmail(
     return { success: false, error: error.message }
   }
 }
+
+/**
+ * Send summer trip planning email encouraging users to plan their next adventures
+ */
+export async function sendSummerPlanningEmail(params: {
+  email: string
+  name?: string
+}) {
+  try {
+    const { email, name } = params
+    const safeName = escapeHtml(name || "traveler")
+
+    const subject = "What will your summer 2026 look like?"
+    const resend = getResendClient()
+    const { data: resendData } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject,
+      html: postcardEmail(`
+        <!-- Logo banner -->
+        <div style="background:#F8F3EF;padding:28px 36px;text-align:center;">
+          <img src="${APP_URL}/email/tinerary-logo.png" alt="Tinerary" style="width:180px;height:auto;" width="180">
+        </div>
+
+        <!-- Hero image section -->
+        <div style="position:relative;background:#2c2420;">
+          <img src="${APP_URL}/email/summer-planning-hero.jpg" alt="Experience your best travel moments" style="width:100%;height:auto;display:block;" width="600">
+          <div style="background:#2c2420;padding:0;">
+            <div style="border-top:3px solid #D4792C;margin:0;"></div>
+          </div>
+        </div>
+
+        <!-- Main heading block -->
+        <div style="background:#1A1A1A;padding:40px 36px 32px;text-align:center;">
+          <div style="display:inline-block;background:rgba(212,121,44,0.15);border-radius:20px;padding:5px 18px;margin-bottom:16px;">
+            <span style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#D4792C;">Summer 2026</span>
+          </div>
+          <h1 style="margin:0 0 12px;font-family:'Nohemi','Nunito Sans',sans-serif;font-weight:700;font-size:32px;color:#FCFAF8;line-height:1.15;">Planning your trips has<br>never been easier</h1>
+          <p style="margin:0;font-size:16px;color:rgba(252,250,248,0.7);line-height:1.6;">What will your summer 2026 look like?</p>
+        </div>
+
+        <!-- Body content -->
+        <div class="body-content">
+          <p>Hi ${safeName},</p>
+          <p>Summer is just around the corner, and the best trips start with a plan. Whether you're dreaming of sandy beaches, mountain getaways, or city adventures &mdash; Tinerary makes it effortless to bring your travel ideas to life.</p>
+
+          <!-- Three feature cards -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0;">
+            <tr>
+              <td style="padding-right:6px;vertical-align:top;width:33%;">
+                <div style="border:2px solid #1A1A1A;border-radius:16px;padding:20px 16px;text-align:center;height:100%;">
+                  <div style="font-size:28px;margin-bottom:8px;">&#9992;&#65039;</div>
+                  <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:14px;font-weight:700;color:#1A1A1A;margin-bottom:4px;">Plan</div>
+                  <div style="font-size:13px;color:#5C4F42;line-height:1.4;">Create detailed day-by-day itineraries</div>
+                </div>
+              </td>
+              <td style="padding:0 3px;vertical-align:top;width:33%;">
+                <div style="border:2px solid #1A1A1A;border-radius:16px;padding:20px 16px;text-align:center;height:100%;">
+                  <div style="font-size:28px;margin-bottom:8px;">&#128101;</div>
+                  <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:14px;font-weight:700;color:#1A1A1A;margin-bottom:4px;">Invite</div>
+                  <div style="font-size:13px;color:#5C4F42;line-height:1.4;">Bring friends and family along for the ride</div>
+                </div>
+              </td>
+              <td style="padding-left:6px;vertical-align:top;width:33%;">
+                <div style="border:2px solid #1A1A1A;border-radius:16px;padding:20px 16px;text-align:center;height:100%;">
+                  <div style="font-size:28px;margin-bottom:8px;">&#127758;</div>
+                  <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:14px;font-weight:700;color:#1A1A1A;margin-bottom:4px;">Experience</div>
+                  <div style="font-size:13px;color:#5C4F42;line-height:1.4;">Your best travel moments, organised</div>
+                </div>
+              </td>
+            </tr>
+          </table>
+
+          <hr class="divider">
+
+          <!-- Inspiration prompts -->
+          <h2 style="text-align:center;">Need some inspiration?</h2>
+
+          <div style="border:2px solid #1A1A1A;border-radius:16px;overflow:hidden;margin-bottom:14px;">
+            <div style="background:#D4792C;padding:12px 20px;">
+              <span style="color:#FCFAF8;font-weight:700;font-size:14px;letter-spacing:0.5px;">Beach Getaway</span>
+            </div>
+            <div style="padding:14px 20px;">
+              <p style="margin:0;font-size:14px;color:#1A1A1A;line-height:1.6;">Sun, sand, and zero stress. Plan your coastal escape and invite your crew to join.</p>
+            </div>
+          </div>
+
+          <div style="border:2px solid #1A1A1A;border-radius:16px;overflow:hidden;margin-bottom:14px;">
+            <div style="background:#D4792C;padding:12px 20px;">
+              <span style="color:#FCFAF8;font-weight:700;font-size:14px;letter-spacing:0.5px;">Festival Season</span>
+            </div>
+            <div style="padding:14px 20px;">
+              <p style="margin:0;font-size:14px;color:#1A1A1A;line-height:1.6;">Music, food, culture &mdash; create a shared itinerary so everyone knows where to be and when.</p>
+            </div>
+          </div>
+
+          <div style="border:2px solid #1A1A1A;border-radius:16px;overflow:hidden;margin-bottom:14px;">
+            <div style="background:#D4792C;padding:12px 20px;">
+              <span style="color:#FCFAF8;font-weight:700;font-size:14px;letter-spacing:0.5px;">Road Trip</span>
+            </div>
+            <div style="padding:14px 20px;">
+              <p style="margin:0;font-size:14px;color:#1A1A1A;line-height:1.6;">Map out your stops, share the route with friends, and keep everyone in the loop as you go.</p>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- CTA block -->
+          <div style="background:#F8F3EF;border:2px solid #1A1A1A;border-radius:16px;padding:28px;text-align:center;margin:28px 0;">
+            <div style="font-family:'Nohemi','Nunito Sans',sans-serif;font-size:22px;font-weight:700;color:#1A1A1A;margin-bottom:8px;">Start planning your summer</div>
+            <p style="margin:0 0 20px;font-size:15px;color:#5C4F42;">Create your first summer itinerary in minutes. It's free.</p>
+            <a href="${APP_URL}/create" class="cta-btn">Plan Your Trip</a>
+          </div>
+        </div>
+      `, 'You received this because you signed up for Tinerary. Ready to see the world.'),
+    })
+    await logEmail({ recipientEmail: email, emailType: "summer_planning", subject, status: "sent", resendId: resendData?.id })
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error sending summer planning email:", error)
+    await logEmail({ recipientEmail: email, emailType: "summer_planning", subject: "What will your summer 2026 look like?", status: "failed", errorMessage: error.message })
+    return { success: false, error: error.message }
+  }
+}

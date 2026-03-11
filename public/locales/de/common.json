@@ -285,7 +285,19 @@
     "signUpNow": "Jetzt registrieren",
     "termsOfService": "Nutzungsbedingungen",
     "privacyPolicy": "Datenschutzrichtlinie",
-    "allRightsReserved": "Alle Rechte vorbehalten."
+    "allRightsReserved": "Alle Rechte vorbehalten.",
+    "installApp": "App herunterladen",
+    "installAppDescription": "Installiere Tinerary auf deinem Handy für schnellen Zugriff, Offline-Unterstützung und ein natives App-Erlebnis.",
+    "installNow": "Tinerary installieren",
+    "installOnIphone": "Auf iPhone installieren",
+    "installOnDevice": "Auf Gerät installieren",
+    "iosSteps": "So installierst du auf dem iPhone:",
+    "iosStep1": "Tippe auf die Teilen-Schaltfläche",
+    "iosStep2": "Tippe auf \u201EZum Home-Bildschirm\u201C",
+    "iosStep3": "Tippe auf \u201EHinzufügen\u201C zum Bestätigen",
+    "browserSteps": "So installierst du:",
+    "browserStep1": "Tippe auf die Menü-Schaltfläche",
+    "browserStep2": "Wähle \u201EApp installieren\u201C oder \u201EZum Startbildschirm hinzufügen\u201C"
   },
   "header": {
     "saved": "Gespeichert",

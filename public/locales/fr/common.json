@@ -285,7 +285,19 @@
     "signUpNow": "S'inscrire maintenant",
     "termsOfService": "Conditions d'utilisation",
     "privacyPolicy": "Politique de confidentialité",
-    "allRightsReserved": "Tous droits réservés."
+    "allRightsReserved": "Tous droits réservés.",
+    "installApp": "Télécharger l'appli",
+    "installAppDescription": "Installez Tinerary sur votre téléphone pour un accès rapide, le mode hors ligne et une expérience native.",
+    "installNow": "Installer Tinerary",
+    "installOnIphone": "Installer sur iPhone",
+    "installOnDevice": "Installer sur l'appareil",
+    "iosSteps": "Comment installer sur iPhone :",
+    "iosStep1": "Appuyez sur le bouton Partager",
+    "iosStep2": "Appuyez sur « Sur l'écran d'accueil »",
+    "iosStep3": "Appuyez sur « Ajouter » pour confirmer",
+    "browserSteps": "Comment installer :",
+    "browserStep1": "Appuyez sur le bouton menu",
+    "browserStep2": "Sélectionnez « Installer l'appli » ou « Ajouter à l'écran d'accueil »"
   },
   "header": {
     "saved": "Sauvegardés",

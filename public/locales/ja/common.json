@@ -285,7 +285,19 @@
     "signUpNow": "今すぐ登録",
     "termsOfService": "利用規約",
     "privacyPolicy": "プライバシーポリシー",
-    "allRightsReserved": "全著作権所有。"
+    "allRightsReserved": "全著作権所有。",
+    "installApp": "アプリを入手",
+    "installAppDescription": "Tineraryをスマートフォンにインストールして、素早いアクセス、オフライン対応、ネイティブアプリ体験をお楽しみください。",
+    "installNow": "Tineraryをインストール",
+    "installOnIphone": "iPhoneにインストール",
+    "installOnDevice": "デバイスにインストール",
+    "iosSteps": "iPhoneでのインストール方法：",
+    "iosStep1": "共有ボタンをタップ",
+    "iosStep2": "「ホーム画面に追加」をタップ",
+    "iosStep3": "「追加」をタップして確認",
+    "browserSteps": "インストール方法：",
+    "browserStep1": "メニューボタンをタップ",
+    "browserStep2": "「アプリをインストール」または「ホーム画面に追加」を選択"
   },
   "header": {
     "saved": "保存済み",

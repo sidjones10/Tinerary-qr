@@ -9,6 +9,7 @@ import { useAuth } from "@/providers/auth-provider"
 import { Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { PHASE_2_ENABLED } from "@/lib/phase2"
+import { InstallAppBanner } from "@/components/install-app-banner"
 
 export default function HomePage() {
   const { user, isLoading } = useAuth()
@@ -79,6 +80,10 @@ export default function HomePage() {
                 <Link href="/auth?tab=signup">{t("home.signUpNow")}</Link>
               </Button>
             </div>
+          </div>
+
+          <div className="max-w-md mx-auto">
+            <InstallAppBanner />
           </div>
         </div>
       </main>

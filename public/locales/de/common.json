@@ -293,11 +293,11 @@
     "installOnDevice": "Auf Gerät installieren",
     "iosSteps": "So installierst du auf dem iPhone:",
     "iosStep1": "Tippe auf die Teilen-Schaltfläche",
-    "iosStep2": "Tippe auf „Zum Home-Bildschirm"",
-    "iosStep3": "Tippe auf „Hinzufügen" zum Bestätigen",
+    "iosStep2": "Tippe auf \u201EZum Home-Bildschirm\u201C",
+    "iosStep3": "Tippe auf \u201EHinzufügen\u201C zum Bestätigen",
     "browserSteps": "So installierst du:",
     "browserStep1": "Tippe auf die Menü-Schaltfläche",
-    "browserStep2": "Wähle „App installieren" oder „Zum Startbildschirm hinzufügen""
+    "browserStep2": "Wähle \u201EApp installieren\u201C oder \u201EZum Startbildschirm hinzufügen\u201C"
   },
   "header": {
     "saved": "Gespeichert",

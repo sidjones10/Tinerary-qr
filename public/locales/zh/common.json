@@ -285,7 +285,19 @@
     "signUpNow": "立即注册",
     "termsOfService": "服务条款",
     "privacyPolicy": "隐私政策",
-    "allRightsReserved": "版权所有。"
+    "allRightsReserved": "版权所有。",
+    "installApp": "获取应用",
+    "installAppDescription": "在手机上安装 Tinerary，享受快速访问、离线支持和原生应用体验。",
+    "installNow": "安装 Tinerary",
+    "installOnIphone": "在 iPhone 上安装",
+    "installOnDevice": "在设备上安装",
+    "iosSteps": "如何在 iPhone 上安装：",
+    "iosStep1": "点击分享按钮",
+    "iosStep2": "点击「添加到主屏幕」",
+    "iosStep3": "点击「添加」确认",
+    "browserSteps": "如何安装：",
+    "browserStep1": "点击菜单按钮",
+    "browserStep2": "选择「安装应用」或「添加到主屏幕」"
   },
   "header": {
     "saved": "已保存",

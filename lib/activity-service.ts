@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client"
 import { locationMatchesSearch, extractState } from "@/lib/location-utils"
+import { parseLocalDate } from "@/lib/utils"
 
 export interface Activity {
   id: string
@@ -159,7 +160,8 @@ export async function copyActivitiesToItinerary(
     const maxOrderIndex = existingActivities?.[0]?.order_index ?? -1
 
     // Prepare activities for insertion
-    const baseDate = targetStartDate ? new Date(targetStartDate) : new Date(itinerary.start_date)
+    // Use parseLocalDate to avoid UTC midnight interpretation
+    const baseDate = targetStartDate ? parseLocalDate(targetStartDate) : parseLocalDate(itinerary.start_date)
 
     const activitiesToInsert = activities.map((activity, index) => {
       // Calculate new start_time based on target itinerary's start date

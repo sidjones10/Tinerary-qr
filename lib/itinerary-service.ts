@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/client"
 import { createNotification, notifyFirstPost } from "@/lib/notification-service"
 import { awardCoins, hasAlreadyEarned } from "@/lib/coins-service"
 import { moderateItineraryContent, censorText } from "@/lib/content-moderation"
+import { parseLocalDate } from "@/lib/utils"
 
 /**
  * Ensure user profile exists in the profiles table
@@ -192,7 +193,9 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
           if (activity.time) {
             try {
               // Try to parse the time and combine with start date
-              const baseDate = new Date(data.startDate)
+              // Use parseLocalDate to avoid UTC midnight interpretation
+              // which shifts the date backwards in western timezones
+              const baseDate = parseLocalDate(data.startDate)
 
               // Check if it's in HTML5 time format (HH:MM in 24-hour)
               if (/^\d{2}:\d{2}$/.test(activity.time)) {
@@ -555,7 +558,8 @@ export async function updateItinerary(
             if (activity.time) {
               try {
                 // Try to parse the time and combine with start date
-                const baseDate = new Date(data.startDate || updateData.start_date)
+                // Use parseLocalDate to avoid UTC midnight interpretation
+                const baseDate = parseLocalDate(data.startDate || updateData.start_date)
 
                 // Check if it's in HTML5 time format (HH:MM in 24-hour)
                 if (/^\d{2}:\d{2}$/.test(activity.time)) {

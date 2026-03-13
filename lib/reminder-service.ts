@@ -16,6 +16,7 @@ export type { ReminderType } from "@/lib/reminder-utils"
 
 import type { ReminderType } from "@/lib/reminder-utils"
 import { REMINDER_LABELS } from "@/lib/reminder-utils"
+import { parseLocalDate } from "@/lib/utils"
 
 /**
  * Check if a reminder has already been sent
@@ -285,10 +286,13 @@ export async function getItinerariesNeedingReminders(): Promise<{
     const timeValue = hasTimeColumn ? itinerary.time : null
     if (timeValue) {
       // Time is stored as "HH:MM" (e.g. "14:30")
-      startDate = new Date(`${itinerary.start_date}T${timeValue}:00`)
+      // Use parseLocalDate to get the correct date, then set the time
+      startDate = parseLocalDate(itinerary.start_date)
+      const [hours, minutes] = timeValue.split(':').map(Number)
+      startDate.setHours(hours, minutes, 0, 0)
     } else {
       // No time set — use start of day (midnight)
-      startDate = new Date(itinerary.start_date)
+      startDate = parseLocalDate(itinerary.start_date)
     }
 
     const millisUntilStart = startDate.getTime() - now.getTime()

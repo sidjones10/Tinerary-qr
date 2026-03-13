@@ -212,6 +212,28 @@ export async function sendCountdownReminder(
 }
 
 /**
+ * Get all attendees for an itinerary (including the owner)
+ */
+async function getItineraryAttendeeIds(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  itineraryId: string,
+  ownerId: string
+): Promise<string[]> {
+  const { data: attendees } = await supabase
+    .from("itinerary_attendees")
+    .select("user_id")
+    .eq("itinerary_id", itineraryId)
+
+  if (attendees && attendees.length > 0) {
+    // itinerary_attendees already includes the owner (role='owner')
+    return [...new Set(attendees.map((a) => a.user_id))]
+  }
+
+  // Fallback: if no attendees rows exist, at least notify the owner
+  return [ownerId]
+}
+
+/**
  * Get all itineraries that need reminders sent
  * This should be called by a cron job
  */
@@ -301,14 +323,18 @@ export async function getItinerariesNeedingReminders(): Promise<{
     }
 
     if (reminderType) {
-      remindersNeeded.push({
-        itineraryId: itinerary.id,
-        userId: itinerary.user_id,
-        title: itinerary.title,
-        startDate,
-        location: itinerary.location ?? null,
-        reminderType,
-      })
+      // Send reminders to all attendees, not just the owner
+      const attendeeIds = await getItineraryAttendeeIds(supabase, itinerary.id, itinerary.user_id)
+      for (const userId of attendeeIds) {
+        remindersNeeded.push({
+          itineraryId: itinerary.id,
+          userId,
+          title: itinerary.title,
+          startDate,
+          location: itinerary.location ?? null,
+          reminderType,
+        })
+      }
     }
   }
 
@@ -378,15 +404,19 @@ export async function getActivitiesNeedingReminders(): Promise<{
     // Only send activity-appropriate reminders (short-range)
     if (reminderType && activityReminderTypes.has(reminderType)) {
       const itinerary = activity.itineraries as any
-      remindersNeeded.push({
-        activityId: activity.id,
-        activityTitle: activity.title,
-        itineraryId: activity.itinerary_id,
-        itineraryTitle: itinerary?.title || "your event",
-        userId: activity.user_id,
-        startTime,
-        reminderType,
-      })
+      // Send to all attendees, not just the activity creator
+      const attendeeIds = await getItineraryAttendeeIds(supabase, activity.itinerary_id, activity.user_id)
+      for (const userId of attendeeIds) {
+        remindersNeeded.push({
+          activityId: activity.id,
+          activityTitle: activity.title,
+          itineraryId: activity.itinerary_id,
+          itineraryTitle: itinerary?.title || "your event",
+          userId,
+          startTime,
+          reminderType,
+        })
+      }
     }
   }
 
@@ -505,9 +535,18 @@ export async function getItinerariesNeedingCoverPrompt(): Promise<{
     return []
   }
 
-  return itineraries.map((it) => ({
-    itineraryId: it.id,
-    userId: it.user_id,
-    title: it.title,
-  }))
+  // Send cover prompts to all attendees, not just the owner
+  const results: { itineraryId: string; userId: string; title: string }[] = []
+  for (const it of itineraries) {
+    const attendeeIds = await getItineraryAttendeeIds(supabase, it.id, it.user_id)
+    for (const userId of attendeeIds) {
+      results.push({
+        itineraryId: it.id,
+        userId,
+        title: it.title,
+      })
+    }
+  }
+
+  return results
 }

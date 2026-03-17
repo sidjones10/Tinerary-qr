@@ -150,6 +150,7 @@ export function EventDetail({ event }: EventDetailProps) {
   const [attendeeCounts, setAttendeeCounts] = useState<{ going: number; maybe: number }>({ going: 1, maybe: 0 }) // 1 = host
   const [invitationsEnabled, setInvitationsEnabled] = useState<boolean>(event.invitations_enabled !== false)
   const isOwner = !!(user && user.id === event.user_id)
+  const isAttendee = isOwner || myInvitation?.status === "accepted" || myInvitation?.status === "tentative"
   const searchParams = useSearchParams()
 
   // Track if user arrived via an invite link so we can show the RSVP banner
@@ -1096,7 +1097,9 @@ export function EventDetail({ event }: EventDetailProps) {
                 )}
               </TabsTrigger>
               <TabsTrigger value="attendees">Attendees</TabsTrigger>
-              <TabsTrigger value="comments">Comments</TabsTrigger>
+              {isAttendee && (
+                <TabsTrigger value="comments">Comments</TabsTrigger>
+              )}
             </TabsList>
           </div>
 
@@ -1485,13 +1488,15 @@ export function EventDetail({ event }: EventDetailProps) {
             )}
           </TabsContent>
 
-          <TabsContent value="comments">
-            <CommentsSection
-              itineraryId={event.id}
-              currentUserId={user?.id}
-              itineraryOwnerId={event.user_id}
-            />
-          </TabsContent>
+          {isAttendee && (
+            <TabsContent value="comments">
+              <CommentsSection
+                itineraryId={event.id}
+                currentUserId={user?.id}
+                itineraryOwnerId={event.user_id}
+              />
+            </TabsContent>
+          )}
         </Tabs>
 
         {/* Invite Friends Modal */}

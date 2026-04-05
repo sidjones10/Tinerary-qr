@@ -16,7 +16,7 @@ export async function GET(request: Request) {
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary-app.com"
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary.com"
 
     if (!serviceRoleKey) {
       console.error("SUPABASE_SERVICE_ROLE_KEY is not configured")
@@ -113,7 +113,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(redirectUrl)
   } catch (error) {
     console.error("Revoke sessions error:", error)
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary-app.com"
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary.com"
     const redirectUrl = new URL("/auth/forgot-password", appUrl)
     redirectUrl.searchParams.set("error", "server_error")
     return NextResponse.redirect(redirectUrl)

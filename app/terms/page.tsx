@@ -112,7 +112,7 @@ export default function TermsOfServicePage() {
 
             <h4 className="text-lg font-medium mb-3">4.2 Account Security</h4>
             <p className="mb-4">
-              You are responsible for maintaining the confidentiality of your account credentials and for all activity that occurs under your account. You agree to immediately notify us at <a href="mailto:legal@tinerary.app" className="text-primary hover:underline">legal@tinerary.app</a> if you suspect any unauthorized access to or use of your account.
+              You are responsible for maintaining the confidentiality of your account credentials and for all activity that occurs under your account. You agree to immediately notify us at <a href="mailto:legal@tinerary.com" className="text-primary hover:underline">legal@tinerary.com</a> if you suspect any unauthorized access to or use of your account.
             </p>
 
             <h4 className="text-lg font-medium mb-3">4.3 Account Termination</h4>
@@ -315,7 +315,7 @@ export default function TermsOfServicePage() {
             <p className="mb-4">If you have any questions about these Terms, please contact us at:</p>
             <p>
               <strong>Tinerary LLC</strong><br />
-              Email: <a href="mailto:legal@tinerary.app" className="text-primary hover:underline">legal@tinerary.app</a>
+              Email: <a href="mailto:legal@tinerary.com" className="text-primary hover:underline">legal@tinerary.com</a>
             </p>
           </section>
 

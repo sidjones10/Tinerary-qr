@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     const useTestDomain = process.env.NODE_ENV === "development" || process.env.USE_RESEND_TEST_DOMAIN === "true"
     const fromEmail = useTestDomain
       ? "Tinerary Test <onboarding@resend.dev>"
-      : "Tinerary <noreply@tinerary-app.com>"
+      : "Tinerary <noreply@tinerary.com>"
 
     let emailContent: { subject: string; html: string }
 
@@ -184,7 +184,7 @@ export async function POST(request: Request) {
     let fix = ""
 
     if (error.message?.includes("domain is not verified")) {
-      fix = "The domain tinerary-app.com is not verified in Resend. Either:\n1. Verify the domain at https://resend.com/domains\n2. Set USE_RESEND_TEST_DOMAIN=true in .env.local to use Resend's test domain (onboarding@resend.dev)"
+      fix = "The domain tinerary.com is not verified in Resend. Either:\n1. Verify the domain at https://resend.com/domains\n2. Set USE_RESEND_TEST_DOMAIN=true in .env.local to use Resend's test domain (onboarding@resend.dev)"
     } else if (error.message?.includes("API key")) {
       fix = "Your RESEND_API_KEY may be invalid. Get a new one from https://resend.com/api-keys"
     } else if (error.message?.includes("rate limit")) {

@@ -152,7 +152,7 @@ Get these from: **Supabase Dashboard** → **Settings** → **API**
 NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
 
 # Optional: Custom API URL (if you have one)
-NEXT_PUBLIC_API_URL=https://api.tinerary.app/v1
+NEXT_PUBLIC_API_URL=https://api.tinerary.com/v1
 
 # Optional: Session timeouts (defaults exist)
 NEXT_PUBLIC_SESSION_CHECK_INTERVAL=60000
@@ -266,7 +266,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function sendWelcomeEmail(email: string, name: string) {
   await resend.emails.send({
-    from: 'Tinerary <noreply@tinerary.app>',
+    from: 'Tinerary <noreply@tinerary.com>',
     to: email,
     subject: 'Welcome to Tinerary!',
     html: `
@@ -278,7 +278,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
 
 export async function sendEventInvite(email: string, eventTitle: string, eventUrl: string) {
   await resend.emails.send({
-    from: 'Tinerary <events@tinerary.app>',
+    from: 'Tinerary <events@tinerary.com>',
     to: email,
     subject: `You're invited: ${eventTitle}`,
     html: `

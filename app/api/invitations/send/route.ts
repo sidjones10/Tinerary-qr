@@ -5,7 +5,7 @@ import { sendInvitationEmail, sendEventInviteEmail } from "@/lib/email-notificat
 import { sendInvitationSMS, formatPhoneNumber } from "@/backend/services/twilio"
 import { computeInvitationExpiry } from "@/lib/invitation-expiry"
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary-app.com"
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary.com"
 
 /**
  * Determine whether a contact string is a phone number or email.

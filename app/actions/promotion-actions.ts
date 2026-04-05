@@ -658,13 +658,13 @@ export async function generateAffiliateLink(formData: FormData) {
       if (!promotionId) {
         return { success: false, error: "Promotion ID is required." }
       }
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary.app"
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary.com"
       targetUrl = `${appUrl}/promotion/${promotionId}`
     } else if (type === "itinerary") {
       if (!promotionId) {
         return { success: false, error: "Itinerary ID is required." }
       }
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary.app"
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary.com"
       targetUrl = `${appUrl}/trip/${promotionId}`
     } else {
       return { success: false, error: "Invalid link type." }
@@ -693,7 +693,7 @@ export async function generateAffiliateLink(formData: FormData) {
     }
 
     // Build the affiliate tracking URL
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary.app"
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary.com"
     const affiliateUrl = `${appUrl}/api/affiliate/track?code=${encodeURIComponent(affiliateCode)}&url=${encodeURIComponent(targetUrl)}`
 
     return {

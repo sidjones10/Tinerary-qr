@@ -412,6 +412,6 @@ export function buildAffiliateProductUrl(
   affiliateCode: string,
   appUrl?: string
 ): string {
-  const base = appUrl || process.env.NEXT_PUBLIC_APP_URL || "https://tinerary.app"
+  const base = appUrl || process.env.NEXT_PUBLIC_APP_URL || "https://tinerary.com"
   return `${base}/api/affiliate/track?code=${encodeURIComponent(affiliateCode)}&url=${encodeURIComponent(productUrl)}`
 }

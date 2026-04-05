@@ -69,7 +69,7 @@ export default function AdminSettingsPage() {
   const [settings, setSettings] = useState({
     siteName: "Tinerary",
     siteDescription: "Collaborative travel planning platform",
-    supportEmail: "support@tinerary.app",
+    supportEmail: "support@tinerary.com",
     enableGuestBrowsing: true,
     guestViewLimit: 5,
     enablePublicProfiles: true,

@@ -54,12 +54,12 @@ const FROM_EMAIL = "Tinerary <onboarding@resend.dev>"
 ### Option B: Use Your Own Domain (Recommended)
 
 1. **Resend Dashboard** → **Domains** → **Add Domain**
-2. Add your domain (e.g., `tinerary.app`)
+2. Add your domain (e.g., `tinerary.com`)
 3. Add the DNS records they provide to your domain registrar
 4. Wait for verification (usually < 24 hours)
 5. Update `FROM_EMAIL`:
    ```typescript
-   const FROM_EMAIL = "Tinerary <noreply@tinerary.app>"
+   const FROM_EMAIL = "Tinerary <noreply@tinerary.com>"
    ```
 
 ---

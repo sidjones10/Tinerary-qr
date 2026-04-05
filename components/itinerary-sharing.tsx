@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 export function ItinerarySharingOptions() {
   const [copied, setCopied] = useState(false)
-  const [shareLink, setShareLink] = useState("https://tinerary.app/trip/weekend-nyc-123")
+  const [shareLink, setShareLink] = useState("https://tinerary.com/trip/weekend-nyc-123")
 
   const copyLink = () => {
     navigator.clipboard.writeText(shareLink)

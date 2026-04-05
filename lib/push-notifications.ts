@@ -6,7 +6,7 @@ import { createServiceRoleClient } from "@/lib/supabase/server"
 // Generate with: npx web-push generate-vapid-keys
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ""
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || ""
-const VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:support@tinerary-app.com"
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:support@tinerary.com"
 
 let vapidConfigured = false
 

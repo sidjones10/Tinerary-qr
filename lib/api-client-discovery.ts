@@ -13,7 +13,7 @@ interface RecommendationItem {
 export class DiscoveryClient {
   // Get personalized discovery feed
   static async getDiscoveryFeed(request: DiscoveryFeedRequest): Promise<ApiResponse<DiscoveryFeedResponse>> {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.tinerary.app/v1"
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.tinerary.com/v1"
     const response = await fetch(`${API_URL}/discovery/feed`, {
       method: "POST",
       headers: ApiClient.getAuthHeaders(),
@@ -25,7 +25,7 @@ export class DiscoveryClient {
 
   // Get recommendations similar to an item
   static async getSimilarItems(itemId: string, itemType: string): Promise<ApiResponse<RecommendationItem[]>> {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.tinerary.app/v1"
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.tinerary.com/v1"
     const response = await fetch(`${API_URL}/discovery/similar?itemId=${itemId}&itemType=${itemType}`, {
       headers: ApiClient.getAuthHeaders(),
     })
@@ -39,7 +39,7 @@ export class DiscoveryClient {
     itemType: string,
     interactionType: "view" | "like" | "save" | "share" | "book",
   ): Promise<ApiResponse<void>> {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.tinerary.app/v1"
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.tinerary.com/v1"
     const response = await fetch(`${API_URL}/discovery/interaction`, {
       method: "POST",
       headers: ApiClient.getAuthHeaders(),

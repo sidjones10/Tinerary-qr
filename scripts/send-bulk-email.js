@@ -39,8 +39,8 @@ loadEnv();
 
 const { Resend } = require('resend');
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://tinerary-app.com';
-const FROM_EMAIL = 'Tinerary <noreply@tinerary-app.com>';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://tinerary.com';
+const FROM_EMAIL = 'Tinerary <noreply@tinerary.com>';
 
 async function sendWhatsNewEmail(email, name) {
   const resend = new Resend(process.env.RESEND_API_KEY);

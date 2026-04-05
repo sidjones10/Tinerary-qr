@@ -37,7 +37,7 @@ export async function exportEventToCalendar(event: CalendarEvent): Promise<{ suc
       url: event.url,
       status: "CONFIRMED",
       busyStatus: "BUSY",
-      organizer: { name: "Tinerary", email: "noreply@tinerary.app" },
+      organizer: { name: "Tinerary", email: "noreply@tinerary.com" },
     }
 
     const { error, value } = createEvents([icsEvent])
@@ -86,7 +86,7 @@ export async function exportMultipleEventsToCalendar(
       url: event.url,
       status: "CONFIRMED",
       busyStatus: "BUSY",
-      organizer: { name: "Tinerary", email: "noreply@tinerary.app" },
+      organizer: { name: "Tinerary", email: "noreply@tinerary.com" },
     }))
 
     const { error, value } = createEvents(icsEvents)

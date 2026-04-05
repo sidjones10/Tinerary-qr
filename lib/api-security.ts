@@ -6,8 +6,8 @@ import { NextResponse } from "next/server"
 
 const ALLOWED_ORIGINS = [
   process.env.NEXT_PUBLIC_APP_URL,
-  "https://tinerary-app.com",
-  "https://www.tinerary-app.com",
+  "https://tinerary.com",
+  "https://www.tinerary.com",
 ].filter(Boolean) as string[]
 
 /**

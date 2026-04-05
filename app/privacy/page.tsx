@@ -206,7 +206,7 @@ export default function PrivacyPolicyPage() {
               <li><strong>Location Tracking:</strong> Disable GPS location services in your device settings</li>
               <li><strong>Personalization Controls:</strong> Toggle personalized recommendations in Settings &gt; Privacy</li>
             </ul>
-            <p className="mt-4">To exercise any of your rights, contact us at <a href="mailto:legal@tinerary.app" className="text-primary hover:underline">legal@tinerary.app</a>.</p>
+            <p className="mt-4">To exercise any of your rights, contact us at <a href="mailto:legal@tinerary.com" className="text-primary hover:underline">legal@tinerary.com</a>.</p>
           </section>
 
           <section className="mb-8">
@@ -251,7 +251,7 @@ export default function PrivacyPolicyPage() {
               We comply with COPPA (United States), GDPR requirements for children&apos;s data (EU/UK), and applicable local child protection laws.
             </p>
             <p>
-              If we discover that we have collected personal information from a child below the applicable minimum age without proper consent, we will delete that information promptly. Contact us at <a href="mailto:legal@tinerary.app" className="text-primary hover:underline">legal@tinerary.app</a> if you believe a child has provided us with personal information inappropriately.
+              If we discover that we have collected personal information from a child below the applicable minimum age without proper consent, we will delete that information promptly. Contact us at <a href="mailto:legal@tinerary.com" className="text-primary hover:underline">legal@tinerary.com</a> if you believe a child has provided us with personal information inappropriately.
             </p>
           </section>
 
@@ -277,7 +277,7 @@ export default function PrivacyPolicyPage() {
             <p className="mb-4">If you have questions about this Privacy Policy or our data practices, please contact us at:</p>
             <p className="mb-4">
               <strong>Tinerary LLC</strong><br />
-              Email: <a href="mailto:legal@tinerary.app" className="text-primary hover:underline">legal@tinerary.app</a>
+              Email: <a href="mailto:legal@tinerary.com" className="text-primary hover:underline">legal@tinerary.com</a>
             </p>
             <p>For data protection inquiries, please include &ldquo;Privacy Request&rdquo; in the subject line.</p>
           </section>

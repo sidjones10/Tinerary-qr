@@ -26,7 +26,7 @@ export async function generateQRCode(data: string, options: QRCode.QRCodeToDataU
 
 export async function generateTicketQRCode(ticketId: string): Promise<string> {
   // Create a verification URL or deep link that can be used to verify the ticket
-  const verificationData = `${process.env.NEXT_PUBLIC_APP_URL || "https://tinerary.app"}/tickets/verify/${ticketId}`
+  const verificationData = `${process.env.NEXT_PUBLIC_APP_URL || "https://tinerary.com"}/tickets/verify/${ticketId}`
 
   // Generate QR code with custom options
   return generateQRCode(verificationData, {

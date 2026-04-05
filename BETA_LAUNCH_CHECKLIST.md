@@ -4,7 +4,7 @@
 
 ### 1. Deployment & Infrastructure ✅
 
-- [x] Domain configured: `tinerary-app.com`
+- [x] Domain configured: `tinerary.com`
 - [x] Vercel deployment working on main branch
 - [x] HTTPS certificate active
 - [ ] Verify production build completes successfully
@@ -13,7 +13,7 @@
 ### 2. Email System 📧
 
 - [x] Resend API key configured in Vercel environment
-- [x] Domain `tinerary-app.com` verified in Resend
+- [x] Domain `tinerary.com` verified in Resend
 - [x] DNS records configured (SPF, DKIM, DMARC)
 - [x] Welcome email integration in signup flow
 - [ ] Test signup - verify welcome email delivered
@@ -23,7 +23,7 @@
 **Test Commands:**
 ```bash
 # Signup test
-curl -X POST https://tinerary-app.com/api/auth/signup \
+curl -X POST https://tinerary.com/api/auth/signup \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"test123","username":"testuser"}'
 ```
@@ -128,7 +128,7 @@ Verify these are set in Vercel production environment:
 - [ ] `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - [ ] `SUPABASE_SERVICE_ROLE_KEY`
 - [ ] `RESEND_API_KEY`
-- [ ] `NEXT_PUBLIC_APP_URL=https://tinerary-app.com`
+- [ ] `NEXT_PUBLIC_APP_URL=https://tinerary.com`
 
 **Optional but Recommended:**
 - [ ] `DATABASE_URL` (if using direct database connections)

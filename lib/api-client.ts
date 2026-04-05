@@ -30,7 +30,7 @@ import { config } from "./config"
 const API_URL =
   typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_URL
     ? process.env.NEXT_PUBLIC_API_URL
-    : "https://api.tinerary.app/v1"
+    : "https://api.tinerary.com/v1"
 
 // Helper function to handle API responses
 async function handleResponse<T>(response: Response): Promise<ApiResponse<T>> {

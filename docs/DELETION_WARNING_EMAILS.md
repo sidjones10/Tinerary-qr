@@ -354,7 +354,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function sendEmail(options: EmailOptions) {
   const { data, error } = await resend.emails.send({
-    from: 'Tinerary <noreply@tinerary.app>',
+    from: 'Tinerary <noreply@tinerary.com>',
     to: options.to,
     subject: options.subject,
     html: options.html,

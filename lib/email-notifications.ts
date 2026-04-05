@@ -14,8 +14,8 @@ function getResendClient(): Resend {
   return resendClient
 }
 
-const FROM_EMAIL = "Tinerary <noreply@tinerary-app.com>"
-export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary-app.com"
+const FROM_EMAIL = "Tinerary <noreply@tinerary.com>"
+export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://tinerary.com"
 
 // ─── Shared email shell ───────────────────────────────────────────────
 // Clean modern layout with Nohemi headings and warm cream + orange + black brand palette.

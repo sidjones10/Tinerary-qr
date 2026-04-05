@@ -84,14 +84,27 @@ export async function sendCountdownReminder(
     sendEmail?: boolean
   }
 ): Promise<{ success: boolean; error?: string }> {
-  // Check if already sent
-  const alreadySent = await hasReminderBeenSent(itineraryId, userId, reminderType)
-  if (alreadySent) {
-    return { success: true } // Already sent, no need to send again
-  }
-
   // Use service-role client for cron operations (no user session available)
   const supabase = createServiceRoleClient()
+
+  // Atomically insert the reminder record first to prevent duplicates.
+  // The unique index ensures only one row can exist per (itinerary_id, user_id, reminder_type),
+  // so concurrent cron runs won't both proceed past this point.
+  const { error: insertError } = await supabase
+    .from("itinerary_reminders")
+    .insert({
+      itinerary_id: itineraryId,
+      user_id: userId,
+      reminder_type: reminderType,
+    })
+
+  if (insertError) {
+    if (insertError.code === "23505") {
+      return { success: true } // Already sent
+    }
+    console.error("Error inserting countdown reminder record:", insertError)
+    return { success: false, error: insertError.message }
+  }
 
   // Check user's notification preferences
   const prefs = await getUserNotificationPreferences(userId, supabase)
@@ -203,10 +216,6 @@ export async function sendCountdownReminder(
       console.error("Failed to send reminder email:", emailError)
       // Don't fail the whole operation if email fails
     }
-  }
-
-  if (result.success) {
-    await recordReminderSent(itineraryId, userId, reminderType)
   }
 
   return result
@@ -440,18 +449,25 @@ export async function sendActivityReminder(
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = createServiceRoleClient()
 
-  // Check if already sent (using activity_id to distinguish from itinerary-level reminders)
-  const { data: existing } = await supabase
+  // Atomically insert the reminder record first to prevent duplicates.
+  // The unique index on (itinerary_id, user_id, reminder_type, activity_id)
+  // ensures only one row can exist, so concurrent cron runs won't both proceed.
+  const { error: insertError } = await supabase
     .from("itinerary_reminders")
-    .select("id")
-    .eq("itinerary_id", itineraryId)
-    .eq("user_id", userId)
-    .eq("activity_id", activityId)
-    .eq("reminder_type", reminderType)
-    .maybeSingle()
+    .insert({
+      itinerary_id: itineraryId,
+      user_id: userId,
+      activity_id: activityId,
+      reminder_type: reminderType,
+    })
 
-  if (existing) {
-    return { success: true } // Already sent
+  if (insertError) {
+    // Unique constraint violation means reminder was already recorded — skip
+    if (insertError.code === "23505") {
+      return { success: true }
+    }
+    console.error("Error inserting activity reminder record:", insertError)
+    return { success: false, error: insertError.message }
   }
 
   // Check user preferences
@@ -498,16 +514,6 @@ export async function sendActivityReminder(
     } catch (pushError) {
       console.error("Failed to send activity push notification:", pushError)
     }
-  }
-
-  if (result.success) {
-    // Record with activity_id so we don't send duplicates
-    await supabase.from("itinerary_reminders").insert({
-      itinerary_id: itineraryId,
-      user_id: userId,
-      activity_id: activityId,
-      reminder_type: reminderType,
-    })
   }
 
   return result

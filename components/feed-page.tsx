@@ -364,7 +364,7 @@ export function FeedPage() {
         </div>
 
         {/* Feed Tabs */}
-        <div className="bg-white dark:bg-card rounded-full p-1 mb-4 inline-flex w-full max-w-md">
+        <div className="bg-white dark:bg-card rounded-full p-1 mb-4 inline-flex w-full max-w-md mr-3">
           <button
             className={`flex-1 px-6 py-2 rounded-full text-sm font-medium transition-colors ${
               feedTab === "forYou" ? "bg-[#FF9B7D] text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"

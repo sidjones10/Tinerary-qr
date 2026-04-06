@@ -55,6 +55,7 @@ export function MutualsSection({ eventId, limit = 8, showSeeAll = true, classNam
   const [allMutuals, setAllMutuals] = useState<MutualConnection[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(false)
+  const [hidden, setHidden] = useState(false)
   const { user } = useAuth()
 
   useEffect(() => {
@@ -130,7 +131,19 @@ export function MutualsSection({ eventId, limit = 8, showSeeAll = true, classNam
           <Button
             variant="ghost"
             className="text-white/70 hover:text-white hover:bg-white/10 gap-1"
-            onClick={() => setExpanded(!expanded)}
+            onClick={() => {
+              if (expanded) {
+                // Hide the entire list
+                setExpanded(false)
+                setHidden(true)
+              } else if (hidden) {
+                // Show the limited list again
+                setHidden(false)
+              } else {
+                // Expand to show all
+                setExpanded(true)
+              }
+            }}
           >
             {expanded ? (
               <>Hide <ChevronUp className="h-4 w-4" /></>
@@ -141,7 +154,7 @@ export function MutualsSection({ eventId, limit = 8, showSeeAll = true, classNam
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+      {!hidden && <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
         {(expanded ? allMutuals : mutuals).map((mutual) => {
           const gradient = getGradientForUser(mutual.id)
           const initials = getInitials(mutual.name)
@@ -193,7 +206,7 @@ export function MutualsSection({ eventId, limit = 8, showSeeAll = true, classNam
             </Link>
           )
         })}
-      </div>
+      </div>}
     </div>
   )
 }

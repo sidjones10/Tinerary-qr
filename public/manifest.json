@@ -1,13 +1,18 @@
 {
+  "id": "/",
   "name": "Tinerary",
   "short_name": "Tinerary",
   "description": "Create and share your travel itineraries",
   "start_url": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#ffffff",
   "theme_color": "#E11D48",
   "orientation": "portrait-primary",
   "scope": "/",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["travel", "lifestyle"],
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
@@ -34,7 +39,50 @@
       "purpose": "maskable"
     }
   ],
-  "categories": ["travel", "lifestyle"],
-  "lang": "en",
-  "dir": "ltr"
+  "shortcuts": [
+    {
+      "name": "Create Itinerary",
+      "short_name": "Create",
+      "description": "Start a new travel itinerary",
+      "url": "/create",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Discover",
+      "short_name": "Discover",
+      "description": "Find new itineraries to explore",
+      "url": "/discover",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "For You",
+      "short_name": "For You",
+      "description": "Personalized itinerary feed",
+      "url": "/for-you",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/mobile-1.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Browse trending itineraries"
+    },
+    {
+      "src": "/screenshots/mobile-2.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Build your day-by-day plan"
+    },
+    {
+      "src": "/screenshots/desktop-1.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Tinerary on the web"
+    }
+  ]
 }

@@ -31,6 +31,7 @@ import { shouldPromptCoverUpdate } from "@/lib/reminder-utils"
 import { ReportDialog } from "@/components/report-dialog"
 import { RsvpBanner, submitRsvp } from "@/components/rsvp-banner"
 import { PartifulRsvpModal } from "@/components/partiful-rsvp-modal"
+import { CohostManager } from "@/components/cohost-manager"
 import { cn, parseLocalDate } from "@/lib/utils"
 
 interface Activity {
@@ -1299,6 +1300,9 @@ export function EventDetail({ event }: EventDetailProps) {
           </TabsContent>
 
           <TabsContent value="attendees">
+            <div className="mb-6 rounded-lg border bg-card p-4">
+              <CohostManager itineraryId={event.id} isOwner={isOwner} />
+            </div>
             {loadingInvitations ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

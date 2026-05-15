@@ -346,6 +346,35 @@ export interface Database {
           updated_at?: string
         }
       }
+      itinerary_attendees: {
+        Row: {
+          id: string
+          itinerary_id: string
+          user_id: string
+          role: "owner" | "admin" | "member"
+          joined_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          itinerary_id: string
+          user_id: string
+          role?: "owner" | "admin" | "member"
+          joined_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          itinerary_id?: string
+          user_id?: string
+          role?: "owner" | "admin" | "member"
+          joined_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
       itinerary_categories: {
         Row: {
           id: string

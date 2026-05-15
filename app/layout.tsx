@@ -20,8 +20,20 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: "Tinerary",
-  description: "Create and share your travel itineraries",
+  description: "A taste-driven platform for the way you actually travel.",
   generator: 'v0.app',
+  openGraph: {
+    title: "Tinerary",
+    description: "A taste-driven platform for the way you actually travel.",
+    url: "https://tinerary.com",
+    siteName: "Tinerary",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Tinerary",
+    description: "A taste-driven platform for the way you actually travel.",
+  },
   manifest: '/manifest.json',
   icons: {
     icon: [

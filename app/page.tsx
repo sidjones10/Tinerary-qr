@@ -2,25 +2,20 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
 import { FeedPage } from "@/components/feed-page"
 import { AppHeader } from "@/components/app-header"
+import { FoundersListSignup } from "@/components/founders-list-signup"
 import { useAuth } from "@/providers/auth-provider"
 import { Loader2 } from "lucide-react"
-import { useTranslation } from "react-i18next"
-import { PHASE_2_ENABLED } from "@/lib/phase2"
-import { InstallAppBanner } from "@/components/install-app-banner"
 
 export default function HomePage() {
   const { user, isLoading } = useAuth()
   const [mounted, setMounted] = useState(false)
-  const { t } = useTranslation()
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  // Prevent hydration mismatch by showing loading on initial render
   if (!mounted || isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -40,83 +35,55 @@ export default function HomePage() {
     )
   }
 
-  // Landing page for non-authenticated users
+  // Manifesto homepage for non-authenticated visitors.
+  // Per the Phase 1 rollout: a single statement of belief, no feature list,
+  // no app screenshots, no "Get Started" CTA — only the Founders' List.
   return (
-    <div className="flex flex-col min-h-screen">
-      <header className="bg-white dark:bg-card shadow-sm py-4">
-        <div className="container mx-auto px-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Tinerary</h1>
-          <div className="space-x-2">
-            <Button variant="outline" asChild>
-              <Link href="/auth">{t("nav.signIn")}</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/discover?guest=true">{t("home.browseItineraries")}</Link>
-            </Button>
-          </div>
-        </div>
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ background: "#0a0a0a", color: "#f5f5f0", ["--manifesto-bg" as any]: "#0a0a0a" }}
+    >
+      <header className="px-6 sm:px-10 py-6 flex items-center justify-between text-sm tracking-[0.2em] uppercase">
+        <span>Tinerary</span>
+        <nav className="flex items-center gap-5">
+          <Link href="/browse" className="hover:opacity-80">Browse</Link>
+          <Link href="/auteurs" className="hover:opacity-80 hidden sm:inline">Auteurs</Link>
+          <Link href="/journal" className="hover:opacity-80 hidden sm:inline">Journal</Link>
+          <Link href="/auth" className="hover:opacity-80">Sign in</Link>
+        </nav>
       </header>
 
-      <main className="flex-1 container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-bold mb-6">{t("home.planYourJourney")}</h2>
-          <p className="text-xl mb-8">{t("home.browseFreely")}</p>
+      <main className="flex-1 flex items-center justify-center px-6 sm:px-10 py-16">
+        <div className="w-full max-w-3xl text-center">
+          <p className="text-xs sm:text-sm tracking-[0.4em] uppercase opacity-70 mb-10">
+            Beta — July 2026
+          </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-8 rounded-lg">
-              <h3 className="text-2xl font-semibold mb-4">{t("home.browseWithoutSignUp")}</h3>
-              <p className="mb-6">
-                {t("home.exploreDestinations")}
-              </p>
-              <Button variant="outline" size="lg" asChild>
-                <Link href="/discover?guest=true">{t("home.startBrowsing")}</Link>
-              </Button>
-            </div>
+          <h1 className="font-serif text-3xl sm:text-5xl md:text-6xl leading-[1.15] mb-10">
+            How you travel says who you are.
+          </h1>
 
-            <div className="bg-green-50 dark:bg-green-900/20 p-8 rounded-lg">
-              <h3 className="text-2xl font-semibold mb-4">{t("home.createOwn")}</h3>
-              <p className="mb-6">{t("home.signUpToCreate")}</p>
-              <Button size="lg" asChild>
-                <Link href="/auth?tab=signup">{t("home.signUpNow")}</Link>
-              </Button>
-            </div>
-          </div>
+          <p className="text-base sm:text-lg leading-relaxed max-w-xl mx-auto opacity-90 mb-12">
+            Tinerary is a taste-driven travel platform — authored, attributed, and shareable.
+            Built for the way you actually travel, not the way a booking funnel wants you to.
+          </p>
 
-          <div className="max-w-md mx-auto">
-            <InstallAppBanner />
-          </div>
+          <FoundersListSignup source="homepage" />
+
+          <p className="mt-6 text-xs tracking-widest uppercase opacity-60">
+            🟡
+          </p>
         </div>
       </main>
 
-      <footer className="bg-gray-100 dark:bg-card py-8">
-        <div className="container mx-auto px-4 text-center">
-          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mb-4">
-            <Link href="/pricing" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline">
-              Pricing
-            </Link>
-            {PHASE_2_ENABLED && (
-              <>
-                <span className="text-gray-400 dark:text-gray-600">|</span>
-                <Link href="/business" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline">
-                  For Business
-                </Link>
-                <span className="text-gray-400 dark:text-gray-600">|</span>
-                <Link href="/creators" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline">
-                  For Creators
-                </Link>
-              </>
-            )}
-            <span className="text-gray-400 dark:text-gray-600">|</span>
-            <Link href="/terms" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline">
-              {t("home.termsOfService")}
-            </Link>
-            <span className="text-gray-400 dark:text-gray-600">|</span>
-            <Link href="/privacy" className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:underline">
-              {t("home.privacyPolicy")}
-            </Link>
-          </div>
-          <p className="text-gray-600 dark:text-gray-400">&copy; {new Date().getFullYear()} Tinerary. {t("home.allRightsReserved")}</p>
-        </div>
+      <footer className="px-6 sm:px-10 py-8 text-xs tracking-widest uppercase opacity-60 flex flex-wrap gap-x-6 gap-y-2 justify-center">
+        <Link href="/browse" className="hover:opacity-100">Browse</Link>
+        <Link href="/auteurs" className="hover:opacity-100">Auteurs</Link>
+        <Link href="/journal" className="hover:opacity-100">Journal</Link>
+        <Link href="/press" className="hover:opacity-100">Press</Link>
+        <Link href="/issues" className="hover:opacity-100">Issues</Link>
+        <Link href="/terms" className="hover:opacity-100">Terms</Link>
+        <Link href="/privacy" className="hover:opacity-100">Privacy</Link>
       </footer>
     </div>
   )

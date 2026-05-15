@@ -74,7 +74,7 @@ const RESPONSE_TO_STATUS: Record<string, string> = {
  *  Calls the rsvp_to_event RPC directly (SECURITY DEFINER bypasses RLS). */
 export async function submitRsvp(
   response: "accept" | "decline" | "tentative",
-  opts: { invitationId?: string; itineraryId: string }
+  opts: { invitationId?: string; itineraryId: string; note?: string; guestCount?: number }
 ): Promise<{ invitationId?: string }> {
   const newStatus = RESPONSE_TO_STATUS[response]
   const supabase = createClient()
@@ -82,6 +82,8 @@ export async function submitRsvp(
   const { data, error } = await supabase.rpc("rsvp_to_event", {
     p_itinerary_id: opts.itineraryId,
     p_response: newStatus,
+    p_note: opts.note ?? null,
+    p_guest_count: opts.guestCount ?? 1,
   })
 
   if (error) {

@@ -1,8 +1,10 @@
-const CACHE_NAME = 'tinerary-v2';
+const CACHE_NAME = 'tinerary-v3';
+const OFFLINE_URL = '/offline';
 
 // Static assets to pre-cache on install
 const PRECACHE_ASSETS = [
   '/',
+  OFFLINE_URL,
   '/manifest.json',
   '/Tinerary_icon.png',
   '/icons/icon-192x192.png',
@@ -53,7 +55,10 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           return response;
         })
-        .catch(() => caches.match(request))
+        .catch(async () => {
+          const cached = await caches.match(request);
+          return cached || caches.match(OFFLINE_URL);
+        })
     );
     return;
   }

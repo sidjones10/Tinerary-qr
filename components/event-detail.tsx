@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { format } from "date-fns"
-import { ArrowLeft, Calendar, MapPin, Clock, Share2, Heart, Users, Edit, Trash2, Loader2, Flag, Mail, Phone, CheckCircle2, XCircle, UserMinus, Check, HelpCircle, X } from "lucide-react"
+import { ArrowLeft, Calendar, MapPin, Clock, Share2, Heart, Users, Edit, Trash2, Loader2, Flag, Mail, Phone, CheckCircle2, XCircle, UserMinus, X } from "lucide-react"
 import { MentionHighlightBadge } from "@/components/mention-highlight-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -29,7 +29,8 @@ import { getFontFamily } from "@/components/font-selector"
 import { PostEventCoverPrompt } from "@/components/post-event-cover-prompt"
 import { shouldPromptCoverUpdate } from "@/lib/reminder-utils"
 import { ReportDialog } from "@/components/report-dialog"
-import { RsvpBanner, RsvpPill, submitRsvp } from "@/components/rsvp-banner"
+import { RsvpBanner, submitRsvp } from "@/components/rsvp-banner"
+import { PartifulRsvpModal } from "@/components/partiful-rsvp-modal"
 import { cn, parseLocalDate } from "@/lib/utils"
 
 interface Activity {
@@ -145,7 +146,7 @@ export function EventDetail({ event }: EventDetailProps) {
   const [invitations, setInvitations] = useState<InvitationInfo[]>([])
   const [loadingInvitations, setLoadingInvitations] = useState(false)
   const [removingInvitationId, setRemovingInvitationId] = useState<string | null>(null)
-  const [isSubmittingInlineRsvp, setIsSubmittingInlineRsvp] = useState(false)
+  const [showRsvpModal, setShowRsvpModal] = useState(false)
   const [myInvitation, setMyInvitation] = useState<{ id: string; status: "pending" | "accepted" | "declined" | "tentative" } | null>(null)
   const [arrivedViaInviteLink, setArrivedViaInviteLink] = useState(false)
   const [attendeeCounts, setAttendeeCounts] = useState<{ going: number; maybe: number }>({ going: 1, maybe: 0 }) // 1 = host
@@ -679,47 +680,6 @@ export function EventDetail({ event }: EventDetailProps) {
       })
     } finally {
       setIsSendingInvite(false)
-    }
-  }
-
-  const handleInlineRsvp = async (response: "accept" | "decline" | "tentative") => {
-    const statusMap: Record<string, "accepted" | "declined" | "tentative"> = {
-      accept: "accepted",
-      decline: "declined",
-      tentative: "tentative",
-    }
-    const newStatus = statusMap[response]
-    if (myInvitation?.status === newStatus) return
-
-    // Optimistic update for the attendee row
-    setMyInvitation((prev) => prev ? { ...prev, status: newStatus } : prev)
-    setInvitations((prev) =>
-      prev.map((inv) =>
-        inv.invitee_id === user?.id ? { ...inv, status: newStatus as any } : inv
-      )
-    )
-    setIsSubmittingInlineRsvp(true)
-    try {
-      const data = await submitRsvp(response, {
-        invitationId: myInvitation?.id,
-        itineraryId: event.id,
-      })
-
-      const invId = data.invitationId || myInvitation?.id || ""
-      setMyInvitation({ id: invId, status: newStatus })
-      fetchInvitations()
-      fetchAttendeeCounts()
-    } catch (error: any) {
-      // Revert optimistic update on failure
-      setMyInvitation((prev) => prev ? { ...prev, status: myInvitation?.status || "pending" } : prev)
-      fetchInvitations()
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update RSVP",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSubmittingInlineRsvp(false)
     }
   }
 
@@ -1402,34 +1362,24 @@ export function EventDetail({ event }: EventDetailProps) {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {/* Current user sees inline RSVP pills to change their status */}
+                        {/* Current user sees a status badge that opens the Partiful-style RSVP modal */}
                         {!isOwner && user && inv.invitee_id === user.id ? (
-                          <div className="flex gap-1.5">
-                            <RsvpPill
-                              label="Going"
-                              icon={Check}
-                              isActive={myInvitation?.status === "accepted"}
-                              activeColor="bg-emerald-500 hover:bg-emerald-600"
-                              onClick={() => handleInlineRsvp("accept")}
-                              disabled={isSubmittingInlineRsvp}
-                            />
-                            <RsvpPill
-                              label="Maybe"
-                              icon={HelpCircle}
-                              isActive={myInvitation?.status === "tentative"}
-                              activeColor="bg-amber-500 hover:bg-amber-600"
-                              onClick={() => handleInlineRsvp("tentative")}
-                              disabled={isSubmittingInlineRsvp}
-                            />
-                            <RsvpPill
-                              label="Can't Go"
-                              icon={X}
-                              isActive={myInvitation?.status === "declined"}
-                              activeColor="bg-red-500 hover:bg-red-600"
-                              onClick={() => handleInlineRsvp("decline")}
-                              disabled={isSubmittingInlineRsvp}
-                            />
-                          </div>
+                          <button
+                            onClick={() => setShowRsvpModal(true)}
+                            className={cn(
+                              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all hover:scale-105 hover:shadow-md cursor-pointer",
+                              myInvitation?.status === "accepted" && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+                              myInvitation?.status === "tentative" && "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+                              myInvitation?.status === "declined" && "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+                              myInvitation?.status === "pending" && "bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-gray-300",
+                              !myInvitation?.status && "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300"
+                            )}
+                          >
+                            <span className="text-sm">
+                              {myInvitation?.status === "accepted" ? "👍" : myInvitation?.status === "tentative" ? "🤔" : myInvitation?.status === "declined" ? "😢" : "✉️"}
+                            </span>
+                            {myInvitation?.status === "accepted" ? "Going" : myInvitation?.status === "tentative" ? "Maybe" : myInvitation?.status === "declined" ? "Can't Go" : "RSVP"}
+                          </button>
                         ) : (
                           <div className="flex items-center gap-1.5">
                             {inv.status === "accepted" ? (
@@ -1562,6 +1512,26 @@ export function EventDetail({ event }: EventDetailProps) {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Partiful-style RSVP Modal */}
+        <PartifulRsvpModal
+          open={showRsvpModal}
+          onOpenChange={setShowRsvpModal}
+          itineraryId={event.id}
+          invitationId={myInvitation?.id}
+          currentStatus={myInvitation?.status}
+          userName={user?.user_metadata?.name || user?.email?.split("@")[0] || ""}
+          onStatusChange={(newStatus, invId) => {
+            setMyInvitation({ id: invId || myInvitation?.id || "", status: newStatus as any })
+            setInvitations((prev) =>
+              prev.map((inv) =>
+                inv.invitee_id === user?.id ? { ...inv, status: newStatus as any } : inv
+              )
+            )
+            fetchInvitations()
+            fetchAttendeeCounts()
+          }}
+        />
       </div>
     </div>
   </div>

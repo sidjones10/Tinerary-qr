@@ -137,6 +137,7 @@ export function EventDetail({ event }: EventDetailProps) {
   const [packingItems, setPackingItems] = useState<PackingItem[]>([])
   const [canAccessPacking, setCanAccessPacking] = useState(false)
   const [canAccessExpenses, setCanAccessExpenses] = useState(false)
+  const [canAccessComments, setCanAccessComments] = useState(false)
   const [checkingAccess, setCheckingAccess] = useState(true)
   const [coverImage, setCoverImage] = useState(event.image_url as string | undefined)
   const [showCoverPrompt, setShowCoverPrompt] = useState(false)
@@ -426,6 +427,7 @@ export function EventDetail({ event }: EventDetailProps) {
       if (isOwner) {
         setCanAccessPacking(true)
         setCanAccessExpenses(true)
+        setCanAccessComments(true)
         setCheckingAccess(false)
         return
       }
@@ -449,6 +451,7 @@ export function EventDetail({ event }: EventDetailProps) {
       // Attendees and owners can access private content
       setCanAccessPacking(isAttendee)
       setCanAccessExpenses(isAttendee)
+      setCanAccessComments(isAttendee)
 
       setCheckingAccess(false)
     }
@@ -1486,11 +1489,40 @@ export function EventDetail({ event }: EventDetailProps) {
           </TabsContent>
 
           <TabsContent value="comments">
-            <CommentsSection
-              itineraryId={event.id}
-              currentUserId={user?.id}
-              itineraryOwnerId={event.user_id}
-            />
+            {checkingAccess ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : canAccessComments ? (
+              <CommentsSection
+                itineraryId={event.id}
+                currentUserId={user?.id}
+                itineraryOwnerId={event.user_id}
+              />
+            ) : (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="rounded-full bg-amber-100 dark:bg-amber-900/30 p-4 mb-4">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-8 w-8 text-amber-600"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Comments are Private</h3>
+                  <p className="text-muted-foreground max-w-md">
+                    Comments are only visible to the event creator and attendees.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
 

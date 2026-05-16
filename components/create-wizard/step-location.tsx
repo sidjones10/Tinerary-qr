@@ -2,9 +2,10 @@
 
 import { useState } from "react"
 import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { MapPin, Navigation } from "lucide-react"
+import { LocationAutocomplete } from "@/components/location-autocomplete"
+import { reverseGeocode } from "@/lib/geocode"
+import { Navigation } from "lucide-react"
 
 interface StepLocationProps {
   formData: {
@@ -18,49 +19,47 @@ export function StepLocation({ formData, onChange, errors }: StepLocationProps) 
   const [isGettingLocation, setIsGettingLocation] = useState(false)
 
   const handleUseCurrentLocation = () => {
-    if ("geolocation" in navigator) {
-      setIsGettingLocation(true)
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          // Reverse geocode to get address
-          // For now, just use coordinates
-          const location = `${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`
-          onChange("location", location)
-          setIsGettingLocation(false)
-        },
-        (error) => {
-          console.error("Error getting location:", error)
-          setIsGettingLocation(false)
-          alert("Could not get your location. Please enter it manually.")
-        }
-      )
-    } else {
+    if (!("geolocation" in navigator)) {
       alert("Geolocation is not supported by your browser")
+      return
     }
+
+    setIsGettingLocation(true)
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords
+        const place = await reverseGeocode(latitude, longitude)
+        // Fall back to coordinates only if reverse geocoding fails.
+        onChange("location", place || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`)
+        setIsGettingLocation(false)
+      },
+      (error) => {
+        console.error("Error getting location:", error)
+        setIsGettingLocation(false)
+        alert("Could not get your location. Please search for it manually.")
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
   }
 
   return (
     <div className="space-y-6">
-      {/* Location Input */}
+      {/* Location search */}
       <div className="space-y-2">
         <Label htmlFor="location" className="text-base font-semibold">
-          Where is this {formData.location ? "located" : "happening"}?
+          Where is this happening?
           <span className="text-red-500 ml-1">*</span>
         </Label>
-        <div className="relative">
-          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-          <Input
-            id="location"
-            placeholder="e.g., New York, NY or 123 Main St, City, State"
-            value={formData.location}
-            onChange={(e) => onChange("location", e.target.value)}
-            className="text-lg h-12 pl-11"
-          />
-        </div>
+        <LocationAutocomplete
+          id="location"
+          value={formData.location}
+          onChange={(value) => onChange("location", value)}
+          placeholder="Search a city, address, or place…"
+        />
         {errors?.location && <p className="text-sm text-red-500">{errors.location}</p>}
       </div>
 
-      {/* Use Current Location */}
+      {/* Use current location */}
       <div className="flex items-center justify-center">
         <Button
           type="button"
@@ -74,7 +73,7 @@ export function StepLocation({ formData, onChange, errors }: StepLocationProps) 
         </Button>
       </div>
 
-      {/* Popular Locations */}
+      {/* Popular locations */}
       <div className="space-y-3">
         <Label className="text-sm font-medium text-gray-600 dark:text-gray-400">Quick Select:</Label>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -105,8 +104,8 @@ export function StepLocation({ formData, onChange, errors }: StepLocationProps) 
       {/* Helper text */}
       <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 rounded-lg p-4">
         <p className="text-sm text-purple-800">
-          <strong>Tip:</strong> Be as specific as possible! Include city and state, or even a full address for precise
-          location.
+          <strong>Tip:</strong> Start typing to search for a city, address, or specific
+          venue. Pick a suggestion for the most accurate location.
         </p>
       </div>
     </div>

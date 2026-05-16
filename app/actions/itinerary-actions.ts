@@ -13,7 +13,7 @@ type NewActivity = Omit<Activity, "id" | "created_at" | "user_id">
 
 // Returns true if the user is the original creator OR a co-host (admin)
 async function canEditItinerary(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   itineraryId: string,
   userId: string,
 ): Promise<{ allowed: boolean; isOwner: boolean }> {
@@ -39,7 +39,7 @@ async function canEditItinerary(
 
 // Itinerary actions
 export async function createItinerary(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Check if user is authenticated
   const {
@@ -80,7 +80,7 @@ export async function createItinerary(formData: FormData) {
 }
 
 export async function updateItinerary(id: string, formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Check if user is authenticated
   const {
@@ -125,7 +125,7 @@ export async function updateItinerary(id: string, formData: FormData) {
 }
 
 export async function deleteItinerary(id: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Check if user is authenticated
   const {
@@ -165,7 +165,7 @@ export async function deleteItinerary(id: string) {
 }
 
 export async function rsvpToItinerary(itineraryId: string, response: "yes" | "no" | "maybe") {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Check if user is authenticated
   const {
@@ -200,7 +200,7 @@ export async function rsvpToItinerary(itineraryId: string, response: "yes" | "no
 
 // Activity actions
 export async function createActivity(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Check if user is authenticated
   const {
@@ -253,7 +253,7 @@ export async function createActivity(formData: FormData) {
 }
 
 export async function updateActivity(id: string, formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Check if user is authenticated
   const {
@@ -309,7 +309,7 @@ export async function updateActivity(id: string, formData: FormData) {
 }
 
 export async function deleteActivity(id: string, itineraryId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Check if user is authenticated
   const {
@@ -374,7 +374,7 @@ export type ProfileSuggestion = {
 }
 
 export async function listCohosts(itineraryId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { session },
   } = await supabase.auth.getSession()
@@ -418,7 +418,7 @@ export async function listCohosts(itineraryId: string) {
 }
 
 export async function addCohost(itineraryId: string, cohostUserId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { session },
   } = await supabase.auth.getSession()
@@ -464,7 +464,7 @@ export async function addCohost(itineraryId: string, cohostUserId: string) {
 }
 
 export async function removeCohost(itineraryId: string, cohostUserId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { session },
   } = await supabase.auth.getSession()
@@ -511,7 +511,7 @@ export async function removeCohost(itineraryId: string, cohostUserId: string) {
 }
 
 export async function searchUsersForCohost(query: string, itineraryId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { session },
   } = await supabase.auth.getSession()

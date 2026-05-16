@@ -73,7 +73,9 @@ export function PackingList({ simplified = false, items, tripId, onItemsChange }
     (state, action: { type: string; item: PackingItem; id?: string }) => {
       switch (action.type) {
         case "toggle":
-          return state.map((item) => (item.id === action.item.id ? { ...item, packed: !item.packed } : item))
+          return state.map((item) =>
+            item.id === action.item.id ? { ...item, packed: action.item.packed } : item,
+          )
         case "add":
           return [...state, action.item]
         case "update":
@@ -202,6 +204,10 @@ export function PackingList({ simplified = false, items, tripId, onItemsChange }
             item: { ...item, packed: currentPacked },
           })
           setError("Failed to update item status. Please try again.")
+        } else {
+          // Notify parent to refresh data so the change persists after the
+          // optimistic state clears
+          onItemsChange?.()
         }
       } catch (err) {
         // Revert optimistic update on error

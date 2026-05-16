@@ -1,27 +1,19 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Loader2, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/providers/auth-provider"
-import { SignupPromptDialog } from "@/components/signup-prompt-dialog"
 import { DiscoveryFeed } from "@/components/discovery-feed"
 import { useTranslation } from "react-i18next"
-
-const GUEST_VIEW_LIMIT = 5
-const GUEST_VIEWS_KEY = "tinerary_guest_views"
 
 export default function DiscoverPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, isLoading: authLoading } = useAuth()
   const isGuestMode = searchParams?.get("guest") === "true"
-
-  const [guestViewCount, setGuestViewCount] = useState(0)
-  const [showSignupPrompt, setShowSignupPrompt] = useState(false)
-  const [promptReason, setPromptReason] = useState<"like" | "comment" | "save" | "limit_reached" | "general">("general")
   const { t } = useTranslation()
 
   // If user is logged in and not in guest mode, redirect to home
@@ -31,21 +23,6 @@ export default function DiscoverPage() {
     }
   }, [user, authLoading, isGuestMode, router])
 
-  // Load guest view count from localStorage
-  useEffect(() => {
-    if (isGuestMode && typeof window !== "undefined") {
-      const stored = localStorage.getItem(GUEST_VIEWS_KEY)
-      if (stored) {
-        const count = parseInt(stored, 10)
-        setGuestViewCount(count)
-        if (count >= GUEST_VIEW_LIMIT) {
-          setPromptReason("limit_reached")
-          setShowSignupPrompt(true)
-        }
-      }
-    }
-  }, [isGuestMode])
-
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -53,6 +30,8 @@ export default function DiscoverPage() {
       </div>
     )
   }
+
+  const isGuest = !user
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-background">
@@ -67,33 +46,36 @@ export default function DiscoverPage() {
             </Button>
             <h1 className="text-xl font-bold">{t("discover.title")}</h1>
           </div>
-          <div className="flex items-center gap-2">
-            {isGuestMode && (
-              <span className="text-sm text-muted-foreground mr-2">
-                {guestViewCount}/{GUEST_VIEW_LIMIT} {t("discover.freeViews")}
-              </span>
-            )}
-            <Button variant="outline" asChild>
-              <Link href="/auth">{t("nav.signIn")}</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/auth?tab=signup">{t("nav.signUp")}</Link>
-            </Button>
-          </div>
+          {isGuest && (
+            <div className="flex items-center gap-2">
+              <Button variant="outline" asChild>
+                <Link href="/auth">{t("nav.signIn")}</Link>
+              </Button>
+              <Button asChild>
+                <Link href="/auth?tab=signup">{t("nav.signUp")}</Link>
+              </Button>
+            </div>
+          )}
         </div>
       </header>
 
-      {/* TikTok-style Discovery Feed */}
+      {/* Soft guest notice — no counter, no hard wall */}
+      {isGuest && (
+        <div className="bg-amber-50 dark:bg-amber-900/10 border-b border-amber-100 dark:border-amber-900/20">
+          <div className="container mx-auto px-4 py-2 text-center text-sm text-amber-900/80 dark:text-amber-200/70">
+            You're browsing as a guest.{" "}
+            <Link href="/auth?tab=signup" className="font-medium underline underline-offset-2">
+              Create an account
+            </Link>{" "}
+            to save itineraries and follow auteurs.
+          </div>
+        </div>
+      )}
+
+      {/* Discovery feed — open scroll for everyone */}
       <main className="container mx-auto px-4 py-4">
         <DiscoveryFeed />
       </main>
-
-      {/* Signup prompt dialog */}
-      <SignupPromptDialog
-        isOpen={showSignupPrompt}
-        onClose={() => setShowSignupPrompt(false)}
-        reason={promptReason}
-      />
     </div>
   )
 }

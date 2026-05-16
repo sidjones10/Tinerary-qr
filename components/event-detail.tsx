@@ -32,6 +32,7 @@ import { ReportDialog } from "@/components/report-dialog"
 import { RsvpBanner, submitRsvp } from "@/components/rsvp-banner"
 import { PartifulRsvpModal } from "@/components/partiful-rsvp-modal"
 import { CohostManager } from "@/components/cohost-manager"
+import { listCohosts, type Cohost } from "@/app/actions/itinerary-actions"
 import { cn, parseLocalDate } from "@/lib/utils"
 
 interface Activity {
@@ -152,8 +153,21 @@ export function EventDetail({ event }: EventDetailProps) {
   const [arrivedViaInviteLink, setArrivedViaInviteLink] = useState(false)
   const [attendeeCounts, setAttendeeCounts] = useState<{ going: number; maybe: number }>({ going: 1, maybe: 0 }) // 1 = host
   const [invitationsEnabled, setInvitationsEnabled] = useState<boolean>(event.invitations_enabled !== false)
+  const [cohosts, setCohosts] = useState<Cohost[]>([])
   const isOwner = !!(user && user.id === event.user_id)
   const searchParams = useSearchParams()
+
+  // Fetch co-hosts (admins) to display alongside the host (non-blocking)
+  useEffect(() => {
+    let cancelled = false
+    listCohosts(event.id).then((res) => {
+      if (cancelled || !res.success) return
+      setCohosts(res.data.filter((c) => c.role === "admin" && c.user_id !== event.user_id))
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [event.id, event.user_id])
 
   // Track if user arrived via an invite link so we can show the RSVP banner
   useEffect(() => {
@@ -938,6 +952,40 @@ export function EventDetail({ event }: EventDetailProps) {
                   )}
                 </div>
               </div>
+
+              {cohosts.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <div className="flex -space-x-2">
+                    {cohosts
+                      .filter((c) => c.profile?.avatar_url)
+                      .map((c) => (
+                        <img
+                          key={c.user_id}
+                          src={c.profile!.avatar_url as string}
+                          alt={c.profile?.name || c.profile?.username || "Co-host"}
+                          className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
+                        />
+                      ))}
+                  </div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    Co-Hosted by{" "}
+                    {cohosts.map((c, i) => (
+                      <span key={c.user_id}>
+                        <span
+                          className="cursor-pointer hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            router.push(`/user/${c.user_id}`)
+                          }}
+                        >
+                          {c.profile?.name || c.profile?.username || "Co-host"}
+                        </span>
+                        {i < cohosts.length - 1 ? ", " : ""}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Attendee counter */}

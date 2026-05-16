@@ -156,7 +156,7 @@ export async function togglePackingItem(itemId: string, tripId: string, packed: 
 
     // Use Supabase client directly for better error handling
     const supabase = await createClient()
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("packing_items")
       .update({
         is_packed: packed,
@@ -164,12 +164,24 @@ export async function togglePackingItem(itemId: string, tripId: string, packed: 
       })
       .eq("id", itemId)
       .eq("itinerary_id", tripId)
+      .select("id")
 
     if (error) {
       console.error("Error toggling packing item:", error)
       return {
         success: false,
         error: "Failed to update packing item status. Please try again.",
+      }
+    }
+
+    // An RLS policy can filter out the row without raising an error, leaving
+    // the update affecting zero rows. Treat that as a failure so the UI does
+    // not falsely show the change as persisted.
+    if (!data || data.length === 0) {
+      console.error("Toggle packing item updated no rows", { itemId, tripId })
+      return {
+        success: false,
+        error: "You don't have permission to update this item, or it no longer exists.",
       }
     }
 

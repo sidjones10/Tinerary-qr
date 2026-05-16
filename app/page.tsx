@@ -61,11 +61,12 @@ export default function HomePage() {
           </p>
 
           <h1 className="font-serif text-3xl sm:text-5xl md:text-6xl leading-[1.15] mb-10">
-            How will you travel?
+            Travel with a point of view.
           </h1>
 
           <p className="text-base sm:text-lg leading-relaxed max-w-xl mx-auto opacity-90 mb-12">
-            Tinerary is a travel platform — authored, attributed, and shareable.
+            Tinerary is a taste-driven travel platform — authored, attributed, and shareable.
+            Built for the way you actually travel, not the way a booking funnel wants you to.
           </p>
 
           <FoundersListSignup source="homepage" />

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { DollarSign, Plus, Users, TrendingUp, Download, Check, X, UserCheck, Loader2 } from "lucide-react"
+import { DollarSign, Plus, Users, TrendingUp, Download, Check, X, UserCheck, Loader2, MoreVertical, Pencil, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,7 +16,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   Select,
@@ -28,6 +27,12 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase/client"
 import { getCurrencySymbol, formatDualCurrency, type Currency } from "@/lib/currency-utils"
@@ -72,17 +77,22 @@ interface EnhancedExpenseTrackerProps {
   itineraryId: string
   participants: Participant[]
   currentUserId?: string
+  isOwner?: boolean
 }
 
 export function EnhancedExpenseTracker({
   itineraryId,
   participants,
   currentUserId,
+  isOwner = false,
 }: EnhancedExpenseTrackerProps) {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [settlements, setSettlements] = useState<Settlement[]>([])
   const [loading, setLoading] = useState(true)
-  const [showAddDialog, setShowAddDialog] = useState(false)
+  const [showExpenseDialog, setShowExpenseDialog] = useState(false)
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [userCurrency, setUserCurrency] = useState<Currency>("USD")
   const [itineraryCurrency, setItineraryCurrency] = useState<Currency>("USD")
@@ -90,12 +100,20 @@ export function EnhancedExpenseTracker({
   const supabase = createClient()
 
   // Form state
-  const [newExpense, setNewExpense] = useState({
+  const [newExpense, setNewExpense] = useState<{
+    description: string
+    amount: string
+    category: string
+    paid_by_user_id: string
+    split_type: "equal" | "percentage" | "custom" | "shares"
+    date: string
+    currency: string
+  }>({
     description: "",
     amount: "",
     category: "food",
     paid_by_user_id: currentUserId || "",
-    split_type: "equal" as const,
+    split_type: "equal",
     date: new Date().toISOString().split("T")[0],
     currency: "USD",
   })
@@ -276,7 +294,96 @@ export function EnhancedExpenseTracker({
     }
   }
 
-  const handleAddExpense = async () => {
+  const resetForm = () => {
+    setEditingExpenseId(null)
+    setNewExpense({
+      description: "",
+      amount: "",
+      category: "food",
+      paid_by_user_id: currentUserId || "",
+      split_type: "equal",
+      date: new Date().toISOString().split("T")[0],
+      currency: itineraryCurrency || "USD",
+    })
+    setSplitAmong(participants.map(p => p.id))
+    setCustomValues({})
+  }
+
+  const openAddDialog = () => {
+    resetForm()
+    setShowExpenseDialog(true)
+  }
+
+  const startEditExpense = (expense: Expense) => {
+    const splits = expense.expense_splits || []
+    const splitUserIds = splits.map(s => s.user_id)
+    const amounts = splits.map(s => s.amount)
+    const allEqual =
+      amounts.length > 0 && amounts.every(a => Math.abs(a - amounts[0]) < 0.01)
+    const displaySplitType: "equal" | "custom" = allEqual ? "equal" : "custom"
+
+    setEditingExpenseId(expense.id)
+    setNewExpense({
+      description: expense.description || "",
+      amount: String(expense.amount),
+      category: expense.category || "other",
+      paid_by_user_id: expense.paid_by_user_id || currentUserId || "",
+      split_type: displaySplitType,
+      date: expense.date
+        ? expense.date.split("T")[0]
+        : new Date().toISOString().split("T")[0],
+      currency: expense.currency || itineraryCurrency || "USD",
+    })
+    setSplitAmong(
+      splitUserIds.length > 0 ? splitUserIds : participants.map(p => p.id)
+    )
+    if (displaySplitType === "custom") {
+      const cv: Record<string, string> = {}
+      splits.forEach(s => {
+        cv[s.user_id] = String(s.amount)
+      })
+      setCustomValues(cv)
+    } else {
+      setCustomValues({})
+    }
+    setShowExpenseDialog(true)
+  }
+
+  const handleDialogOpenChange = (open: boolean) => {
+    setShowExpenseDialog(open)
+    if (!open) resetForm()
+  }
+
+  // Compute per-person split rows from the current form state.
+  const buildSplits = (
+    expenseId: string,
+    amount: number,
+    isPaidFor: (userId: string) => boolean
+  ) =>
+    splitAmong.map((userId) => {
+      let splitAmount: number
+      if (newExpense.split_type === "equal") {
+        splitAmount = amount / splitAmong.length
+      } else if (newExpense.split_type === "percentage") {
+        const pct = parseFloat(customValues[userId] || "0")
+        splitAmount = (amount * pct) / 100
+      } else if (newExpense.split_type === "shares") {
+        const userShares = parseFloat(customValues[userId] || "1")
+        const totalShares = splitAmong.reduce((sum, id) => sum + parseFloat(customValues[id] || "1"), 0)
+        splitAmount = (amount * userShares) / totalShares
+      } else {
+        // custom amounts
+        splitAmount = parseFloat(customValues[userId] || "0")
+      }
+      return {
+        expense_id: expenseId,
+        user_id: userId,
+        amount: Math.round(splitAmount * 100) / 100,
+        is_paid: isPaidFor(userId),
+      }
+    })
+
+  const handleSaveExpense = async () => {
     if (!newExpense.description || !newExpense.amount) {
       toast({
         title: "Missing information",
@@ -303,83 +410,103 @@ export function EnhancedExpenseTracker({
       }
     }
 
+    const isEditing = editingExpenseId !== null
+
     try {
       setIsSubmitting(true)
 
       // Save split_type as 'custom' in DB to prevent the DB trigger from creating
       // its own splits (trigger only fires for 'equal' and uses itinerary_attendees
       // which may not include all invited users). We create all splits manually.
-      const { data: expenseData, error: expenseError } = await supabase
-        .from("expenses")
-        .insert({
-          itinerary_id: itineraryId,
-          user_id: currentUserId,
-          title: newExpense.description || newExpense.category || 'Expense',
-          description: newExpense.description,
+      const expenseFields = {
+        title: newExpense.description || newExpense.category || 'Expense',
+        description: newExpense.description,
+        amount,
+        category: newExpense.category,
+        paid_by_user_id: newExpense.paid_by_user_id,
+        split_type: "custom" as const,
+        date: newExpense.date,
+        currency: newExpense.currency,
+      }
+
+      let expenseId: string
+
+      if (isEditing) {
+        const { error: updateError } = await supabase
+          .from("expenses")
+          .update(expenseFields)
+          .eq("id", editingExpenseId)
+
+        if (updateError) throw updateError
+        expenseId = editingExpenseId as string
+
+        // Replace existing splits, preserving which participants had already
+        // settled up so editing an expense doesn't reopen closed debts.
+        const previouslyPaid = new Set(
+          (expenses.find(e => e.id === editingExpenseId)?.expense_splits || [])
+            .filter(s => s.is_paid)
+            .map(s => s.user_id)
+        )
+
+        const { error: deleteSplitError } = await supabase
+          .from("expense_splits")
+          .delete()
+          .eq("expense_id", expenseId)
+
+        if (deleteSplitError) throw deleteSplitError
+
+        const splits = buildSplits(
+          expenseId,
           amount,
-          category: newExpense.category,
-          paid_by_user_id: newExpense.paid_by_user_id,
-          split_type: "custom",
-          date: newExpense.date,
-          currency: newExpense.currency,
-        })
-        .select()
-        .single()
+          (userId) => userId === newExpense.paid_by_user_id || previouslyPaid.has(userId)
+        )
 
-      if (expenseError) throw expenseError
+        const { error: splitError } = await supabase
+          .from("expense_splits")
+          .insert(splits)
 
-      // Calculate per-person split amounts based on split type
-      const splits = splitAmong.map((userId) => {
-        let splitAmount: number
-        if (newExpense.split_type === "equal") {
-          splitAmount = amount / splitAmong.length
-        } else if (newExpense.split_type === "percentage") {
-          const pct = parseFloat(customValues[userId] || "0")
-          splitAmount = (amount * pct) / 100
-        } else if (newExpense.split_type === "shares") {
-          const userShares = parseFloat(customValues[userId] || "1")
-          const totalShares = splitAmong.reduce((sum, id) => sum + parseFloat(customValues[id] || "1"), 0)
-          splitAmount = (amount * userShares) / totalShares
-        } else {
-          // custom amounts
-          splitAmount = parseFloat(customValues[userId] || "0")
-        }
-        return {
-          expense_id: expenseData.id,
-          user_id: userId,
-          amount: Math.round(splitAmount * 100) / 100,
-          is_paid: userId === newExpense.paid_by_user_id,
-        }
-      })
+        if (splitError) throw splitError
+      } else {
+        const { data: expenseData, error: expenseError } = await supabase
+          .from("expenses")
+          .insert({
+            itinerary_id: itineraryId,
+            user_id: currentUserId,
+            ...expenseFields,
+          })
+          .select()
+          .single()
 
-      const { error: splitError } = await supabase
-        .from("expense_splits")
-        .insert(splits)
+        if (expenseError) throw expenseError
+        expenseId = expenseData.id
 
-      if (splitError) throw splitError
+        const splits = buildSplits(
+          expenseId,
+          amount,
+          (userId) => userId === newExpense.paid_by_user_id
+        )
+
+        const { error: splitError } = await supabase
+          .from("expense_splits")
+          .insert(splits)
+
+        if (splitError) throw splitError
+      }
 
       toast({
-        title: "Expense added",
-        description: "The expense has been added successfully",
+        title: isEditing ? "Expense updated" : "Expense added",
+        description: isEditing
+          ? "The expense has been updated successfully"
+          : "The expense has been added successfully",
       })
 
-      setShowAddDialog(false)
-      setNewExpense({
-        description: "",
-        amount: "",
-        category: "food",
-        paid_by_user_id: currentUserId,
-        split_type: "equal",
-        date: new Date().toISOString().split("T")[0],
-        currency: "USD",
-      })
-      setSplitAmong(participants.map(p => p.id))
-      setCustomValues({})
+      setShowExpenseDialog(false)
+      resetForm()
 
       fetchExpenses()
       calculateSettlements()
     } catch (error: any) {
-      console.error("Error adding expense:", {
+      console.error(`Error ${isEditing ? "updating" : "adding"} expense:`, {
         message: error?.message,
         details: error?.details,
         hint: error?.hint,
@@ -388,11 +515,47 @@ export function EnhancedExpenseTracker({
       })
       toast({
         title: "Error",
-        description: error?.message || "Failed to add expense. Please check database schema.",
+        description: error?.message || `Failed to ${isEditing ? "update" : "add"} expense. Please check database schema.`,
         variant: "destructive",
       })
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleDeleteExpense = async () => {
+    if (!deleteTarget) return
+    try {
+      setIsDeleting(true)
+
+      // expense_splits is ON DELETE CASCADE, but delete explicitly so the
+      // operation still works if the cascade isn't present in older schemas.
+      await supabase.from("expense_splits").delete().eq("expense_id", deleteTarget.id)
+
+      const { error } = await supabase
+        .from("expenses")
+        .delete()
+        .eq("id", deleteTarget.id)
+
+      if (error) throw error
+
+      toast({
+        title: "Expense deleted",
+        description: "The expense has been removed",
+      })
+
+      setDeleteTarget(null)
+      fetchExpenses()
+      calculateSettlements()
+    } catch (error: any) {
+      console.error("Error deleting expense:", error?.message || error)
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to delete expense",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -530,17 +693,19 @@ export function EnhancedExpenseTracker({
             </CardTitle>
             <CardDescription>Track and split expenses with your group</CardDescription>
           </div>
-          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                Add Expense
-              </Button>
-            </DialogTrigger>
+          <Dialog open={showExpenseDialog} onOpenChange={handleDialogOpenChange}>
+            <Button className="gap-2" onClick={openAddDialog}>
+              <Plus className="h-4 w-4" />
+              Add Expense
+            </Button>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>Add New Expense</DialogTitle>
-                <DialogDescription>Record a new expense and split it with your group</DialogDescription>
+                <DialogTitle>{editingExpenseId ? "Edit Expense" : "Add New Expense"}</DialogTitle>
+                <DialogDescription>
+                  {editingExpenseId
+                    ? "Update this expense and how it's split"
+                    : "Record a new expense and split it with your group"}
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
@@ -739,17 +904,17 @@ export function EnhancedExpenseTracker({
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+                <Button variant="outline" onClick={() => handleDialogOpenChange(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleAddExpense} disabled={isSubmitting}>
+                <Button onClick={handleSaveExpense} disabled={isSubmitting}>
                   {isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Adding...
+                      {editingExpenseId ? "Saving..." : "Adding..."}
                     </>
                   ) : (
-                    "Add Expense"
+                    editingExpenseId ? "Save Changes" : "Add Expense"
                   )}
                 </Button>
               </DialogFooter>
@@ -821,20 +986,49 @@ export function EnhancedExpenseTracker({
                               </div>
                             )}
                           </div>
-                          <div className="text-right">
-                            <p className="text-lg font-bold">{formatAmount(expense.amount, expense.currency)}</p>
-                            {expense.expense_splits && expense.expense_splits.length > 1 && (
-                              <p className="text-xs text-muted-foreground">
-                                {(() => {
-                                  const amounts = expense.expense_splits!.map(s => s.amount)
-                                  const allEqual = amounts.every(a => Math.abs(a - amounts[0]) < 0.01)
-                                  if (allEqual) {
-                                    return `${formatAmount(amounts[0], expense.currency)} each`
-                                  }
-                                  const mySplit = expense.expense_splits!.find(s => s.user_id === currentUserId)
-                                  return mySplit ? `Your share: ${formatAmount(mySplit.amount, expense.currency)}` : ""
-                                })()}
-                              </p>
+                          <div className="flex items-start gap-1">
+                            <div className="text-right">
+                              <p className="text-lg font-bold">{formatAmount(expense.amount, expense.currency)}</p>
+                              {expense.expense_splits && expense.expense_splits.length > 1 && (
+                                <p className="text-xs text-muted-foreground">
+                                  {(() => {
+                                    const amounts = expense.expense_splits!.map(s => s.amount)
+                                    const allEqual = amounts.every(a => Math.abs(a - amounts[0]) < 0.01)
+                                    if (allEqual) {
+                                      return `${formatAmount(amounts[0], expense.currency)} each`
+                                    }
+                                    const mySplit = expense.expense_splits!.find(s => s.user_id === currentUserId)
+                                    return mySplit ? `Your share: ${formatAmount(mySplit.amount, expense.currency)}` : ""
+                                  })()}
+                                </p>
+                              )}
+                            </div>
+                            {isOwner && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 -mr-1 text-muted-foreground"
+                                    aria-label="Expense actions"
+                                  >
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => startEditExpense(expense)}>
+                                    <Pencil className="h-4 w-4 mr-2" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-red-600 focus:text-red-600"
+                                    onClick={() => setDeleteTarget(expense)}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             )}
                           </div>
                         </div>
@@ -1022,6 +1216,34 @@ export function EnhancedExpenseTracker({
           </TabsContent>
         </Tabs>
       </CardContent>
+
+      <Dialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete expense?</DialogTitle>
+            <DialogDescription>
+              {deleteTarget
+                ? `"${deleteTarget.description}" and its splits will be permanently removed. This can't be undone.`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={isDeleting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteExpense} disabled={isDeleting}>
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }

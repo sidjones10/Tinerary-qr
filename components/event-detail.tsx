@@ -1272,6 +1272,7 @@ export function EventDetail({ event }: EventDetailProps) {
                   return attendees
                 })()}
                 currentUserId={user?.id}
+                isOwner={!!user?.id && user.id === event.user_id}
               />
             ) : (
               <Card>

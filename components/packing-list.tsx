@@ -37,7 +37,7 @@ interface PackingListProps {
   simplified?: boolean
   items: PackingItem[]
   tripId: string
-  onItemsChange?: () => void
+  onItemsChange?: () => void | Promise<void>
 }
 
 export function PackingList({ simplified = false, items, tripId, onItemsChange }: PackingListProps) {
@@ -205,9 +205,9 @@ export function PackingList({ simplified = false, items, tripId, onItemsChange }
           })
           setError("Failed to update item status. Please try again.")
         } else {
-          // Notify parent to refresh data so the change persists after the
-          // optimistic state clears
-          onItemsChange?.()
+          // Await the parent refresh so the optimistic state is replaced by
+          // the persisted value instead of reverting when the transition ends
+          await onItemsChange?.()
         }
       } catch (err) {
         // Revert optimistic update on error

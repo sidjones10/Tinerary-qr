@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { TINERARY_YELLOW } from "@/lib/brand"
 
 interface Props {
   source?: string
@@ -54,7 +55,7 @@ export function FoundersListSignup({ source = "homepage", className = "", placeh
 
   return (
     <form onSubmit={handleSubmit} className={`w-full max-w-xl mx-auto ${className}`}>
-      <div className="flex flex-col sm:flex-row gap-2">
+      <div className="flex flex-col sm:flex-row gap-3">
         <input
           type="email"
           required
@@ -62,18 +63,20 @@ export function FoundersListSignup({ source = "homepage", className = "", placeh
           onChange={(e) => setEmail(e.target.value)}
           placeholder={placeholder}
           aria-label="Email address"
-          className="flex-1 px-4 py-3 bg-transparent border border-current/40 placeholder:text-current/60 focus:outline-none focus:border-current text-base"
+          className="flex-1 px-4 py-3 bg-transparent border text-base text-[#f5f5f0] placeholder:text-[#f5f5f0]/50 focus:outline-none"
+          style={{ borderColor: "rgba(245,245,240,0.4)" }}
         />
         <button
           type="submit"
           disabled={status === "submitting"}
-          className="px-6 py-3 bg-current text-[color:var(--manifesto-bg,#0a0a0a)] font-medium tracking-wide uppercase text-sm hover:opacity-90 disabled:opacity-60"
+          className="px-6 py-3 font-semibold tracking-wide uppercase text-sm hover:opacity-90 disabled:opacity-60"
+          style={{ backgroundColor: TINERARY_YELLOW, color: "#0a0a0a" }}
         >
           {status === "submitting" ? "Joining…" : "Join the Founders' List"}
         </button>
       </div>
       {status === "error" && (
-        <p className="mt-2 text-sm opacity-80">{message}</p>
+        <p className="mt-3 text-sm opacity-80">{message}</p>
       )}
     </form>
   )

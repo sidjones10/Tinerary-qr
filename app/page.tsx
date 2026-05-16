@@ -6,6 +6,7 @@ import { FeedPage } from "@/components/feed-page"
 import { AppHeader } from "@/components/app-header"
 import { FoundersListSignup } from "@/components/founders-list-signup"
 import { useAuth } from "@/providers/auth-provider"
+import { TINERARY_YELLOW } from "@/lib/brand"
 import { Loader2 } from "lucide-react"
 
 export default function HomePage() {
@@ -41,10 +42,10 @@ export default function HomePage() {
   return (
     <div
       className="min-h-screen flex flex-col"
-      style={{ background: "#0a0a0a", color: "#f5f5f0", ["--manifesto-bg" as any]: "#0a0a0a" }}
+      style={{ background: "#0a0a0a", color: "#f5f5f0" }}
     >
       <header className="px-6 sm:px-10 py-6 flex items-center justify-between text-sm tracking-[0.2em] uppercase">
-        <span>Tinerary</span>
+        <span style={{ color: TINERARY_YELLOW }}>Tinerary</span>
         <nav className="flex items-center gap-5">
           <Link href="/browse" className="hover:opacity-80">Browse</Link>
           <Link href="/auteurs" className="hover:opacity-80 hidden sm:inline">Auteurs</Link>
@@ -60,12 +61,11 @@ export default function HomePage() {
           </p>
 
           <h1 className="font-serif text-3xl sm:text-5xl md:text-6xl leading-[1.15] mb-10">
-            How you travel says who you are.
+            How will you travel?
           </h1>
 
           <p className="text-base sm:text-lg leading-relaxed max-w-xl mx-auto opacity-90 mb-12">
-            Tinerary is a taste-driven travel platform — authored, attributed, and shareable.
-            Built for the way you actually travel, not the way a booking funnel wants you to.
+            Tinerary is a travel platform — authored, attributed, and shareable.
           </p>
 
           <FoundersListSignup source="homepage" />

@@ -2,20 +2,39 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { createClient } from "@/utils/supabase/middleware"
 import { PHASE_2_ENABLED, PHASE_2_ROUTES } from "@/lib/phase2"
+import { HOME_ONLY_MODE, isPublicPath, resolveAccess } from "@/lib/access-control"
 
 // Routes that require authentication
 const protectedRoutes = ["/dashboard", "/profile", "/create", "/settings", "/my-events", "/saved"]
-
-// Admin email whitelist (matches admin-auth-guard.tsx)
-const ADMIN_EMAILS = [
-  process.env.NEXT_PUBLIC_ADMIN_EMAIL,
-].filter(Boolean)
 
 export async function middleware(req: NextRequest) {
   // Create supabase client for middleware and get user
   const { supabase, response, user } = await createClient(req)
 
   const path = req.nextUrl.pathname
+
+  // Resolve access level once (admins, allowlisted creators) and reuse below.
+  // Only hit the DB when we actually have a logged-in user.
+  let isAdmin = false
+  let isAllowed = false
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_admin, role")
+      .eq("id", user.id)
+      .single()
+
+    const access = resolveAccess(user.email, profile)
+    isAdmin = access.isAdmin
+    isAllowed = access.isAllowed
+  }
+
+  // Private-launch gate: while home-only mode is on, anything that isn't a
+  // public page is reachable only by admins and allowlisted creators.
+  // Sign in / sign up stay public so people can still authenticate.
+  if (HOME_ONLY_MODE && !isPublicPath(path) && !isAllowed) {
+    return NextResponse.redirect(new URL("/coming-soon", req.url))
+  }
 
   // Check if the path is a protected route
   const isProtectedRoute = protectedRoutes.some((route) => path.startsWith(route))
@@ -30,7 +49,8 @@ export async function middleware(req: NextRequest) {
 
   // If user is already logged in and trying to access login/signup
   if (path === "/auth" && user) {
-    return NextResponse.redirect(new URL("/dashboard", req.url))
+    // Restricted users have no dashboard to go to — send them home.
+    return NextResponse.redirect(new URL(isAllowed ? "/dashboard" : "/", req.url))
   }
 
   // Phase 2 route gating: when disabled, only admins can access Phase 2 pages
@@ -43,20 +63,6 @@ export async function middleware(req: NextRequest) {
         const redirectUrl = new URL("/auth", req.url)
         redirectUrl.searchParams.set("redirectTo", path)
         return NextResponse.redirect(redirectUrl)
-      }
-
-      // Check admin status: email whitelist + database role
-      const isAdminEmail = ADMIN_EMAILS.includes(user.email || "")
-
-      let isAdmin = isAdminEmail
-      if (!isAdmin) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("is_admin, role")
-          .eq("id", user.id)
-          .single()
-
-        isAdmin = profile?.is_admin === true || profile?.role === "admin"
       }
 
       if (!isAdmin) {

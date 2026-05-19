@@ -67,7 +67,7 @@ Answer the prompts:
 - Application ID: `app.tinerary.twa` (must match `assetlinks.json`)
 - Display mode: `standalone`
 - Orientation: `portrait`
-- Status bar color: `#E11D48`
+- Status bar color: `#E8B43A`
 
 ### 2. Build a signed bundle
 

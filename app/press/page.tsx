@@ -30,43 +30,36 @@ export default function PressPage() {
 
       <main className="max-w-3xl mx-auto px-6 pb-24 space-y-12 text-[17px] leading-relaxed">
         <section>
-          <h2 className="font-serif text-2xl mb-3">The pitch in one line</h2>
+          <h2 className="font-serif text-2xl mb-3">The pitch</h2>
           <p>
-            Tinerary is a taste-driven travel platform built for the generation that grew up planning trips
-            in group chats and saving Pinterest boards — launching July 2026 as the first travel product
-            designed as a cultural object, not a booking funnel.
+            Tinerary drives what happens after the flights and hotels are booked. Takes ideas out of the
+            group chat. Brings idea boards to life.
           </p>
         </section>
 
         <section>
           <h2 className="font-serif text-2xl mb-3">Why now</h2>
           <p>
-            Booking.com, Airbnb, and TripAdvisor optimize for transaction. Google optimizes for search.
-            None of them answer the question that actually drives Gen Z and young Millennial travel:
-            <em> who travels like me, and where are they going?</em> Tinerary is a platform where
-            itineraries are authored, attributed, and shareable — closer to a Letterboxd or Substack than an OTA.
+            Booking agents get you to your location — Tinerary guides you while you're there. And more
+            importantly, it answers:<em> who travels like me, and where are they going?</em> Tinerary is
+            a platform where itineraries are authored, attributed, and shareable.
           </p>
         </section>
 
         <section>
           <h2 className="font-serif text-2xl mb-3">Why this founder</h2>
           <p>
-            Sid Fall is a 24-year-old Senegalese-American multi-hyphenate based in Texas — filmmaker,
-            screenwriter, business analyst at a Texas law firm, and currently preparing for the LSAT while
-            building Tinerary toward beta. She brings a perspective the travel category has structurally
-            lacked: a founder whose own life is built across cultural worlds (Dakar, Austin, Los Angeles),
-            whose creative practice spans film and product, and whose theory of travel is rooted in
-            heritage rather than wanderlust.
+            Sid Fall wants to change the pitfalls of traveling. Too often, individuals are told "Go here,"
+            "See this," but are not given the full roadmap or guide that makes them feel comfortable
+            enough to throw it away later. That's why.
           </p>
         </section>
 
         <section>
-          <h2 className="font-serif text-2xl mb-3">The cultural angle</h2>
+          <h2 className="font-serif text-2xl mb-3">The angle</h2>
           <p>
-            Tinerary launches with a roster of 12 Travel Auteurs — chefs, filmmakers, writers, and
-            designers whose itineraries become the platform's first canon. The launch issue centers a
-            Dakar itinerary built from three generations of Fall family routes — a deliberate signal that
-            Tinerary's editorial center of gravity is not Paris or Tokyo by default.
+            Tinerary is a curation site. You document how you travel — for yourself, for others — or
+            peruse like a record store on a rainy day.
           </p>
         </section>
 

@@ -23,6 +23,7 @@ import { EventMap } from "@/components/event-map"
 import { PhotoGallery } from "@/components/photo-gallery"
 import { getEventPhotos, type EventPhoto } from "@/lib/photo-service"
 import { CalendarExportButton } from "@/components/calendar-export-button"
+import { PassportPrintButton } from "@/components/passport-print-button"
 import { MutualsSection } from "@/components/mutuals-section"
 import { ThemeIcon } from "@/components/theme-selector"
 import { getFontFamily } from "@/components/font-selector"
@@ -809,6 +810,17 @@ export function EventDetail({ event }: EventDetailProps) {
               </div>
 
               <div className="flex flex-wrap gap-2">
+                <PassportPrintButton
+                  event={{
+                    id: event.id,
+                    title: event.title,
+                    start_date: event.start_date,
+                    end_date: event.end_date,
+                    location: event.location as string | undefined,
+                    activities: (event.activities || []) as any,
+                  }}
+                />
+
                 <Button
                   variant="outline"
                   size="sm"

@@ -55,6 +55,7 @@ export default function HomePage() {
           <Link href="/auteurs" className="hover:opacity-80 hidden sm:inline">Auteurs</Link>
           <Link href="/journal" className="hover:opacity-80 hidden sm:inline">Journal</Link>
           <Link href="/auth" className="hover:opacity-80">Sign in</Link>
+          <Link href="/auth?tab=signup" className="hover:opacity-80">Sign up</Link>
         </nav>
       </header>
 

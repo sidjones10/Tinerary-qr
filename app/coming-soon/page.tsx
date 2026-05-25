@@ -17,6 +17,7 @@ export default function ComingSoonPage() {
         <nav className="flex items-center gap-5">
           <Link href="/" className="hover:opacity-80">Home</Link>
           <Link href="/auth" className="hover:opacity-80">Sign in</Link>
+          <Link href="/auth?tab=signup" className="hover:opacity-80">Sign up</Link>
         </nav>
       </header>
 

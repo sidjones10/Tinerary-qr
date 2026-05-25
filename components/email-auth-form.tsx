@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2, Mail, Eye, EyeOff, AlertTriangle, MailCheck } from "lucide-react"
+import { useSearchParams } from "next/navigation"
 import { toast } from "@/hooks/use-toast"
 import { createClient } from "@/lib/supabase/client"
 import { triggerWelcomeEmail } from "@/app/actions/send-welcome-email"
@@ -50,6 +51,8 @@ function calculateAge(birthDate: Date): number {
 }
 
 export default function EmailAuthForm() {
+  const searchParams = useSearchParams()
+  const initialTab = searchParams?.get("tab") === "signup" ? "signup" : "signin"
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
@@ -426,7 +429,7 @@ export default function EmailAuthForm() {
       )}
 
       <Card>
-        <Tabs defaultValue="signin" className="w-full">
+        <Tabs defaultValue={initialTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="signin">Sign In</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>

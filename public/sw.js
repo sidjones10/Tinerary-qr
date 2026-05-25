@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tinerary-v3';
+const CACHE_NAME = 'tinerary-v4';
 const OFFLINE_URL = '/offline';
 
 // Static assets to pre-cache on install

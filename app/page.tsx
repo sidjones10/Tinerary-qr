@@ -51,11 +51,10 @@ export default function HomePage() {
       <header className="px-6 sm:px-10 py-6 flex items-center justify-between text-sm tracking-[0.2em] uppercase">
         <span style={{ color: TINERARY_YELLOW }}>Tinerary</span>
         <nav className="flex items-center gap-5">
-          <Link href="/browse" className="hover:opacity-80 hidden sm:inline">Browse</Link>
+          <Link href="/browse" className="hover:opacity-80">Browse</Link>
           <Link href="/auteurs" className="hover:opacity-80 hidden sm:inline">Auteurs</Link>
           <Link href="/journal" className="hover:opacity-80 hidden sm:inline">Journal</Link>
           <Link href="/auth" className="hover:opacity-80">Sign in</Link>
-          <Link href="/auth?tab=signup" className="hover:opacity-80">Sign up</Link>
         </nav>
       </header>
 

@@ -30,7 +30,6 @@ const LOGO_REMOVAL_PRICE_USD = 1.4
 // Palette taken from the Canva-style reference
 const COLOR_CREAM = "#e6dccb"
 const COLOR_GREEN = "#7a8c4f"
-const COLOR_YELLOW = "#e6a92b"
 const COLOR_PILL = "#b9b1a7"
 const COLOR_TEXT = "#1f1f1f"
 const COLOR_TEXT_MUTED = "#5a5a5a"
@@ -457,33 +456,34 @@ function ClockIcon({ size = 7, color = COLOR_TEXT_MUTED }: { size?: number; colo
   )
 }
 
+/**
+ * Renders the real Tinerary brand wordmark. `variant="yellow"` uses the
+ * print-ready yellow lockup; `variant="orange"` uses the primary brand orange.
+ */
 function TineraryWordmark({
-  fontSize,
+  height,
   rotate = 0,
-  color = COLOR_YELLOW,
+  variant = "yellow",
 }: {
-  fontSize: string
+  height: string
   rotate?: number
-  color?: string
+  variant?: "yellow" | "orange"
 }) {
+  const src = variant === "orange" ? "/email/tinerary-logo.png" : "/tinerary-logo-yellow.png"
   return (
-    <span
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt="Tinerary"
       style={{
-        fontFamily: "'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', cursive",
-        fontWeight: 900,
-        color,
-        fontSize,
-        letterSpacing: "-0.02em",
-        textTransform: "uppercase",
-        display: "inline-block",
+        height,
+        width: "auto",
+        display: "block",
         transform: rotate ? `rotate(${rotate}deg)` : undefined,
-        whiteSpace: "nowrap",
-        lineHeight: 1,
         userSelect: "none",
+        pointerEvents: "none",
       }}
-    >
-      Tinerary
-    </span>
+    />
   )
 }
 
@@ -512,23 +512,23 @@ function WavyGardenTemplate({ title, dateRange, location, days, includeLogo, pag
       {/* Scattered TINERARY wordmarks — rendered behind the wavy frame so they peek out */}
       {includeLogo && (
         <>
-          <div style={{ position: "absolute", top: "-0.08in", left: "0.4in", zIndex: 1 }}>
-            <TineraryWordmark fontSize="14pt" />
+          <div style={{ position: "absolute", top: "-0.12in", left: "0.5in", zIndex: 1 }}>
+            <TineraryWordmark height="0.28in" />
           </div>
-          <div style={{ position: "absolute", top: "0.15in", right: "-0.15in", zIndex: 1 }}>
-            <TineraryWordmark fontSize="12pt" />
+          <div style={{ position: "absolute", top: "0.2in", right: "-0.25in", zIndex: 1 }}>
+            <TineraryWordmark height="0.22in" />
           </div>
-          <div style={{ position: "absolute", top: "1.6in", left: "-0.2in", zIndex: 1 }}>
-            <TineraryWordmark fontSize="11pt" />
+          <div style={{ position: "absolute", top: "1.7in", left: "-0.3in", zIndex: 1 }}>
+            <TineraryWordmark height="0.2in" />
           </div>
-          <div style={{ position: "absolute", top: "2.4in", right: "-0.15in", zIndex: 1 }}>
-            <TineraryWordmark fontSize="11pt" />
+          <div style={{ position: "absolute", top: "2.5in", right: "-0.25in", zIndex: 1 }}>
+            <TineraryWordmark height="0.2in" />
           </div>
-          <div style={{ position: "absolute", bottom: "1.4in", left: "-0.1in", zIndex: 1 }}>
-            <TineraryWordmark fontSize="11pt" />
+          <div style={{ position: "absolute", bottom: "1.4in", left: "-0.2in", zIndex: 1 }}>
+            <TineraryWordmark height="0.2in" />
           </div>
-          <div style={{ position: "absolute", bottom: "-0.05in", left: "0.25in", zIndex: 1 }}>
-            <TineraryWordmark fontSize="13pt" />
+          <div style={{ position: "absolute", bottom: "-0.08in", left: "0.35in", zIndex: 1 }}>
+            <TineraryWordmark height="0.26in" />
           </div>
         </>
       )}
@@ -580,13 +580,13 @@ function WavyGardenTemplate({ title, dateRange, location, days, includeLogo, pag
         >
           <div
             style={{
-              fontFamily: "'Bebas Neue', 'Oswald', 'Anton', 'Impact', sans-serif",
-              fontSize: "13pt",
-              fontWeight: 800,
-              letterSpacing: "0.02em",
+              fontFamily: "'Anton', 'Archivo Black', 'Bebas Neue', 'Impact', sans-serif",
+              fontSize: "15pt",
+              fontWeight: 400,
+              letterSpacing: "0.04em",
               color: "#1a1a1a",
               textTransform: "uppercase",
-              lineHeight: 1.05,
+              lineHeight: 1,
               wordBreak: "break-word",
             }}
           >
@@ -718,7 +718,7 @@ function ActivityCard({ activity }: { activity: Activity }) {
 // ---------------------------------------------------------------------------
 
 const SERIF_STACK =
-  "'Playfair Display', 'Cormorant Garamond', Georgia, 'Times New Roman', serif"
+  "'Cormorant Garamond', 'Playfair Display', Georgia, 'Times New Roman', serif"
 const SANS_STACK =
   "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
 
@@ -783,19 +783,7 @@ function TokyoTimelineTemplate({
       <div style={{ position: "relative", marginBottom: "0.16in" }}>
         {includeLogo && (
           <div style={{ position: "absolute", left: 0, top: "0.02in" }}>
-            <span
-              style={{
-                fontFamily: "'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', cursive",
-                fontWeight: 900,
-                color: COLOR_YELLOW,
-                fontSize: "9pt",
-                letterSpacing: "-0.02em",
-                textTransform: "uppercase",
-                lineHeight: 1,
-              }}
-            >
-              Tinerary
-            </span>
+            <TineraryWordmark height="0.22in" />
           </div>
         )}
 
@@ -803,9 +791,9 @@ function TokyoTimelineTemplate({
           <div
             style={{
               fontFamily: SERIF_STACK,
-              fontWeight: 500,
-              fontSize: "22pt",
-              letterSpacing: "0.04em",
+              fontWeight: 600,
+              fontSize: "24pt",
+              letterSpacing: "0.06em",
               lineHeight: 1,
               textTransform: "uppercase",
               wordBreak: "break-word",

@@ -21,8 +21,16 @@ import { parseLocalDate } from "@/lib/utils"
 const PASSPORT_WIDTH_IN = 3.4
 const PASSPORT_HEIGHT_IN = 4.9
 
+// US Letter dimensions for 4-up quad printing
+const LETTER_WIDTH_IN = 8.5
+const LETTER_HEIGHT_IN = 11
+const QUAD_MARGIN_X_IN = (LETTER_WIDTH_IN - 2 * PASSPORT_WIDTH_IN) / 2 // 0.85"
+const QUAD_MARGIN_Y_IN = (LETTER_HEIGHT_IN - 2 * PASSPORT_HEIGHT_IN) / 2 // 0.6"
+const CROP_MARK_LEN_IN = 0.16
+const CROP_MARK_OFFSET_IN = 0.06
+
 // Rough capacity heuristic for the passport preview (used for the multi-page warning)
-const ACTIVITIES_PER_PAGE = 6
+const ACTIVITIES_PER_PAGE = 8
 
 // Charge applied when the user opts to print without the Tinerary logo
 const LOGO_REMOVAL_PRICE_USD = 1.4
@@ -33,6 +41,20 @@ const COLOR_GREEN = "#7a8c4f"
 const COLOR_PILL = "#b9b1a7"
 const COLOR_TEXT = "#1f1f1f"
 const COLOR_TEXT_MUTED = "#5a5a5a"
+
+/**
+ * Deterministic density factor — multiplies font sizes and spacing so templates
+ * adapt to itineraries with few or many activities without overflowing.
+ */
+function densityScale(activityCount: number): number {
+  if (activityCount <= 3) return 1.18
+  if (activityCount <= 5) return 1.05
+  if (activityCount <= 7) return 1.0
+  if (activityCount <= 9) return 0.9
+  return 0.82
+}
+
+const scale = (basePt: number, density: number) => `${(basePt * density).toFixed(2)}pt`
 
 interface Activity {
   id?: string
@@ -115,41 +137,71 @@ const groupActivitiesByDay = (activities: Activity[]): Day[] => {
 }
 
 /**
- * Build a closed, wavy rounded-rectangle path used as the green frame ribbon.
- * Stroking this path with a thick width produces the scalloped border look.
+ * Build a single wavy rectangle path (closed). Outward bumps face away from
+ * the rectangle center, so a positive `amp` makes the shape bulge outward.
+ * Direction `cw` = true traces clockwise; false traces counterclockwise.
  */
-function buildWavyFramePath(
+function wavyRectPath(
   w: number,
   h: number,
   margin: number,
   bumpsX: number,
   bumpsY: number,
   amp: number,
+  cw: boolean,
 ): string {
   const innerW = w - 2 * margin
   const innerH = h - 2 * margin
   const segX = innerW / bumpsX
   const segY = innerH / bumpsY
 
+  if (cw) {
+    let d = `M ${margin} ${margin}`
+    for (let i = 0; i < bumpsX; i++) {
+      d += ` q ${segX / 2} ${(i % 2 === 0 ? -1 : 1) * amp} ${segX} 0`
+    }
+    for (let i = 0; i < bumpsY; i++) {
+      d += ` q ${(i % 2 === 0 ? 1 : -1) * amp} ${segY / 2} 0 ${segY}`
+    }
+    for (let i = 0; i < bumpsX; i++) {
+      d += ` q ${-segX / 2} ${(i % 2 === 0 ? 1 : -1) * amp} ${-segX} 0`
+    }
+    for (let i = 0; i < bumpsY; i++) {
+      d += ` q ${(i % 2 === 0 ? -1 : 1) * amp} ${-segY / 2} 0 ${-segY}`
+    }
+    return d + " Z"
+  }
+  // counterclockwise
   let d = `M ${margin} ${margin}`
-
-  for (let i = 0; i < bumpsX; i++) {
-    const dir = i % 2 === 0 ? -1 : 1
-    d += ` q ${segX / 2} ${dir * amp} ${segX} 0`
-  }
   for (let i = 0; i < bumpsY; i++) {
-    const dir = i % 2 === 0 ? 1 : -1
-    d += ` q ${dir * amp} ${segY / 2} 0 ${segY}`
+    d += ` q ${(i % 2 === 0 ? -1 : 1) * amp} ${segY / 2} 0 ${segY}`
   }
   for (let i = 0; i < bumpsX; i++) {
-    const dir = i % 2 === 0 ? 1 : -1
-    d += ` q ${-segX / 2} ${dir * amp} ${-segX} 0`
+    d += ` q ${segX / 2} ${(i % 2 === 0 ? 1 : -1) * amp} ${segX} 0`
   }
   for (let i = 0; i < bumpsY; i++) {
-    const dir = i % 2 === 0 ? -1 : 1
-    d += ` q ${dir * amp} ${-segY / 2} 0 ${-segY}`
+    d += ` q ${(i % 2 === 0 ? 1 : -1) * amp} ${-segY / 2} 0 ${-segY}`
+  }
+  for (let i = 0; i < bumpsX; i++) {
+    d += ` q ${-segX / 2} ${(i % 2 === 0 ? -1 : 1) * amp} ${-segX} 0`
   }
   return d + " Z"
+}
+
+/**
+ * Build a filled wavy band by composing two nested wavy rectangles with
+ * different bump counts and amplitudes, then filling with fill-rule="evenodd".
+ * Outer and inner waves are independent, giving the band an organic asymmetry.
+ */
+function buildWavyBandPath(
+  w: number,
+  h: number,
+  outer: { margin: number; bumpsX: number; bumpsY: number; amp: number },
+  inner: { margin: number; bumpsX: number; bumpsY: number; amp: number },
+): string {
+  const outerPath = wavyRectPath(w, h, outer.margin, outer.bumpsX, outer.bumpsY, outer.amp, true)
+  const innerPath = wavyRectPath(w, h, inner.margin, inner.bumpsX, inner.bumpsY, inner.amp, false)
+  return outerPath + " " + innerPath
 }
 
 // ---------------------------------------------------------------------------
@@ -166,6 +218,7 @@ export interface TemplateProps {
   includeLogo: boolean
   pageIndex: number
   pageCount: number
+  density: number
 }
 
 interface Template {
@@ -190,11 +243,14 @@ const TEMPLATES: Template[] = [
   },
 ]
 
+type PrintMode = "quad" | "single"
+
 export function PassportPrintButton({ event }: PassportPrintButtonProps) {
   const [open, setOpen] = useState(false)
   const [includeLogo, setIncludeLogo] = useState(true)
   const [isPrinting, setIsPrinting] = useState(false)
   const [templateId, setTemplateId] = useState<string>(TEMPLATES[0].id)
+  const [printMode, setPrintMode] = useState<PrintMode>("quad")
   const [mounted, setMounted] = useState(false)
   const { toast } = useToast()
 
@@ -205,10 +261,12 @@ export function PassportPrintButton({ event }: PassportPrintButtonProps) {
   const activities = (event.activities || []) as Activity[]
   const totalActivities = activities.length
   const willOverflow = totalActivities > ACTIVITIES_PER_PAGE
-  const estimatedPages = Math.max(1, Math.ceil(totalActivities / ACTIVITIES_PER_PAGE))
+  const cardCount = Math.max(1, Math.ceil(totalActivities / ACTIVITIES_PER_PAGE))
+  const sheetCount = printMode === "quad" ? Math.max(1, Math.ceil(cardCount / 4)) : cardCount
   const dateRange = formatDateRange(event.start_date, event.end_date)
 
-  // Split activities (in order) into pages, then regroup each page into days
+  // Split activities (in order) into per-card pages, then regroup each card
+  // into days. Each entry in `pages` is one passport card's contents.
   const pages: Day[][] = useMemo(() => {
     if (activities.length === 0) return [[]]
     const result: Day[][] = []
@@ -218,6 +276,33 @@ export function PassportPrintButton({ event }: PassportPrintButtonProps) {
     }
     return result
   }, [activities])
+
+  // Quad mode: chunk cards into groups of 4 (one letter sheet per chunk)
+  const sheets: Day[][][] = useMemo(() => {
+    if (printMode !== "quad") return []
+    const out: Day[][][] = []
+    for (let i = 0; i < pages.length; i += 4) {
+      out.push(pages.slice(i, i + 4))
+    }
+    return out.length === 0 ? [[[]]] : out
+  }, [pages, printMode])
+
+  const renderCard = (pageDays: Day[], pageIndex: number) => {
+    const cardActivityCount = pageDays.reduce((sum, d) => sum + d.activities.length, 0)
+    return (
+      <template.Component
+        title={event.title}
+        dateRange={dateRange}
+        location={event.location || undefined}
+        description={event.description || undefined}
+        days={pageDays}
+        includeLogo={includeLogo}
+        pageIndex={pageIndex}
+        pageCount={cardCount}
+        density={densityScale(cardActivityCount || 1)}
+      />
+    )
+  }
 
   const handlePrint = async () => {
     if (!includeLogo) {
@@ -254,11 +339,11 @@ export function PassportPrintButton({ event }: PassportPrintButtonProps) {
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-xl print:hidden">
+        <DialogContent className="sm:max-w-xl print:hidden max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Print passport-sized itinerary</DialogTitle>
             <DialogDescription>
-              Prints at {PASSPORT_WIDTH_IN}&quot; × {PASSPORT_HEIGHT_IN}&quot; so it fits in a passport holder.
+              Each card is {PASSPORT_WIDTH_IN}&quot; × {PASSPORT_HEIGHT_IN}&quot; and fits in a passport holder.
             </DialogDescription>
           </DialogHeader>
 
@@ -266,8 +351,13 @@ export function PassportPrintButton({ event }: PassportPrintButtonProps) {
             <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
               <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
               <div>
-                Your itinerary will print across <strong>{estimatedPages} pages</strong>. Each page is
-                {" "}{PASSPORT_WIDTH_IN}&quot; × {PASSPORT_HEIGHT_IN}&quot;.
+                Your itinerary needs <strong>{cardCount}</strong> {cardCount === 1 ? "card" : "cards"}
+                {printMode === "quad" ? (
+                  <> — printed on <strong>{sheetCount}</strong> letter {sheetCount === 1 ? "sheet" : "sheets"} (4-up)</>
+                ) : (
+                  <> — one card per sheet</>
+                )}
+                .
               </div>
             </div>
           )}
@@ -296,7 +386,42 @@ export function PassportPrintButton({ event }: PassportPrintButtonProps) {
             </div>
           )}
 
-          {/* On-screen preview (first page) */}
+          {/* Print layout selector */}
+          <div className="space-y-2">
+            <Label>Print layout</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setPrintMode("quad")}
+                className={`rounded-md border p-3 text-left text-sm transition ${
+                  printMode === "quad"
+                    ? "border-primary ring-2 ring-primary/30"
+                    : "border-input hover:bg-muted"
+                }`}
+              >
+                <div className="font-medium">4 per letter sheet</div>
+                <div className="text-xs text-muted-foreground">
+                  Print on standard 8.5×11 paper with cut guides at each corner.
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPrintMode("single")}
+                className={`rounded-md border p-3 text-left text-sm transition ${
+                  printMode === "single"
+                    ? "border-primary ring-2 ring-primary/30"
+                    : "border-input hover:bg-muted"
+                }`}
+              >
+                <div className="font-medium">1 per sheet</div>
+                <div className="text-xs text-muted-foreground">
+                  Print each card on its own {PASSPORT_WIDTH_IN}×{PASSPORT_HEIGHT_IN} sheet.
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* On-screen preview (first card) */}
           <div className="flex justify-center py-2">
             <div
               style={{
@@ -305,16 +430,7 @@ export function PassportPrintButton({ event }: PassportPrintButtonProps) {
                 boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
               }}
             >
-              <template.Component
-                title={event.title}
-                dateRange={dateRange}
-                location={event.location || undefined}
-                description={event.description || undefined}
-                days={pages[0] || []}
-                includeLogo={includeLogo}
-                pageIndex={0}
-                pageCount={estimatedPages}
-              />
+              {renderCard(pages[0] || [], 0)}
             </div>
           </div>
 
@@ -359,21 +475,34 @@ export function PassportPrintButton({ event }: PassportPrintButtonProps) {
           rest of the page during print (display: none, not just visibility). */}
       {mounted &&
         createPortal(
-          <div className="passport-print-root" aria-hidden>
-            {pages.map((pageDays, pageIndex) => (
-              <div key={pageIndex} className="passport-print-page">
-                <template.Component
-                  title={event.title}
-                  dateRange={dateRange}
-                  location={event.location || undefined}
-                  description={event.description || undefined}
-                  days={pageDays}
-                  includeLogo={includeLogo}
-                  pageIndex={pageIndex}
-                  pageCount={estimatedPages}
-                />
-              </div>
-            ))}
+          <div
+            className={`passport-print-root print-mode-${printMode}`}
+            aria-hidden
+          >
+            {printMode === "single" &&
+              pages.map((pageDays, pageIndex) => (
+                <div key={pageIndex} className="passport-print-page">
+                  {renderCard(pageDays, pageIndex)}
+                </div>
+              ))}
+            {printMode === "quad" &&
+              sheets.map((sheetCards, sheetIndex) => (
+                <div key={sheetIndex} className="passport-quad-sheet">
+                  <div className="passport-quad-grid">
+                    {sheetCards.map((cardDays, cellIndex) => {
+                      const pageIndex = sheetIndex * 4 + cellIndex
+                      return (
+                        <div key={cellIndex} className="passport-quad-cell">
+                          <CropMarks />
+                          <div className="passport-quad-card">
+                            {renderCard(cardDays, pageIndex)}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
           </div>,
           document.body,
         )}
@@ -383,10 +512,6 @@ export function PassportPrintButton({ event }: PassportPrintButtonProps) {
           display: none;
         }
         @media print {
-          @page {
-            size: ${PASSPORT_WIDTH_IN}in ${PASSPORT_HEIGHT_IN}in;
-            margin: 0;
-          }
           html,
           body {
             background: #fff !important;
@@ -398,8 +523,22 @@ export function PassportPrintButton({ event }: PassportPrintButtonProps) {
           }
           .passport-print-root {
             display: block !important;
-            position: static !important;
-            width: ${PASSPORT_WIDTH_IN}in !important;
+          }
+        }
+        @media print {
+          .print-mode-single {
+            page: passport-single;
+          }
+          .print-mode-quad {
+            page: passport-quad;
+          }
+          @page passport-single {
+            size: ${PASSPORT_WIDTH_IN}in ${PASSPORT_HEIGHT_IN}in;
+            margin: 0;
+          }
+          @page passport-quad {
+            size: ${LETTER_WIDTH_IN}in ${LETTER_HEIGHT_IN}in;
+            margin: 0;
           }
           .passport-print-page {
             width: ${PASSPORT_WIDTH_IN}in;
@@ -412,9 +551,77 @@ export function PassportPrintButton({ event }: PassportPrintButtonProps) {
             page-break-after: auto;
             break-after: auto;
           }
+          .passport-quad-sheet {
+            width: ${LETTER_WIDTH_IN}in;
+            height: ${LETTER_HEIGHT_IN}in;
+            position: relative;
+            overflow: hidden;
+            page-break-after: always;
+            break-after: page;
+          }
+          .passport-quad-sheet:last-child {
+            page-break-after: auto;
+            break-after: auto;
+          }
+          .passport-quad-grid {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            grid-template-columns: ${PASSPORT_WIDTH_IN}in ${PASSPORT_WIDTH_IN}in;
+            grid-template-rows: ${PASSPORT_HEIGHT_IN}in ${PASSPORT_HEIGHT_IN}in;
+            justify-content: center;
+            align-content: center;
+            gap: 0;
+          }
+          .passport-quad-cell {
+            position: relative;
+            width: ${PASSPORT_WIDTH_IN}in;
+            height: ${PASSPORT_HEIGHT_IN}in;
+          }
+          .passport-quad-card {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+          }
         }
       `}</style>
     </>
+  )
+}
+
+/**
+ * Tick marks at the four outer corners of a passport card so users know where
+ * to cut. Each mark is two short black lines just outside the card edge.
+ */
+function CropMarks() {
+  const len = `${CROP_MARK_LEN_IN}in`
+  const off = `${CROP_MARK_OFFSET_IN}in`
+  const thickness = "0.4pt"
+  const color = "#000"
+  const tick: React.CSSProperties = { position: "absolute", background: color }
+  return (
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        pointerEvents: "none",
+        zIndex: 10,
+      }}
+      aria-hidden
+    >
+      {/* top-left */}
+      <div style={{ ...tick, top: `-${off}`, left: 0, width: thickness, height: len }} />
+      <div style={{ ...tick, top: 0, left: `-${off}`, width: len, height: thickness }} />
+      {/* top-right */}
+      <div style={{ ...tick, top: `-${off}`, right: 0, width: thickness, height: len }} />
+      <div style={{ ...tick, top: 0, right: `-${off}`, width: len, height: thickness }} />
+      {/* bottom-left */}
+      <div style={{ ...tick, bottom: `-${off}`, left: 0, width: thickness, height: len }} />
+      <div style={{ ...tick, bottom: 0, left: `-${off}`, width: len, height: thickness }} />
+      {/* bottom-right */}
+      <div style={{ ...tick, bottom: `-${off}`, right: 0, width: thickness, height: len }} />
+      <div style={{ ...tick, bottom: 0, right: `-${off}`, width: len, height: thickness }} />
+    </div>
   )
 }
 
@@ -487,12 +694,19 @@ function TineraryWordmark({
   )
 }
 
-function WavyGardenTemplate({ title, dateRange, location, days, includeLogo, pageIndex, pageCount }: TemplateProps) {
+function WavyGardenTemplate({ title, dateRange, location, days, includeLogo, pageIndex, pageCount, density }: TemplateProps) {
   const subtitle = [dateRange, location].filter(Boolean).join(" · ")
   // SVG viewBox is in centi-inches (each unit = 0.01 in) so paths scale cleanly
   const VB_W = PASSPORT_WIDTH_IN * 100 // 340
   const VB_H = PASSPORT_HEIGHT_IN * 100 // 490
-  const wavyPath = buildWavyFramePath(VB_W, VB_H, 30, 11, 17, 7)
+  // Asymmetric wavy band: outer edge has slower, calmer waves; inner edge has
+  // tighter, more frequent bumps — gives the frame an organic, hand-cut feel.
+  const wavyPath = buildWavyBandPath(
+    VB_W,
+    VB_H,
+    { margin: 16, bumpsX: 9, bumpsY: 13, amp: 5 },
+    { margin: 42, bumpsX: 13, bumpsY: 19, amp: 8 },
+  )
 
   return (
     <div
@@ -546,14 +760,7 @@ function WavyGardenTemplate({ title, dateRange, location, days, includeLogo, pag
           zIndex: 2,
         }}
       >
-        <path
-          d={wavyPath}
-          fill="none"
-          stroke={COLOR_GREEN}
-          strokeWidth={28}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
+        <path d={wavyPath} fill={COLOR_GREEN} fillRule="evenodd" />
       </svg>
 
       {/* Content layer — inside the frame */}
@@ -581,7 +788,7 @@ function WavyGardenTemplate({ title, dateRange, location, days, includeLogo, pag
           <div
             style={{
               fontFamily: "'Anton', 'Archivo Black', 'Bebas Neue', 'Impact', sans-serif",
-              fontSize: "15pt",
+              fontSize: scale(16, density),
               fontWeight: 400,
               letterSpacing: "0.04em",
               color: "#1a1a1a",
@@ -593,24 +800,24 @@ function WavyGardenTemplate({ title, dateRange, location, days, includeLogo, pag
             {title}
           </div>
           {subtitle && (
-            <div style={{ fontSize: "6.5pt", color: "#3a3a3a", marginTop: "0.02in", letterSpacing: "0.02em" }}>
+            <div style={{ fontSize: scale(6.5, density), color: "#3a3a3a", marginTop: "0.02in", letterSpacing: "0.02em" }}>
               {subtitle}
             </div>
           )}
         </div>
 
         {/* Days & activities */}
-        <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", gap: "0.1in" }}>
+        <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", gap: `${0.09 * density}in` }}>
           {days.length === 0 && (
-            <div style={{ fontSize: "8pt", color: "#888", marginTop: "0.1in" }}>
+            <div style={{ fontSize: scale(8, density), color: "#888", marginTop: "0.1in" }}>
               No scheduled activities yet.
             </div>
           )}
           {days.map((day) => (
-            <div key={day.key} style={{ display: "flex", flexDirection: "column", gap: "0.05in" }}>
+            <div key={day.key} style={{ display: "flex", flexDirection: "column", gap: `${0.05 * density}in` }}>
               <div
                 style={{
-                  fontSize: "8.5pt",
+                  fontSize: scale(8.5, density),
                   fontWeight: 700,
                   color: "#2a2a2a",
                   marginBottom: "0.02in",
@@ -620,7 +827,7 @@ function WavyGardenTemplate({ title, dateRange, location, days, includeLogo, pag
                 {day.key === "undated" ? "Other" : `Day ${day.index}`}
               </div>
               {day.activities.map((a, idx) => (
-                <ActivityCard key={a.id || idx} activity={a} />
+                <ActivityCard key={a.id || idx} activity={a} density={density} />
               ))}
             </div>
           ))}
@@ -643,14 +850,14 @@ function WavyGardenTemplate({ title, dateRange, location, days, includeLogo, pag
   )
 }
 
-function ActivityCard({ activity }: { activity: Activity }) {
+function ActivityCard({ activity, density }: { activity: Activity; density: number }) {
   const time = formatTime(activity.start_time)
   return (
     <div
       style={{
         background: "#fff",
         borderRadius: "0.08in",
-        padding: "0.07in 0.1in",
+        padding: `${0.06 * density}in ${0.1 * density}in`,
         boxShadow: "0 0.5pt 1pt rgba(0,0,0,0.08)",
         display: "flex",
         flexDirection: "column",
@@ -659,7 +866,7 @@ function ActivityCard({ activity }: { activity: Activity }) {
     >
       <div
         style={{
-          fontSize: "8pt",
+          fontSize: scale(8, density),
           fontWeight: 700,
           color: COLOR_TEXT,
           lineHeight: 1.15,
@@ -676,7 +883,7 @@ function ActivityCard({ activity }: { activity: Activity }) {
             display: "flex",
             alignItems: "center",
             gap: "0.03in",
-            fontSize: "6.5pt",
+            fontSize: scale(6.5, density),
             color: COLOR_TEXT_MUTED,
             lineHeight: 1.1,
           }}
@@ -700,7 +907,7 @@ function ActivityCard({ activity }: { activity: Activity }) {
             display: "flex",
             alignItems: "center",
             gap: "0.03in",
-            fontSize: "6.5pt",
+            fontSize: scale(6.5, density),
             color: COLOR_TEXT_MUTED,
             lineHeight: 1.1,
           }}
@@ -760,6 +967,7 @@ function TokyoTimelineTemplate({
   includeLogo,
   pageIndex,
   pageCount,
+  density,
 }: TemplateProps) {
   return (
     <div
@@ -792,7 +1000,7 @@ function TokyoTimelineTemplate({
             style={{
               fontFamily: SERIF_STACK,
               fontWeight: 600,
-              fontSize: "24pt",
+              fontSize: scale(26, density),
               letterSpacing: "0.06em",
               lineHeight: 1,
               textTransform: "uppercase",
@@ -804,7 +1012,7 @@ function TokyoTimelineTemplate({
           {dateRange && (
             <div
               style={{
-                fontSize: "7pt",
+                fontSize: scale(7, density),
                 letterSpacing: "0.18em",
                 color: "#222",
                 marginTop: "0.07in",
@@ -817,7 +1025,7 @@ function TokyoTimelineTemplate({
           {description && (
             <div
               style={{
-                fontSize: "6.5pt",
+                fontSize: scale(6.5, density),
                 letterSpacing: "0.14em",
                 color: "#555",
                 marginTop: "0.04in",
@@ -827,7 +1035,7 @@ function TokyoTimelineTemplate({
                 WebkitLineClamp: 2,
                 WebkitBoxOrient: "vertical",
                 lineHeight: 1.25,
-                maxHeight: "0.28in",
+                maxHeight: "0.3in",
               }}
             >
               {description}
@@ -855,7 +1063,7 @@ function TokyoTimelineTemplate({
                   }}
                 />
               )}
-              <DayTimelineBlock dayIndex={day.index} location={loc} activities={day.activities} />
+              <DayTimelineBlock dayIndex={day.index} location={loc} activities={day.activities} density={density} />
             </div>
           )
         })}
@@ -874,11 +1082,14 @@ function DayTimelineBlock({
   dayIndex,
   location,
   activities,
+  density,
 }: {
   dayIndex: number
   location: string
   activities: Activity[]
+  density: number
 }) {
+  const rowMin = `${0.26 * density}in`
   return (
     <div
       style={{
@@ -886,7 +1097,7 @@ function DayTimelineBlock({
         gridTemplateColumns: "0.55in 0.18in 0.42in 1fr",
         alignItems: "stretch",
         columnGap: "0.06in",
-        padding: "0.04in 0",
+        padding: `${0.04 * density}in 0`,
       }}
     >
       {/* Day + location label */}
@@ -902,7 +1113,7 @@ function DayTimelineBlock({
         <div
           style={{
             fontFamily: SERIF_STACK,
-            fontSize: "11pt",
+            fontSize: scale(12, density),
             fontWeight: 600,
             letterSpacing: "0.05em",
             lineHeight: 1,
@@ -914,7 +1125,7 @@ function DayTimelineBlock({
         {location && (
           <div
             style={{
-              fontSize: "6.5pt",
+              fontSize: scale(6.5, density),
               letterSpacing: "0.14em",
               color: "#333",
               marginTop: "0.04in",
@@ -948,7 +1159,7 @@ function DayTimelineBlock({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              minHeight: "0.28in",
+              minHeight: rowMin,
               position: "relative",
             }}
           >
@@ -972,10 +1183,10 @@ function DayTimelineBlock({
             key={a.id || idx}
             style={{
               flex: 1,
-              minHeight: "0.28in",
+              minHeight: rowMin,
               display: "flex",
               alignItems: "center",
-              fontSize: "7.5pt",
+              fontSize: scale(7.5, density),
               fontVariantNumeric: "tabular-nums",
               color: "#111",
             }}
@@ -992,10 +1203,10 @@ function DayTimelineBlock({
             key={a.id || idx}
             style={{
               flex: 1,
-              minHeight: "0.28in",
+              minHeight: rowMin,
               display: "flex",
               alignItems: "center",
-              fontSize: "7pt",
+              fontSize: scale(7, density),
               lineHeight: 1.25,
               color: "#111",
               paddingRight: "0.04in",

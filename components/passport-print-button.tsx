@@ -1,6 +1,7 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { createPortal } from "react-dom"
 import { Printer, AlertTriangle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -151,14 +152,50 @@ function buildWavyFramePath(
   return d + " Z"
 }
 
+// ---------------------------------------------------------------------------
+// Template registry — each template renders a single passport-sized page given
+// the same data shape. Add new templates by registering them here.
+// ---------------------------------------------------------------------------
+
+export interface TemplateProps {
+  title: string
+  subtitle: string
+  days: Day[]
+  includeLogo: boolean
+  pageIndex: number
+  pageCount: number
+}
+
+interface Template {
+  id: string
+  name: string
+  description: string
+  Component: (props: TemplateProps) => JSX.Element
+}
+
+const TEMPLATES: Template[] = [
+  {
+    id: "wavy-garden",
+    name: "Wavy Garden",
+    description: "Cream background with a scalloped green border.",
+    Component: WavyGardenTemplate,
+  },
+  // Second template slot — will be filled in once a reference design is provided.
+]
+
 export function PassportPrintButton({ event }: PassportPrintButtonProps) {
   const [open, setOpen] = useState(false)
   const [includeLogo, setIncludeLogo] = useState(true)
   const [isPrinting, setIsPrinting] = useState(false)
+  const [templateId, setTemplateId] = useState<string>(TEMPLATES[0].id)
+  const [mounted, setMounted] = useState(false)
   const { toast } = useToast()
 
+  useEffect(() => setMounted(true), [])
+
+  const template = TEMPLATES.find((t) => t.id === templateId) || TEMPLATES[0]
+
   const activities = (event.activities || []) as Activity[]
-  const allDays = useMemo(() => groupActivitiesByDay(activities), [activities])
   const totalActivities = activities.length
   const willOverflow = totalActivities > ACTIVITIES_PER_PAGE
   const estimatedPages = Math.max(1, Math.ceil(totalActivities / ACTIVITIES_PER_PAGE))
@@ -228,6 +265,30 @@ export function PassportPrintButton({ event }: PassportPrintButtonProps) {
             </div>
           )}
 
+          {/* Template selector */}
+          {TEMPLATES.length > 1 && (
+            <div className="space-y-2">
+              <Label>Template</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {TEMPLATES.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setTemplateId(t.id)}
+                    className={`rounded-md border p-3 text-left text-sm transition ${
+                      templateId === t.id
+                        ? "border-primary ring-2 ring-primary/30"
+                        : "border-input hover:bg-muted"
+                    }`}
+                  >
+                    <div className="font-medium">{t.name}</div>
+                    <div className="text-xs text-muted-foreground">{t.description}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* On-screen preview (first page) */}
           <div className="flex justify-center py-2">
             <div
@@ -237,10 +298,10 @@ export function PassportPrintButton({ event }: PassportPrintButtonProps) {
                 boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
               }}
             >
-              <PassportPage
-                event={event}
+              <template.Component
+                title={event.title}
+                subtitle={[dateRange, event.location].filter(Boolean).join(" · ")}
                 days={pages[0] || []}
-                dateRange={dateRange}
                 includeLogo={includeLogo}
                 pageIndex={0}
                 pageCount={estimatedPages}
@@ -285,28 +346,30 @@ export function PassportPrintButton({ event }: PassportPrintButtonProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Hidden printable area — one passport-sized page per chunk */}
-      <div className="passport-print-root" aria-hidden>
-        {pages.map((pageDays, pageIndex) => (
-          <div key={pageIndex} className="passport-print-page">
-            <PassportPage
-              event={event}
-              days={pageDays}
-              dateRange={dateRange}
-              includeLogo={includeLogo}
-              pageIndex={pageIndex}
-              pageCount={estimatedPages}
-            />
-          </div>
-        ))}
-      </div>
+      {/* Print pages — portaled directly into <body> so we can fully hide the
+          rest of the page during print (display: none, not just visibility). */}
+      {mounted &&
+        createPortal(
+          <div className="passport-print-root" aria-hidden>
+            {pages.map((pageDays, pageIndex) => (
+              <div key={pageIndex} className="passport-print-page">
+                <template.Component
+                  title={event.title}
+                  subtitle={[dateRange, event.location].filter(Boolean).join(" · ")}
+                  days={pageDays}
+                  includeLogo={includeLogo}
+                  pageIndex={pageIndex}
+                  pageCount={estimatedPages}
+                />
+              </div>
+            ))}
+          </div>,
+          document.body,
+        )}
 
       <style jsx global>{`
         .passport-print-root {
-          position: absolute;
-          left: -10000px;
-          top: 0;
-          width: ${PASSPORT_WIDTH_IN}in;
+          display: none;
         }
         @media print {
           @page {
@@ -319,17 +382,12 @@ export function PassportPrintButton({ event }: PassportPrintButtonProps) {
             margin: 0 !important;
             padding: 0 !important;
           }
-          body * {
-            visibility: hidden !important;
-          }
-          .passport-print-root,
-          .passport-print-root * {
-            visibility: visible !important;
+          body > *:not(.passport-print-root) {
+            display: none !important;
           }
           .passport-print-root {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
+            display: block !important;
+            position: static !important;
             width: ${PASSPORT_WIDTH_IN}in !important;
           }
           .passport-print-page {
@@ -347,15 +405,6 @@ export function PassportPrintButton({ event }: PassportPrintButtonProps) {
       `}</style>
     </>
   )
-}
-
-interface PassportPageProps {
-  event: PassportPrintButtonProps["event"]
-  days: Day[]
-  dateRange: string
-  includeLogo: boolean
-  pageIndex: number
-  pageCount: number
 }
 
 function PinIcon({ size = 7, color = COLOR_TEXT_MUTED }: { size?: number; color?: string }) {
@@ -426,7 +475,7 @@ function TineraryWordmark({
   )
 }
 
-function PassportPage({ event, days, dateRange, includeLogo, pageIndex, pageCount }: PassportPageProps) {
+function WavyGardenTemplate({ title, subtitle, days, includeLogo, pageIndex, pageCount }: TemplateProps) {
   // SVG viewBox is in centi-inches (each unit = 0.01 in) so paths scale cleanly
   const VB_W = PASSPORT_WIDTH_IN * 100 // 340
   const VB_H = PASSPORT_HEIGHT_IN * 100 // 490
@@ -528,12 +577,11 @@ function PassportPage({ event, days, dateRange, includeLogo, pageIndex, pageCoun
               wordBreak: "break-word",
             }}
           >
-            {event.title}
+            {title}
           </div>
-          {dateRange && (
+          {subtitle && (
             <div style={{ fontSize: "6.5pt", color: "#3a3a3a", marginTop: "0.02in", letterSpacing: "0.02em" }}>
-              {dateRange}
-              {event.location ? ` · ${event.location}` : ""}
+              {subtitle}
             </div>
           )}
         </div>

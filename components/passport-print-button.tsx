@@ -46,6 +46,7 @@ interface PassportPrintButtonProps {
   event: {
     id: string
     title: string
+    description?: string | null
     start_date?: string | null
     end_date?: string | null
     location?: string | null
@@ -159,7 +160,9 @@ function buildWavyFramePath(
 
 export interface TemplateProps {
   title: string
-  subtitle: string
+  dateRange?: string
+  location?: string
+  description?: string
   days: Day[]
   includeLogo: boolean
   pageIndex: number
@@ -180,7 +183,12 @@ const TEMPLATES: Template[] = [
     description: "Cream background with a scalloped green border.",
     Component: WavyGardenTemplate,
   },
-  // Second template slot — will be filled in once a reference design is provided.
+  {
+    id: "tokyo-timeline",
+    name: "Tokyo Timeline",
+    description: "Minimal black & white with a vertical timeline.",
+    Component: TokyoTimelineTemplate,
+  },
 ]
 
 export function PassportPrintButton({ event }: PassportPrintButtonProps) {
@@ -300,7 +308,9 @@ export function PassportPrintButton({ event }: PassportPrintButtonProps) {
             >
               <template.Component
                 title={event.title}
-                subtitle={[dateRange, event.location].filter(Boolean).join(" · ")}
+                dateRange={dateRange}
+                location={event.location || undefined}
+                description={event.description || undefined}
                 days={pages[0] || []}
                 includeLogo={includeLogo}
                 pageIndex={0}
@@ -355,7 +365,9 @@ export function PassportPrintButton({ event }: PassportPrintButtonProps) {
               <div key={pageIndex} className="passport-print-page">
                 <template.Component
                   title={event.title}
-                  subtitle={[dateRange, event.location].filter(Boolean).join(" · ")}
+                  dateRange={dateRange}
+                  location={event.location || undefined}
+                  description={event.description || undefined}
                   days={pageDays}
                   includeLogo={includeLogo}
                   pageIndex={pageIndex}
@@ -475,7 +487,8 @@ function TineraryWordmark({
   )
 }
 
-function WavyGardenTemplate({ title, subtitle, days, includeLogo, pageIndex, pageCount }: TemplateProps) {
+function WavyGardenTemplate({ title, dateRange, location, days, includeLogo, pageIndex, pageCount }: TemplateProps) {
+  const subtitle = [dateRange, location].filter(Boolean).join(" · ")
   // SVG viewBox is in centi-inches (each unit = 0.01 in) so paths scale cleanly
   const VB_W = PASSPORT_WIDTH_IN * 100 // 340
   const VB_H = PASSPORT_HEIGHT_IN * 100 // 490
@@ -696,6 +709,326 @@ function ActivityCard({ activity }: { activity: Activity }) {
           <span>{time}</span>
         </div>
       )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Template 2 — Tokyo Timeline (clean black & white with vertical timeline)
+// ---------------------------------------------------------------------------
+
+const SERIF_STACK =
+  "'Playfair Display', 'Cormorant Garamond', Georgia, 'Times New Roman', serif"
+const SANS_STACK =
+  "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+
+function formatDateRangeUppercase(dateRange?: string) {
+  if (!dateRange) return ""
+  // The supplied dateRange uses "Mon Day–Day, Year" or "Mon Day, Year" formats.
+  // For this template the reference shows a simpler "JUL 1 - JUL 3" feel.
+  return dateRange.toUpperCase()
+}
+
+function dayLocationLabel(day: Day): string {
+  // Use the most common location among activities in this day. If only one
+  // activity has a location, that's it. Strip trailing detail after a comma
+  // so we surface the city/neighborhood.
+  const counts = new Map<string, number>()
+  for (const a of day.activities) {
+    if (!a.location) continue
+    const head = a.location.split(",")[0].trim()
+    if (!head) continue
+    counts.set(head, (counts.get(head) || 0) + 1)
+  }
+  if (counts.size === 0) return ""
+  let best = ""
+  let bestCount = 0
+  for (const [loc, n] of counts) {
+    if (n > bestCount) {
+      best = loc
+      bestCount = n
+    }
+  }
+  return best.toUpperCase()
+}
+
+function TokyoTimelineTemplate({
+  title,
+  dateRange,
+  description,
+  days,
+  includeLogo,
+  pageIndex,
+  pageCount,
+}: TemplateProps) {
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        background: "#ffffff",
+        color: "#111",
+        fontFamily: SANS_STACK,
+        position: "relative",
+        overflow: "hidden",
+        padding: "0.28in 0.3in 0.22in 0.3in",
+        boxSizing: "border-box",
+        display: "flex",
+        flexDirection: "column",
+        WebkitPrintColorAdjust: "exact",
+        printColorAdjust: "exact",
+      } as React.CSSProperties}
+    >
+      {/* Header: logo top-left, centered title block */}
+      <div style={{ position: "relative", marginBottom: "0.16in" }}>
+        {includeLogo && (
+          <div style={{ position: "absolute", left: 0, top: "0.02in" }}>
+            <span
+              style={{
+                fontFamily: "'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', cursive",
+                fontWeight: 900,
+                color: COLOR_YELLOW,
+                fontSize: "9pt",
+                letterSpacing: "-0.02em",
+                textTransform: "uppercase",
+                lineHeight: 1,
+              }}
+            >
+              Tinerary
+            </span>
+          </div>
+        )}
+
+        <div style={{ textAlign: "center", paddingTop: "0.06in" }}>
+          <div
+            style={{
+              fontFamily: SERIF_STACK,
+              fontWeight: 500,
+              fontSize: "22pt",
+              letterSpacing: "0.04em",
+              lineHeight: 1,
+              textTransform: "uppercase",
+              wordBreak: "break-word",
+            }}
+          >
+            {title}
+          </div>
+          {dateRange && (
+            <div
+              style={{
+                fontSize: "7pt",
+                letterSpacing: "0.18em",
+                color: "#222",
+                marginTop: "0.07in",
+                textTransform: "uppercase",
+              }}
+            >
+              {formatDateRangeUppercase(dateRange)}
+            </div>
+          )}
+          {description && (
+            <div
+              style={{
+                fontSize: "6.5pt",
+                letterSpacing: "0.14em",
+                color: "#555",
+                marginTop: "0.04in",
+                textTransform: "uppercase",
+                overflow: "hidden",
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                lineHeight: 1.25,
+                maxHeight: "0.28in",
+              }}
+            >
+              {description}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Body: vertical timeline of days */}
+      <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        {days.length === 0 && (
+          <div style={{ fontSize: "8pt", color: "#888", textAlign: "center", marginTop: "0.2in" }}>
+            No scheduled activities yet.
+          </div>
+        )}
+        {days.map((day, dayIdx) => {
+          const loc = dayLocationLabel(day)
+          return (
+            <div key={day.key}>
+              {dayIdx > 0 && (
+                <div
+                  style={{
+                    borderTop: "0.6pt solid #111",
+                    margin: "0.06in 0",
+                  }}
+                />
+              )}
+              <DayTimelineBlock dayIndex={day.index} location={loc} activities={day.activities} />
+            </div>
+          )
+        })}
+      </div>
+
+      {pageCount > 1 && (
+        <div style={{ fontSize: "6pt", color: "#999", textAlign: "right", marginTop: "0.04in" }}>
+          {pageIndex + 1} / {pageCount}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DayTimelineBlock({
+  dayIndex,
+  location,
+  activities,
+}: {
+  dayIndex: number
+  location: string
+  activities: Activity[]
+}) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "0.55in 0.18in 0.42in 1fr",
+        alignItems: "stretch",
+        columnGap: "0.06in",
+        padding: "0.04in 0",
+      }}
+    >
+      {/* Day + location label */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          textAlign: "center",
+        }}
+      >
+        <div
+          style={{
+            fontFamily: SERIF_STACK,
+            fontSize: "11pt",
+            fontWeight: 600,
+            letterSpacing: "0.05em",
+            lineHeight: 1,
+            textTransform: "uppercase",
+          }}
+        >
+          Day {dayIndex}
+        </div>
+        {location && (
+          <div
+            style={{
+              fontSize: "6.5pt",
+              letterSpacing: "0.14em",
+              color: "#333",
+              marginTop: "0.04in",
+              textTransform: "uppercase",
+            }}
+          >
+            {location}
+          </div>
+        )}
+      </div>
+
+      {/* Timeline column: vertical line + dots */}
+      <div style={{ position: "relative", display: "flex", flexDirection: "column" }}>
+        {/* vertical line */}
+        <div
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: "0.06in",
+            bottom: "0.06in",
+            width: "0.6pt",
+            background: "#111",
+            transform: "translateX(-50%)",
+          }}
+        />
+        {activities.map((a, idx) => (
+          <div
+            key={a.id || idx}
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: "0.28in",
+              position: "relative",
+            }}
+          >
+            <div
+              style={{
+                width: "0.08in",
+                height: "0.08in",
+                borderRadius: "50%",
+                background: "#111",
+                zIndex: 1,
+              }}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Times column */}
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        {activities.map((a, idx) => (
+          <div
+            key={a.id || idx}
+            style={{
+              flex: 1,
+              minHeight: "0.28in",
+              display: "flex",
+              alignItems: "center",
+              fontSize: "7.5pt",
+              fontVariantNumeric: "tabular-nums",
+              color: "#111",
+            }}
+          >
+            {formatTime(a.start_time) || "—"}
+          </div>
+        ))}
+      </div>
+
+      {/* Activity descriptions */}
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        {activities.map((a, idx) => (
+          <div
+            key={a.id || idx}
+            style={{
+              flex: 1,
+              minHeight: "0.28in",
+              display: "flex",
+              alignItems: "center",
+              fontSize: "7pt",
+              lineHeight: 1.25,
+              color: "#111",
+              paddingRight: "0.04in",
+            }}
+          >
+            <span
+              style={{
+                display: "-webkit-box",
+                WebkitLineClamp: 3,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+              }}
+            >
+              {a.title || "Untitled"}
+              {a.location && a.location.split(",")[0].trim().toUpperCase() !== location && (
+                <span style={{ color: "#666" }}> · {a.location}</span>
+              )}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

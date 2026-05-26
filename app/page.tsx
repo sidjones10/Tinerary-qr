@@ -6,20 +6,18 @@ import { FeedPage } from "@/components/feed-page"
 import { AppHeader } from "@/components/app-header"
 import { FoundersListSignup } from "@/components/founders-list-signup"
 import { useAuth } from "@/providers/auth-provider"
-import { useAccess } from "@/hooks/use-access"
 import { TINERARY_YELLOW } from "@/lib/brand"
 import { Loader2 } from "lucide-react"
 
 export default function HomePage() {
   const { user, isLoading } = useAuth()
-  const { isAllowed, isLoading: accessLoading } = useAccess()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  if (!mounted || isLoading || accessLoading) {
+  if (!mounted || isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -27,9 +25,7 @@ export default function HomePage() {
     )
   }
 
-  // During the soft launch, only admins and allowlisted creators get the
-  // full in-app feed. Everyone else stays on the manifesto landing.
-  if (user && isAllowed) {
+  if (user) {
     return (
       <div className="min-h-screen">
         <AppHeader />

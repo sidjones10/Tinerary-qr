@@ -814,6 +814,7 @@ export function EventDetail({ event }: EventDetailProps) {
                   event={{
                     id: event.id,
                     title: event.title,
+                    description: event.description,
                     start_date: event.start_date,
                     end_date: event.end_date,
                     location: event.location as string | undefined,

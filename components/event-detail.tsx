@@ -810,17 +810,7 @@ export function EventDetail({ event }: EventDetailProps) {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <PassportPrintButton
-                  event={{
-                    id: event.id,
-                    title: event.title,
-                    description: event.description,
-                    start_date: event.start_date,
-                    end_date: event.end_date,
-                    location: event.location as string | undefined,
-                    activities: (event.activities || []) as any,
-                  }}
-                />
+                <PassportPrintButton event={{ id: event.id }} />
 
                 <Button
                   variant="outline"

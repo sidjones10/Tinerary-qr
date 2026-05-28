@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Download, Share2, Printer, Mail, Smartphone, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,13 +20,20 @@ interface DownloadItineraryButtonProps {
 }
 
 export function DownloadItineraryButton({ eventId, eventTitle }: DownloadItineraryButtonProps) {
+  const router = useRouter()
   const [isGenerating, setIsGenerating] = useState(false)
   const [showDialog, setShowDialog] = useState(false)
 
   const handleDownload = (format: string) => {
-    setIsGenerating(true)
+    // Print Version routes to the dedicated print page, which handles its own
+    // print trigger (template picker, day picker, layout, crop marks).
+    if (format === "print") {
+      router.push(`/itinerary/${eventId}/print`)
+      return
+    }
 
-    // Simulate download generation
+    setIsGenerating(true)
+    // Simulate download generation for other formats (PDF/email/mobile/share)
     setTimeout(() => {
       setIsGenerating(false)
       setShowDialog(true)

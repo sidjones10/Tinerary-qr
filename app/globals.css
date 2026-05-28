@@ -669,3 +669,14 @@ select:focus {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Chrome, Safari and Opera */
 }
+
+/* Safari ignores @page { margin: 0 } unless body margin is also 0 — set it
+   globally for print so the passport print route doesn't get extra borders. */
+@media print {
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+}

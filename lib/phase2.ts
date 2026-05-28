@@ -7,13 +7,12 @@
  * the admin dashboard: email list + profiles.is_admin / role).
  *
  * Phase 2 features: Explore, Pricing, Mentions, Deals, Business pages
- * & toggles, Creator pages & toggles, Coins, Transactions, Affiliate.
+ * & toggles, Creator pages & toggles, Transactions, Affiliate.
  */
 export const PHASE_2_ENABLED = false
 
 /** Routes that are gated behind the Phase 2 flag. */
 export const PHASE_2_ROUTES = [
-  "/coins",
   "/deals",
   "/business",
   "/business-profile",

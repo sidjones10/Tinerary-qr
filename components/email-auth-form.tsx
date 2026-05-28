@@ -312,7 +312,7 @@ export default function EmailAuthForm() {
           { user_id: userId, consent_type: "marketing", consent_version: "1.0.0", consent_given: marketingAccepted },
         ])
 
-        // Process referral — award coins to referrer (non-blocking)
+        // Process referral (non-blocking)
         if (referralCode) {
           fetch("/api/referrals", {
             method: "POST",

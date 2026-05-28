@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/client"
 import { createNotification, notifyFirstPost } from "@/lib/notification-service"
-import { awardCoins, hasAlreadyEarned } from "@/lib/coins-service"
 import { moderateItineraryContent, censorText } from "@/lib/content-moderation"
 import { parseLocalDate } from "@/lib/utils"
 
@@ -365,35 +364,7 @@ export async function createItinerary(userId: string, data: CreateItineraryData)
       console.warn("Notification creation skipped:", error.message || "Unknown error")
     }
 
-    // 8. Award Tinerary Coins (non-blocking)
-    try {
-      const { count: existingCount } = await supabase
-        .from("itineraries")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId)
-
-      // First itinerary bonus
-      if (existingCount === 1) {
-        const alreadyGotFirst = await hasAlreadyEarned(userId, "first_itinerary")
-        if (!alreadyGotFirst) {
-          await awardCoins(userId, "first_itinerary", "itinerary", itineraryId)
-        }
-      }
-
-      // Public itinerary bonus
-      if (data.isPublic !== false) {
-        await awardCoins(userId, "publish_public_itinerary", "itinerary", itineraryId)
-      }
-
-      // 5+ activities bonus
-      if (data.activities && data.activities.length >= 5) {
-        await awardCoins(userId, "add_5_activities", "itinerary", itineraryId)
-      }
-    } catch (error: any) {
-      console.warn("Coin awarding skipped:", error.message || "Unknown error")
-    }
-
-    // 9. Scan activities for business mentions (non-blocking for public itineraries)
+    // 8. Scan activities for business mentions (non-blocking for public itineraries)
     if (data.isPublic !== false && data.activities && data.activities.length > 0) {
       try {
         const { data: businesses } = await supabase

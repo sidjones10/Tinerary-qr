@@ -90,21 +90,6 @@ export async function createBooking(formData: FormData) {
       p_quantity: quantity,
     })
 
-    // Award coins for completing a booking (20 coins, once per booking)
-    try {
-      await supabase.rpc("award_coins", {
-        p_user_id: session.user.id,
-        p_amount: 20, // COIN_AMOUNTS.complete_booking
-        p_action: "complete_booking",
-        p_description: "Completed a booking",
-        p_reference_type: "booking",
-        p_reference_id: booking.id,
-        p_metadata: {},
-      })
-    } catch (coinError) {
-      console.warn("Coin award for booking skipped:", coinError)
-    }
-
     revalidatePath(`/promotion/${promotionId}`)
     return { success: true, data: booking }
   } catch (error) {

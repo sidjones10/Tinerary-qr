@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 
-// POST - Record a referral and award coins to the referrer
+// POST - Record a referral
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -52,39 +52,6 @@ export async function POST(request: NextRequest) {
     if (insertError) {
       console.error("Error inserting referral:", insertError)
       return NextResponse.json({ error: insertError.message }, { status: 500 })
-    }
-
-    // Award coins to the referrer (100 coins for refer_user)
-    // Check if already awarded for this specific referred user
-    const { count: alreadyAwarded } = await supabase
-      .from("coin_transactions")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", referrer_id)
-      .eq("action", "refer_user")
-      .eq("reference_id", referred_id)
-
-    if (!alreadyAwarded || alreadyAwarded === 0) {
-      const { error: awardError } = await supabase.rpc("award_coins", {
-        p_user_id: referrer_id,
-        p_amount: 100, // COIN_AMOUNTS.refer_user
-        p_action: "refer_user",
-        p_description: "Referred a new user who signed up",
-        p_reference_type: "referral",
-        p_reference_id: referred_id,
-        p_metadata: {},
-      })
-
-      if (awardError) {
-        console.error("Error awarding referral coins:", awardError)
-        // Don't fail the referral record — coins can be reconciled later
-      }
-
-      // Update referral status to rewarded
-      await supabase
-        .from("referrals")
-        .update({ status: "rewarded" })
-        .eq("referrer_id", referrer_id)
-        .eq("referred_id", referred_id)
     }
 
     return NextResponse.json({ success: true })

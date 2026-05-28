@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 
-// POST - Create a review for a business and award coins
+// POST - Create a review for a business
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -66,30 +66,6 @@ export async function POST(request: NextRequest) {
     if (insertError) {
       console.error("Error inserting review:", insertError)
       return NextResponse.json({ error: insertError.message }, { status: 500 })
-    }
-
-    // Award coins for leaving a review (10 coins, once per business)
-    try {
-      const { count: alreadyAwarded } = await supabase
-        .from("coin_transactions")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("action", "leave_review")
-        .eq("reference_id", business_id)
-
-      if (!alreadyAwarded || alreadyAwarded === 0) {
-        await supabase.rpc("award_coins", {
-          p_user_id: user.id,
-          p_amount: 10, // COIN_AMOUNTS.leave_review
-          p_action: "leave_review",
-          p_description: "Left a review on a business",
-          p_reference_type: "review",
-          p_reference_id: business_id,
-          p_metadata: {},
-        })
-      }
-    } catch (coinError) {
-      console.warn("Coin award for review skipped:", coinError)
     }
 
     return NextResponse.json({ success: true, review, created: true })

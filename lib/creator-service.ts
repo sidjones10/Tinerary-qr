@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/client"
-import { BOOST_PACKAGES, AFFILIATE_COMMISSIONS, COIN_EARNING_ACTIONS } from "@/lib/tiers"
+import { BOOST_PACKAGES, AFFILIATE_COMMISSIONS } from "@/lib/tiers"
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -7,7 +7,6 @@ export interface CreatorProfile {
   userId: string
   tier: "user" | "creator" | "business"
   isVerified: boolean
-  coinMultiplier: number
   affiliateShare: number
   createdAt: string
 }
@@ -100,7 +99,6 @@ export async function getCreatorProfile(userId: string): Promise<CreatorProfile 
       userId: profile.id,
       tier,
       isVerified: isCreator || profile.is_verified || false,
-      coinMultiplier: isCreator ? 2 : 1,
       affiliateShare: isCreator ? 70 : 60,
       createdAt: profile.created_at,
     }
@@ -626,22 +624,6 @@ export async function sendSponsorshipMessage(
       error: error instanceof Error ? error.message : "Failed to send sponsorship message",
     }
   }
-}
-
-// ─── 2x Coin Earning Rate ────────────────────────────────────
-
-export function getAdjustedCoinReward(baseCoins: number, userTier: string): number {
-  const multiplier = isCreatorTier(userTier) ? 2 : 1
-  return baseCoins * multiplier
-}
-
-export function getCoinEarningActions(userTier: string) {
-  const multiplier = isCreatorTier(userTier) ? 2 : 1
-  return COIN_EARNING_ACTIONS.map((action) => ({
-    ...action,
-    coins: action.coins * multiplier,
-    multiplied: multiplier > 1,
-  }))
 }
 
 // ─── Enhanced Affiliate Commission (70/30) ───────────────────

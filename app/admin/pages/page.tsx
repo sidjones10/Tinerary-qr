@@ -16,7 +16,6 @@ import {
   Store,
   BarChart3,
   Crown,
-  Coins,
   Tag,
   Megaphone,
   Receipt,
@@ -100,7 +99,6 @@ const pages = [
   {
     category: "Phase 2 — Finance",
     items: [
-      { href: "/coins", label: "Tinerary Coins", icon: Coins },
       { href: "/transactions", label: "Transactions", icon: Receipt },
       { href: "/affiliate", label: "Affiliate", icon: Link2 },
     ],

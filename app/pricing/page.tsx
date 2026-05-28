@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowLeft, ArrowRight, Check, Coins, Crown, Megaphone, Sparkles, Store, Users } from "lucide-react"
+import { ArrowLeft, ArrowRight, Check, Crown, Megaphone, Sparkles, Store, Users } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -109,7 +109,6 @@ export default function PricingPage() {
                 { href: "/mentions", icon: <Megaphone className="size-5 text-tinerary-salmon" />, title: "Mention Highlights", desc: "Highlight organic mentions" },
                 { href: "/transactions", icon: <Crown className="size-5 text-tinerary-gold" />, title: "Transactions", desc: "Bookings & commission tracking" },
                 { href: "/affiliate", icon: <Users className="size-5 text-blue-500" />, title: "Affiliate Marketing", desc: "Referral links & packing commerce" },
-                { href: "/coins", icon: <Coins className="size-5 text-tinerary-gold" />, title: "Tinerary Coins", desc: "Earn & spend rewards" },
               ].filter((item) => PHASE_2_ENABLED || !isPhase2Route(item.href)).map((item) => (
                 <Link key={item.href} href={item.href}>
                   <Card className="border-border hover:shadow-md transition-all duration-200 hover:-translate-y-1 h-full">
@@ -129,26 +128,6 @@ export default function PricingPage() {
           {/* Callout Cards */}
           {PHASE_2_ENABLED && (
           <div className="max-w-4xl mx-auto space-y-6">
-            <Card className="overflow-hidden border-border">
-              <div className="flex flex-col md:flex-row">
-                <div className="bg-gradient-to-br from-tinerary-peach/40 to-tinerary-gold/20 dark:from-tinerary-gold/10 dark:to-tinerary-peach/5 p-8 md:w-1/3 flex items-center justify-center">
-                  <Coins className="h-16 w-16 text-tinerary-gold" />
-                </div>
-                <div className="p-8 md:w-2/3">
-                  <h3 className="text-xl font-semibold mb-2">Tinerary Coins</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Earn coins by sharing itineraries, getting saves, leaving reviews, and referring friends. Spend them on Shop discounts, premium templates, profile badges, and more.
-                  </p>
-                  <Button variant="outline" asChild>
-                    <Link href="/coins" className="inline-flex items-center">
-                      See how coins work
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </Card>
-
             <Card className="overflow-hidden border-border">
               <div className="flex flex-col md:flex-row">
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 p-8 md:w-1/3 flex items-center justify-center">

@@ -38,12 +38,6 @@ export default function AffiliatePage() {
                 </>
               )}
               <Link href="/transactions" className="text-sm text-primary hover:underline">Transactions</Link>
-              {PHASE_2_ENABLED && (
-                <>
-                  <span className="text-muted-foreground">·</span>
-                  <Link href="/coins" className="text-sm text-primary hover:underline">Tinerary Coins</Link>
-                </>
-              )}
             </div>
           </nav>
         </div>

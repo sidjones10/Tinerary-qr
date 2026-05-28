@@ -17,11 +17,12 @@ const PAGE = { w: inch(8.5), h: inch(11) }
 const QUAD = { cardW: inch(3.4), cardH: inch(4.9), marginX: inch(0.85), marginY: inch(0.6) }
 const SOLO = { cardW: inch(3.4), cardH: inch(4.9), marginX: inch(0.05), marginY: inch(0.05) }
 
-// Deterministic density factor — each card multiplies sizes by this.
+// Deterministic density factor — each card multiplies sizes by this. Floor
+// raised to 0.85 so dense cards stay legible instead of microprinting.
 const REFERENCE_STOPS = 6
 const densityScale = (n: number): number => {
   if (!n || n < 1) return 1
-  return Math.max(0.72, Math.min(1.28, Math.sqrt(REFERENCE_STOPS / n)))
+  return Math.max(0.85, Math.min(1.28, Math.sqrt(REFERENCE_STOPS / n)))
 }
 
 // Logos (kept in /public)
@@ -239,9 +240,11 @@ function TinerarLogo({
   )
 }
 
-function Watermark({ opacity = 0.085, rotation = -22 }: { opacity?: number; rotation?: number }) {
+function Watermark({ opacity = 0.12, rotation = -22 }: { opacity?: number; rotation?: number }) {
   const rawId = React.useId()
   const id = rawId.replace(/:/g, "")
+  // Single, larger logo per tile so the mark reads as Tinerary instead of
+  // mush. Tile is wider than tall so logos breathe across the card.
   return (
     <svg
       className="absolute inset-0 w-full h-full pointer-events-none"
@@ -253,35 +256,14 @@ function Watermark({ opacity = 0.085, rotation = -22 }: { opacity?: number; rota
           id={`wm-${id}`}
           x="0"
           y="0"
-          width="190"
-          height="150"
+          width="260"
+          height="180"
           patternUnits="userSpaceOnUse"
           patternTransform={`rotate(${rotation})`}
         >
-          <image href={LOGO_DARK} x="0" y="10" width="75" height="17" opacity={opacity} />
-          <image
-            href={LOGO_DARK}
-            x="100"
-            y="50"
-            width="42"
-            height="10"
-            opacity={opacity}
-            transform="rotate(9 121 55)"
-          />
-          <image
-            href={LOGO_DARK}
-            x="30"
-            y="100"
-            width="58"
-            height="13"
-            opacity={opacity}
-            transform="rotate(-7 59 107)"
-          />
-          <text x="92" y="22" fontSize="9" fill="#1a1a1a" opacity={opacity * 1.4}>
+          <image href={LOGO_DARK} x="20" y="40" width="170" height="38" opacity={opacity} />
+          <text x="210" y="120" fontSize="14" fill="#1a1a1a" opacity={opacity * 1.2}>
             ✦
-          </text>
-          <text x="160" y="115" fontSize="7" fill="#1a1a1a" opacity={opacity * 1.4}>
-            ★
           </text>
         </pattern>
       </defs>
@@ -357,20 +339,20 @@ function TokyoTimeline({
       className="relative bg-white overflow-hidden h-full w-full"
       style={{ padding: `${22 * b}px ${20 * b}px` }}
     >
-      {includeBrand && <Watermark opacity={0.075} />}
-      <div className="relative text-center" style={{ marginBottom: 10 * b }}>
+      {includeBrand && <Watermark opacity={0.1} />}
+      <div className="relative text-center" style={{ marginBottom: 12 * b }}>
         {includeBrand && (
-          <div style={{ marginBottom: 4 * b }}>
-            <TinerarLogo height={11 * b} variant="yellow" />
+          <div style={{ marginBottom: 6 * b }}>
+            <TinerarLogo height={17 * b} variant="yellow" />
           </div>
         )}
         <h1
           style={{
             fontFamily: "'Playfair Display', serif",
             fontWeight: 700,
-            fontSize: 26 * b,
+            fontSize: 24 * b,
             lineHeight: 1,
-            letterSpacing: 3,
+            letterSpacing: 2.5,
             color: "#0a0a0a",
           }}
         >
@@ -379,10 +361,10 @@ function TokyoTimeline({
         <div
           style={{
             fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 7 * b,
+            fontSize: 8 * b,
             letterSpacing: 2,
             color: "#0a0a0a",
-            marginTop: 5 * b,
+            marginTop: 6 * b,
           }}
         >
           {itinerary.dateRange}
@@ -391,7 +373,7 @@ function TokyoTimeline({
           <div
             style={{
               fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 6 * b,
+              fontSize: 7 * b,
               letterSpacing: 1.5,
               color: "#444",
               marginTop: 5 * b,
@@ -407,8 +389,8 @@ function TokyoTimeline({
       <div
         className="relative grid items-stretch"
         style={{
-          gridTemplateColumns: `${48 * b}px ${44 * b}px ${12 * b}px 1fr`,
-          gap: `${4 * b}px ${6 * b}px`,
+          gridTemplateColumns: `${54 * b}px ${48 * b}px ${14 * b}px 1fr`,
+          gap: `${5 * b}px ${7 * b}px`,
           marginTop: 6 * b,
         }}
       >
@@ -419,9 +401,10 @@ function TokyoTimeline({
           <div
             style={{
               fontFamily: "'Playfair Display', serif",
-              fontSize: 14 * b,
+              fontSize: 17 * b,
               letterSpacing: 2,
               color: "#0a0a0a",
+              fontWeight: 600,
             }}
           >
             {day.label}
@@ -430,10 +413,10 @@ function TokyoTimeline({
             <div
               style={{
                 fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 5.5 * b,
+                fontSize: 7 * b,
                 letterSpacing: 1.5,
-                color: "#666",
-                marginTop: 4 * b,
+                color: "#555",
+                marginTop: 5 * b,
                 lineHeight: 1.4,
               }}
             >
@@ -447,7 +430,8 @@ function TokyoTimeline({
             <div
               style={{
                 fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 7 * b,
+                fontSize: 9 * b,
+                fontWeight: 500,
                 color: "#0a0a0a",
                 letterSpacing: 0.5,
                 alignSelf: "center",
@@ -455,13 +439,13 @@ function TokyoTimeline({
             >
               {s.time}
             </div>
-            <div className="relative flex justify-center" style={{ minHeight: 16 * b }}>
+            <div className="relative flex justify-center" style={{ minHeight: 22 * b }}>
               {i < day.stops.length - 1 && (
                 <div
                   style={{
                     position: "absolute",
-                    top: 8 * b,
-                    bottom: -8 * b,
+                    top: 11 * b,
+                    bottom: -11 * b,
                     width: 1,
                     background: "#0a0a0a",
                   }}
@@ -469,11 +453,11 @@ function TokyoTimeline({
               )}
               <div
                 style={{
-                  width: 6 * b,
-                  height: 6 * b,
+                  width: 8 * b,
+                  height: 8 * b,
                   borderRadius: "50%",
                   background: "#0a0a0a",
-                  marginTop: 5 * b,
+                  marginTop: 7 * b,
                   zIndex: 1,
                 }}
               />
@@ -482,9 +466,9 @@ function TokyoTimeline({
               <div
                 style={{
                   fontFamily: "'Playfair Display', serif",
-                  fontSize: 9 * b,
+                  fontSize: 12 * b,
                   color: "#0a0a0a",
-                  lineHeight: 1.15,
+                  lineHeight: 1.2,
                   fontWeight: 500,
                 }}
               >
@@ -494,10 +478,10 @@ function TokyoTimeline({
                 <div
                   style={{
                     fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 5.5 * b,
+                    fontSize: 7 * b,
                     color: "#777",
-                    marginTop: 1 * b,
-                    lineHeight: 1.3,
+                    marginTop: 2 * b,
+                    lineHeight: 1.35,
                   }}
                 >
                   {s.sub}
@@ -510,18 +494,18 @@ function TokyoTimeline({
 
       <div
         className="absolute left-0 right-0 flex items-center justify-center"
-        style={{ bottom: 8 * b, gap: 6 * b }}
+        style={{ bottom: 10 * b, gap: 8 * b }}
       >
-        <div style={{ background: "white", padding: 1.5 }}>
-          <QRCodeSVG value={itinerary.shareUrl} size={22 * b} level="L" includeMargin={false} />
+        <div style={{ background: "white", padding: 2 }}>
+          <QRCodeSVG value={itinerary.shareUrl} size={32 * b} level="L" includeMargin={false} />
         </div>
         <div className="flex flex-col items-start">
           <div
             style={{
               fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 5 * b,
+              fontSize: 6.5 * b,
               letterSpacing: 1.5,
-              color: "#bbb",
+              color: "#999",
             }}
           >
             SCAN FOR LIVE MAP
@@ -529,9 +513,10 @@ function TokyoTimeline({
           <div
             style={{
               fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 6 * b,
+              fontSize: 7.5 * b,
+              fontWeight: 500,
               letterSpacing: 1,
-              color: "#444",
+              color: "#1a1a1a",
             }}
           >
             {itinerary.shortUrl}
@@ -580,23 +565,23 @@ function WavyGarden({
           className="absolute pointer-events-none overflow-hidden"
           style={{ top: 22, left: 16, right: 16, bottom: 22 }}
         >
-          <Watermark opacity={0.08} />
+          <Watermark opacity={0.11} />
         </div>
       )}
 
       <div
         className="relative h-full flex flex-col"
-        style={{ padding: `${30 * b}px ${28 * b}px ${22 * b}px` }}
+        style={{ padding: `${28 * b}px ${26 * b}px ${22 * b}px` }}
       >
-        <div className="text-center" style={{ marginBottom: 6 * b }}>
-          {includeBrand && <TinerarLogo height={11 * b} variant="dark" />}
+        <div className="text-center" style={{ marginBottom: 8 * b }}>
+          {includeBrand && <TinerarLogo height={17 * b} variant="dark" />}
           <h1
             style={{
               fontFamily: "'Caprasimo', serif",
               fontSize: 22 * b,
               lineHeight: 1,
               color: "#1a1a1a",
-              marginTop: 3 * b,
+              marginTop: 4 * b,
               letterSpacing: -0.5,
             }}
           >
@@ -605,22 +590,23 @@ function WavyGarden({
           <div
             style={{
               fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 6 * b,
+              fontSize: 7.5 * b,
+              fontWeight: 500,
               letterSpacing: 1.5,
               color: "#1a1a1a",
-              marginTop: 3 * b,
+              marginTop: 5 * b,
             }}
           >
             {itinerary.dateRange} · {day.label}
           </div>
         </div>
 
-        <div className="flex items-center" style={{ gap: 4 * b, marginBottom: 6 * b }}>
+        <div className="flex items-center" style={{ gap: 6 * b, marginBottom: 7 * b }}>
           <div className="flex-1" style={{ height: 1, background: "#5C6A3A", opacity: 0.4 }} />
           <span
             style={{
               fontFamily: "'Caprasimo', serif",
-              fontSize: 7 * b,
+              fontSize: 9 * b,
               color: "#5C6A3A",
               letterSpacing: 1.5,
             }}
@@ -630,16 +616,17 @@ function WavyGarden({
           <div className="flex-1" style={{ height: 1, background: "#5C6A3A", opacity: 0.4 }} />
         </div>
 
-        <div className="flex-1 flex flex-col" style={{ gap: 3 * b }}>
+        <div className="flex-1 flex flex-col" style={{ gap: 5 * b }}>
           {day.stops.map((s, i) => (
-            <div key={i} className="flex items-start" style={{ gap: 5 * b }}>
+            <div key={i} className="flex items-start" style={{ gap: 7 * b }}>
               <div
                 style={{
                   fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 6 * b,
+                  fontSize: 8 * b,
+                  fontWeight: 500,
                   color: "#5C6A3A",
-                  width: 30 * b,
-                  paddingTop: 2 * b,
+                  width: 38 * b,
+                  paddingTop: 3 * b,
                   flexShrink: 0,
                 }}
               >
@@ -648,12 +635,12 @@ function WavyGarden({
               <div
                 className="flex items-center justify-center flex-shrink-0 rounded-full"
                 style={{
-                  width: 12 * b,
-                  height: 12 * b,
+                  width: 16 * b,
+                  height: 16 * b,
                   background: "#5C6A3A",
                   color: "#F2E9D2",
                   fontFamily: "'Caprasimo', serif",
-                  fontSize: 7 * b,
+                  fontSize: 9 * b,
                   marginTop: 1 * b,
                 }}
               >
@@ -664,9 +651,9 @@ function WavyGarden({
                   style={{
                     fontFamily: "'Fraunces', serif",
                     fontWeight: 600,
-                    fontSize: 9 * b,
+                    fontSize: 12 * b,
                     color: "#1a1a1a",
-                    lineHeight: 1.1,
+                    lineHeight: 1.15,
                   }}
                 >
                   {s.name}
@@ -675,11 +662,11 @@ function WavyGarden({
                   <div
                     style={{
                       fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: 5 * b,
+                      fontSize: 7 * b,
                       color: "#1a1a1a",
-                      opacity: 0.6,
-                      marginTop: 1 * b,
-                      lineHeight: 1.3,
+                      opacity: 0.65,
+                      marginTop: 2 * b,
+                      lineHeight: 1.35,
                     }}
                   >
                     {s.sub}
@@ -690,11 +677,11 @@ function WavyGarden({
           ))}
         </div>
 
-        <div className="flex items-center justify-center" style={{ marginTop: 6 * b, gap: 6 * b }}>
-          <div style={{ background: "white", padding: 1.5 }}>
+        <div className="flex items-center justify-center" style={{ marginTop: 8 * b, gap: 8 * b }}>
+          <div style={{ background: "white", padding: 2 }}>
             <QRCodeSVG
               value={itinerary.shareUrl}
-              size={22 * b}
+              size={32 * b}
               level="L"
               includeMargin={false}
               fgColor="#1a1a1a"
@@ -704,7 +691,7 @@ function WavyGarden({
             <div
               style={{
                 fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 5 * b,
+                fontSize: 6.5 * b,
                 letterSpacing: 1.5,
                 color: "#5C6A3A",
               }}
@@ -714,7 +701,8 @@ function WavyGarden({
             <div
               style={{
                 fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 6 * b,
+                fontSize: 7.5 * b,
+                fontWeight: 500,
                 letterSpacing: 1,
                 color: "#1a1a1a",
               }}

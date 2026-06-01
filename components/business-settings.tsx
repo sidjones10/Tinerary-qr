@@ -29,7 +29,6 @@ import {
   Users,
   Store,
   Link2,
-  Coins,
   ArrowRight,
   Check,
   ChevronRight,
@@ -120,13 +119,6 @@ const dashboardLinks = [
     title: "Affiliate Marketing",
     description: "Referral links & packing list commerce",
     forType: ["creator", "business"],
-  },
-  {
-    href: "/coins",
-    icon: <Coins className="size-4 text-tinerary-gold" />,
-    title: "Tinerary Coins",
-    description: "Earn & spend rewards",
-    forType: ["standard", "creator", "business"],
   },
   {
     href: "/pricing",

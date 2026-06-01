@@ -1,4 +1,4 @@
-// Tinerary Revenue Model v3 — Tier Definitions, Pricing & Coins
+// Tinerary Revenue Model v3 — Tier Definitions & Pricing
 // All data sourced from Revenue Model & Growth Protection Strategy v3.0
 
 import type { BusinessTierConfig } from "./enterprise"
@@ -29,7 +29,6 @@ export const USER_TIERS: UserTier[] = [
       "Full discovery feed access",
       "Expense tracking & splitting",
       "Packing lists with product links",
-      "Earn Tinerary Coins",
       "Tinerary Shop access",
       "Affiliate link sharing",
       "Community features (public posts)",
@@ -52,7 +51,6 @@ export const USER_TIERS: UserTier[] = [
       "Sell itinerary templates",
       "Sponsorship inbox",
       "Business-lite listing tools",
-      "2x coin earning rate",
     ],
   },
   {
@@ -241,108 +239,6 @@ export const MENTION_HIGHLIGHTS: MentionHighlight[] = [
     price: 899,
     duration: "12 months",
     includes: "All mentions + priority notification",
-  },
-]
-
-// ─── Tinerary Coins — Earning Actions ──────────────────────────
-
-export interface CoinAction {
-  action: string
-  coins: number
-  reason: string
-}
-
-export const COIN_EARNING_ACTIONS: CoinAction[] = [
-  {
-    action: "Publish a public itinerary",
-    coins: 25,
-    reason: "Adds content to discovery feed",
-  },
-  {
-    action: "Itinerary gets 10+ views",
-    coins: 10,
-    reason: "Rewards quality content",
-  },
-  {
-    action: "Itinerary gets saved by others",
-    coins: 5,
-    reason: "Signals high-value content",
-  },
-  {
-    action: "Leave a review on a business",
-    coins: 5,
-    reason: "Builds trust layer for businesses",
-  },
-  {
-    action: "Refer a new user who signs up",
-    coins: 50,
-    reason: "Direct growth driver",
-  },
-  {
-    action: "Complete a booking",
-    coins: 10,
-    reason: "Drives transaction revenue",
-  },
-  {
-    action: "Share itinerary to social media",
-    coins: 5,
-    reason: "Expands reach beyond platform",
-  },
-  {
-    action: "Add 5+ activities to an itinerary",
-    coins: 10,
-    reason: "Creates richer, more useful content",
-  },
-  {
-    action: "First itinerary ever created",
-    coins: 40,
-    reason: "Onboarding milestone reward",
-  },
-]
-
-// ─── Tinerary Coins — Spending / Rewards ───────────────────────
-
-export interface CoinReward {
-  reward: string
-  cost: number
-  details: string
-}
-
-export const COIN_SPENDING_REWARDS: CoinReward[] = [
-  {
-    reward: "Tinerary Shop discount (10%)",
-    cost: 300,
-    details: "Applies to any Shop product",
-  },
-  {
-    reward: "Tinerary Shop discount (25%)",
-    cost: 750,
-    details: "Applies to any Shop product",
-  },
-  {
-    reward: "Free shipping on Shop order",
-    cost: 200,
-    details: "Domestic orders only",
-  },
-  {
-    reward: "Exclusive itinerary templates",
-    cost: 150,
-    details: "Premium templates from Creators",
-  },
-  {
-    reward: "Profile badge (Traveler, Explorer, etc.)",
-    cost: 500,
-    details: "Visible on profile and posts",
-  },
-  {
-    reward: "Early access to new features",
-    cost: 400,
-    details: "Beta feature previews",
-  },
-  {
-    reward: "Single post boost (mini)",
-    cost: 600,
-    details: "~500 impressions, 12-hour boost",
   },
 ]
 

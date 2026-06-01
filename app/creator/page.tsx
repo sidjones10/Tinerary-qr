@@ -14,7 +14,6 @@ import {
   Eye,
   Heart,
   Users,
-  Coins,
   TrendingUp,
   TrendingDown,
   ArrowRight,
@@ -112,7 +111,6 @@ const activePerks = [
   { label: "Verified Badge", desc: "Displayed on all your content", icon: Check },
   { label: "70/30 Affiliate Split", desc: "Enhanced commission rate", icon: Percent },
   { label: "Priority Discovery", desc: "Boosted in feeds & search", icon: TrendingUp },
-  { label: "2x Coin Rate", desc: "Double coins on all actions", icon: Coins },
   { label: "Business-Lite Listings", desc: "Create deals & promotions", icon: Store },
   { label: "Sponsorship Inbox", desc: "Receive brand collaborations", icon: Mail },
 ]

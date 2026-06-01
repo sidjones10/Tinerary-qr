@@ -725,7 +725,7 @@ export default function EventPage() {
   useEffect(() => {
     if (!event || !id) return
     const controller = new AbortController()
-    // Use the view API route which handles incrementing, interaction tracking, and coin milestones
+    // Use the view API route which handles incrementing and interaction tracking
     fetch(`/api/itineraries/${id}/view`, { method: "POST", signal: controller.signal }).catch(() => {})
     return () => controller.abort()
   }, [event?.id]) // eslint-disable-line react-hooks/exhaustive-deps

@@ -125,7 +125,7 @@ AppHeader loads session
     └── forTier filter — which business sub-tiers see the link (null = no restriction)
 
     Example filtering for Business account:
-    ├── Basic:      Business Profile | Affiliate | Coins | Pricing
+    ├── Basic:      Business Profile | Affiliate | Pricing
     ├── Premium:    + Mentions | Analytics | Transactions | Booking Integration
     └── Enterprise: same as Premium (all features unlocked)
 ```
@@ -145,7 +145,6 @@ Each dashboard link in settings has a `forTier` property that controls visibilit
 | Advanced Analytics | business | premium, enterprise |
 | Transactions | business | premium, enterprise |
 | Affiliate Marketing | creator, business | — |
-| Tinerary Coins | standard, creator, business | — |
 | Plans & Pricing | standard, creator, business | — |
 
 ---
@@ -183,7 +182,7 @@ User discovers Creator tier via:
 ├── "Why go Creator?" — 4 benefit cards:
 │   ├── Grow your audience (priority discovery)
 │   ├── Boost your posts ($5-$100 packages)
-│   ├── Earn more (70/30 affiliate split, 2x coins)
+│   ├── Earn more (70/30 affiliate split)
 │   └── Sell templates
 ├── Post Boost Pricing — 4 packages (Starter/Growth/Amplify/Mega)
 ├── Affiliate Commission Splits — Standard (60/40) vs Creator (70/30)
@@ -204,11 +203,10 @@ User discovers Creator tier via:
 │   ├── /creator/templates ──── Sell Templates
 │   └── /creator/sponsorships ─ Sponsorship Inbox
 │
-├── Active Creator Perks (6 items):
+├── Active Creator Perks (5 items):
 │   ├── Verified Badge
 │   ├── 70/30 Affiliate Split
 │   ├── Priority Discovery
-│   ├── 2x Coin Rate
 │   ├── Business-Lite Listings
 │   └── Sponsorship Inbox
 │
@@ -262,7 +260,6 @@ User discovers Creator tier via:
 getCreatorProfile(userId):
   profiles.tier → "user" | "creator" | "business"
   isVerified:     true if tier is "creator" or "business"
-  coinMultiplier: 2x if creator/business, 1x otherwise
   affiliateShare: 70% if creator/business, 60% otherwise
 
 isCreatorTier(tier):
@@ -359,8 +356,7 @@ All feature-specific content (deal CRUD, deep analytics, reports) lives in dedic
 │   │   ├── ALL tiers:    Analytics → /business-analytics
 │   │   ├── Premium+:     Mention Highlights → /mentions
 │   │   ├── Premium+:     Transactions → /transactions
-│   │   ├── ALL tiers:    Affiliate Marketing → /affiliate
-│   │   └── ALL tiers:    Tinerary Coins → /coins
+│   │   └── ALL tiers:    Affiliate Marketing → /affiliate
 │   │   Basic tier also sees a "locked features" teaser with upgrade CTA
 │   │
 │   ├── Current Plan Overview:
@@ -484,7 +480,7 @@ GET  /api/enterprise/reports      → enterprise report generation
 // lib/creator-service.ts — Platform-level tier
 getCreatorProfile(userId) → queries profiles.tier
   "user"     → standard features
-  "creator"  → verified badge, 2x coins, 70/30 affiliate, boost, templates, sponsorships
+  "creator"  → verified badge, 70/30 affiliate, boost, templates, sponsorships
   "business" → same creator perks + full business tools
 
 // lib/business-tier-service.ts — Business subscription tier
@@ -532,7 +528,7 @@ BusinessSettings (components/business-settings.tsx):
   Dashboard links filtered by two dimensions:
   1. forType — matches selectedType ("standard" | "creator" | "business")
   2. forTier — if non-null and selectedType is "business", matches selectedBusinessTier
-  Business Basic tier sees: Business Profile, Deals, Analytics, Affiliate, Coins, Pricing
+  Business Basic tier sees: Business Profile, Deals, Analytics, Affiliate, Pricing
   Business Premium/Enterprise sees all links including Mentions, Transactions
 ```
 
@@ -601,15 +597,10 @@ Example override: early adopter gets Premium at $99/mo until 2026-12-31
   { monthlyPrice: 99, label: "Early Adopter", expiresAt: "2026-12-31", reason: "Launch partner" }
 ```
 
-### Coin Economy Integration
+### Affiliate Commission
 ```
-Creator tier gets 2x coin multiplier on all earning actions:
-  getAdjustedCoinReward(baseCoins, tier) → baseCoins * (isCreatorTier ? 2 : 1)
-  getCoinEarningActions(tier) → maps COIN_EARNING_ACTIONS with multiplier
-
-Affiliate commission:
-  Standard User: 60% user / 40% platform
-  Creator/Business: 70% user / 30% platform
+Standard User:    60% user / 40% platform
+Creator/Business: 70% user / 30% platform
 ```
 
 ### Discovery Feed Integration
@@ -652,6 +643,5 @@ ACCOUNT MANAGEMENT
 SHARED
   /mentions             → Mention highlights management (Premium/Enterprise business only)
   /affiliate            → Affiliate marketing dashboard
-  /coins                → Tinerary Coins economy
   /transactions         → Booking & commission tracking (Premium/Enterprise business only)
 ```

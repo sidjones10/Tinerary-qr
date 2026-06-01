@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowLeft, Check, Coins, Rocket, Sparkles, TrendingUp, Palette, Percent, Users, Crown } from "lucide-react"
+import { ArrowLeft, Check, Rocket, Sparkles, TrendingUp, Palette, Percent, Users, Crown } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -63,7 +63,6 @@ export default function CreatorsPage() {
                   "Sell itinerary templates",
                   "Sponsorship inbox",
                   "Business-lite listing tools",
-                  "2x coin earning rate",
                 ].map((feature, i) => (
                   <div key={feature} className={`flex items-start gap-2 p-1.5 rounded-lg ${i % 2 === 0 ? "bg-muted/50" : ""}`}>
                     <Check className="size-4 text-[#7C3AED] shrink-0 mt-0.5" />
@@ -97,11 +96,11 @@ export default function CreatorsPage() {
                   description: "Pay to amplify individual itineraries with targeted impressions from $5.",
                 },
                 {
-                  icon: <Coins className="size-6 text-tinerary-gold" />,
+                  icon: <Percent className="size-6 text-tinerary-gold" />,
                   bgColor: "bg-tinerary-gold/10",
                   accentColor: "border-t-tinerary-gold",
                   title: "Earn more",
-                  description: "70/30 affiliate split (vs 60/40 for standard users) plus 2x coin earning rate.",
+                  description: "70/30 affiliate split (vs 60/40 for standard users).",
                 },
                 {
                   icon: <Palette className="size-6 text-tinerary-salmon" />,

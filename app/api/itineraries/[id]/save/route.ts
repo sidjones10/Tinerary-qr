@@ -67,39 +67,6 @@ export async function POST(
       .insert({ user_id: user.id, itinerary_id: itineraryId, interaction_type: "save" })
       .then(({ error }) => { if (error) console.error("Failed to track save interaction:", error) })
 
-    // Award coins to itinerary owner when their content gets saved
-    try {
-      const { data: itinerary } = await supabase
-        .from("itineraries")
-        .select("user_id")
-        .eq("id", itineraryId)
-        .single()
-
-      if (itinerary && itinerary.user_id !== user.id) {
-        // Check if coins were already awarded for this save (prevent exploit via save/unsave/save)
-        const { count: alreadyAwarded } = await supabase
-          .from("coin_transactions")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", itinerary.user_id)
-          .eq("action", "itinerary_saved")
-          .eq("reference_id", itineraryId)
-
-        if (!alreadyAwarded || alreadyAwarded === 0) {
-          await supabase.rpc("award_coins", {
-            p_user_id: itinerary.user_id,
-            p_amount: 15, // COIN_AMOUNTS.itinerary_saved
-            p_action: "itinerary_saved",
-            p_description: "Itinerary was saved by another user",
-            p_reference_type: "itinerary",
-            p_reference_id: itineraryId,
-            p_metadata: {},
-          })
-        }
-      }
-    } catch (coinError) {
-      console.warn("Coin award skipped:", coinError)
-    }
-
     return NextResponse.json({
       success: true,
       saves: metrics?.save_count || 1,

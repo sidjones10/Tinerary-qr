@@ -30,7 +30,6 @@ import {
   Shield,
   Headphones,
   Mail,
-  Coins,
   Zap,
   Pencil,
   Check,
@@ -196,14 +195,6 @@ function getBusinessTools(tier: BusinessTierSlug, activeDeals: number) {
       href: "/affiliate",
       color: "text-blue-500",
       bgColor: "bg-blue-500/10",
-    },
-    {
-      title: "Tinerary Coins",
-      description: "Earn & spend rewards",
-      icon: Coins,
-      href: "/coins",
-      color: "text-tinerary-gold",
-      bgColor: "bg-tinerary-gold/10",
     },
   ]
 }

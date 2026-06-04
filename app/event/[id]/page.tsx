@@ -640,7 +640,15 @@ export default function EventPage() {
         // For mock data, assume it's public
         const isMockData = !isNaN(Number(id)) && !isValidUUID(id as string)
 
-        if (!isMockData && eventData.is_public === false && (!user || user.id !== eventData.user_id)) {
+        // Co-hosts (admins) can view a private itinerary just like the owner.
+        const isCohost =
+          !!user &&
+          Array.isArray(eventData.attendees) &&
+          eventData.attendees.some(
+            (a: any) => a.id === user.id && (a.role === "admin" || a.role === "owner"),
+          )
+
+        if (!isMockData && eventData.is_public === false && !isCohost && (!user || user.id !== eventData.user_id)) {
           if (user && isInviteLink) {
             // Invite link grants access — user will see RSVP banner
           } else if (user) {
@@ -668,8 +676,9 @@ export default function EventPage() {
         }
 
         // Mask precise location for non-owners on public itineraries
+        // (co-hosts are treated like the owner and see the precise location).
         const isOwner = user && user.id === eventData.user_id
-        if (!isOwner && eventData.is_public && eventData.share_precise_location === false) {
+        if (!isOwner && !isCohost && eventData.is_public && eventData.share_precise_location === false) {
           eventData.location = generalizeLocation(eventData.location || "")
           // Also mask activity locations
           if (eventData.activities) {

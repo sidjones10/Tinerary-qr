@@ -326,12 +326,10 @@ function TokyoTimeline({
   itinerary,
   day,
   b,
-  includeBrand,
 }: {
   itinerary: Itinerary
   day: Day | null
   b: number
-  includeBrand: boolean
 }) {
   if (!day) return null
   return (
@@ -339,13 +337,11 @@ function TokyoTimeline({
       className="relative bg-white overflow-hidden h-full w-full"
       style={{ padding: `${22 * b}px ${20 * b}px` }}
     >
-      {includeBrand && <Watermark opacity={0.1} />}
+      <Watermark opacity={0.1} />
       <div className="relative text-center" style={{ marginBottom: 12 * b }}>
-        {includeBrand && (
-          <div style={{ marginBottom: 6 * b }}>
-            <TinerarLogo height={17 * b} variant="yellow" />
-          </div>
-        )}
+        <div style={{ marginBottom: 6 * b }}>
+          <TinerarLogo height={17 * b} variant="yellow" />
+        </div>
         <h1
           style={{
             fontFamily: "'Playfair Display', serif",
@@ -534,12 +530,10 @@ function WavyGarden({
   itinerary,
   day,
   b,
-  includeBrand,
 }: {
   itinerary: Itinerary
   day: Day | null
   b: number
-  includeBrand: boolean
 }) {
   if (!day) return null
   return (
@@ -560,21 +554,19 @@ function WavyGarden({
         />
       </svg>
 
-      {includeBrand && (
-        <div
-          className="absolute pointer-events-none overflow-hidden"
-          style={{ top: 22, left: 16, right: 16, bottom: 22 }}
-        >
-          <Watermark opacity={0.11} />
-        </div>
-      )}
+      <div
+        className="absolute pointer-events-none overflow-hidden"
+        style={{ top: 22, left: 16, right: 16, bottom: 22 }}
+      >
+        <Watermark opacity={0.11} />
+      </div>
 
       <div
         className="relative h-full flex flex-col"
         style={{ padding: `${28 * b}px ${26 * b}px ${22 * b}px` }}
       >
         <div className="text-center" style={{ marginBottom: 8 * b }}>
-          {includeBrand && <TinerarLogo height={17 * b} variant="dark" />}
+          <TinerarLogo height={17 * b} variant="dark" />
           <h1
             style={{
               fontFamily: "'Caprasimo', serif",
@@ -741,7 +733,6 @@ function PrintPage({
   slots,
   Template,
   layout,
-  includeBrand,
   showCutMarks,
   pageNum,
   totalPages,
@@ -750,7 +741,6 @@ function PrintPage({
   slots: (Day | null)[]
   Template: typeof TokyoTimeline
   layout: "quad" | "solo"
-  includeBrand: boolean
   showCutMarks: boolean
   pageNum: number
   totalPages: number
@@ -785,7 +775,6 @@ function PrintPage({
                 itinerary={itinerary}
                 day={day}
                 b={densityScale(day.stops.length || 1)}
-                includeBrand={includeBrand}
               />
             ) : (
               <div className="w-full h-full bg-white" />
@@ -816,7 +805,6 @@ function PrintPage({
 // ─────────────────────────────────────────────────────────────────────────────
 // Page export
 // ─────────────────────────────────────────────────────────────────────────────
-const LOGO_REMOVAL_PRICE_USD = 1.4
 
 export default function ItineraryPrintPage() {
   const { id } = useParams<{ id: string }>()
@@ -829,7 +817,6 @@ export default function ItineraryPrintPage() {
   const [layout, setLayout] = useState<"quad" | "solo">("quad")
   const [tpl, setTpl] = useState<TemplateKey>("tokyo")
   const [showCutMarks, setShowCutMarks] = useState(true)
-  const [includeBrand, setIncludeBrand] = useState(true)
   const [selectedDays, setSelectedDays] = useState<number[]>([])
 
   useEffect(() => {
@@ -863,12 +850,6 @@ export default function ItineraryPrintPage() {
     )
 
   const handlePrint = () => {
-    if (!includeBrand) {
-      const ok = window.confirm(
-        `Printing without Tinerary branding costs $${LOGO_REMOVAL_PRICE_USD.toFixed(2)}. Continue?`,
-      )
-      if (!ok) return
-    }
     window.print()
   }
 
@@ -1030,27 +1011,6 @@ export default function ItineraryPrintPage() {
               CROP MARKS
             </label>
 
-            <label
-              className="flex items-center gap-2 px-3 py-2 rounded-full cursor-pointer"
-              style={{
-                background: "#0f0f0d",
-                border: "1px solid #2a2a26",
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 10,
-                color: "#a8a8a0",
-                letterSpacing: 1,
-              }}
-              title={`Uncheck to print without branding for $${LOGO_REMOVAL_PRICE_USD.toFixed(2)}`}
-            >
-              <input
-                type="checkbox"
-                checked={includeBrand}
-                onChange={(e) => setIncludeBrand(e.target.checked)}
-                className="accent-[#F4C84A]"
-              />
-              TINERARY LOGO
-            </label>
-
             <button
               type="button"
               onClick={handlePrint}
@@ -1205,7 +1165,6 @@ export default function ItineraryPrintPage() {
                 slots={slots}
                 Template={Template}
                 layout={layout}
-                includeBrand={includeBrand}
                 showCutMarks={showCutMarks}
                 pageNum={i + 1}
                 totalPages={pages.length}

@@ -154,6 +154,16 @@ export function EventDetail({ event }: EventDetailProps) {
   const [attendeeCounts, setAttendeeCounts] = useState<{ going: number; maybe: number }>({ going: 1, maybe: 0 }) // 1 = host
   const [invitationsEnabled, setInvitationsEnabled] = useState<boolean>(event.invitations_enabled !== false)
   const isOwner = !!(user && user.id === event.user_id)
+  // Co-hosts (role 'admin') can do everything an owner can EXCEPT delete the
+  // itinerary or manage co-hosts/invitations. They get the same view + edit
+  // access to the itinerary's content.
+  const isCohost = !!(
+    user &&
+    (event.attendees as Attendee[] | undefined)?.some(
+      (a) => a.id === user.id && (a.role === "admin" || a.role === "owner"),
+    )
+  )
+  const canEdit = isOwner || isCohost
   const searchParams = useSearchParams()
 
   // Track if user arrived via an invite link so we can show the RSVP banner
@@ -426,8 +436,8 @@ export function EventDetail({ event }: EventDetailProps) {
     const checkAccess = async () => {
       setCheckingAccess(true)
 
-      // Owner always has access
-      if (isOwner) {
+      // Owner and co-hosts always have access
+      if (canEdit) {
         setCanAccessPacking(true)
         setCanAccessExpenses(true)
         setCanAccessComments(true)
@@ -461,7 +471,7 @@ export function EventDetail({ event }: EventDetailProps) {
 
     checkAccess()
     return () => { cancelled = true }
-  }, [user?.id, event.id, isOwner])
+  }, [user?.id, event.id, canEdit])
 
   // Function to fetch packing items
   const fetchPackingItems = async () => {
@@ -875,31 +885,32 @@ export function EventDetail({ event }: EventDetailProps) {
                   />
                 )}
 
-                {isOwner && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-white/20 backdrop-blur-sm border-white/40 text-white hover:bg-white/30"
-                      asChild
-                    >
-                      <Link href={`/create?draftId=${event.id}`}>
-                        <Edit className="h-4 w-4" />
-                        <span className="hidden sm:inline ml-2">Edit</span>
-                      </Link>
-                    </Button>
+                {canEdit && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-white/20 backdrop-blur-sm border-white/40 text-white hover:bg-white/30"
+                    asChild
+                  >
+                    <Link href={`/create?draftId=${event.id}`}>
+                      <Edit className="h-4 w-4" />
+                      <span className="hidden sm:inline ml-2">Edit</span>
+                    </Link>
+                  </Button>
+                )}
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-red-500/20 backdrop-blur-sm border-red-300/40 text-white hover:bg-red-500/30"
-                      onClick={handleDelete}
-                      disabled={isDeleting}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      <span className="hidden sm:inline ml-2">{isDeleting ? "Deleting..." : "Delete"}</span>
-                    </Button>
-                  </>
+                {/* Only the original creator can delete the itinerary. */}
+                {isOwner && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-red-500/20 backdrop-blur-sm border-red-300/40 text-white hover:bg-red-500/30"
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span className="hidden sm:inline ml-2">{isDeleting ? "Deleting..." : "Delete"}</span>
+                  </Button>
                 )}
               </div>
             </div>
@@ -1048,7 +1059,7 @@ export function EventDetail({ event }: EventDetailProps) {
               <TabsTrigger value="photos">Photos</TabsTrigger>
               <TabsTrigger value="packing" className="relative">
                 Packing List
-                {isOwner && !event.packing_list_public && (
+                {canEdit && !event.packing_list_public && (
                   <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
                     Private
                   </span>
@@ -1056,7 +1067,7 @@ export function EventDetail({ event }: EventDetailProps) {
               </TabsTrigger>
               <TabsTrigger value="expenses" className="relative">
                 Expenses
-                {isOwner && !event.expenses_public && (
+                {canEdit && !event.expenses_public && (
                   <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
                     Private
                   </span>

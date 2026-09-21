@@ -1,3 +1,12 @@
+> **⚠️ This document was inaccurate as of 2026-09-21 and has been corrected.**
+>
+> Several items below were marked done but were not. Specifically: `/diagnostics`
+> was still present (it has now been deleted); migrations were described as
+> consolidated to 9 when there were 75+; and the console.log count was stated
+> as 40 when it was 41. Treat the ✅ marks below as historical claims, not as
+> verified state. The **Current state** section at the bottom is the one that
+> was checked against the codebase.
+
 # Production Readiness Checklist
 
 ## ✅ COMPLETED (Production Cleanup Sprint)
@@ -208,18 +217,8 @@ Before deploying to production:
 - ✅ GDPR compliance framework
 
 ### What Needs Work ⚠️
-- ⚠️ User signup (migration 009 pending)
-- ⚠️ Mock email service
-- ⚠️ Mock SMS service
-- ⚠️ Base64 image storage
-- ⚠️ 40 remaining console.log statements
-- ⚠️ No centralized error handling
-- ⚠️ Missing delete account UI
-
-### Estimated Time to Production-Ready
-- **P0 Critical Tasks:** 2-3 days
-- **P1 Important Tasks:** 3-5 days
-- **Total:** ~1-2 weeks for full production readiness
+See **Current state** at the bottom of this file — the list that used to be
+here was out of date.
 
 ---
 
@@ -238,6 +237,63 @@ For issues during production deployment:
 - Console.log cleanup completed for production code
 - Mock services clearly marked with warnings
 
-**Last Updated:** 2025-12-01
-**Sprint:** Production Cleanup
-**Status:** Ready for P0 tasks
+---
+
+## Current state (verified 2026-09-21)
+
+Everything here was checked against the codebase rather than remembered.
+
+### Fixed
+
+- **`/api/admin/apply-trigger` deleted.** It executed `CREATE FUNCTION` and
+  trigger DDL with the service-role key and had no authentication of any
+  kind. `proxy.ts` excludes `/api`, so nothing gated it.
+- **Cron endpoints fail closed.** All four used `if (cronSecret && ...)`, so
+  an unset `CRON_SECRET` left them open. Now `lib/auth/require-cron.ts`
+  refuses the request outright when the secret is missing. The
+  send-deletion-warnings `GET` handler, which returned every account pending
+  deletion with no auth, is now behind the same guard.
+- **Admin guard consolidated** into `lib/auth/require-admin.ts`, replacing 11
+  duplicated copies.
+- **Schema is back under version control.** Twelve tables existed only in the
+  live database. Migrations 076/077 adopt them with RLS. See
+  `supabase/migrations/README.md`.
+- **Type errors: 268 → 38.** Every crash-class bug among them is fixed.
+  Inventory in `docs/TYPE_ERRORS.md`.
+- **`npm ci` works** with no flags, for the first time. 31 unused
+  dependencies removed; 897 packages → 597.
+- **CI exists** (`.github/workflows/ci.yml`). There was none, which is why
+  268 type errors and 2 failing tests were sitting on `main`.
+- **Tests: 115 passing**, all green.
+- **App shell and SEO.** `error.tsx`, `global-error.tsx`, `not-found.tsx`,
+  `sitemap.ts`, `robots.ts`, and per-itinerary OG metadata — shared trip
+  links previously unfurled with only the generic site-wide card.
+- **SMS no longer lies.** `backend/services/sms.ts` returned `true` in
+  production without sending anything and logged the verification code. It
+  now sends via Twilio when configured and returns `false` otherwise.
+  Verification codes use `crypto.randomInt`, not `Math.random`.
+- **`/diagnostics`, `_archived/`, `app/app/`** and 12 unreferenced
+  components/libs deleted.
+
+### Still open
+
+- **Payments do not exist.** `components/payment-settings.tsx` returns "coming
+  soon"; there is no payment provider dependency. `docs/PAYMENT_IMPLEMENTATION.md`
+  describes a system that was never built.
+- **No external error monitoring.** There is a self-hosted `error_logs` table
+  and an `/admin/errors` page, but a self-hosted log cannot report the error
+  that takes the app down. Sentry or equivalent is still needed.
+- **Rate limiting needs Upstash credentials** in production. Without them
+  `lib/rate-limit.ts` falls back to a per-instance in-memory Map, which on
+  serverless is close to no limit.
+- **Web push needs VAPID keys** or it is silently inert.
+- **38 TypeScript errors**, so `ignoreBuildErrors` cannot be removed yet.
+- **1015 ESLint warnings** (0 errors). ~80 are React Compiler-era
+  `set-state-in-effect`, worth burning down before enabling the compiler.
+- **37 `console.log` statements** in app code.
+- **i18n is scaffolded only** — six locales, real strings in `en` alone.
+- **Migration numbering has 10 duplicate numbers.** Deliberately not
+  renumbered; see `supabase/migrations/README.md`.
+
+**Last Updated:** 2026-09-21
+**Status:** Security and schema issues resolved; see "Still open" above

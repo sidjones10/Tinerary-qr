@@ -9,6 +9,7 @@ import { OnboardingWrapper } from "@/components/onboarding-wrapper"
 import { GlobalErrorHandler } from "@/components/global-error-handler"
 import { I18nProvider } from "@/providers/i18n-provider"
 import { PWARegister } from "@/components/pwa-register"
+import { getSiteUrlObject } from "@/lib/site-url"
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -19,20 +20,27 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: "Tinerary",
+  // Required for relative OG/Twitter image URLs to resolve to absolute ones.
+  metadataBase: getSiteUrlObject(),
+  title: {
+    default: "Tinerary",
+    // Per-itinerary pages set just their title; this frames it.
+    template: "%s · Tinerary",
+  },
   description: "A taste-driven platform for the way you actually travel.",
-  generator: 'v0.app',
   openGraph: {
     title: "Tinerary",
     description: "A taste-driven platform for the way you actually travel.",
-    url: "https://tinerary.com",
+    url: "/",
     siteName: "Tinerary",
     type: "website",
+    images: [{ url: "/icons/icon-512x512.png", alt: "Tinerary" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Tinerary",
     description: "A taste-driven platform for the way you actually travel.",
+    images: ["/icons/icon-512x512.png"],
   },
   manifest: '/manifest.json',
   icons: {

@@ -848,7 +848,7 @@ export async function getAffiliateDetails(userId: string) {
 
     // Fetch promotion details for promotion-type links
     const promoIds = links.filter((l: any) => l.promotion_id).map((l: any) => l.promotion_id)
-    let promoMap: Record<string, any> = {}
+    const promoMap: Record<string, any> = {}
     if (promoIds.length > 0) {
       const { data: promos } = await supabase
         .from("promotions")

@@ -67,7 +67,7 @@ export default async function JournalPage() {
                 <Link href={`/journal/${post.slug}`} className="group flex flex-col sm:flex-row gap-6">
                   {post.cover_image_url && (
                     <div className="sm:w-48 aspect-[4/3] bg-neutral-100 overflow-hidden flex-shrink-0">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      { }
                       <img
                         src={post.cover_image_url}
                         alt={post.title}

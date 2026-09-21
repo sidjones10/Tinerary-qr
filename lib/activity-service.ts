@@ -301,7 +301,7 @@ export async function getSuggestedItinerariesWithActivities(
     }
 
     // Process and score itineraries based on relevance
-    let itineraries: SuggestedItinerary[] = data
+    const itineraries: SuggestedItinerary[] = data
       .filter((item: any) => item.activities && item.activities.length > 0)
       .map((item: any) => {
         let relevanceScore = 0

@@ -1,0 +1,9 @@
+.next
+node_modules
+out
+build
+package-lock.json
+public/locales
+supabase/migrations
+db
+lib/database.types.ts

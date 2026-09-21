@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
 
     // Process top itineraries — cross-reference actual likes/saves
     const topItineraryIds = (topItinerariesResult.data || []).map((i: any) => i.id)
-    let topRealCounts: Record<string, { likes: number; saves: number }> = {}
+    const topRealCounts: Record<string, { likes: number; saves: number }> = {}
 
     if (topItineraryIds.length > 0) {
       const [topLikes, topSaves] = await Promise.all([

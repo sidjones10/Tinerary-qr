@@ -180,7 +180,7 @@ export async function POST(request: Request) {
     console.error("Test email error:", error)
 
     // Parse Resend-specific errors
-    let errorDetails = error.message
+    const errorDetails = error.message
     let fix = ""
 
     if (error.message?.includes("domain is not verified")) {

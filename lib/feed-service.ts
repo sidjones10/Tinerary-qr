@@ -55,7 +55,7 @@ export async function getUserFeed(userId: string, filters: FeedFilters = {}) {
       .eq("user_id", userId)
 
     // Fetch itineraries user is invited to (accepted invitations)
-    let invitedQuery = supabase
+    const invitedQuery = supabase
       .from("itinerary_invitations")
       .select(`
         invitation_status:status,

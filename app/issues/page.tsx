@@ -68,7 +68,7 @@ export default async function IssuesPage() {
               <li key={issue.slug}>
                 <div className="aspect-[3/4] bg-neutral-100 overflow-hidden mb-4">
                   {issue.cover_image_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
+                     
                     <img src={issue.cover_image_url} alt={issue.title} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-4xl opacity-40">🟡</div>

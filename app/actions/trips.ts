@@ -3,7 +3,7 @@
 import { createClient } from "@/utils/supabase/server"
 
 export async function getTripById(tripId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   try {
     const { data, error } = await supabase

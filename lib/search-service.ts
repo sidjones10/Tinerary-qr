@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client"
 import Fuse from "fuse.js"
+import type { IFuseOptions } from "fuse.js"
 import { normalizeLocation, locationMatchesSearch } from "@/lib/location-utils"
 
 export interface SearchResult {
@@ -28,7 +29,7 @@ export interface SearchResults {
 }
 
 // Fuse.js options for TikTok-like fuzzy search
-const itineraryFuseOptions: Fuse.IFuseOptions<SearchResult> = {
+const itineraryFuseOptions: IFuseOptions<SearchResult> = {
   includeScore: true,
   threshold: 0.4, // Allow fuzzy matches
   ignoreLocation: true,
@@ -44,7 +45,7 @@ const itineraryFuseOptions: Fuse.IFuseOptions<SearchResult> = {
   ],
 }
 
-const userFuseOptions: Fuse.IFuseOptions<SearchResult> = {
+const userFuseOptions: IFuseOptions<SearchResult> = {
   includeScore: true,
   threshold: 0.4,
   ignoreLocation: true,

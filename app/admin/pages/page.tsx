@@ -122,7 +122,6 @@ const pages = [
   {
     category: "System",
     items: [
-      { href: "/diagnostics", label: "Diagnostics", icon: Wrench },
       { href: "/app", label: "App Download", icon: ExternalLink },
     ],
   },

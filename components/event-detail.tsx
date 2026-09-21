@@ -18,7 +18,7 @@ import { createClient } from "@/lib/supabase/client"
 import { ShareDialog } from "@/components/share-dialog"
 import { EnhancedExpenseTracker } from "@/components/enhanced-expense-tracker"
 import { CommentsSection } from "@/components/comments-section"
-import { PackingList } from "@/components/packing-list"
+import { PackingList, type PackingItem } from "@/components/packing-list"
 import { EventMap } from "@/components/event-map"
 import { PhotoGallery } from "@/components/photo-gallery"
 import { getEventPhotos, type EventPhoto } from "@/lib/photo-service"
@@ -30,7 +30,7 @@ import { getFontFamily } from "@/components/font-selector"
 import { PostEventCoverPrompt } from "@/components/post-event-cover-prompt"
 import { shouldPromptCoverUpdate } from "@/lib/reminder-utils"
 import { ReportDialog } from "@/components/report-dialog"
-import { RsvpBanner, submitRsvp } from "@/components/rsvp-banner"
+import { RsvpBanner, submitRsvp, type RsvpStatus } from "@/components/rsvp-banner"
 import { PartifulRsvpModal } from "@/components/partiful-rsvp-modal"
 import { CohostManager } from "@/components/cohost-manager"
 import { cn, parseLocalDate } from "@/lib/utils"
@@ -57,14 +57,17 @@ interface Event {
   activities?: Activity[]
   packing_list_public?: boolean
   expenses_public?: boolean
-  [key: string]: unknown
-}
-
-interface PackingItem {
-  id: string
-  item_name: string
-  category: string | null
-  packed: boolean
+  location?: string | null
+  image_url?: string | null
+  is_public?: boolean | null
+  invitations_enabled?: boolean | null
+  cover_update_prompted?: boolean | null
+  theme?: string | null
+  font?: string | null
+  host_name?: string | null
+  host_username?: string | null
+  host_avatar?: string | null
+  attendees?: Attendee[]
   [key: string]: unknown
 }
 
@@ -149,7 +152,7 @@ export function EventDetail({ event }: EventDetailProps) {
   const [loadingInvitations, setLoadingInvitations] = useState(false)
   const [removingInvitationId, setRemovingInvitationId] = useState<string | null>(null)
   const [showRsvpModal, setShowRsvpModal] = useState(false)
-  const [myInvitation, setMyInvitation] = useState<{ id: string; status: "pending" | "accepted" | "declined" | "tentative" } | null>(null)
+  const [myInvitation, setMyInvitation] = useState<{ id: string; status: RsvpStatus } | null>(null)
   const [arrivedViaInviteLink, setArrivedViaInviteLink] = useState(false)
   const [attendeeCounts, setAttendeeCounts] = useState<{ going: number; maybe: number }>({ going: 1, maybe: 0 }) // 1 = host
   const [invitationsEnabled, setInvitationsEnabled] = useState<boolean>(event.invitations_enabled !== false)
@@ -548,7 +551,8 @@ export function EventDetail({ event }: EventDetailProps) {
     return acc
   }, {})
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return "Date TBD"
     try {
       return format(parseLocalDate(dateString), "MMMM d, yyyy")
     } catch (e) {
@@ -837,7 +841,7 @@ export function EventDetail({ event }: EventDetailProps) {
                 <ShareDialog
                   itineraryId={event.id}
                   title={event.title}
-                  description={event.description}
+                  description={event.description ?? undefined}
                   userId={user?.id}
                   isOwner={isOwner}
                   invitationsEnabled={invitationsEnabled}
@@ -859,8 +863,8 @@ export function EventDetail({ event }: EventDetailProps) {
                     title: event.title,
                     description: event.description || undefined,
                     location: event.location || undefined,
-                    startDate: event.start_date,
-                    endDate: event.end_date,
+                    startDate: event.start_date ?? "",
+                    endDate: event.end_date ?? "",
                     url: typeof window !== "undefined" ? window.location.href : undefined,
                   }}
                   size="sm"
@@ -939,7 +943,7 @@ export function EventDetail({ event }: EventDetailProps) {
                 {event.host_avatar && (
                   <img
                     src={event.host_avatar}
-                    alt={event.host_name}
+                    alt={event.host_name ?? "Host"}
                     className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
                   />
                 )}
@@ -1261,8 +1265,8 @@ export function EventDetail({ event }: EventDetailProps) {
                     : [{
                         id: event.user_id,
                         name: event.host_name || "Host",
-                        avatar_url: event.host_avatar,
-                      }]
+                        avatar_url: event.host_avatar ?? undefined,
+                      } satisfies Attendee]
 
                   // Add invited users from invitations state (registered users only)
                   const attendeeIds = new Set(attendees.map(a => a.id))
@@ -1538,7 +1542,7 @@ export function EventDetail({ event }: EventDetailProps) {
           onOpenChange={setShowRsvpModal}
           itineraryId={event.id}
           invitationId={myInvitation?.id}
-          currentStatus={myInvitation?.status}
+          currentStatus={myInvitation?.status === "expired" ? undefined : myInvitation?.status}
           userName={user?.user_metadata?.name || user?.email?.split("@")[0] || ""}
           onStatusChange={(newStatus, invId) => {
             setMyInvitation({ id: invId || myInvitation?.id || "", status: newStatus as any })

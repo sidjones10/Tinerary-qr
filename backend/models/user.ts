@@ -13,7 +13,7 @@ export type User = {
 }
 
 export async function getUserById(id: string): Promise<User | null> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   logger.info(`Fetching user by ID: ${id}`, "user-model")
 
@@ -28,7 +28,7 @@ export async function getUserById(id: string): Promise<User | null> {
 }
 
 export async function updateUser(id: string, userData: Partial<User>): Promise<User | null> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   logger.info(`Updating user: ${id}`, "user-model", userData)
 
@@ -52,7 +52,7 @@ export async function updateUser(id: string, userData: Partial<User>): Promise<U
 }
 
 export async function createUser(userData: Omit<User, "created_at" | "updated_at">): Promise<User | null> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   logger.info(`Creating new user`, "user-model", userData)
 
@@ -76,7 +76,7 @@ export async function createUser(userData: Omit<User, "created_at" | "updated_at
 }
 
 export async function getUserByEmail(email: string): Promise<User | null> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   logger.info(`Fetching user by email: ${email}`, "user-model")
 
@@ -91,7 +91,7 @@ export async function getUserByEmail(email: string): Promise<User | null> {
 }
 
 export async function getUserByPhone(phone: string): Promise<User | null> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   logger.info(`Fetching user by phone: ${phone}`, "user-model")
 

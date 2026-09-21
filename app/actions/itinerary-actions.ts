@@ -6,10 +6,18 @@ import { createClient } from "@/utils/supabase/server"
 import type { Database } from "@/lib/database.types"
 
 type Itinerary = Database["public"]["Tables"]["itineraries"]["Row"]
-type NewItinerary = Omit<Itinerary, "id" | "created_at" | "user_id">
+// Derive inserts from the Insert type, not Row — Row marks every
+// database-defaulted column as required.
+type NewItinerary = Omit<
+  Database["public"]["Tables"]["itineraries"]["Insert"],
+  "id" | "created_at" | "user_id"
+>
 
 type Activity = Database["public"]["Tables"]["activities"]["Row"]
-type NewActivity = Omit<Activity, "id" | "created_at" | "user_id">
+type NewActivity = Omit<
+  Database["public"]["Tables"]["activities"]["Insert"],
+  "id" | "created_at" | "user_id"
+>
 
 // Returns true if the user is the original creator OR a co-host (admin)
 async function canEditItinerary(

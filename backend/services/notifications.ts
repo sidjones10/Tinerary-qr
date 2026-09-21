@@ -15,7 +15,7 @@ export async function sendNotification(
   userId: string,
   notification: Omit<Notification, "id" | "user_id" | "read" | "created_at">,
 ) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   logger.info(`Sending notification to user: ${userId}`, "notifications", {
     title: notification.title,
@@ -46,7 +46,7 @@ export async function sendNotification(
 }
 
 export async function getUserNotifications(userId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   logger.info(`Fetching notifications for user: ${userId}`, "notifications")
 
@@ -66,7 +66,7 @@ export async function getUserNotifications(userId: string) {
 }
 
 export async function markNotificationAsRead(notificationId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   logger.info(`Marking notification as read: ${notificationId}`, "notifications")
 
@@ -82,7 +82,7 @@ export async function markNotificationAsRead(notificationId: string) {
 }
 
 export async function markAllNotificationsAsRead(userId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   logger.info(`Marking all notifications as read for user: ${userId}`, "notifications")
 
@@ -98,7 +98,7 @@ export async function markAllNotificationsAsRead(userId: string) {
 }
 
 export async function deleteNotification(notificationId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   logger.info(`Deleting notification: ${notificationId}`, "notifications")
 
@@ -114,7 +114,7 @@ export async function deleteNotification(notificationId: string) {
 }
 
 export async function getUnreadNotificationCount(userId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   logger.info(`Getting unread notification count for user: ${userId}`, "notifications")
 

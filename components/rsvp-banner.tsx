@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 
 
-type RsvpStatus = "pending" | "accepted" | "declined" | "tentative" | "expired"
+export type RsvpStatus = "pending" | "accepted" | "declined" | "tentative" | "expired"
 
 interface RsvpBannerProps {
   /** Existing invitation ID (if user was explicitly invited) */

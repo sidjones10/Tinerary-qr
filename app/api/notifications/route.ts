@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   try {
     logger.info("Fetching notifications", "api")
 
-    const supabase = createClient()
+    const supabase = await createClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     logger.info("Notification action request", "api", { action, notificationId })
 
-    const supabase = createClient()
+    const supabase = await createClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()

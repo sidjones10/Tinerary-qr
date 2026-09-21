@@ -48,6 +48,9 @@ i18n
     ns: ['common'],
     fallbackLng: 'en',
     supportedLngs: SUPPORTED_LANGUAGES,
+    // Missing keys fall back to the key itself rather than null, so `t()`
+    // always yields a string. Mirrored in types/i18next.d.ts.
+    returnNull: false,
     interpolation: {
       escapeValue: false, // React already escapes
     },

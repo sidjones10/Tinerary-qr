@@ -763,8 +763,8 @@ export async function sendCountdownReminderEmail(params: {
   location?: string
   eventType?: "event" | "trip"
 }) {
+  const { email, name, itineraryTitle, itineraryId, timeRemaining, eventDate, location, eventType = "event" } = params
   try {
-    const { email, name, itineraryTitle, itineraryId, timeRemaining, eventDate, location, eventType = "event" } = params
     const eventUrl = `${APP_URL}/event/${itineraryId}`
     const typeLabel = eventType === "trip" ? "trip" : "event"
     const safeTitle = escapeHtml(itineraryTitle)
@@ -829,8 +829,8 @@ export async function sendEventStartedEmail(params: {
   location?: string
   eventType?: "event" | "trip"
 }) {
+  const { email, name, itineraryTitle, itineraryId, location, eventType = "event" } = params
   try {
-    const { email, name, itineraryTitle, itineraryId, location, eventType = "event" } = params
     const eventUrl = `${APP_URL}/event/${itineraryId}`
     const safeTitle = escapeHtml(itineraryTitle)
     const safeName = escapeHtml(name || "there")
@@ -883,8 +883,8 @@ export async function sendWhatsNewEmail(params: {
   email: string
   name?: string
 }) {
+  const { email, name } = params
   try {
-    const { email, name } = params
     const safeName = escapeHtml(name || "there")
 
     const subject = "Postcards from the team: what's new on Tinerary"
@@ -1006,8 +1006,8 @@ export async function sendInvitationEmail(params: {
   eventDate?: string
   eventLocation?: string
 }) {
+  const { recipientEmail, inviterName, itineraryTitle, itineraryId, eventDate, eventLocation } = params
   try {
-    const { recipientEmail, inviterName, itineraryTitle, itineraryId, eventDate, eventLocation } = params
     const inviteUrl = `${APP_URL}/auth?invite=${encodeURIComponent(itineraryId)}&email=${encodeURIComponent(recipientEmail)}`
     const safeTitle = escapeHtml(itineraryTitle)
     const safeInviterName = escapeHtml(inviterName)
@@ -1093,8 +1093,8 @@ export async function sendSignInAlertEmail(params: {
   revokeToken: string
   signInTime: string
 }) {
+  const { email, name, ipAddress, userAgent, deviceInfo, revokeToken, signInTime } = params
   try {
-    const { email, name, ipAddress, userAgent, deviceInfo, revokeToken, signInTime } = params
     const revokeUrl = `${APP_URL}/api/auth/revoke-sessions?token=${encodeURIComponent(revokeToken)}`
     const formattedTime = new Date(signInTime).toLocaleString("en-US", {
       weekday: "long",
@@ -1178,8 +1178,8 @@ export async function sendAccountDeletionWarningEmail(params: {
   deletionDate: string
   daysRemaining: number
 }) {
+  const { email, name, username, deletionDate, daysRemaining } = params
   try {
-    const { email, name, username, deletionDate, daysRemaining } = params
     const reactivateUrl = `${APP_URL}/settings/account`
 
     const subject = `Your Tinerary account will be deleted in ${daysRemaining} days`
@@ -1435,8 +1435,8 @@ export async function sendSummerPlanningEmail(params: {
   email: string
   name?: string
 }) {
+  const { email, name } = params
   try {
-    const { email, name } = params
     const safeName = escapeHtml(name || "traveler")
 
     const subject = "What will your summer 2026 look like?"
@@ -1559,8 +1559,8 @@ export async function sendEventPlanningEmail(params: {
   email: string
   name?: string
 }) {
+  const { email, name } = params
   try {
-    const { email, name } = params
     const safeName = escapeHtml(name || "traveler")
 
     const subject = "Do you have a new event coming up?"

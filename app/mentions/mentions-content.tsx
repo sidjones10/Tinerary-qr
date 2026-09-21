@@ -28,7 +28,7 @@ import {
   Lock,
   Shield,
   Zap,
-  Infinity,
+  Infinity as InfinityIcon,
 } from "lucide-react"
 import { MENTION_HIGHLIGHTS } from "@/lib/tiers"
 import { createClient } from "@/lib/supabase/client"
@@ -532,7 +532,7 @@ export function MentionsContent() {
             <CardContent>
               {isEnt ? (
                 <div className="p-6 rounded-2xl bg-gradient-to-r from-tinerary-gold/10 to-tinerary-peach/10 border border-tinerary-gold/20 text-center">
-                  <Infinity className="size-8 mx-auto text-tinerary-gold mb-3" />
+                  <InfinityIcon className="size-8 mx-auto text-tinerary-gold mb-3" />
                   <h3 className="text-lg font-bold text-foreground">Unlimited Highlights Included</h3>
                   <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
                     Your Enterprise plan automatically highlights every organic mention of your business

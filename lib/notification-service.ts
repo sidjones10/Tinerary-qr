@@ -15,6 +15,7 @@ export type NotificationType =
   | "invitation"
   | "first_post"
   | "view_milestone"
+  | "mention"
 
 export interface NotificationPreferences {
   push: boolean

@@ -12,10 +12,11 @@ import { AppHeader } from "@/components/app-header"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/providers/auth-provider"
 import { parseLocalDate } from "@/lib/utils"
+import type { SavedItineraryRow } from "@/types/saved-itinerary"
 
 export default function LikedPage() {
   const { user } = useAuth()
-  const [likedItineraries, setLikedItineraries] = useState([])
+  const [likedItineraries, setLikedItineraries] = useState<SavedItineraryRow[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState("recent")
@@ -66,7 +67,7 @@ export default function LikedPage() {
           console.error("Error fetching liked itineraries:", error)
           setLikedItineraries([])
         } else {
-          setLikedItineraries(data || [])
+          setLikedItineraries((data as unknown as SavedItineraryRow[]) || [])
         }
       } catch (error) {
         console.error("Error:", error)
@@ -124,7 +125,8 @@ export default function LikedPage() {
 
   const filteredItems = getFilteredAndSortedItems()
 
-  const formatDate = (startDate: string, endDate: string) => {
+  const formatDate = (startDate?: string | null, endDate?: string | null) => {
+    if (!startDate || !endDate) return "Date TBD"
     const start = parseLocalDate(startDate)
     const end = parseLocalDate(endDate)
 
@@ -135,7 +137,8 @@ export default function LikedPage() {
     return `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
   }
 
-  const getItineraryType = (startDate: string, endDate: string) => {
+  const getItineraryType = (startDate?: string | null, endDate?: string | null) => {
+    if (!startDate || !endDate) return "Event"
     const start = parseLocalDate(startDate)
     const end = parseLocalDate(endDate)
     return start.toDateString() === end.toDateString() ? "Event" : "Trip"
@@ -327,12 +330,12 @@ export default function LikedPage() {
                         {itinerary.image_url ? (
                           <img
                             src={itinerary.image_url}
-                            alt={itinerary.title}
+                            alt={itinerary.title ?? "Itinerary"}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                           />
                         ) : (
                           <div className="w-full h-full bg-gradient-to-br from-pink-400 via-violet-400 to-orange-400 flex items-center justify-center">
-                            <span className="text-3xl font-bold text-white/90">{itinerary.title[0]}</span>
+                            <span className="text-3xl font-bold text-white/90">{(itinerary.title ?? "?")[0]}</span>
                           </div>
                         )}
 

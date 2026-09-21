@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { useAuth } from "./use-auth"
+import { useAuth } from "@/providers/auth-provider"
 import { DiscoveryClient } from "@/lib/api-client-discovery"
 import type { DiscoveryFeedResponse, DiscoveryFeedRequest } from "@/lib/recommendation-types"
 
 export function useDiscovery() {
-  const { user, isAuthenticated } = useAuth()
+  const { user } = useAuth()
+  const isAuthenticated = Boolean(user)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [discoveryFeed, setDiscoveryFeed] = useState<DiscoveryFeedResponse | null>(null)
@@ -60,24 +61,28 @@ export function useDiscovery() {
         }
 
         if (response.data) {
+          // Bind once — inside the updater callback TS can no longer narrow
+          // `response.data` away from `undefined`.
+          const incoming = response.data
+
           if (reset || currentPage === 1) {
-            setDiscoveryFeed(response.data)
+            setDiscoveryFeed(incoming)
           } else {
             // Merge new items with existing items
             setDiscoveryFeed((prev) => {
-              if (!prev) return response.data
+              if (!prev) return incoming
 
               return {
                 ...prev,
-                personalRecommendations: [...prev.personalRecommendations, ...response.data.personalRecommendations],
-                trending: [...prev.trending, ...response.data.trending],
-                forYou: [...prev.forYou, ...response.data.forYou],
-                nearby: [...prev.nearby, ...response.data.nearby],
-                seasonal: [...prev.seasonal, ...response.data.seasonal],
-                friendsLiked: [...prev.friendsLiked, ...response.data.friendsLiked],
+                personalRecommendations: [...prev.personalRecommendations, ...incoming.personalRecommendations],
+                trending: [...prev.trending, ...incoming.trending],
+                forYou: [...prev.forYou, ...incoming.forYou],
+                nearby: [...prev.nearby, ...incoming.nearby],
+                seasonal: [...prev.seasonal, ...incoming.seasonal],
+                friendsLiked: [...prev.friendsLiked, ...incoming.friendsLiked],
                 similar: [
                   ...prev.similar,
-                  ...response.data.similar.filter((s) => !prev.similar.some((ps) => ps.category === s.category)),
+                  ...incoming.similar.filter((s) => !prev.similar.some((ps) => ps.category === s.category)),
                 ],
               }
             })

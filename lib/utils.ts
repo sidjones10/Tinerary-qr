@@ -11,7 +11,11 @@ export function cn(...inputs: ClassValue[]) {
  * display as the previous day in western timezones. This function
  * constructs the Date using local time components instead.
  */
-export function parseLocalDate(dateString: string): Date {
+export function parseLocalDate(dateString: string | null | undefined): Date {
+  // Itinerary dates are nullable in the database, so missing values must
+  // yield an invalid Date rather than throwing on `null.split`.
+  if (!dateString) return new Date(NaN)
+
   const parts = dateString.split("-")
   if (parts.length === 3) {
     return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))

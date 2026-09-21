@@ -110,9 +110,12 @@ describe("Invitations – Respond Endpoint", () => {
     expect(respondSrc).toContain("not the recipient")
   })
 
-  it("prevents double-responding to already handled invitations", () => {
-    expect(respondSrc).toContain('status !== "pending"')
-    expect(respondSrc).toContain("already been")
+  it("allows changing an existing RSVP but no-ops on an unchanged one", () => {
+    // Partiful-style: a guest may change their mind, so the endpoint no
+    // longer rejects a non-pending invitation. It only short-circuits when
+    // the requested status matches the stored one.
+    expect(respondSrc).toContain('invitation.status === newStatus')
+    expect(respondSrc).toContain("VALID_RESPONSES")
   })
 
   it("adds user as attendee on accept", () => {

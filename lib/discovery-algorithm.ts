@@ -34,6 +34,22 @@ export interface ItineraryWithScores extends Itinerary {
   qualityScore: number
   proximityScore: number
   finalScore: number
+  /** Embedded relations, present depending on what the query selected. */
+  categories?: { category: string }[] | null
+  creator?: {
+    id?: string
+    name?: string | null
+    username?: string | null
+    avatar_url?: string | null
+  } | null
+  itinerary_metrics?:
+    | {
+        view_count?: number | null
+        save_count?: number | null
+        like_count?: number | null
+        comment_count?: number | null
+      }[]
+    | null
 }
 
 export interface UserPreferences {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/utils/supabase/server"
 import { sendAccountDeletionWarningEmail } from "@/lib/email-notifications"
+import { requireCron } from "@/lib/auth/require-cron"
 
 /**
  * API Endpoint: Send Account Deletion Warnings
@@ -12,15 +13,10 @@ import { sendAccountDeletionWarningEmail } from "@/lib/email-notifications"
  */
 export async function POST(request: Request) {
   try {
-    // Verify cron secret for security (optional but recommended)
-    const authHeader = request.headers.get("authorization")
-    const cronSecret = process.env.CRON_SECRET
+    const unauthorized = requireCron(request)
+    if (unauthorized) return unauthorized
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Get accounts that need deletion warnings
     const { data: accountsNeedingWarnings, error: fetchError } = await supabase.rpc(
@@ -109,10 +105,14 @@ export async function POST(request: Request) {
   }
 }
 
-// Allow GET for manual testing
+// Allow GET for manual testing — same authorization as the POST job, since
+// the response lists the accounts scheduled for deletion.
 export async function GET(request: Request) {
   try {
-    const supabase = createClient()
+    const unauthorized = requireCron(request)
+    if (unauthorized) return unauthorized
+
+    const supabase = await createClient()
 
     // Just return the list of accounts that would get warnings
     const { data: accountsNeedingWarnings, error } = await supabase.rpc("get_accounts_needing_deletion_warning")

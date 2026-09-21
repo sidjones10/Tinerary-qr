@@ -279,7 +279,7 @@ export function ShareDialog({ itineraryId, title, description, trigger, userId, 
               </div>
             </div>
 
-            {typeof navigator !== "undefined" && navigator.share && (
+            {typeof navigator !== "undefined" && typeof navigator.share === "function" && (
               <Button className="w-full" onClick={handleNativeShare}>
                 <Share2 className="mr-2 h-4 w-4" />
                 Share via...

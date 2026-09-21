@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import type { User as SupabaseUser } from "@supabase/supabase-js"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Bell, Menu, Search, X, User, Settings, LogOut, PlusCircle, Crown, Store, MessageCircle } from "lucide-react"
@@ -27,7 +28,7 @@ import { useTranslation } from "react-i18next"
 export function AppHeader() {
   const [showSearch, setShowSearch] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState<SupabaseUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [accountType, setAccountType] = useState<string>("standard")
   const router = useRouter()
@@ -89,7 +90,7 @@ export function AppHeader() {
     }
   }, [])
 
-  const handleSearch = (e) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     if (searchQuery.trim()) {
       router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`)

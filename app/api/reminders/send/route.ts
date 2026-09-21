@@ -7,20 +7,15 @@ import {
   sendCountdownReminder,
   sendActivityReminder,
 } from "@/lib/reminder-service"
+import { requireCron } from "@/lib/auth/require-cron"
 
 // Called every minute by Supabase pg_cron via pg_net (see migration 049).
 // Previously used Vercel Cron, which was limited in frequency/count.
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify the request is authorized (use a secret key for cron jobs)
-    const authHeader = request.headers.get("authorization")
-    const cronSecret = process.env.CRON_SECRET
-
-    // If CRON_SECRET is set, require it for authorization
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const unauthorized = requireCron(request)
+    if (unauthorized) return unauthorized
 
     const results = {
       countdownReminders: { sent: 0, failed: 0, errors: [] as string[] },

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/utils/supabase/server"
+import { createServiceRoleClient } from "@/lib/supabase/server"
 import { getTierFeatures, getDefaultReportConfig, isEnterprise } from "@/lib/enterprise"
 import type { BusinessTierSlug } from "@/lib/tiers"
 
@@ -27,7 +27,9 @@ export async function GET(request: NextRequest) {
     }
 
     const apiKey = authHeader.slice(7)
-    const supabase = await createClient()
+    // API-key auth has no user session, and businesses.api_key is not
+    // readable under RLS. This lookup must use the service role.
+    const supabase = createServiceRoleClient()
 
     // Look up business by API key
     const { data: business, error: bizError } = await supabase

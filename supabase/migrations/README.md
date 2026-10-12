@@ -115,3 +115,58 @@ For migration issues, check:
 1. Supabase dashboard → Database → Migrations
 2. `supabase_migrations.schema_migrations` table
 3. GitHub issues: https://github.com/sidjones10/Tinerary-qr/issues
+
+---
+
+## Schema integrity notes
+
+### Duplicate migration numbers
+
+Ten numbers are used by more than one file: `020, 039, 043, 046, 048, 052,
+054, 055, 057, 058`. Ordering between two files sharing a number is
+therefore whatever the filesystem returns.
+
+They have **not** been renumbered. All of them are already applied to
+production, and renaming a file changes its version key in
+`supabase_migrations.schema_migrations` — the CLI would treat it as new and
+try to re-apply it. The files sharing a number touch unrelated objects, so
+the ambiguity is harmless in practice.
+
+**Rule going forward:** before adding a migration, run
+`ls supabase/migrations | tail -5` and take the next unused number. Never
+reuse one.
+
+### Tables adopted in 076
+
+Twelve tables existed only in the live database, created by hand in the
+Supabase dashboard and never committed:
+
+`businesses`, `promotions`, `promotion_metrics`, `itinerary_rsvps`,
+`mentions`, `reports`, `support_tickets`, `ticket_notes`,
+`user_search_history`, `verification_codes`, `webhook_logs`, `cron_job_logs`
+
+`076_reconcile_missing_tables.sql` adopts them and `077` adds their RLS
+policies. Both are fully idempotent, so they are safe against the existing
+production database: they create what is missing and leave what is there
+alone.
+
+Their column types were reconstructed from the queries in `app/` and
+`lib/`, not from a dump. **Verify before trusting them for a rebuild:**
+
+```bash
+supabase db dump --schema public > /tmp/live.sql
+# diff /tmp/live.sql against 076 and correct any mismatch
+```
+
+Two places also referenced columns that existed nowhere, so those writes
+were silently failing:
+
+- `activities.currency`, `activities.booking_url`, `activities.image_url` —
+  written on every activity create/update. Added in 076.
+- `businesses.api_key`, `businesses.api_enabled` — the whole enterprise API
+  authenticates against these. Added in 076.
+
+### Diagnostics
+
+Ad-hoc inspection SQL now lives in `supabase/diagnostics/`, not here. A
+migration runner would otherwise have executed it.

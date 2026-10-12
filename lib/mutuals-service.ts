@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client"
+import { one } from "@/lib/supabase-relations"
 
 export interface MutualConnection {
   id: string
@@ -110,12 +111,13 @@ async function getMutualsConnectionsFallback(
     // Process creators
     if (creators) {
       for (const event of creators) {
-        if (!event.profiles) continue
+        const creatorProfile = one(event.profiles)
+        if (!creatorProfile) continue
 
-        const mutualId = event.profiles.id
+        const mutualId = creatorProfile.id
         if (!mutualMap.has(mutualId)) {
           mutualMap.set(mutualId, {
-            profile: event.profiles,
+            profile: creatorProfile,
             events: []
           })
         }
@@ -131,20 +133,22 @@ async function getMutualsConnectionsFallback(
     // Process attendees
     if (attendees) {
       for (const attendance of attendees) {
-        if (!attendance.profile || !attendance.itinerary) continue
+        const attendeeProfile = one(attendance.profile)
+        const attendedItinerary = one(attendance.itinerary)
+        if (!attendeeProfile || !attendedItinerary) continue
 
-        const mutualId = attendance.profile.id
+        const mutualId = attendeeProfile.id
         if (!mutualMap.has(mutualId)) {
           mutualMap.set(mutualId, {
-            profile: attendance.profile,
+            profile: attendeeProfile,
             events: []
           })
         }
 
         mutualMap.get(mutualId)!.events.push({
-          id: attendance.itinerary.id,
-          title: attendance.itinerary.title,
-          start_date: attendance.itinerary.start_date
+          id: attendedItinerary.id,
+          title: attendedItinerary.title,
+          start_date: attendedItinerary.start_date
         })
       }
     }

@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Sort by like_count from metrics and filter for engaged content
-    let sortedItineraries = (itineraries || [])
+    const sortedItineraries = (itineraries || [])
       .map((itinerary: any) => {
         const metrics = Array.isArray(itinerary.itinerary_metrics)
           ? itinerary.itinerary_metrics[0]

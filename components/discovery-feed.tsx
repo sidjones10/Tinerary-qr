@@ -32,7 +32,7 @@ interface DiscoveryItem {
   id: string
   title: string
   description: string | null
-  destination: string | null
+  destination?: string | null
   is_public: boolean
   user_id: string
   image_url?: string | null
@@ -47,6 +47,38 @@ interface DiscoveryItem {
   categories?: {
     category: string
   }[]
+  [key: string]: unknown
+}
+
+/**
+ * A rendered card in the feed. Both real itineraries and business deals are
+ * normalized into this shape by `formatDiscoveryItem`; the hardcoded
+ * `fallbackItems` demo cards use it too, so the render loop sees one type.
+ */
+interface FeedCard {
+  id: string
+  title: string
+  type: string
+  date: string
+  image: string | null
+  defaultBackground?: string | null
+  location: string
+  likes: number
+  comments: number
+  saves: number
+  views?: number
+  description: string
+  theme?: string | null
+  font?: string | null
+  user: {
+    name: string
+    username: string
+    avatar: string
+  }
+  highlights: string[]
+  promoted: boolean
+  _isDeal?: boolean
+  _outboundUrl?: string | null
   [key: string]: unknown
 }
 
@@ -490,7 +522,7 @@ export function DiscoveryFeed() {
   }
 
   // Format sample data for display
-  const formatDiscoveryItem = (item: any) => {
+  const formatDiscoveryItem = (item: any): FeedCard => {
     // Handle deal items
     if (item._isDeal && item._dealData) {
       const deal = item._dealData
@@ -629,7 +661,7 @@ export function DiscoveryFeed() {
   const formattedItems = discoveryItems.map(formatDiscoveryItem)
 
   // Sample data - keeping this as fallback
-  const fallbackItems = [
+  const fallbackItems: FeedCard[] = [
     {
       id: "1",
       title: "Weekend in NYC",
@@ -723,7 +755,7 @@ export function DiscoveryFeed() {
     }
   }
 
-  const itemsToDisplay = formattedItems.length > 0 ? formattedItems : fallbackItems
+  const itemsToDisplay: FeedCard[] = formattedItems.length > 0 ? formattedItems : fallbackItems
 
   return (
     <div className="relative h-[calc(100vh-160px)] min-h-[500px] max-h-[900px] w-full overflow-hidden rounded-xl bg-gradient-to-b from-white to-orange-50 dark:from-card dark:to-background shadow-2xl">

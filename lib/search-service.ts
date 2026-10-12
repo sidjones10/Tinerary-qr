@@ -1,6 +1,13 @@
 import { createClient } from "@/lib/supabase/client"
 import Fuse from "fuse.js"
-import { normalizeLocation, locationMatchesSearch } from "@/lib/location-utils"
+import type { IFuseOptions } from "fuse.js"
+import {
+  normalizeLocation,
+  locationMatchesSearch,
+  US_STATES,
+  STATE_ABBREVIATIONS,
+  CITY_ALIASES,
+} from "@/lib/location-utils"
 
 export interface SearchResult {
   id: string
@@ -28,7 +35,7 @@ export interface SearchResults {
 }
 
 // Fuse.js options for TikTok-like fuzzy search
-const itineraryFuseOptions: Fuse.IFuseOptions<SearchResult> = {
+const itineraryFuseOptions: IFuseOptions<SearchResult> = {
   includeScore: true,
   threshold: 0.4, // Allow fuzzy matches
   ignoreLocation: true,
@@ -44,7 +51,7 @@ const itineraryFuseOptions: Fuse.IFuseOptions<SearchResult> = {
   ],
 }
 
-const userFuseOptions: Fuse.IFuseOptions<SearchResult> = {
+const userFuseOptions: IFuseOptions<SearchResult> = {
   includeScore: true,
   threshold: 0.4,
   ignoreLocation: true,
@@ -288,8 +295,6 @@ export async function saveSearchHistory(
 function extractLocationFromSearch(query: string): string | null {
   const normalizedQuery = query.trim().toLowerCase()
 
-  // Check against state names and abbreviations
-  const { US_STATES, STATE_ABBREVIATIONS, CITY_ALIASES } = require("@/lib/location-utils")
 
   // Check if query is a state abbreviation
   const upperQuery = query.toUpperCase().trim()

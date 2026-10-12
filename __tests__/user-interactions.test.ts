@@ -146,13 +146,27 @@ describe("User Interactions – trackUserInteraction Function", () => {
 // 4. Event Detail View Tracking
 // ------------------------------------------------------------------
 describe("User Interactions – View Tracking on Event Page", () => {
-  it("event detail page tracks views in user_interactions", () => {
+  it("event detail page posts the view to the view API route", () => {
+    // View tracking moved off the page and into POST /api/itineraries/[id]/view,
+    // which increments the metric and records the interaction server-side.
     const eventPagePath = path.join(basePath, "app/event/[id]/page.tsx")
-    if (fs.existsSync(eventPagePath)) {
-      const src = fs.readFileSync(eventPagePath, "utf-8")
-      expect(src).toContain("user_interactions")
-      expect(src).toContain('interaction_type: "view"')
-    }
+    expect(fs.existsSync(eventPagePath)).toBe(true)
+
+    const src = fs.readFileSync(eventPagePath, "utf-8")
+    expect(src).toContain("/view")
+    expect(src).toContain('method: "POST"')
+  })
+
+  it("the view API route records a user_interactions view", () => {
+    const viewRoutePath = path.join(
+      basePath,
+      "app/api/itineraries/[id]/view/route.ts"
+    )
+    expect(fs.existsSync(viewRoutePath)).toBe(true)
+
+    const src = fs.readFileSync(viewRoutePath, "utf-8")
+    expect(src).toContain("user_interactions")
+    expect(src).toContain("view")
   })
 })
 

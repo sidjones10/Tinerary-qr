@@ -11,8 +11,8 @@ const ADMIN_EMAILS = [
   process.env.NEXT_PUBLIC_ADMIN_EMAIL,
 ].filter(Boolean)
 
-export async function middleware(req: NextRequest) {
-  // Create supabase client for middleware and get user
+export async function proxy(req: NextRequest) {
+  // Create supabase client for the proxy and get user
   const { supabase, response, user } = await createClient(req)
 
   const path = req.nextUrl.pathname

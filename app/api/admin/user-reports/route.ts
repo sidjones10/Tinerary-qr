@@ -56,7 +56,10 @@ export async function GET(request: NextRequest) {
       query = query.eq("severity", severity)
     }
 
-    let { data: reports, count, error } = await query
+    const initial = await query
+    const { error } = initial
+    let reports = initial.data
+    let count = initial.count
 
     if (error) {
       console.error("Error fetching user reports with joins:", error)

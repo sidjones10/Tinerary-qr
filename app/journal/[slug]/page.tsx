@@ -70,7 +70,7 @@ export default async function JournalPostPage({ params }: PageProps) {
         </p>
         {post.cover_image_url && (
           <div className="mb-10 -mx-6 sm:mx-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            { }
             <img src={post.cover_image_url} alt={post.title} className="w-full h-auto" />
           </div>
         )}

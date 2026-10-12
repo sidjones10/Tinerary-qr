@@ -71,10 +71,10 @@ export default function NotificationsPage() {
     await markAsRead(notificationId)
   }
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     const now = new Date()
-    const diffMs = now - date
+    const diffMs = now.getTime() - date.getTime()
     const diffSec = Math.floor(diffMs / 1000)
     const diffMin = Math.floor(diffSec / 60)
     const diffHour = Math.floor(diffMin / 60)

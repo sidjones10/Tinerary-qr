@@ -10,7 +10,7 @@
  * - Database schema for itinerary_reminders
  * - Client vs server Supabase usage in reminder-service
  */
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, afterEach } from "vitest"
 import * as fs from "fs"
 import * as path from "path"
 import {
@@ -201,8 +201,67 @@ describe("Reminders – Cron Endpoint Structure", () => {
       path.join(basePath, "app/api/reminders/send/route.ts"),
       "utf-8"
     )
-    expect(routeSrc).toContain("CRON_SECRET")
-    expect(routeSrc).toContain("Unauthorized")
+    // Authorization lives in the shared requireCron guard.
+    expect(routeSrc).toContain("requireCron")
+
+    const guardSrc = fs.readFileSync(
+      path.join(basePath, "lib/auth/require-cron.ts"),
+      "utf-8"
+    )
+    expect(guardSrc).toContain("CRON_SECRET")
+    expect(guardSrc).toContain("Unauthorized")
+  })
+
+  describe("requireCron guard behavior", () => {
+    const originalSecret = process.env.CRON_SECRET
+
+    afterEach(() => {
+      if (originalSecret === undefined) delete process.env.CRON_SECRET
+      else process.env.CRON_SECRET = originalSecret
+    })
+
+    it("fails closed with 500 when CRON_SECRET is not configured", async () => {
+      delete process.env.CRON_SECRET
+      const { requireCron } = await import("../lib/auth/require-cron")
+
+      const res = requireCron(new Request("https://example.test/api/cron"))
+      expect(res).not.toBeNull()
+      expect(res!.status).toBe(500)
+    })
+
+    it("rejects a request with no authorization header", async () => {
+      process.env.CRON_SECRET = "test-secret"
+      const { requireCron } = await import("../lib/auth/require-cron")
+
+      const res = requireCron(new Request("https://example.test/api/cron"))
+      expect(res).not.toBeNull()
+      expect(res!.status).toBe(401)
+    })
+
+    it("rejects a request with the wrong secret", async () => {
+      process.env.CRON_SECRET = "test-secret"
+      const { requireCron } = await import("../lib/auth/require-cron")
+
+      const res = requireCron(
+        new Request("https://example.test/api/cron", {
+          headers: { authorization: "Bearer wrong-secret" },
+        })
+      )
+      expect(res).not.toBeNull()
+      expect(res!.status).toBe(401)
+    })
+
+    it("authorizes a request carrying the correct secret", async () => {
+      process.env.CRON_SECRET = "test-secret"
+      const { requireCron } = await import("../lib/auth/require-cron")
+
+      const res = requireCron(
+        new Request("https://example.test/api/cron", {
+          headers: { authorization: "Bearer test-secret" },
+        })
+      )
+      expect(res).toBeNull()
+    })
   })
 })
 

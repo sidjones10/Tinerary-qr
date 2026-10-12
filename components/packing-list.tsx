@@ -23,7 +23,7 @@ import { createPackingItem, updatePackingItem, togglePackingItem, deletePackingI
 import { getProductSuggestions, type ProductSuggestion } from "@/app/actions/product-match-actions"
 import { PackingTemplateSelector } from "@/components/packing-template-selector"
 
-interface PackingItem {
+export interface PackingItem {
   id: string
   name: string
   category?: string

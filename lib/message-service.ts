@@ -2,6 +2,15 @@ import { createClient } from "@/lib/supabase/client"
 
 // ─── Types ────────────────────────────────────────────────────
 
+/** Profile fields selected for message threads and conversation lists. */
+interface MessageProfile {
+  id: string
+  name?: string | null
+  username?: string | null
+  avatar_url?: string | null
+  tier?: string | null
+  is_verified?: boolean | null
+}
 export interface Conversation {
   id: string
   otherUser: {
@@ -197,8 +206,8 @@ export async function getConversations(userId: string, supabaseClient?: any): Pr
       .select("id, name, username, avatar_url, tier, is_verified")
       .in("id", otherUserIds)
 
-    const profileMap = new Map(
-      (profiles || []).map((p: any) => [p.id, p])
+    const profileMap = new Map<string, MessageProfile>(
+      (profiles || []).map((p: MessageProfile) => [p.id, p] as const)
     )
 
     // Build conversation list
@@ -288,8 +297,8 @@ export async function getMessages(
       .select("id, name, username, avatar_url")
       .in("id", senderIds)
 
-    const profileMap = new Map(
-      (profiles || []).map((p: any) => [p.id, p])
+    const profileMap = new Map<string, MessageProfile>(
+      (profiles || []).map((p: MessageProfile) => [p.id, p] as const)
     )
 
     return data.map((m: any) => {

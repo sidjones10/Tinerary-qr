@@ -1,3 +1,5 @@
+import { randomInt } from "crypto"
+
 // Import twilio only on the server side
 let twilio: any
 if (typeof window === "undefined") {
@@ -60,7 +62,8 @@ export function formatPhoneNumber(phoneNumber: string): string {
  * Generate a random 6-digit verification code
  */
 export function generateVerificationCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString()
+  // crypto.randomInt, not Math.random: this is an authentication secret.
+  return randomInt(100000, 1000000).toString()
 }
 
 /**

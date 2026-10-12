@@ -103,6 +103,7 @@ export interface Database {
           start_date: string | null
           end_date: string | null
           is_public: boolean
+          is_template: boolean
           image_url: string | null
           theme: string | null
           font: string | null
@@ -120,6 +121,7 @@ export interface Database {
           start_date?: string | null
           end_date?: string | null
           is_public?: boolean
+          is_template?: boolean
           image_url?: string | null
           theme?: string | null
           font?: string | null
@@ -137,6 +139,7 @@ export interface Database {
           start_date?: string | null
           end_date?: string | null
           is_public?: boolean
+          is_template?: boolean
           image_url?: string | null
           theme?: string | null
           font?: string | null
@@ -158,6 +161,9 @@ export interface Database {
           order_index: number
           category: string | null
           cost: number | null
+          currency: string | null
+          booking_url: string | null
+          image_url: string | null
           notes: string | null
           created_at: string
           updated_at: string
@@ -174,6 +180,9 @@ export interface Database {
           order_index?: number
           category?: string | null
           cost?: number | null
+          currency?: string | null
+          booking_url?: string | null
+          image_url?: string | null
           notes?: string | null
           created_at?: string
           updated_at?: string
@@ -190,6 +199,9 @@ export interface Database {
           order_index?: number
           category?: string | null
           cost?: number | null
+          currency?: string | null
+          booking_url?: string | null
+          image_url?: string | null
           notes?: string | null
           created_at?: string
           updated_at?: string
@@ -815,7 +827,6 @@ export interface Database {
           created_at?: string
         }
       }
-    }
       itinerary_reports: {
         Row: {
           id: string

@@ -1,18 +1,11 @@
 import { NextResponse } from "next/server"
 import { updateTrendingScores } from "@/lib/discovery-algorithm"
+import { requireCron } from "@/lib/auth/require-cron"
 
 // This endpoint can be called by a cron job to update trending scores
 export async function GET(request: Request) {
-  // Verify cron secret to prevent unauthorized access
-  const cronSecret = process.env.CRON_SECRET
-  const authHeader = request.headers.get("authorization")
-
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json(
-      { success: false, message: "Unauthorized" },
-      { status: 401 },
-    )
-  }
+  const unauthorized = requireCron(request)
+  if (unauthorized) return unauthorized
 
   try {
     await updateTrendingScores()

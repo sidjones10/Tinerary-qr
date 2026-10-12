@@ -33,7 +33,7 @@ const API_URL =
     : "https://api.tinerary.app/v1"
 
 // Helper function to handle API responses
-async function handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
+export async function handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
   if (!response.ok) {
     // Try to parse error response
     try {
@@ -67,7 +67,7 @@ async function handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
 }
 
 // Helper function to get auth headers
-function getAuthHeaders(): HeadersInit {
+export function getAuthHeaders(): HeadersInit {
   const token = localStorage.getItem("auth_token")
   return {
     "Content-Type": "application/json",

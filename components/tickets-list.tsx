@@ -65,7 +65,7 @@ export function TicketsList({ upcoming = true, limit = 20 }: TicketsListProps) {
         const userId = session.user.id
         const now = new Date().toISOString()
 
-        let query = supabase
+        const query = supabase
           .from("bookings")
           .select(`
             *,

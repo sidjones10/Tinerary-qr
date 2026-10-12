@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
     // in case itinerary_metrics is out of sync
     const itineraryIds = (data || []).map((item: any) => item.id)
 
-    let realCounts: Record<string, { likes: number; saves: number }> = {}
+    const realCounts: Record<string, { likes: number; saves: number }> = {}
 
     if (itineraryIds.length > 0) {
       // Get actual like counts

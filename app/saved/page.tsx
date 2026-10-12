@@ -15,12 +15,13 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { supabase } from "@/lib/supabase-client"
 import { parseLocalDate } from "@/lib/utils"
+import type { SavedItineraryRow } from "@/types/saved-itinerary"
 
 export default function SavedItemsPage() {
   const router = useRouter()
   const [viewMode, setViewMode] = useState("grid")
   const [searchQuery, setSearchQuery] = useState("")
-  const [savedItems, setSavedItems] = useState([])
+  const [savedItems, setSavedItems] = useState<SavedItineraryRow[]>([])
   const [loading, setLoading] = useState(true)
   const [sortBy, setSortBy] = useState("recent") // recent, title, date
 
@@ -74,7 +75,7 @@ export default function SavedItemsPage() {
           console.error("Error fetching saved items:", error.message || "Unknown error")
           setSavedItems([])
         } else {
-          setSavedItems(data || [])
+          setSavedItems((data as unknown as SavedItineraryRow[]) || [])
         }
       } catch (error: any) {
         console.error("Error in saved items fetch:", error.message || error.toString())
@@ -143,14 +144,16 @@ export default function SavedItemsPage() {
     }
   }
 
-  const getItineraryType = (startDate: string, endDate: string) => {
+  const getItineraryType = (startDate?: string | null, endDate?: string | null) => {
+    if (!startDate || !endDate) return "Event"
     const start = parseLocalDate(startDate)
     const end = parseLocalDate(endDate)
     const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
     return daysDiff > 1 ? "Trip" : "Event"
   }
 
-  const formatDate = (startDate: string, endDate: string) => {
+  const formatDate = (startDate?: string | null, endDate?: string | null) => {
+    if (!startDate || !endDate) return "Date TBD"
     const start = parseLocalDate(startDate)
     const end = parseLocalDate(endDate)
     const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
@@ -279,7 +282,7 @@ export default function SavedItemsPage() {
                       <div className="relative h-52 overflow-hidden">
                         <Image
                           src={itinerary.image_url || "/placeholder.svg?height=400&width=600"}
-                          alt={itinerary.title}
+                          alt={itinerary.title ?? "Itinerary"}
                           fill
                           className="object-cover transition-transform duration-500 group-hover:scale-110"
                         />
@@ -369,7 +372,7 @@ export default function SavedItemsPage() {
                         <div className="relative h-48 sm:h-auto sm:w-48 flex-shrink-0 overflow-hidden">
                           <Image
                             src={itinerary.image_url || "/placeholder.svg?height=400&width=600"}
-                            alt={itinerary.title}
+                            alt={itinerary.title ?? "Itinerary"}
                             fill
                             className="object-cover transition-transform duration-500 group-hover:scale-110"
                           />

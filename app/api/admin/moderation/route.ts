@@ -1,25 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
-import { createClient as createSupabaseClient } from "@supabase/supabase-js"
+import { getAdminClient } from "@/lib/auth/require-admin"
 
-async function getAdminClient() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: NextResponse.json({ error: "Authentication required" }, { status: 401 }) }
-
-  const { data: profile } = await supabase.from("profiles").select("is_admin, role").eq("id", user.id).single()
-  if (!profile?.is_admin && profile?.role !== "admin") {
-    return { error: NextResponse.json({ error: "Admin access required" }, { status: 403 }) }
-  }
-
-  const adminClient = createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  )
-
-  return { adminClient, user }
-}
 
 export async function GET(request: NextRequest) {
   try {

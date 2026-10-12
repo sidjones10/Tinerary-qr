@@ -1,6 +1,6 @@
 import type { ApiResponse } from "./api-types"
 import type { DiscoveryFeedResponse, DiscoveryFeedRequest } from "./recommendation-types"
-import { ApiClient } from "./api-client"
+import { getAuthHeaders, handleResponse } from "./api-client"
 
 // Define RecommendationItem type
 interface RecommendationItem {
@@ -16,21 +16,21 @@ export class DiscoveryClient {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.tinerary.app/v1"
     const response = await fetch(`${API_URL}/discovery/feed`, {
       method: "POST",
-      headers: ApiClient.getAuthHeaders(),
+      headers: getAuthHeaders(),
       body: JSON.stringify(request),
     })
 
-    return ApiClient.handleResponse<DiscoveryFeedResponse>(response)
+    return handleResponse<DiscoveryFeedResponse>(response)
   }
 
   // Get recommendations similar to an item
   static async getSimilarItems(itemId: string, itemType: string): Promise<ApiResponse<RecommendationItem[]>> {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.tinerary.app/v1"
     const response = await fetch(`${API_URL}/discovery/similar?itemId=${itemId}&itemType=${itemType}`, {
-      headers: ApiClient.getAuthHeaders(),
+      headers: getAuthHeaders(),
     })
 
-    return ApiClient.handleResponse<RecommendationItem[]>(response)
+    return handleResponse<RecommendationItem[]>(response)
   }
 
   // Log user interaction for better recommendations
@@ -42,7 +42,7 @@ export class DiscoveryClient {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.tinerary.app/v1"
     const response = await fetch(`${API_URL}/discovery/interaction`, {
       method: "POST",
-      headers: ApiClient.getAuthHeaders(),
+      headers: getAuthHeaders(),
       body: JSON.stringify({
         itemId,
         itemType,
@@ -51,6 +51,6 @@ export class DiscoveryClient {
       }),
     })
 
-    return ApiClient.handleResponse<void>(response)
+    return handleResponse<void>(response)
   }
 }

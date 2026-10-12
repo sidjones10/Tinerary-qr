@@ -329,7 +329,7 @@ export function MfaSettings() {
           {enrollData && (
             <div className="space-y-4">
               <div className="flex justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+                { }
                 <img src={enrollData.qrCode} alt="QR code for authenticator app" className="w-48 h-48" />
               </div>
 

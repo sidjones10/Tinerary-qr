@@ -102,12 +102,17 @@ export async function POST(
             { auth: { autoRefreshToken: false, persistSession: false } }
           )
 
-          adminClient
-            .from("user_preferences")
-            .select("notification_preferences")
-            .eq("user_id", itinerary.user_id)
-            .single()
-            .then(async ({ data: prefsRow }) => {
+          // Fire-and-forget: the like itself already succeeded, so a failure
+          // here must not fail the request. A PostgrestBuilder is only
+          // PromiseLike, so it has no .catch() to hang the handler off.
+          void (async () => {
+            try {
+              const { data: prefsRow } = await adminClient
+                .from("user_preferences")
+                .select("notification_preferences")
+                .eq("user_id", itinerary.user_id)
+                .single()
+
               const prefs = {
                 email: true,
                 likesComments: true,
@@ -122,15 +127,18 @@ export async function POST(
                 .single()
 
               if (ownerProfile?.email) {
-                sendNewLikeEmail(
+                await sendNewLikeEmail(
                   ownerProfile.email,
                   ownerProfile.name || "there",
                   likerProfile?.name || "Someone",
                   itinerary.title,
                   itineraryId
-                ).catch(err => console.error("Failed to send like email:", err))
+                )
               }
-            }).catch(err => console.error("Failed to check email prefs:", err))
+            } catch (err) {
+              console.error("Failed to send like notification email:", err)
+            }
+          })()
         }
       }
     } catch (notifyError) {

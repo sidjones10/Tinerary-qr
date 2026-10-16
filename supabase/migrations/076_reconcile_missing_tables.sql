@@ -12,13 +12,21 @@
 -- already there and creates the ones that are missing. An existing column is
 -- never altered.
 --
--- Column definitions were reconstructed from two sources: lib/database.types.ts
--- where the table appears there (businesses, promotions, promotion_metrics),
--- and otherwise from the queries in app/ and lib/. Neither is a dump, so this
--- is a best reconstruction, not a guarantee — verify it (see below).
+-- VERIFIED against the live database on 2026-10-16 (pg_attribute). Five of
+-- these tables already existed and kept their own shape; the other seven
+-- were genuinely missing and were created by this migration:
 --
--- After applying, run `supabase db dump --schema public` and diff against
--- this file to confirm the repo now matches reality.
+--   pre-existing: businesses, promotions, promotion_metrics,
+--                 user_search_history, verification_codes
+--   created here: cron_job_logs, itinerary_rsvps, mentions, reports,
+--                 support_tickets, ticket_notes, webhook_logs
+--
+-- Three columns in the first draft of this file were invented and have been
+-- removed to match reality: businesses.email, businesses.is_verified, and
+-- promotions.user_id / clicks / priority_placement /
+-- enterprise_badge_enabled. promotions is owned through business_id alone;
+-- click counts live on promotion_metrics. The phantom promotions.user_id is
+-- what made the first run of 077 abort.
 -- ============================================================================
 
 -- ---------------------------------------------------------------------------
@@ -29,11 +37,9 @@ CREATE TABLE IF NOT EXISTS businesses (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
-  email TEXT,
   website TEXT,
   logo TEXT,
   category TEXT,
-  is_verified BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
@@ -72,7 +78,6 @@ ALTER TABLE businesses ENABLE ROW LEVEL SECURITY;
 CREATE TABLE IF NOT EXISTS promotions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   business_id UUID REFERENCES businesses(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
   type TEXT,
@@ -96,9 +101,6 @@ CREATE TABLE IF NOT EXISTS promotions (
   is_featured BOOLEAN NOT NULL DEFAULT false,
   max_capacity INTEGER,
   available_capacity INTEGER,
-  clicks INTEGER NOT NULL DEFAULT 0,
-  priority_placement BOOLEAN NOT NULL DEFAULT false,
-  enterprise_badge_enabled BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );

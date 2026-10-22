@@ -102,6 +102,26 @@ GRANT DELETE ON user_search_history TO authenticated;
 -- NOTE: public.users is a strict subset of profiles and looks vestigial.
 -- Retiring it is the better long-term fix than maintaining policies on it.
 -- ---------------------------------------------------------------------------
+-- Five policies were created by hand in the dashboard and sat inert while
+-- RLS was off. Enabling RLS activates them, so the permissive one must go
+-- first or the table stays readable while the dashboard badge reads secure.
+--
+--   Public profiles readable          SELECT  true              <- the hole
+--   Users can read own data           SELECT  auth.uid() = id   <- duplicate
+--   Users can view their own profile  SELECT  auth.uid() = id   <- duplicate
+--   Users can update own data         UPDATE  auth.uid() = id   <- duplicate
+--   Users can update their own profile UPDATE auth.uid() = id   <- duplicate
+--
+-- Nothing reads another user's row through a session client: getUserById,
+-- getUserByEmail and getUserByPhone in backend/models/user.ts all have zero
+-- callers (the getUserById hits elsewhere are supabase.auth.admin, a
+-- different API), and backend/services/auth.ts uses the service-role key.
+DROP POLICY IF EXISTS "Public profiles readable" ON public.users;
+DROP POLICY IF EXISTS "Users can read own data" ON public.users;
+DROP POLICY IF EXISTS "Users can view their own profile" ON public.users;
+DROP POLICY IF EXISTS "Users can update own data" ON public.users;
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.users;
+
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Users can view their own row" ON public.users;

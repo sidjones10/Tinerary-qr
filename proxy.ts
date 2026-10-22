@@ -77,7 +77,9 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder
      * - api routes that handle their own auth
+     * - .well-known (assetlinks.json for the Play Store TWA; Google's
+     *   verifier fetches it, and it must not cost a session lookup)
      */
-    "/((?!_next/static|_next/image|favicon.ico|public|api).*)",
+    "/((?!_next/static|_next/image|favicon.ico|public|api|\\.well-known).*)",
   ],
 }

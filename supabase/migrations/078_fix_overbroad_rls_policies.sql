@@ -75,21 +75,14 @@ REVOKE INSERT, UPDATE, DELETE ON promotion_metrics FROM anon, authenticated;
 -- existing ownership predicate exactly.
 -- ---------------------------------------------------------------------------
 DROP POLICY IF EXISTS "Business owners can delete their own promotions" ON promotions;
-CREATE POLICY "Business owners can delete their own promotions"
-  ON promotions FOR DELETE USING (
-    EXISTS (
-      SELECT 1 FROM businesses b
-      WHERE b.id = promotions.business_id AND b.user_id = auth.uid()
-    )
-  );
+CREATE POLICY "Business owners can delete their own promotions" ON promotions FOR DELETE USING ( EXISTS ( SELECT 1 FROM businesses b WHERE b.id = promotions.business_id AND b.user_id = auth.uid() ) );
 
 GRANT DELETE ON promotions TO authenticated;
 
 -- user_search_history had no DELETE policy, so a user could not clear their
 -- own search history — awkward next to the GDPR export/erasure flow.
 DROP POLICY IF EXISTS "Users can clear own search history" ON user_search_history;
-CREATE POLICY "Users can clear own search history"
-  ON user_search_history FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Users can clear own search history" ON user_search_history FOR DELETE USING (auth.uid() = user_id);
 
 GRANT DELETE ON user_search_history TO authenticated;
 
@@ -112,16 +105,13 @@ GRANT DELETE ON user_search_history TO authenticated;
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Users can view their own row" ON public.users;
-CREATE POLICY "Users can view their own row"
-  ON public.users FOR SELECT USING (id = auth.uid());
+CREATE POLICY "Users can view their own row" ON public.users FOR SELECT USING (id = auth.uid());
 
 DROP POLICY IF EXISTS "Users can insert their own row" ON public.users;
-CREATE POLICY "Users can insert their own row"
-  ON public.users FOR INSERT WITH CHECK (id = auth.uid());
+CREATE POLICY "Users can insert their own row" ON public.users FOR INSERT WITH CHECK (id = auth.uid());
 
 DROP POLICY IF EXISTS "Users can update their own row" ON public.users;
-CREATE POLICY "Users can update their own row"
-  ON public.users FOR UPDATE USING (id = auth.uid());
+CREATE POLICY "Users can update their own row" ON public.users FOR UPDATE USING (id = auth.uid());
 
 GRANT SELECT, INSERT, UPDATE ON public.users TO authenticated;
 REVOKE ALL ON public.users FROM anon;

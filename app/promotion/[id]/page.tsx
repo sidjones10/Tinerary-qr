@@ -147,10 +147,10 @@ export default function PromotionPage({ params }: { params: { id: string } }) {
     async function loadPromotion() {
       try {
         setIsLoading(true)
-        const data = await getPromotionById(params.id)
+        const { data } = await getPromotionById(params.id)
 
         if (data) {
-          setPromotion(data)
+          setPromotion(data as PromotionData)
           // Record view for analytics
           recordPromotionView(params.id)
         } else {

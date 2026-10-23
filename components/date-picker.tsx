@@ -9,8 +9,24 @@ import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
-export function DatePicker() {
-  const [date, setDate] = React.useState<Date>()
+interface DatePickerProps {
+  /** Controlled value. Omit to let the picker hold its own state. */
+  date?: Date
+  /** Controlled setter. Required for the parent to observe selection. */
+  setDate?: React.Dispatch<React.SetStateAction<Date | undefined>>
+}
+
+/**
+ * Works controlled or uncontrolled.
+ *
+ * It previously took no props at all while callers passed `date`/`setDate`,
+ * so a parent could never observe the selection — promotion-booking-panel
+ * read a date the user's click never reached.
+ */
+export function DatePicker({ date: dateProp, setDate: setDateProp }: DatePickerProps = {}) {
+  const [internalDate, setInternalDate] = React.useState<Date>()
+  const date = dateProp !== undefined ? dateProp : internalDate
+  const setDate = setDateProp ?? setInternalDate
 
   return (
     <Popover>

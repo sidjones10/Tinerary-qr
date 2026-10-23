@@ -938,7 +938,7 @@ export function EnterpriseAnalyticsDashboard({ tier, promotionMetrics, businessI
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                 <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}K`} />
-                <Tooltip contentStyle={tooltipStyle} formatter={(value: number | null) => value ? [`$${value.toLocaleString()}`, ""] : ["-", ""]} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(value) => (typeof value === "number" ? [`$${value.toLocaleString()}`, ""] : ["-", ""])} />
                 <Area type="monotone" dataKey="revenue" stroke="#22c55e" strokeWidth={2} fill="url(#revenueGradient)" name="Revenue" connectNulls={false} />
                 {showForecast && (
                   <Area type="monotone" dataKey="forecast" stroke="#7C3AED" strokeWidth={2} strokeDasharray="6 3" fill="url(#forecastGradient)" name="Forecast" connectNulls />

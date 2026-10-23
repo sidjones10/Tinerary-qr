@@ -162,9 +162,11 @@ export function useItinerary(initialItinerary?: Itinerary) {
       }
 
       if (response.data && itinerary) {
+        // Bind once — inside the callback TS can no longer narrow response.data.
+        const updated = response.data
         // Update local state with updated activity
         const updatedActivities = itinerary.activities.map((activity) =>
-          activity.id === activityId ? response.data : activity,
+          activity.id === activityId ? updated : activity,
         )
 
         const updatedItinerary = {

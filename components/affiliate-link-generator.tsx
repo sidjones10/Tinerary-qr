@@ -61,7 +61,7 @@ export function AffiliateLinkGenerator({ userId, promotions = [], itineraries = 
       const result = await generateAffiliateLink(formData)
 
       if (result.success) {
-        setAffiliateUrl(result.affiliateUrl)
+        setAffiliateUrl(result.affiliateUrl ?? "")
         toast({
           title: "Affiliate link generated!",
           description: "Your affiliate link has been created successfully",

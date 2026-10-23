@@ -346,7 +346,7 @@ function addDiversity(itineraries: ItineraryWithScores[]): ItineraryWithScores[]
 
   // First pass: add high-scoring items from different categories/locations
   for (const itinerary of itineraries) {
-    const category = itinerary.categories?.[0] || ""
+    const category = itinerary.categories?.[0]?.category || ""
     const location = itinerary.location || ""
 
     if (

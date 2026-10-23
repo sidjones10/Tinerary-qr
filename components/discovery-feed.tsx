@@ -182,7 +182,7 @@ export function DiscoveryFeed() {
           const insertAt = Math.min((idx + 1) * 5, combined.length)
           combined.splice(insertAt, 0, deal)
         })
-        setDiscoveryItems(combined)
+        setDiscoveryItems(combined as unknown as DiscoveryItem[])
 
         // Show success toast on refresh
         if (isRefresh) {

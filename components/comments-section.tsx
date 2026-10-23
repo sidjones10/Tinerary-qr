@@ -199,7 +199,7 @@ export function CommentsSection({ itineraryId, currentUserId, itineraryOwnerId }
       // Replace optimistic comment with real one
       if (data) {
         setComments(prev => prev.map(c =>
-          c.id === optimisticId ? { ...data, replies: [] } : c
+          c.id === optimisticId ? ({ ...data, replies: [] } as unknown as Comment) : c
         ))
       }
 
@@ -300,7 +300,7 @@ export function CommentsSection({ itineraryId, currentUserId, itineraryOwnerId }
             return {
               ...comment,
               replies: (comment.replies || []).map(r =>
-                r.id === optimisticId ? { ...data, replies: [] } : r
+                r.id === optimisticId ? ({ ...data, replies: [] } as unknown as Comment) : r
               )
             }
           }

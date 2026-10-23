@@ -4,19 +4,9 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Calendar, MapPin } from "lucide-react"
+import type { WizardStepProps } from "@/components/create-wizard/types"
 
-interface StepBasicsProps {
-  formData: {
-    title: string
-    type: "event" | "trip"
-    startDate: string
-    endDate: string
-  }
-  onChange: (field: string, value: any) => void
-  errors?: Record<string, string>
-}
-
-export function StepBasics({ formData, onChange, errors }: StepBasicsProps) {
+export function StepBasics({ formData, onChange, errors }: WizardStepProps) {
   return (
     <div className="space-y-6">
       {/* Title */}

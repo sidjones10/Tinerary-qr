@@ -71,7 +71,8 @@ export async function GET(request: Request) {
       }
 
       // Category similarity
-      const itineraryCategories = itinerary.categories || []
+      // `categories` is an embedded relation of { category }, not strings.
+      const itineraryCategories = (itinerary.categories || []).map((c) => c.category)
       const matchingCategories = itineraryCategories.filter((cat: string) => categories.includes(cat))
       if (categories.length > 0 && itineraryCategories.length > 0) {
         similarityScore += (matchingCategories.length / categories.length) * 0.2

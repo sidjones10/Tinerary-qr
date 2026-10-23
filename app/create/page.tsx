@@ -558,7 +558,7 @@ function CreatePageContent() {
         activities: activities.filter((a) => a.title),
         packingItems: showPackingExpenses ? packingItems : [],
         expenses: showPackingExpenses ? expenses.filter((e) => e.amount > 0) : [],
-        imageUrl: coverImage,
+        imageUrl: coverImage ?? undefined,
       }
 
       // Use the appropriate service based on whether we're editing or creating
@@ -1531,7 +1531,7 @@ function CreatePageContent() {
             </Button>
             <div className="flex gap-4">
               {!editingItineraryId && (
-                <Button variant="outline" onClick={handleSaveDraft} disabled={isSubmitting || isSaving}>
+                <Button variant="outline" onClick={() => handleSaveDraft()} disabled={isSubmitting || isSaving}>
                   {isSaving ? "Saving..." : "Save as Draft"}
                 </Button>
               )}

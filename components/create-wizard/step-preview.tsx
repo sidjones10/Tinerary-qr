@@ -4,23 +4,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, MapPin, Users, Lock, Globe } from "lucide-react"
 import { format } from "date-fns"
+import type { WizardPreviewProps } from "@/components/create-wizard/types"
 
-interface StepPreviewProps {
-  formData: {
-    title: string
-    type: "event" | "trip"
-    startDate: string
-    endDate: string
-    location: string
-    description: string
-    coverImage: string
-    isPublic: boolean
-    activities: any[]
-    inviteEmails: string[]
-  }
-}
-
-export function StepPreview({ formData }: StepPreviewProps) {
+export function StepPreview({ formData }: WizardPreviewProps) {
   const formatDateRange = () => {
     if (!formData.startDate) return "No date set"
 

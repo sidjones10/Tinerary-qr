@@ -19,6 +19,12 @@ export interface WizardStep {
 interface WizardProps {
   steps: WizardStep[]
   onComplete: () => void | Promise<void>
+  /** Rendered as a Cancel button on the first step. */
+  onCancel?: () => void
+  /** Label for the final-step button. Defaults to "Complete". */
+  submitText?: string
+  /** Disables the final-step button, e.g. while a submit is in flight. */
+  submitDisabled?: boolean
   onStepChange?: (currentStep: number) => void
   initialStep?: number
   showProgress?: boolean
@@ -29,6 +35,9 @@ interface WizardProps {
 export function Wizard({
   steps,
   onComplete,
+  onCancel,
+  submitText,
+  submitDisabled = false,
   onStepChange,
   initialStep = 0,
   showProgress = true,
@@ -184,15 +193,21 @@ export function Wizard({
 
       {/* Navigation Buttons */}
       <div className="flex items-center justify-between">
-        <Button
-          variant="outline"
-          onClick={handleBack}
-          disabled={isFirstStep}
-          className={cn("transition-opacity", isFirstStep && "opacity-0 pointer-events-none")}
-        >
-          <ChevronLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
+        {isFirstStep && onCancel ? (
+          <Button variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            onClick={handleBack}
+            disabled={isFirstStep}
+            className={cn("transition-opacity", isFirstStep && "opacity-0 pointer-events-none")}
+          >
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+        )}
 
         <div className="flex gap-3">
           {allowSkip && currentStepData.optional && !isLastStep && (
@@ -203,13 +218,13 @@ export function Wizard({
 
           <Button
             onClick={handleNext}
-            disabled={isValidating}
+            disabled={isValidating || (isLastStep && submitDisabled)}
             className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600"
           >
             {isValidating ? (
               "Validating..."
             ) : isLastStep ? (
-              "Complete"
+              submitText ?? "Complete"
             ) : (
               <>
                 Next

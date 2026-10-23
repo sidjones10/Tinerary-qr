@@ -64,9 +64,9 @@ supabase gen types typescript --project-id <id> > lib/database.types.ts
 
 ## Known state
 
-- **38 TypeScript errors**, down from 268. `next.config.mjs` still sets
-  `typescript.ignoreBuildErrors: true`; do not remove it until the count is
-  zero. Inventory and suggested order in [`docs/TYPE_ERRORS.md`](docs/TYPE_ERRORS.md).
+- **Typecheck is clean** (0 errors, down from 268). `ignoreBuildErrors` has
+  been removed from `next.config.mjs`, so a type error now fails the build,
+  and CI gates on `npm run typecheck`. Keep it at zero.
 - **Phase 2 is gated off.** `lib/phase2.ts` sets `PHASE_2_ENABLED = false`;
   business, creator, deals, explore, pricing, transactions, affiliate and
   mentions routes are admin-only until it flips.
@@ -82,6 +82,5 @@ supabase gen types typescript --project-id <id> > lib/database.types.ts
 
 ## CI
 
-`.github/workflows/ci.yml` runs lint, tests and a build on every PR.
-Typecheck runs too, but non-required against the documented backlog — flip
-`continue-on-error: false` once it reaches zero.
+`.github/workflows/ci.yml` runs lint, tests, typecheck and a build on every
+PR. All four are required.

@@ -258,8 +258,8 @@ Everything here was checked against the codebase rather than remembered.
 - **Schema is back under version control.** Twelve tables existed only in the
   live database. Migrations 076/077 adopt them with RLS. See
   `supabase/migrations/README.md`.
-- **Type errors: 268 → 38.** Every crash-class bug among them is fixed.
-  Inventory in `docs/TYPE_ERRORS.md`.
+- **Type errors: 268 → 0.** `ignoreBuildErrors` removed from
+  next.config.mjs; a type error now fails the build and CI gates on it.
 - **`npm ci` works** with no flags, for the first time. 31 unused
   dependencies removed; 897 packages → 597.
 - **CI exists** (`.github/workflows/ci.yml`). There was none, which is why
@@ -287,8 +287,7 @@ Everything here was checked against the codebase rather than remembered.
   `lib/rate-limit.ts` falls back to a per-instance in-memory Map, which on
   serverless is close to no limit.
 - **Web push needs VAPID keys** or it is silently inert.
-- **38 TypeScript errors**, so `ignoreBuildErrors` cannot be removed yet.
-- **1015 ESLint warnings** (0 errors). ~80 are React Compiler-era
+- **1012 ESLint warnings** (0 errors). ~80 are React Compiler-era
   `set-state-in-effect`, worth burning down before enabling the compiler.
 - **37 `console.log` statements** in app code.
 - **i18n is scaffolded only** — six locales, real strings in `en` alone.

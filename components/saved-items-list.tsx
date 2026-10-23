@@ -92,7 +92,7 @@ export function SavedItemsList({ limit = 20 }: SavedItemsListProps) {
           setError("Failed to load saved items")
           console.error(fetchError)
         } else {
-          setItems(data || [])
+          setItems((data as unknown as SavedItem[]) || [])
         }
       } catch (err) {
         setError("An error occurred while loading saved items")

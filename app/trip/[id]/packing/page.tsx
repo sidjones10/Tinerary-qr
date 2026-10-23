@@ -12,11 +12,13 @@ import { createClient } from "@/lib/supabase/server"
 export default async function PackingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: tripId } = await params
 
-  // Fetch trip data
-  const trip = await getTripById(tripId)
-  if (!trip) {
+  // Fetch trip data. getTripById returns a { success, data } wrapper, so the
+  // object is always truthy — unwrap it before checking.
+  const tripResult = await getTripById(tripId)
+  if (!tripResult.success || !tripResult.data) {
     notFound()
   }
+  const trip = tripResult.data
 
   // Check access permissions
   const supabase = await createClient()

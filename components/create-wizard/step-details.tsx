@@ -5,17 +5,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Upload, X, Image as ImageIcon } from "lucide-react"
+import type { WizardStepProps } from "@/components/create-wizard/types"
 
-interface StepDetailsProps {
-  formData: {
-    description: string
-    coverImage: string
-  }
-  onChange: (field: string, value: any) => void
-  errors?: Record<string, string>
-}
-
-export function StepDetails({ formData, onChange, errors }: StepDetailsProps) {
+export function StepDetails({ formData, onChange, errors }: WizardStepProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(formData.coverImage || null)
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -14,24 +14,9 @@ import { createItinerary } from "@/lib/itinerary-service"
 import { useToast } from "@/components/ui/use-toast"
 import confetti from "canvas-confetti"
 import { Calendar, MapPin, FileText, Eye } from "lucide-react"
+import type { CreateFormData } from "@/components/create-wizard/types"
 
-export interface CreateFormData {
-  title: string
-  type: "event" | "trip"
-  startDate: string
-  endDate: string
-  location: string
-  description: string
-  coverImage: string | null
-  isPublic: boolean
-  activities: Array<{
-    title: string
-    location: string
-    time: string
-    description: string
-    day: string
-  }>
-}
+export type { CreateFormData }
 
 export default function CreateWizardPage() {
   return (
@@ -117,8 +102,7 @@ function CreateWizardContent() {
     setIsSubmitting(true)
 
     try {
-      const result = await createItinerary({
-        userId: user.id,
+      const result = await createItinerary(user.id, {
         title: formData.title,
         description: formData.description,
         location: formData.location,

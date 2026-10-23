@@ -20,7 +20,8 @@ import { Loader2, ShieldCheck, ShieldOff } from "lucide-react"
 
 interface MfaFactor {
   id: string
-  friendly_name: string | null
+  // Matches @supabase/supabase-js Factor: optional, not nullable.
+  friendly_name?: string
   factor_type: string
   status: string
 }

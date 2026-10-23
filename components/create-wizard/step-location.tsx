@@ -6,16 +6,9 @@ import { Button } from "@/components/ui/button"
 import { LocationAutocomplete } from "@/components/location-autocomplete"
 import { reverseGeocode } from "@/lib/geocode"
 import { Navigation } from "lucide-react"
+import type { WizardStepProps } from "@/components/create-wizard/types"
 
-interface StepLocationProps {
-  formData: {
-    location: string
-  }
-  onChange: (field: string, value: any) => void
-  errors?: Record<string, string>
-}
-
-export function StepLocation({ formData, onChange, errors }: StepLocationProps) {
+export function StepLocation({ formData, onChange, errors }: WizardStepProps) {
   const [isGettingLocation, setIsGettingLocation] = useState(false)
 
   const handleUseCurrentLocation = () => {

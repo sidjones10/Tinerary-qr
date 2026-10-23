@@ -23,7 +23,7 @@ export default async function FollowersPage({ params }: { params: Promise<{ user
   }
 
   // Check if viewing own profile
-  const isOwnProfile = user && user.id === profile.id
+  const isOwnProfile = Boolean(user && user.id === profile.id)
 
   // Check privacy settings
   let isProfileRestricted = false

@@ -77,8 +77,8 @@ async function sendEmailByType(
           year: "numeric",
         }),
         "Event Location",
-        24,
-        "sample-event-id"
+        "sample-event-id",
+        24
       )
 
     case "countdown_reminder":

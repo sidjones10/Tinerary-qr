@@ -21,6 +21,7 @@ interface Draft {
   title: string
   description: string | null
   destination: string | null
+  location: string | null
   created_at: string
   updated_at: string
   [key: string]: unknown

@@ -141,8 +141,9 @@ async function testExpenseCreation() {
 
   // Test 5: Check if triggers exist
   console.log('\n5️⃣  Checking database triggers...')
-  const { data: triggers, error: triggersError } = await supabase
-    .rpc('pg_trigger_check', {})
+  // A PostgrestFilterBuilder is only PromiseLike, so it has no .catch().
+  const { data: triggers, error: triggersError } = await Promise
+    .resolve(supabase.rpc('pg_trigger_check', {}))
     .catch(() => {
       // Fallback - try to check via information_schema
       return { data: null, error: { message: 'Custom check needed' } }

@@ -49,10 +49,6 @@ jobs:
     name: Typecheck
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Not a required check yet: there is a known backlog of type errors
-    # (see docs/TYPE_ERRORS.md). It runs so the count is visible on every PR
-    # and cannot quietly grow. Flip continue-on-error off once it reaches 0.
-    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4

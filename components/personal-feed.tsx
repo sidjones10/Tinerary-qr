@@ -6,9 +6,24 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+/** Shape of the placeholder feed entries rendered below. */
+interface FeedEvent {
+  id: string
+  title: string
+  type: string
+  date: string
+  time?: string
+  image: string
+  location: string
+  attendees: number
+  organizer: { name: string; avatar: string }
+  height?: string
+  [key: string]: unknown
+}
+
 export function PersonalFeed() {
   // Sample data - in a real app, this would come from a database
-  const upcomingEvents = [
+  const upcomingEvents: FeedEvent[] = [
     {
       id: "1",
       title: "Weekend in NYC",
@@ -70,7 +85,7 @@ export function PersonalFeed() {
     },
   ]
 
-  const pastEvents = [
+  const pastEvents: FeedEvent[] = [
     {
       id: "5",
       title: "Beach Day",
@@ -115,7 +130,7 @@ export function PersonalFeed() {
     },
   ]
 
-  const getImageHeight = (height: string) => {
+  const getImageHeight = (height?: string) => {
     switch (height) {
       case "tall":
         return "h-64"

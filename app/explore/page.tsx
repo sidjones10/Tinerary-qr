@@ -157,7 +157,7 @@ export default function ExplorePage() {
       try {
         const result = await getTrendingItineraries(user?.id || null, 6)
         if (result.success && result.items) {
-          setTrending(result.items)
+          setTrending(result.items as unknown as TrendingItem[])
         }
       } catch {
         // Silently fail - trending section just won't show

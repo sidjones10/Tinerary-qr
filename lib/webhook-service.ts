@@ -18,6 +18,9 @@ export const WEBHOOK_EVENTS = [
 
 export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number]
 
+/** The subset of WebhookRecord selected when dispatching an event. */
+export type WebhookDispatchRow = Pick<WebhookRecord, "id" | "url" | "secret" | "events">
+
 export interface WebhookRecord {
   id: string
   business_id: string
@@ -154,7 +157,7 @@ export async function fireWebhookEvent(
 
     if (error || !webhooks || webhooks.length === 0) return
 
-    const matching = webhooks.filter((w: WebhookRecord) =>
+    const matching = webhooks.filter((w: WebhookDispatchRow) =>
       w.events.includes(event)
     )
     if (matching.length === 0) return
@@ -166,7 +169,7 @@ export async function fireWebhookEvent(
       data,
     }
 
-    const deliveries = matching.map(async (webhook: WebhookRecord) => {
+    const deliveries = matching.map(async (webhook: WebhookDispatchRow) => {
       const result = await deliverToUrl(webhook.url, event, payload, webhook.secret)
 
       // Log delivery
